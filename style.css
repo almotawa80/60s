@@ -407,3 +407,8 @@ input,textarea,select{font-size:16px!important}
 .today{width:26px;height:26px;border-radius:50%;flex:none;background:var(--soft);display:flex;align-items:center;justify-content:center;color:#fff}
 .today.y{background:linear-gradient(180deg,#4FD394,#1FA971);box-shadow:0 2px 0 #0E6A45}
 .today .ico{width:16px;height:16px;stroke-width:3}
+/* iOS date inputs: keep inside the card, correct order */
+.grid2>*,.field{min-width:0}
+input[type=date].input{-webkit-appearance:none;appearance:none;display:block;width:100%;max-width:100%;min-width:0;direction:ltr;text-align:center;line-height:28px}
+input[type=date].input::-webkit-date-and-time-value{text-align:center;margin:0}
+input[type=date].input::-webkit-calendar-picker-indicator{margin:0}
