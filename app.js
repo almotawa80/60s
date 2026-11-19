@@ -314,12 +314,26 @@ ACTS['s-leaders'] = async () => {
   try {
     const res = await rpc('class_leaderboard', { p_token: S.token });
     const hidden = res && res.hidden, rows = hidden ? res.rows : res;
-    m.querySelector('.modal').innerHTML = '<h3>المتصدرون في ' + esc(S.home.class.name) + '</h3>' +
-      (hidden ? '<div class="card center" style="margin-bottom:10px"><b>الترتيب مخفي حتى نهاية المسابقة 🤫</b><div class="sub">هذا ترتيبك أنت فقط</div></div>' : '') + '<div class="lb">' +
-      rows.map(r => '<div class="r' + (r.is_me ? ' me' : '') + '"><span class="no">' + r.rank + '</span><span class="nm">' + esc(r.name) + '</span><b>' + r.points + '</b></div>').join('') +
-      '</div><button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button>';
+    m.querySelector('.modal').classList.add('lbx-m');
+    m.querySelector('.modal').innerHTML = leadersHtml(rows, hidden);
   } catch(e){ m.remove(); toast(errMsg(e)); }
 };
+
+function leadersHtml(rows, hidden){
+  const th = document.body.dataset.theme || 'mid';
+  const on = rows.filter(r => r.points > 0), zero = rows.filter(r => !(r.points > 0)), me = rows.find(r => r.is_me);
+  const ini = n => esc(String(n || '?').trim().split(/\s+/)[0]);
+  const top = on.slice(0, 3), rest = on.slice(3), max = Math.max(1, ...on.map(r => r.points));
+  const pod = top.length && !hidden ? '<div class="lbx-pod">' + [1, 0, 2].map(i => { const r = top[i]; if (!r) return '<div class="lbx-pd empty"></div>';
+      return '<div class="lbx-pd p' + (i + 1) + (r.is_me ? ' me' : '') + '"><div class="lbx-av">' + (i === 0 ? '<span class="lbx-crown">👑</span>' : '') + ini(r.name).charAt(0) + '<span class="lbx-md">' + (i + 1) + '</span></div><b>' + ini(r.name) + '</b><span class="lbx-pts">' + r.points + '</span><div class="lbx-step"></div></div>'; }).join('') + '</div>' : '';
+  const list = (hidden ? on : rest).map(r => '<div class="lbx-r' + (r.is_me ? ' me' : '') + '"><span class="lbx-no">' + r.rank + '</span><span class="lbx-nm">' + esc(r.name) + (r.is_me ? ' <small>(أنت)</small>' : '') + '<i><u style="width:' + Math.round(r.points * 100 / max) + '%"></u></i></span><b>' + r.points + '</b></div>').join('');
+  const meZero = me && !(me.points > 0);
+  return '<div class="lbx pv-' + th + '"><div class="lbx-top"><h3>🏆 المتصدرون</h3><span>' + esc(S.home.class.name) + '</span><button class="lbx-x" data-act="close-modal" aria-label="إغلاق">' + ic('x') + '</button></div>' +
+    (hidden ? '<div class="lbx-hid">الترتيب مخفي حتى نهاية المسابقة 🤫<small>هذا ترتيبك أنت فقط</small></div>' : '') +
+    (on.length ? pod + (list ? '<div class="lbx-list">' + list + '</div>' : '') : '<div class="lbx-empty"><span>🚀</span><b>لا أحد في القائمة بعد</b><small>العب جولة اليوم وكن أول المتصدرين!</small></div>') +
+    (zero.length && !hidden ? '<div class="lbx-zero">' + (meZero ? '<b>أنت و' + (zero.length - 1) + ' آخرون</b>' : '<b>' + zero.length + ' طالب/ـة</b>') + ' لم يحصلوا على نقاط بعد. جولة واحدة تدخلك القائمة!</div>' : '') +
+    '</div>';
+}
 
 /* ---- game effects: sound, haptics, particles ---- */
 const FX = (() => {
