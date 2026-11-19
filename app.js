@@ -1234,7 +1234,34 @@ function route(){
   else if (h.indexOf('#/j/') === 0) studentJoin(decodeURIComponent(h.slice(4)));
   else studentRoute();
 }
-window.addEventListener('hashchange', route);
+window.addEventListener('hashchange', () => { saveUI(); route(); });
+/* remember where the user was, restore on reopen */
+function saveUI(){
+  try {
+    if (location.hash.indexOf('#/j/') !== 0) LS.set('mc_last', location.hash || '#/s');
+    LS.set('mc_ui', JSON.stringify({ open: [...CL.open], tab: CL.tab, sort: RS.sort, qf: T.qf, ctab: T.classTab, y: scrollY, h: location.hash }));
+  } catch(e){}
+}
+function loadUI(){
+  try {
+    const u = JSON.parse(LS.get('mc_ui') || '{}');
+    if (u.open) u.open.forEach(id => CL.open.add(id));
+    if (u.tab) CL.tab = u.tab; if (u.sort) RS.sort = u.sort; if (u.qf) Object.assign(T.qf, u.qf);
+    return u;
+  } catch(e){ return {}; }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveUI(); });
+window.addEventListener('pagehide', saveUI);
+const _ui = loadUI();
+if (!location.hash || location.hash === '#' || location.hash === '#/s') {
+  const last = LS.get('mc_last');
+  if (last && last !== '#/s' && last.indexOf('#/j/') !== 0) history.replaceState(null, '', last);
+}
+if (_ui.y && _ui.h === location.hash) {
+  const y = _ui.y, t0 = Date.now();
+  const tryScroll = () => { if (document.body.scrollHeight > y + innerHeight / 2 || Date.now() - t0 > 3000) scrollTo(0, y); else setTimeout(tryScroll, 120); };
+  setTimeout(tryScroll, 300);
+}
 /* app feel: block pinch / double-tap zoom */
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
