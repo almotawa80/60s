@@ -412,3 +412,7 @@ input,textarea,select{font-size:16px!important}
 input[type=date].input{-webkit-appearance:none;appearance:none;display:block;width:100%;max-width:100%;min-width:0;direction:ltr;text-align:center;line-height:28px}
 input[type=date].input::-webkit-date-and-time-value{text-align:center;margin:0}
 input[type=date].input::-webkit-calendar-picker-indicator{margin:0}
+/* lower floating tab bar */
+.t-nav{bottom:max(6px, calc(env(safe-area-inset-bottom) - 20px))!important}
+.fab{bottom:calc(max(6px, calc(env(safe-area-inset-bottom) - 20px)) + 84px)!important}
+#toast{bottom:calc(max(6px, calc(env(safe-area-inset-bottom) - 20px)) + 84px)}
