@@ -13,6 +13,8 @@ const LS = {
   del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
 const ERR = {
+  bad_code: 'رمز المشاركة غير صحيح',
+  no_questions: 'لم يتم تحديد أسئلة',
   invalid_code: 'الرمز غير صحيح، تأكد منه وحاول مرة أخرى',
   invalid_session: 'انتهت الجلسة، أدخل الرمز من جديد',
   already_played_today: 'أنهيت جولتك الرسمية اليوم، عد غداً',
@@ -74,6 +76,9 @@ const ICON = {
   search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
   sound:'<path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
   mute:'<path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M22 9l-6 6M16 9l6 6"/>',
+  image:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
+  camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  share:'<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>',
   star:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3z"/>'
 };
 const ic = n => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + ICON[n] + '</svg>';
@@ -514,7 +519,7 @@ function showQuestion(st){
     '<div class="pv-clock">' + (th === 'kids' ? PV_GLASS : '') +
     '<div class="timer' + (st.position === st.total ? ' last' : '') + '" id="timer"><div class="tfill" id="tfill"></div><svg viewBox="0 0 116 116" aria-hidden="true"><circle class="bg" cx="58" cy="58" r="48"/><circle class="fg" id="tfg" cx="58" cy="58" r="48" stroke-dasharray="301.6" stroke-dashoffset="0"/></svg>' +
     '<div class="num"><span id="tnum">' + Math.ceil(st.seconds_left) + '</span><small>ثانية</small></div></div></div>' +
-    '<div class="pv-panel"><div class="qbox">' + esc(q.body) + '</div><div class="pts-pop" id="pop"></div>' +
+    '<div class="pv-panel"><div class="qbox' + (q.image ? ' has-img' : '') + '">' + (q.image ? '<img class="q-img" src="' + esc(q.image) + '" alt="">' : '') + '<span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
     '<div class="opts' + (long ? ' long' : '') + '">' + q.options.map((o, i) => '<button class="opt" data-act="s-answer" data-idx="' + i + '"><span class="letter">' + LETTERS[i] + '</span><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
   runTimer(st.seconds_left);
 }
@@ -770,6 +775,7 @@ async function teacherRoute(){
     if (page === 'classes' || page === 'comps') { CL.tab = page; await tClasses(); }
     else if (page === 'class') await tClass(parts[1]);
     else if (page === 'questions') await tQuestions();
+    else if (page === 'qshare') { T.qf.status = 'approved'; await tQuestions(); qSharePreview(parts[1]); }
     else if (page === 'results') await tResults(parts[1]);
     else if (page === 'settings') await tSettings();
     else if (page === 'qset') await tQSet();
@@ -1685,14 +1691,14 @@ function qStat(q){
 }
 function qItem(q, ro){
   const sel = QS.selOn && !ro, on = QS.sel.has(q.id);
-  return `<div class="q-item${on ? ' sel' : ''}" data-act="${ro ? 't-q-view' : sel ? 't-q-pick' : 't-q-edit'}" data-id="${q.id}">
-    ${sel ? `<span class="tick sq${on ? ' on' : ''}" aria-hidden="true">${ic('check')}</span>` : ''}<b class="q-body">${esc(q.body)}</b>
-    <div class="opts-s">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${LETTERS[i]}. ${esc(o)}</span>`).join('')}</div>
+  return `<div class="q-item qi${on ? ' sel' : ''}" data-act="${ro ? 't-q-view' : sel ? 't-q-pick' : 't-q-edit'}" data-id="${q.id}">
+    <div class="qi-top">${sel ? `<span class="tick sq${on ? ' on' : ''}" aria-hidden="true">${ic('check')}</span>` : ''}${q.image ? `<img class="q-thumb" src="${esc(q.image)}" alt="" loading="lazy">` : ''}<b class="q-body">${esc(q.body)}</b></div>
+    <div class="qi-opts">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${i === q.correct_index ? ic('check') : ''}${esc(o)}</span>`).join('')}</div>
     ${qStat(q)}
-    <div class="row"><span class="chip lv-${q.level}">${LEVEL_AR[q.level]}</span><span class="chip">${TYPE_AR[q.qtype] || q.qtype}</span>${QS.dup.has(q.id) ? '<span class="chip dup">مكرر</span>' : ''}<span class="grow"></span>
+    <div class="qi-foot"><span class="qi-meta"><i class="lvd lv-${q.level}"></i>${LEVEL_AR[q.level]}<em>·</em>${TYPE_AR[q.qtype] || q.qtype}${QS.dup.has(q.id) ? '<b class="qi-dup">مكرر</b>' : ''}</span><span class="grow"></span>
     ${ro ? `<button class="btn sm soft" data-act="t-q-copy" data-id="${q.id}">${ic('plus')} إلى أسئلتي</button>` : sel ? '' :
       q.status === 'draft' ? `<button class="q-ok" data-act="t-q-status" data-id="${q.id}" data-s="approved" aria-label="اعتماد">${ic('check')}<span>اعتماد</span></button><button class="q-no" data-act="t-q-status" data-id="${q.id}" data-s="rejected" aria-label="رفض">${ic('x')}<span>رفض</span></button>` :
-      q.status === 'rejected' ? `<button class="btn sm soft" data-act="t-q-status" data-id="${q.id}" data-s="approved">استعادة</button>` : ''}</div></div>`;
+      q.status === 'rejected' ? `<button class="btn sm soft" data-act="t-q-status" data-id="${q.id}" data-s="approved">استعادة</button>` : `<span class="qi-edit">${ic('edit')}</span>`}</div></div>`;
 }
 function qFiltered(){
   const f = T.qf, s = qNorm(QS.q);
@@ -1702,7 +1708,7 @@ function qFiltered(){
 function qListHtml(){
   const f = T.qf, list = qFiltered(), ro = f.status === 'global';
   if (!QS.list.length && !ro) return `<div class="card q-empty"><b>ابدأ بإضافة أسئلتك</b><p class="sub">أسئلتك تُعتمد مباشرة وتدخل في المسابقات مع البنك العام.</p>
-    <div class="q-empty-a"><button class="btn" data-act="t-q-add">${ic('plus')} إضافة سؤال</button><button class="btn soft" data-act="t-q-paste">${ic('edit')} لصق أسئلة</button><button class="btn soft" data-act="t-q-import">${ic('upload')} من ملف Excel</button><button class="btn ghost" data-act="t-qs" data-v="global">تصفح البنك العام</button></div></div>`;
+    <div class="q-empty-a"><button class="btn" data-act="t-q-add">${ic('plus')} إضافة سؤال</button><button class="btn soft" data-act="t-q-paste">${ic('edit')} لصق أسئلة</button><button class="btn soft" data-act="t-q-import">${ic('upload')} من ملف Excel</button><button class="btn soft" data-act="t-q-ocr">${ic('camera')} تصوير ورقة</button><button class="btn soft" data-act="t-q-code">${ic('share')} برمز من معلم</button><button class="btn ghost" data-act="t-qs" data-v="global">تصفح البنك العام</button></div></div>`;
   if (!list.length) return `<div class="card center muted">${QS.q ? 'لا نتائج للبحث.' : f.status === 'draft' ? 'لا توجد أسئلة بانتظار المراجعة.' : 'لا توجد أسئلة هنا.'}</div>`;
   return list.map(q => qItem(q, ro)).join('') + (ro ? '' : '');
 }
@@ -1731,9 +1737,9 @@ function renderQuestions(){
     ${qSelBar()}
     ${f.status === 'draft' && cnt('draft') && !QS.selOn ? `<button class="btn accent" data-act="t-q-approve-all">${ic('check')} اعتماد الكل (${cnt('draft')})</button>` : ''}
     ${ro ? '<p class="sub q-ro">أسئلة جاهزة تدخل في مسابقاتك تلقائياً. انسخ أي سؤال إلى أسئلتك لتعدّله.</p>' : ''}
-    <div id="qlist">${qListHtml()}</div>
+    <div id="qlist" class="qi-list">${qListHtml()}</div>
     ${ro ? '' : `<button class="fab" data-act="t-q-add-menu" aria-label="إضافة أسئلة">${ic('plus')}</button>`}
-    <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen">`;
+    <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen"><input type="file" id="qocr" accept="image/*" class="hide" data-change="t-q-ocr-chosen">`;
   view('الأسئلة', body, 'questions', top);
 }
 document.addEventListener('input', e => {
@@ -1751,7 +1757,10 @@ ACTS['t-qf'] = t => { T.qf[t.dataset.k] = t.value; renderQuestions(); };
 ACTS['t-q-more'] = () => sheet('الأسئلة', [
   { act: 'm-run', attrs: 'data-a="t-q-add"', icon: 'plus', label: 'إضافة سؤال' },
   { act: 'm-run', attrs: 'data-a="t-q-paste"', icon: 'edit', label: 'لصق أسئلة كنص' },
+  { act: 'm-run', attrs: 'data-a="t-q-ocr"', icon: 'camera', label: 'قراءة أسئلة من صورة' },
   { act: 'm-run', attrs: 'data-a="t-q-import"', icon: 'upload', label: 'استيراد أسئلة من Excel' },
+  { act: 'm-run', attrs: 'data-a="t-q-code"', icon: 'share', label: 'إضافة أسئلة برمز من معلم' },
+  { act: 'm-run', attrs: 'data-a="t-q-share-all"', icon: 'send', label: 'مشاركة أسئلتي المعتمدة' },
   { act: 'm-run', attrs: 'data-a="t-q-template"', icon: 'download', label: 'تنزيل نموذج Excel' },
   { act: 'm-run', attrs: 'data-a="t-q-export"', icon: 'download', label: 'تنزيل أسئلتي' },
   null,
@@ -1760,6 +1769,8 @@ ACTS['t-q-more'] = () => sheet('الأسئلة', [
 ACTS['t-q-add-menu'] = () => sheet('إضافة أسئلة', [
   { act: 'm-run', attrs: 'data-a="t-q-add"', icon: 'plus', label: 'سؤال واحد' },
   { act: 'm-run', attrs: 'data-a="t-q-paste"', icon: 'edit', label: 'لصق عدة أسئلة كنص' },
+  { act: 'm-run', attrs: 'data-a="t-q-ocr"', icon: 'camera', label: 'تصوير ورقة أسئلة' },
+  { act: 'm-run', attrs: 'data-a="t-q-code"', icon: 'share', label: 'برمز مشاركة من معلم' },
   { act: 'm-run', attrs: 'data-a="t-q-import"', icon: 'upload', label: 'من ملف Excel' }
 ]);
 ACTS['t-q-del-rejected'] = async () => {
@@ -1772,30 +1783,53 @@ ACTS['t-q-del-rejected'] = async () => {
 
 /* question form: tap the right answer, segment pickers, save & next */
 function qForm(q){
-  const isNew = !q;
+  const isNew = !q || !q.id, ocr = QS.ocrQ && QS.ocrQ.total && isNew && q;
   q = q || { qtype: QS.lastType || 'curriculum', level: QS.lastLevel || 'medium', body: '', options: ['', '', '', ''], correct_index: 0, curriculum_id: QS.lastCu || '' };
   const seg = (name, cur, map) => `<input type="hidden" name="${name}" value="${cur}"><div class="qf-seg" data-name="${name}">${Object.keys(map).filter(k => k !== 'memory').map(k => `<button type="button" class="${cur === k ? 'on' : ''}" data-act="qf-seg" data-v="${k}">${map[k]}</button>`).join('')}</div>`;
-  return `<h3>${isNew ? 'إضافة سؤال' : 'تعديل سؤال'}</h3><form class="col qf" data-form="t-save-q"><input type="hidden" name="id" value="${q.id || ''}"><input type="hidden" name="next" value="">
+  return `<h3>${ocr ? `سؤال ${QS.ocrQ.total - QS.ocrQ.list.length} من ${QS.ocrQ.total} من الصورة` : isNew ? 'إضافة سؤال' : 'تعديل سؤال'}</h3>${ocr ? '<p class="sub">راجع النص واضغط الدائرة بجانب الإجابة الصحيحة.</p>' : ''}<form class="col qf" data-form="t-save-q"><input type="hidden" name="id" value="${q.id || ''}"><input type="hidden" name="next" value="">
     <div class="field"><label for="q-b">نص السؤال</label><textarea class="input" id="q-b" name="body" rows="2" required maxlength="300" placeholder="اكتب السؤال هنا">${esc(q.body)}</textarea>
       <small id="q-dupw" class="q-dupw hide">يوجد سؤال مشابه في البنك.</small></div>
+    <div class="field"><input type="hidden" name="image" value="${esc(q.image || '')}"><div class="q-imgf" id="q-imgf">${qImgField(q.image)}</div><input type="file" id="qf-file" accept="image/*" class="hide" data-change="qf-img-chosen"></div>
     <div class="field"><label>الخيارات <small class="muted">اضغط الدائرة بجانب الإجابة الصحيحة</small></label><input type="hidden" name="correct" value="${q.correct_index}">
     ${[0, 1, 2, 3].map(i => `<div class="qo${q.correct_index === i ? ' on' : ''}"><button type="button" class="qo-c" data-act="qf-c" data-i="${i}" aria-label="الإجابة الصحيحة ${LETTERS[i]}">${ic('check')}</button><input class="input" name="o${i}" value="${esc(q.options[i])}" required maxlength="100" placeholder="${i === q.correct_index ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[i]}"></div>`).join('')}</div>
     <div class="field"><label>المستوى</label>${seg('level', q.level, LEVEL_AR)}</div>
     <div class="field"><label>النوع</label>${seg('qtype', q.qtype, TYPE_AR)}</div>
     <div class="field ${q.qtype === 'curriculum' ? '' : 'hide'}" id="q-cuf"><label for="q-cu">المنهج</label><select class="input" id="q-cu" name="cu">${cuOptions(q.curriculum_id || '')}</select></div>
-    ${isNew ? `<div class="grid2"><button class="btn" type="submit">حفظ</button><button class="btn soft" type="button" data-act="t-save-q-next">حفظ والتالي</button></div>` : `<button class="btn" type="submit">حفظ التعديل</button>`}
+    ${ocr ? `<div class="grid2"><button class="btn" type="button" data-act="t-save-q-next">حفظ والتالي</button><button class="btn soft" type="button" data-act="t-q-ocr-skip">تخطي</button></div>` : isNew ? `<div class="grid2"><button class="btn" type="submit">حفظ</button><button class="btn soft" type="button" data-act="t-save-q-next">حفظ والتالي</button></div>` : `<button class="btn" type="submit">حفظ التعديل</button>`}
     ${q.id ? `<button type="button" class="btn danger" data-act="t-q-del" data-id="${q.id}">${ic('trash')} حذف السؤال</button>` : ''}</form>`;
 }
 ACTS['qf-seg'] = t => { const s = t.parentElement, f = t.closest('form'); f[s.dataset.name].value = t.dataset.v; s.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t));
   if (s.dataset.name === 'qtype') f.querySelector('#q-cuf').classList.toggle('hide', t.dataset.v !== 'curriculum'); };
 ACTS['qf-c'] = t => { const f = t.closest('form'), i = Number(t.dataset.i); f.correct.value = i;
   f.querySelectorAll('.qo').forEach((r, j) => { r.classList.toggle('on', j === i); r.querySelector('input').placeholder = j === i ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[j]; }); };
+function qImgField(url){ return url ? `<img src="${esc(url)}" alt=""><div class="q-imgb"><button type="button" class="btn sm soft" data-act="qf-img">تغيير الصورة</button><button type="button" class="btn sm ghost" data-act="qf-img-x">إزالة</button></div>`
+  : `<button type="button" class="q-imgadd" data-act="qf-img">${ic('image')}<span>إضافة صورة للسؤال <small>(اختياري)</small></span></button>`; }
+ACTS['qf-img'] = () => document.getElementById('qf-file').click();
+ACTS['qf-img-x'] = t => { const f = t.closest('form'); f.image.value = ''; document.getElementById('q-imgf').innerHTML = qImgField(''); };
+/* shrink a photo to a light JPEG before upload */
+async function shrinkImg(file, max){
+  const bmp = await createImageBitmap(file); const k = Math.min(1, (max || 1000) / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.82));
+}
+ACTS['qf-img-chosen'] = async t => {
+  const file = t.files && t.files[0]; if (!file) return; t.value = '';
+  const box = document.getElementById('q-imgf'), f = t.closest('form'); box.innerHTML = '<div class="spin sm"></div>';
+  try {
+    const blob = await shrinkImg(file, 1000), path = `${T.user.id}/${crypto.randomUUID()}.jpg`;
+    const up = await sb.storage.from('qimg').upload(path, blob, { contentType: 'image/jpeg' }); if (up.error) throw up.error;
+    const url = sb.storage.from('qimg').getPublicUrl(path).data.publicUrl;
+    f.image.value = url; box.innerHTML = qImgField(url);
+  } catch(e){ box.innerHTML = qImgField(f.image.value); toast('تعذر رفع الصورة: ' + errMsg(e)); }
+};
 ACTS['t-save-q-next'] = t => { const f = t.closest('form'); f.next.value = '1'; f.requestSubmit(); };
-ACTS['t-q-add'] = async () => { await loadCurricula().catch(() => {}); closeModals(); modal(qForm()); setTimeout(() => { const b = document.getElementById('q-b'); if (b) b.focus(); }, 60); };
+ACTS['t-q-add'] = async () => { QS.ocrQ = null; await loadCurricula().catch(() => {}); closeModals(); modal(qForm()); setTimeout(() => { const b = document.getElementById('q-b'); if (b) b.focus(); }, 60); };
 ACTS['t-q-edit'] = async t => { await loadCurricula().catch(() => {}); modal(qForm(QS.list.find(x => x.id === t.dataset.id))); };
 ACTS['t-save-q'] = async f => {
   const next = f.next.value === '1'; f.next.value = '';
-  const row = { qtype: f.qtype.value, level: f.level.value, body: f.body.value.trim(), options: [0, 1, 2, 3].map(i => f['o' + i].value.trim()), correct_index: Number(f.correct.value), curriculum_id: f.qtype.value === 'curriculum' ? (f.cu.value || null) : null };
+  const row = { qtype: f.qtype.value, level: f.level.value, body: f.body.value.trim(), options: [0, 1, 2, 3].map(i => f['o' + i].value.trim()), correct_index: Number(f.correct.value), curriculum_id: f.qtype.value === 'curriculum' ? (f.cu.value || null) : null, image: f.image.value || null };
+  if (row.correct_index < 0) return toast('اضغط الدائرة بجانب الإجابة الصحيحة');
   QS.lastCu = f.cu.value; QS.lastType = row.qtype; QS.lastLevel = row.level;
   if (new Set(row.options).size < 4) return toast('الخيارات يجب أن تكون مختلفة');
   const k = qNorm(row.body);
@@ -1804,7 +1838,9 @@ ACTS['t-save-q'] = async f => {
   if (r.error) return toast(errMsg(r.error));
   if (f.id.value) { const i = QS.list.findIndex(x => x.id === f.id.value); if (i >= 0) QS.list[i] = r.data; } else QS.list.unshift(r.data);
   qDupIndex();
+  if (QS.ocrQ && QS.ocrQ.total && !f.id.value) { QS.ocrQ.saved++; return qOcrNext(); }
   if (next) {
+    f.image.value = ''; document.getElementById('q-imgf').innerHTML = qImgField('');
     f.body.value = ''; [0, 1, 2, 3].forEach(i => { f['o' + i].value = ''; }); ACTS['qf-c'](f.querySelector('[data-i="0"]'));
     const w = document.getElementById('q-dupw'); if (w) w.classList.add('hide');
     f.body.focus(); toast(`تم الحفظ. أسئلتك المعتمدة: ${QS.list.filter(q => q.status === 'approved').length}`);
@@ -1843,6 +1879,7 @@ ACTS['t-q-bulk-more'] = () => sheet(`${QS.sel.size} سؤالاً محدداً`, 
   { act: 't-q-bulk-lv', attrs: 'data-v="easy"', icon: 'layers', label: 'جعلها سهلة' },
   { act: 't-q-bulk-lv', attrs: 'data-v="medium"', icon: 'layers', label: 'جعلها متوسطة' },
   { act: 't-q-bulk-lv', attrs: 'data-v="hard"', icon: 'layers', label: 'جعلها صعبة' },
+  { act: 't-q-share', icon: 'share', label: 'مشاركة مع معلم' },
   null,
   { act: 't-q-bulk-del', icon: 'trash', label: 'حذف المحدد', danger: true }
 ]);
@@ -1964,6 +2001,98 @@ ACTS['t-q-pv-save'] = async t => {
     await tQuestions();
   } catch(e){ t.disabled = false; toast(errMsg(e)); }
 };
+
+/* share questions between teachers by a short code */
+async function qShareIds(ids){
+  if (!ids.length) return toast('لا توجد أسئلة للمشاركة');
+  closeModals();
+  try {
+    const code = await rpc('share_questions', { p_ids: ids, p_title: T.name ? 'أسئلة ' + T.name : null });
+    const url = location.origin + location.pathname + '#/t/qshare/' + code;
+    const msg = `أشاركك ${ids.length} سؤالاً في تحدّي الدقيقة. افتح الرابط لإضافتها إلى أسئلتك:\n${url}\nأو أدخل الرمز: ${code}`;
+    modal(`<h3>مشاركة ${ids.length} سؤالاً</h3><p class="sub">أرسل الرمز أو الرابط لزميلك، وتُضاف الأسئلة عنده جاهزة.</p>
+      <div class="qs-code">${code}</div>
+      <a class="btn wa-btn" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${ic('send')} إرسال عبر واتساب</a>
+      <button class="btn soft" data-act="t-q-share-copy" data-u="${esc(url)}">نسخ الرابط</button>`);
+  } catch(e){ toast(errMsg(e)); }
+}
+ACTS['t-q-share'] = () => qShareIds([...QS.sel]);
+ACTS['t-q-share-all'] = () => qShareIds(QS.list.filter(q => q.status === 'approved').map(q => q.id));
+ACTS['t-q-share-copy'] = t => copyBox(t.dataset.u, 'رابط المشاركة');
+ACTS['t-q-code'] = async () => { closeModals();
+  const v = await ask('أدخل رمز المشاركة الذي وصلك من زميلك', { title: 'إضافة أسئلة برمز', input: '', placeholder: 'مثال: K7M2QX', ok: 'عرض الأسئلة', dir: 'ltr' });
+  if (v) qSharePreview(v.trim().toUpperCase());
+};
+async function qSharePreview(code){
+  if (!code) return;
+  try {
+    const p = await rpc('shared_preview', { p_code: code });
+    if (!p) return toast(ERR.bad_code);
+    const qs = p.questions || [];
+    modal(`<h3>أسئلة من ${esc(p.from || 'زميل')}</h3><p class="sub">${qs.length} سؤالاً. تُضاف إلى أسئلتك معتمدة، ويمكنك تعديلها.</p>
+      <div class="qpv-list">${qs.slice(0, 60).map(x => `<div class="qpv"><b>${x.image ? '🖼️ ' : ''}${esc(x.body)}</b><small>${LEVEL_AR[x.level] || ''} · ${TYPE_AR[x.qtype] || ''}</small></div>`).join('')}</div>
+      <button class="btn" data-act="t-q-share-import" data-c="${esc(code)}" ${qs.length ? '' : 'disabled'}>إضافة إلى أسئلتي</button>`);
+  } catch(e){ toast(errMsg(e)); }
+}
+ACTS['t-q-share-import'] = async t => {
+  t.disabled = true;
+  try { const n = await rpc('import_shared', { p_code: t.dataset.c }); closeModals();
+    toast(n ? `تمت إضافة ${n} سؤالاً` : 'هذه الأسئلة موجودة عندك مسبقاً');
+    if (location.hash.includes('qshare')) history.replaceState(null, '', '#/t/questions');
+    T.qf.status = 'approved'; await tQuestions();
+  } catch(e){ t.disabled = false; toast(errMsg(e)); }
+};
+
+/* read questions from a photo of a worksheet (OCR in the browser) */
+const OCRJS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+ACTS['t-q-ocr'] = () => { closeModals(); document.getElementById('qocr').click(); };
+ACTS['t-q-ocr-chosen'] = async t => {
+  const file = t.files && t.files[0]; if (!file) return; t.value = '';
+  const m = modal(`<h3>قراءة الأسئلة من الصورة</h3><p class="sub" id="ocr-st">جارٍ تجهيز القارئ… أول مرة تأخذ دقيقة تقريباً.</p><div class="ocr-bar"><i id="ocr-p"></i></div>`);
+  const st = p => { const a = document.getElementById('ocr-p'), b = document.getElementById('ocr-st'); if (a) a.style.width = Math.round(p * 100) + '%'; if (b && p > 0) b.textContent = 'جارٍ قراءة النص… ' + Math.round(p * 100) + '%'; };
+  try {
+    await loadJs(OCRJS, 'Tesseract');
+    const w = await Tesseract.createWorker('ara+eng', 1, { logger: x => { if (x.status === 'recognizing text') st(x.progress); } });
+    const img = await shrinkImg(file, 2200);
+    const { data } = await w.recognize(img); await w.terminate();
+    m.remove();
+    const qs = ocrToQs(data.text || '');
+    if (!qs.length) { ACTS['t-q-paste'](); const ta = document.querySelector('.qp-ta'); if (ta) ta.value = (data.text || '').trim(); return toast('لم أتعرف على أسئلة واضحة. عدّل النص هنا.'); }
+    QS.ocrQ = { list: qs, total: qs.length, saved: 0 };
+    await loadCurricula().catch(() => {});
+    qOcrNext();
+  } catch(e){ m.remove(); toast('تعذرت قراءة الصورة: ' + errMsg(e)); }
+};
+function qOcrNext(){
+  closeModals();
+  const o = QS.ocrQ; if (!o) return;
+  const q = o.list.shift();
+  if (!q) { const n = o.saved; QS.ocrQ = null; toast(`تمت إضافة ${n} سؤالاً من الصورة`); T.qf.status = 'approved'; renderQuestions(); return; }
+  modal(qForm({ qtype: QS.lastType || 'curriculum', level: QS.lastLevel || 'medium', body: q.body, options: q.options, correct_index: -1, curriculum_id: QS.lastCu || '' }));
+}
+ACTS['t-q-ocr-skip'] = () => qOcrNext();
+/* turn OCR text into {body, options[4]}: options marked أ) ب) ج) د) or a) b) c) d), on their own lines or inline */
+function ocrToQs(text){
+  const OPT = /(?:^|\s)[\(\[]?([أاإبجدabcdABCD])\s*[\)\]\-\.:ـ]\s+/g;
+  const out = []; let cur = null;
+  const lines = String(text).split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 1);
+  lines.forEach(l => {
+    const marks = [...l.matchAll(OPT)];
+    if (marks.length && marks[0].index <= 1 && cur) {
+      marks.forEach((mk, i) => { const end = i + 1 < marks.length ? marks[i + 1].index : l.length; const v = l.slice(mk.index + mk[0].length, end).trim(); if (v) cur.options.push(v); });
+      return;
+    }
+    if (marks.length >= 2 && marks[0].index > 1) { // question and options on one line
+      cur = { body: l.slice(0, marks[0].index), options: [] }; out.push(cur);
+      marks.forEach((mk, i) => { const end = i + 1 < marks.length ? marks[i + 1].index : l.length; const v = l.slice(mk.index + mk[0].length, end).trim(); if (v) cur.options.push(v); });
+      return;
+    }
+    if (!cur || cur.options.length || /^[\(\[]?[\d٠-٩]+\s*[\)\]\-\.:ـ]/.test(l)) { cur = { body: l, options: [] }; out.push(cur); }
+    else cur.body += ' ' + l;
+  });
+  return out.map(q => ({ body: q.body.replace(/^[\(\[]?[\d٠-٩]+\s*[\)\]\-\.:ـ]\s*/, '').trim().slice(0, 300), options: q.options.slice(0, 4).concat(['', '', '', '']).slice(0, 4).map(x => x.slice(0, 100)) }))
+    .filter(q => q.body.length > 3 && q.options.filter(Boolean).length >= 2);
+}
 
 /* ---- results ---- */
 const RS = { sort: 'pts', q: '', rows: [], name: '' };
