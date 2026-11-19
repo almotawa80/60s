@@ -26,7 +26,8 @@ const ERR = {
   bad_no: 'اكتب رقم الطالب',
   already_registered: 'هذا الرقم مسجل مسبقاً في الصف، اطلب رمزك من المعلم/ـة',
   class_full: 'الصف ممتلئ',
-  no_mistakes: 'لا توجد أخطاء لتتدرّب عليها، أحسنت! 👏'
+  no_mistakes: 'لا توجد أخطاء لتتدرّب عليها، أحسنت! 👏',
+  no_match_today: 'لا توجد لك مواجهة اليوم في التصفيات'
 };
 function errMsg(e){
   const m = (e && e.message) || String(e);
@@ -226,9 +227,9 @@ function renderHome(){
   } else if (ph === 'knockout') {
     body = '<div class="phase"><b>مرحلة التصفيات</b><span class="chip">حتى ' + esc(fmtDate(c.end_date)) + '</span></div>' +
       '<div class="stats"><div class="stat"><b>' + h.total_points + '</b><span>نقاطي</span></div><div class="stat"><b>' + (h.rank || '-') + '</b><span>ترتيبي في الصف</span></div></div>' +
-      '<p class="muted">ستظهر مواجهاتك هنا عند إطلاق أدوار التصفيات.</p>';
+      '<div id="ko" class="ko-wrap"></div>';
   } else {
-    body = '<div class="phase"><b>انتهت المسابقة</b></div><div class="stats"><div class="stat"><b>' + h.total_points + '</b><span>نقاطي</span></div><div class="stat"><b>' + (h.rank || '-') + '</b><span>ترتيبي النهائي</span></div></div>';
+    body = '<div class="phase"><b>انتهت المسابقة</b></div><div class="stats"><div class="stat"><b>' + h.total_points + '</b><span>نقاطي</span></div><div class="stat"><b>' + (h.rank || '-') + '</b><span>ترتيبي النهائي</span></div></div><div id="ko" class="ko-wrap"></div>';
   }
   let main = '';
   if (ph === 'points') {
@@ -249,6 +250,33 @@ function renderHome(){
     '<button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button>' +
     (h.wrong_count ? '<button class="btn ghost rv-btn" data-act="s-start" data-kind="review">' + ic('star') + ' تدرّب على أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div>';
   startCountdown();
+  if ((ph === 'knockout' || ph === 'finished') && !S.demo) loadKo();
+}
+/* knockout bracket (one head-to-head round per day after the points phase) + honor board */
+async function loadKo(){
+  let b; try { b = await rpc('student_bracket', { p_token: S.token }); } catch(e){ return; }
+  const el = document.getElementById('ko'); if (!el || !b) return;
+  let top = '';
+  if (b.my_match && S.home.phase === 'knockout') top = b.my_match.played
+    ? '<div class="ko-me done">لعبت مواجهة اليوم ضد <b>' + esc(b.my_match.opponent || '—') + '</b>. تظهر النتيجة عندما ينهي منافسك جولته.</div>'
+    : '<div class="ko-me">مواجهتك اليوم ضد <b>' + esc(b.my_match.opponent || '—') + '</b></div><button class="btn accent" data-act="s-start" data-kind="knockout">' + ic('play') + ' ابدأ المواجهة</button>';
+  el.innerHTML = top + bracketHtml(b, b.me) + honorHtml(b);
+}
+function bracketHtml(b, me){
+  if (!b || !b.size) return '<p class="muted center ko-none">لا توجد تصفيات: تحتاج طالبين على الأقل لديهم نقاط.</p>';
+  const p = (x, w, m) => { if (!x || !x.id) return '<div class="ko-p tbd">بانتظار الفائز</div>';
+    return '<div class="ko-p' + (w === x.id ? ' win' : w ? ' out' : '') + (x.id === me ? ' me' : '') + '"><span class="ko-s">' + (x.seed || '') + '</span><span class="ko-n">' + esc(x.name || '') + '</span>' + (x.done ? '<b>' + x.score + '/4</b>' : (m && m.w ? '<small>غاب</small>' : '')) + '</div>'; };
+  return '<div class="ko-br">' + b.rounds.map(r => '<div class="ko-col"><div class="ko-h">' + esc(r.label) + '<small>' + esc(fmtDate(r.day)) + (r.day === b.today ? ' · اليوم' : '') + '</small></div>' +
+    r.matches.map(m => '<div class="ko-m">' + p(m.a, m.w, m) + p(m.b, m.w, m) + '</div>').join('') + '</div>').join('') + '</div>' +
+    '<p class="ko-rule">في كل مواجهة: الأكثر إجابات صحيحة يتأهل، وعند التعادل الأسرع، ومن لا يلعب يخسر.</p>';
+}
+function honorHtml(b){
+  if (!b) return '';
+  const pod = b.podium || [];
+  if (!b.champion && !pod.length) return '';
+  return '<div class="honor"><div class="honor-h">🏅 لوحة الشرف</div>' +
+    (b.champion ? '<div class="honor-ch">👑<b>' + esc(b.champion.name) + '</b><span>بطل/ـة التصفيات</span></div>' : '') +
+    (pod.length ? '<div class="honor-l">' + pod.map((x, i) => '<div><span>' + ['🥇', '🥈', '🥉'][i] + '</span><b>' + esc(x.name) + '</b><small>' + x.pts + ' نقطة</small></div>').join('') + '</div><small class="honor-f">الأعلى نقاطاً في مرحلة جمع النقاط</small>' : '') + '</div>';
 }
 const BADGES = { first: ['🎯', 'أول جولة', 'أنهيت أول جولة رسمية'], perfect: ['💯', '4 من 4', 'أجبت الأسئلة الأربعة كلها صح'], streak3: ['🔥', '3 أيام متتالية', 'لعبت 3 أيام وراء بعض'], fast: ['⚡', 'البرق', 'إجابة صحيحة في أقل من 3 ثوانٍ'], practice10: ['🏋️', 'المتدرّب', '10 جولات تدريب'] };
 ACTS['s-badges'] = () => {
@@ -563,7 +591,8 @@ async function showResult(sm){
   const th = document.body.dataset.theme || 'mid';
   $app.innerHTML = '<div class="sh pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
     '<div class="result ' + (win ? 'is-win' : lose ? 'is-lose' : '') + '"><div class="medal-wrap">' + (win ? '<div class="rays"></div>' : '') + '<div class="medal">' + ic(lose ? 'clock' : 'trophy') + '</div></div>' +
-    '<h2 class="center res-h">' + head + '</h2><p class="center muted" style="margin-top:-8px">' + sub + (sm && sm.kind === 'practice' ? ' · تدريب' : '') + '</p>' +
+    '<h2 class="center res-h">' + head + '</h2><p class="center muted" style="margin-top:-8px">' + sub + (sm && sm.kind === 'practice' ? ' · تدريب' : sm && sm.kind === 'knockout' ? ' · مواجهة التصفيات' : '') + '</p>' +
+    (sm && sm.kind === 'knockout' ? '<p class="center sub">تُحسم المواجهة بعدد الإجابات الصحيحة ثم السرعة، وتظهر النتيجة في الرئيسية عندما ينهي منافسك.</p>' : '') +
     '<div class="stars-row">' + stars + '</div>' +
     '<div class="center"><div class="big" id="bigpts">0</div><div class="muted">مجموع النقاط</div></div>' +
     reviewHtml() +
@@ -587,7 +616,7 @@ const STATUS_AR = { draft: 'مسودة', approved: 'معتمد', rejected: 'مر
 const STYLE_AR = { kids: 'مرح · ابتدائي', mid: 'مرح قليلاً · متوسط', uni: 'هادئ · ثانوي وجامعة' };
 const STYLE_SW = { kids: 'linear-gradient(135deg,#FFD9B0,#E3262F)', mid: 'linear-gradient(135deg,#C8102E,#F5B72B)', uni: 'linear-gradient(135deg,#FAF6F3,#7A1220)' };
 const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png" alt=""></div>';
-const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['questions', 'الأسئلة', 'help'], ['results', 'النتائج', 'chart'], ['settings', 'الإعدادات', 'gear']];
+const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['questions', 'الأسئلة', 'help'], ['results', 'النتائج', 'chart'], ['comps', 'المسابقات', 'trophy']];
 
 function shell(title, body, active, top, back){
   return `<div class="t-top"><div class="brand">${back ? `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>` : LOGO_S}<span class="t-title">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
@@ -610,7 +639,8 @@ ACTS['set-mode'] = t => { LS.set('mc_mode', t.dataset.v); applyMode(); t.parentE
 function view(title, body, active, top, back){
   applyMode();
   $app.innerHTML = shell(title, body, active, top, back); window.scrollTo(0, 0);
-  const i = Math.max(0, NAV.findIndex(n => n[0] === active)), lens = $app.querySelector('.lens');
+  const i0 = NAV.findIndex(n => n[0] === active), i = Math.max(0, i0), lens = $app.querySelector('.lens');
+  if (lens && i0 < 0) lens.style.opacity = '0';
   if (lens) requestAnimationFrame(() => requestAnimationFrame(() => { lens.style.setProperty('--i', i); NAVI.prev = i; }));
 }
 /* liquid-glass lens: drag across the tab bar */
@@ -723,7 +753,7 @@ async function teacherRoute(){
       T.avatar = (r.data && r.data.avatar_url) || '';
       T.settings = (r.data && r.data.settings) || {};
     }
-    if (page === 'classes') await tClasses();
+    if (page === 'classes' || page === 'comps') { CL.tab = page; await tClasses(); }
     else if (page === 'class') await tClass(parts[1]);
     else if (page === 'questions') await tQuestions();
     else if (page === 'results') await tResults(parts[1]);
@@ -768,8 +798,9 @@ async function tHome(){
 
   // alerts
   const alerts = stats.filter(s => s.ph === 'points' && s.n - s.played > 0);
-  if (alerts.length) html += `<div class="card col"><div class="row between"><b>${ic('clock')} لم يلعبوا جولة اليوم</b><span class="chip warn">${alerts.reduce((a, s) => a + s.n - s.played, 0)}</span></div>` +
-    alerts.map(s => `<a class="row between dash-link" href="#/t/results/${s.c.id}"><span>${esc(s.c.name)}</span><span class="sub">${s.n - s.played} من ${s.n}</span></a>`).join('') + `</div>`;
+  T.homeStats = stats;
+  if (alerts.length) html += `<div class="card col today-card"><div class="row between"><b>${ic('clock')} اليوم: لم يلعبوا بعد</b><span class="chip warn">${alerts.reduce((a, s) => a + s.n - s.played, 0)}</span></div>` +
+    alerts.map(s => `<div class="row between today-row"><a class="grow dash-link" href="#/t/results/${s.c.id}"><b>${esc(s.c.name)}</b><div class="sub">${s.n - s.played} من ${s.n}: ${s.rs.filter(r => !r.played_today).slice(0, 4).map(r => esc(r.name.split(' ')[0])).join('، ')}${s.n - s.played > 4 ? '…' : ''}</div></a><button class="btn sm wa-btn" data-act="t-remind" data-c="${s.c.id}">${ic('send')} تذكير</button></div>`).join('') + `</div>`;
 
   // class ranking
   const ranked = stats.slice().sort((x, y) => y.avg - x.avg);
@@ -884,7 +915,7 @@ ACTS['w-file-chosen'] = async t => {
   try {
     const list = parseMulti(await readRows(file)); t.value = '';
     if (!list.length) return toast('لم أجد بيانات. تأكد من الأعمدة: الاسم، رقم الطالب، الصف');
-    const g = {}; list.forEach(x => (g[x.cls] = g[x.cls] || []).push({ name: x.name, student_no: x.student_no, phone: x.phone }));
+    const g = {}; list.forEach(x => (g[x.cls] = g[x.cls] || []).push({ name: x.name, student_no: x.student_no, phone: x.phone, gender: x.gender }));
     W.multi = g; renderWizard();
   } catch(e){ toast('تعذّرت قراءة الملف'); }
 };
@@ -948,12 +979,12 @@ async function tClasses(){
   renderClasses();
 }
 function renderClasses(){
-  const tabs = `<div class="tabs"><button class="${CL.tab === 'classes' ? 'on' : ''}" data-act="c-tab" data-t="classes">الصفوف (${CL.classes.length})</button><button class="${CL.tab === 'comps' ? 'on' : ''}" data-act="c-tab" data-t="comps">المسابقات</button></div>`;
-  const more = CL.tab === 'classes' ? `<button class="icon-btn" data-act="c-more" aria-label="المزيد">${ic('more')}</button>` : '';
-  view('الصفوف', tabs + (CL.tab === 'classes' ? classesList() : compsPanel()) + selBar(), 'classes', more);
+  const cl = CL.tab !== 'comps';
+  const more = cl ? `<button class="icon-btn" data-act="c-more" aria-label="المزيد">${ic('more')}</button>` : '';
+  view(cl ? 'الصفوف' : 'المسابقات', (cl ? classesList() : compsPanel()) + selBar(), cl ? 'classes' : 'comps', more);
   cfUpdate();
 }
-ACTS['c-tab'] = t => { CL.tab = t.dataset.t; T.compEdit = null; renderClasses(); };
+ACTS['c-tab'] = t => { T.compEdit = null; go('#/t/' + t.dataset.t); };
 function classesList(){
   const top = CL.sel ? '' : `<button class="btn cl-add" data-act="t-add-class">${ic('plus')} صف جديد</button><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
   if (!CL.classes.length) return top + '<div class="card center muted">لا توجد صفوف بعد.</div>';
@@ -1071,6 +1102,10 @@ ACTS['s-card'] = async t => {
     const acc = r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) + '%' : '—';
     box.innerHTML = `<div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? idx + 1 : '—'}</b><span>الترتيب من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>الدقة</span></div>`;
     if (comp) document.getElementById('st-today').innerHTML += r.played_today ? ' · <b style="color:#168A5B">لعب اليوم ✓</b>' : ' · <b style="color:#8a5a00">لم يلعب اليوم</b>';
+    const g = s.gender, who = g === 'f' ? 'ابنتكم' : g === 'm' ? 'ابنكم' : 'ابنكم/ابنتكم';
+    ST_PARENT = { phone: s.phone, msg: `السلام عليكم ولي أمر ${s.name}\nهذا ملخص مشاركة ${who} في «تحدّي الدقيقة»${comp ? ' (' + comp.title + ')' : ''} بصف ${c.name}:\n• النقاط: ${r.pts}\n• الترتيب: ${r.pts ? (idx + 1) + ' من ' + sorted.length : '—'}\n• الجولات: ${r.rounds}\n• دقة الإجابات: ${acc}\nشكراً لمتابعتكم وتشجيعكم 🌟\n${T.name ? 'المعلم/ـة: ' + T.name : ''}` };
+    const acts = document.querySelector('.st-acts');
+    if (acts && !acts.querySelector('[data-act="s-parent"]')) acts.insertAdjacentHTML('afterbegin', `<button class="btn soft" data-act="s-parent">${ic('send')} إرسال ملخص لولي الأمر</button>`);
   } catch(e){}
 };
 ACTS['s-edit'] = t => {
@@ -1080,12 +1115,13 @@ ACTS['s-edit'] = t => {
     <div class="field"><label for="se-n">الاسم</label><input class="input" id="se-n" name="name" value="${esc(s.name)}" required maxlength="60"></div>
     <div class="field"><label for="se-no">رقم الطالب</label><input class="input" id="se-no" name="no" value="${esc(s.student_no || '')}" dir="ltr" inputmode="numeric" maxlength="20"></div>
     <div class="field"><label for="se-ph">رقم الهاتف</label><input class="input" id="se-ph" name="ph" type="tel" value="${esc(s.phone || '')}" dir="ltr" placeholder="مثال: 99999999" maxlength="20"></div>
+    <div class="field"><label>الجنس</label><div class="tabs seg-g">${[['m', 'طالب'], ['f', 'طالبة'], ['', 'غير محدد']].map(x => `<label class="${(s.gender || '') === x[0] ? 'on' : ''}"><input type="radio" name="g" value="${x[0]}" ${(s.gender || '') === x[0] ? 'checked' : ''}>${x[1]}</label>`).join('')}</div></div>
     <div class="field"><label for="se-c">الصف</label><select class="input" id="se-c" name="cls">${CL.classes.map(x => `<option value="${x.id}" ${x.id === c.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
     <p class="sub">يبقى رمز الدخول كما هو، والنقل لصف آخر يحتفظ بالرمز.</p>
     <div class="row"><button type="button" class="btn soft" data-act="close-modal">إلغاء</button><button class="btn" type="submit">حفظ</button></div></form>`);
 };
 ACTS['s-edit-save'] = async f => {
-  const row = { name: f.name.value.trim(), student_no: f.no.value.trim(), class_id: f.cls.value, phone: f.ph.value.replace(/[^0-9+]/g, '').slice(0, 20) || null };
+  const row = { name: f.name.value.trim(), student_no: f.no.value.trim(), class_id: f.cls.value, phone: f.ph.value.replace(/[^0-9+]/g, '').slice(0, 20) || null, gender: (f.querySelector('[name=g]:checked') || {}).value || null };
   if (row.name.length < 2) return toast('اكتب الاسم');
   const dup = (CL.students[row.class_id] || []).some(x => x.id !== f.dataset.id && row.student_no && x.student_no === row.student_no);
   if (dup) return toast('رقم الطالب موجود في هذا الصف');
@@ -1093,6 +1129,13 @@ ACTS['s-edit-save'] = async f => {
   if (error) return toast(/duplicate|unique/i.test(error.message) ? 'رقم الطالب موجود في هذا الصف' : errMsg(error));
   if (row.class_id !== f.dataset.cid) CL.open.add(row.class_id);
   closeModals(); toast('تم الحفظ'); await tClasses();
+};
+let ST_PARENT = null;
+ACTS['s-parent'] = () => {
+  if (!ST_PARENT) return;
+  let ph = (ST_PARENT.phone || '').replace(/[^0-9]/g, '');
+  if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2);
+  window.open('https://wa.me/' + ph + '?text=' + encodeURIComponent(ST_PARENT.msg), '_blank');
 };
 ACTS['s-wa'] = t => {
   const s = Object.values(CL.students).flat().find(x => x.id === t.dataset.id); if (!s) return;
@@ -1148,16 +1191,16 @@ ACTS['t-save-class'] = async f => {
 /* ---- multi-class upload ---- */
 ACTS['t-multi-up'] = () => document.getElementById('mxl').click();
 ACTS['t-multi-sample'] = () => {
-  const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الصف', 'الهاتف'], ['سارة العتيبي', '1001', 'السادس / أ', '99999999'], ['ليان الزامل', '1002', 'السادس / أ', ''], ['نور الحربي', '2001', 'السادس / ب', '']]);
+  const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الصف', 'الهاتف', 'الجنس'], ['سارة العتيبي', '1001', 'السادس / أ', '99999999', 'طالبة'], ['ليان الزامل', '1002', 'السادس / أ', '', 'طالبة'], ['نور الحربي', '2001', 'السادس / ب', '', 'طالب']]);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'الطلبة'); XLSX.writeFile(wb, 'نموذج-الصفوف.xlsx');
 };
 function parseMulti(rows){
   if (!rows.length) return [];
   const head = rows[0].map(x => String(x).trim().toLowerCase());
-  const isPh = h => /هاتف|جوال|موبايل|phone|mobile|واتس/.test(h);
+  const isPh = h => /هاتف|جوال|موبايل|phone|mobile|واتس/.test(h), gi = head.findIndex(h => /جنس|gender|النوع/.test(h)), gv = r => gi >= 0 ? String(r[gi] == null ? '' : r[gi]).trim() : '';
   let ni = head.findIndex(h => /اسم|name/.test(h)), ri = head.findIndex(h => !isPh(h) && /رقم|number|\bid\b|\bno\b/.test(h)), ci = head.findIndex(h => /صف|فصل|شعبة|class/.test(h)), pi = head.findIndex(isPh), start = 1;
   if (ni < 0 || ci < 0) { ni = 0; ri = 1; ci = 2; pi = rows[0].length > 3 ? 3 : -1; start = 0; }
-  return rows.slice(start).map(r => ({ name: String(r[ni] == null ? '' : r[ni]).trim(), student_no: ri >= 0 ? String(r[ri] == null ? '' : r[ri]).trim() : '', cls: String(r[ci] == null ? '' : r[ci]).trim(), phone: pi >= 0 ? String(r[pi] == null ? '' : r[pi]).trim() : '' })).filter(x => x.name && x.cls);
+  return rows.slice(start).map(r => ({ name: String(r[ni] == null ? '' : r[ni]).trim(), student_no: ri >= 0 ? String(r[ri] == null ? '' : r[ri]).trim() : '', cls: String(r[ci] == null ? '' : r[ci]).trim(), phone: pi >= 0 ? String(r[pi] == null ? '' : r[pi]).trim() : '', gender: gv(r) })).filter(x => x.name && x.cls);
 }
 ACTS['t-multi-chosen'] = async t => {
   const file = t.files && t.files[0];
@@ -1167,7 +1210,7 @@ ACTS['t-multi-chosen'] = async t => {
     t.value = '';
     if (!list.length) return toast('لم أجد بيانات. تأكد من الأعمدة: الاسم، رقم الطالب، الصف');
     const g = {};
-    list.forEach(x => (g[x.cls] = g[x.cls] || []).push({ name: x.name, student_no: x.student_no, phone: x.phone }));
+    list.forEach(x => (g[x.cls] = g[x.cls] || []).push({ name: x.name, student_no: x.student_no, phone: x.phone, gender: x.gender }));
     CK.multi = g;
     modal(`<h3>معاينة الصفوف</h3><p class="muted" style="margin-bottom:10px">وُجد <b>${Object.keys(g).length}</b> صف و<b>${list.length}</b> طالب/ـة. الصفوف الجديدة ستُنشأ، والموجودة بنفس الاسم تُضاف إليها الأسماء.</p>
       <div class="tbl-wrap"><table><thead><tr><th>الصف</th><th>عدد الطلبة</th></tr></thead><tbody>${Object.keys(g).map(k => `<tr><td>${esc(k)}</td><td>${g[k].length}</td></tr>`).join('')}</tbody></table></div>
@@ -1216,7 +1259,7 @@ ACTS['t-self'] = async t => {
   } catch(e){ toast(errMsg(e)); }
 };
 ACTS['t-sample-students'] = () => {
-  const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الهاتف'], ['سارة العتيبي', '1001', '99999999'], ['ليان الزامل', '1002', '']]);
+  const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الهاتف', 'الجنس'], ['سارة العتيبي', '1001', '99999999', 'طالبة'], ['ليان الزامل', '1002', '', 'طالبة']]);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'الطلبة'); XLSX.writeFile(wb, 'نموذج-الطلبة.xlsx');
 };
 async function readRows(file){
@@ -1228,14 +1271,14 @@ async function readRows(file){
 function parseStudents(rows){
   if (!rows.length) return [];
   const head = rows[0].map(x => String(x).trim().toLowerCase());
-  const isPh = h => /هاتف|جوال|موبايل|phone|mobile|واتس/.test(h);
+  const isPh = h => /هاتف|جوال|موبايل|phone|mobile|واتس/.test(h), gi = head.findIndex(h => /جنس|gender|النوع/.test(h)), gv = r => gi >= 0 ? String(r[gi] == null ? '' : r[gi]).trim() : '';
   let ni = head.findIndex(h => /اسم|name/.test(h)), ri = head.findIndex(h => !isPh(h) && /رقم|number|\bid\b|\bno\b/.test(h)), pi = head.findIndex(isPh), start = 0;
   if (ni >= 0) { start = 1; if (ri < 0) ri = head.length > 1 ? (ni === 0 ? 1 : 0) : -1; }
   else {
     const numeric = i => rows.every(r => /^\d+$/.test(String(r[i] == null ? '' : r[i]).trim()));
     if (rows[0].length > 1 && numeric(0)) { ri = 0; ni = 1; } else { ni = 0; ri = rows[0].length > 1 ? 1 : -1; }
   }
-  return rows.slice(start).map(r => ({ name: String(r[ni] == null ? '' : r[ni]).trim(), student_no: ri >= 0 ? String(r[ri] == null ? '' : r[ri]).trim() : '', phone: pi >= 0 ? String(r[pi] == null ? '' : r[pi]).trim() : '' })).filter(x => x.name);
+  return rows.slice(start).map(r => ({ name: String(r[ni] == null ? '' : r[ni]).trim(), student_no: ri >= 0 ? String(r[ri] == null ? '' : r[ri]).trim() : '', phone: pi >= 0 ? String(r[pi] == null ? '' : r[pi]).trim() : '', gender: gv(r) })).filter(x => x.name);
 }
 ACTS['t-xl-chosen'] = async t => {
   const file = t.files && t.files[0];
@@ -1292,10 +1335,14 @@ ACTS['t-export-codes'] = t => { ctx(t);
   XLSX.utils.book_append_sheet(wb, ws, 'الرموز');
   XLSX.writeFile(wb, 'رموز-' + CK.cls.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };
-ACTS['t-print-codes'] = t => { ctx(t);
+const QRJS = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+function loadJs(src, g){ return new Promise((ok, no) => { if (window[g]) return ok(); const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); }
+function qrSvg(text){ try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); } catch(e){ return ''; } }
+ACTS['t-print-codes'] = async t => { ctx(t);
   const url = location.origin + location.pathname;
+  let qr = false; try { await loadJs(QRJS, 'qrcode'); qr = !!window.qrcode; } catch(e){}
   document.getElementById('print-area').innerHTML = `<h2 style="text-align:center;margin:0 0 10px">${esc(CK.cls.name)} — رموز الدخول إلى تحدّي الدقيقة</h2><p style="text-align:center;direction:ltr;margin:0 0 12px">${esc(url)}</p>` +
-    `<div class="pcards">${CK.students.map(s => `<div class="pcard"><b>${esc(s.name)}</b><div class="pc">${esc(s.code)}</div><small>${esc(s.student_no)}</small></div>`).join('')}</div>`;
+    `<div class="pcards">${CK.students.map(s => `<div class="pcard${qr ? ' qr' : ''}">${qr ? `<div class="pq">${qrSvg(url + '#/c/' + s.code)}</div>` : ''}<div><b>${esc(s.name)}</b><div class="pc">${esc(s.code)}</div><small>${esc(s.student_no)}</small></div></div>`).join('')}</div>` + (qr ? '<p style="text-align:center;font-size:12px;margin-top:10px">امسح الرمز بكاميرا الجوال للدخول مباشرة، أو اكتب الرمز في الموقع.</p>' : '');
   window.print();
 };
 
@@ -1319,6 +1366,12 @@ function compsPanel(){
       : '<div class="card center muted">لا توجد مسابقات نشطة.</div>') +
     (groups.length && free.length ? `<p class="sub">صفوف بلا مسابقة: ${free.map(c => esc(c.name)).join('، ')}</p>` : '');
 }
+ACTS['t-remind'] = t => {
+  const s = (T.homeStats || []).find(x => x.c.id === t.dataset.c); if (!s) return;
+  const left = s.rs.filter(r => !r.played_today).map(r => r.name);
+  const msg = `تذكير من تحدّي الدقيقة ⏱️\nجولة اليوم ما زالت مفتوحة لصف ${s.c.name} حتى منتصف الليل.\nلم يلعب بعد (${left.length}): ${left.join('، ')}\nادخلوا من هنا: ${location.origin + location.pathname}`;
+  open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+};
 ACTS['cp-new'] = async () => {
   if (!CL.classes.length) return toast('أضف صفاً أولاً');
   await loadCurricula().catch(() => {});
@@ -1361,7 +1414,7 @@ function compForm(){
     <div class="set-f">يُطبَّق على كل الصفوف المشاركة.</div>
     <div class="set-h">المواعيد</div>
     <div class="set-grp">${date('start_date', 'بداية جمع النقاط', v.start_date)}${date('points_end_date', 'نهاية جمع النقاط', v.points_end_date)}${date('end_date', 'نهاية المسابقة', v.end_date)}
-      <div class="cf-tl" id="cf-tl"></div>
+      <div class="cf-tl" id="cf-tl"></div><div class="cf-pool" id="cf-pool"></div>
       <button type="button" class="set-row cf-link" data-act="t-suggest"><span class="set-ic" style="background:#5856D6">${ic('star')}</span><span class="grow">اقتراح التواريخ تلقائياً</span></button></div>
     <div class="set-h">التصفيات</div>
     <div class="set-grp">${step('group_size', 'حجم المجموعة', v.group_size, 2, 40, 'عدد الطلبة في كل مجموعة')}${step('qualifiers', 'المتأهلون من كل صف', v.qualifiers, 2, 64, 'يدخلون مرحلة خروج المغلوب')}
@@ -1388,6 +1441,17 @@ function cfUpdate(){
   const tot = pd + Math.max(kd, 0);
   tl.innerHTML = `<div class="cf-bar2"><i class="pts" style="flex:${pd}"><span>نقاط · ${pd} يوم</span></i>${kd > 0 ? `<i class="ko" style="flex:${kd}"><span>تصفيات · ${kd}</span></i>` : ''}</div><div class="cf-dates"><span>${esc(fmtDate(s))}</span><span>${esc(fmtDate(e))}</span></div>`;
   tl.title = tot + ' يوم';
+  cfPool(pd);
+}
+const POOL = {};
+async function cfPool(pd){
+  const el = document.getElementById('cf-pool'); if (!el) return;
+  const key = (CC.qtypes || []).join(',') + '|' + (CC.cu || '');
+  if (POOL[key] == null) { el.textContent = ''; try { POOL[key] = await rpc('question_pool', { p_types: CC.qtypes || [], p_cu: CC.cu || null }); } catch(e){ return; } }
+  const n = POOL[key], days = Math.floor(n / 4), ok = days >= pd;
+  const x = document.getElementById('cf-pool'); if (!x) return;
+  x.className = 'cf-pool ' + (ok ? 'ok' : 'low');
+  x.innerHTML = `${ic(ok ? 'check' : 'help')} <span>بنك الأسئلة: ${n} سؤالاً معتمداً، تكفي لـ ${days} يوماً دون تكرار${ok ? '' : `. تحتاج ${pd * 4 - n} سؤالاً إضافياً لتغطية ${pd} يوم`}</span>`;
 }
 ACTS['cf-preview'] = () => themePreview(CC.style || 'mid');
 function themePreview(th){
@@ -1590,6 +1654,8 @@ async function tResults(classId){
   const res = await Promise.all(pick.map(c => rpc('teacher_class_results', { p_class: c.id }).then(r => r.map(x => Object.assign({ cls: c.name }, x))).catch(() => [])));
   RS.rows = res.flat(); RS.all = id === 'all'; RS.id = id; RS.classes = classes;
   RS.name = id === 'all' ? 'كل الصفوف' : (classes.find(c => c.id === id) || {}).name || '';
+  RS.ko = null;
+  if (id !== 'all') { try { const b = await rpc('teacher_bracket', { p_class: id }); if (b && b.size && b.rounds.length && b.today >= b.rounds[0].day) RS.ko = b; } catch(e){} }
   renderResults();
 }
 function renderResults(){
@@ -1620,7 +1686,8 @@ function renderResults(){
       ${r.played_today ? `<span class="rl-dot" title="لعب اليوم"></span>` : ''}
       <span class="rl-pts ${r.pts ? '' : 'z'}">${r.pts}</span></button>`; }).join('');
   const sum = `<div class="rs-sum"><div><b>${n}</b><span>طالب/ـة</span></div><div><b>${n ? Math.round(played * 100 / n) : 0}%</b><span>لعبوا اليوم</span></div><div><b>${avg}</b><span>متوسط النقاط</span></div><div><b>${tr ? Math.round(tc * 100 / (tr * 4)) + '%' : '—'}</b><span>الدقة</span></div></div>`;
-  const body = chips + sum + pod +
+  const ko = RS.ko ? `<div class="card col ko-card"><b>${ic('trophy')} التصفيات</b>${bracketHtml(RS.ko)}${honorHtml(RS.ko)}</div>` : '';
+  const body = chips + sum + pod + ko +
     (!any ? `<div class="rs-empty">${ic('clock')}<div><b>لم تبدأ الجولات بعد</b><small>تظهر النقاط والترتيب هنا بعد أول جولة رسمية.</small></div></div>` : '') +
     `<div class="rs-search">${ic('search')}<input id="r-q" placeholder="بحث بالاسم أو الرقم" value="${esc(RS.q)}"></div>
      <div class="tabs rs-seg">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
@@ -1646,7 +1713,16 @@ ACTS['r-open'] = t => {
     <button class="btn" style="margin-top:14px" data-act="r-report" data-id="${r.id}" data-name="${esc(r.name)}" data-cls="${esc(r.cls)}">تقرير المستوى المفصّل</button></div>`);
 };
 const LV_AR = { easy: 'السهلة', medium: 'المتوسطة', hard: 'الصعبة' };
-function buildReport(name, d){
+/* pick the gendered form: 'راجعي/راجع' (f/m), 'الطالب/ـة', 'له/ا' */
+function gx(t, g){
+  if (g !== 'm' && g !== 'f') return t;
+  return t.replace(/([\u0600-\u06FF]+)\/(ـ?[\u0600-\u06FF]+)/g, (m, a, b) => {
+    if (b[0] === 'ـ') return g === 'm' ? a : a + b.slice(1);
+    if (b === 'ا') return g === 'm' ? a : a.replace(/ه$/, '') + 'ها';
+    return g === 'f' ? a : b;
+  });
+}
+function buildReport(name, d, g){
   const pc = (c, t) => t ? Math.round(c * 100 / t) : 0;
   const acc = pc(d.correct, d.total);
   const grade = acc >= 85 ? ['متفوّق', '#168A5B'] : acc >= 70 ? ['جيد جداً', '#2F80ED'] : acc >= 55 ? ['جيد', '#8a5a00'] : ['يحتاج دعماً', '#C22E33'];
@@ -1669,9 +1745,10 @@ function buildReport(name, d){
   const days = d.by_day; let trend = '';
   if (days.length >= 4) { const h = Math.floor(days.length / 2), a = days.slice(0, h), b = days.slice(h), f = z => pc(z.reduce((m, x) => m + x.c, 0), z.reduce((m, x) => m + x.t, 0)), da = f(b) - f(a);
     trend = da >= 8 ? 'في تحسّن ملحوظ (+' + da + '%)' : da <= -8 ? 'تراجع في الفترة الأخيرة (' + da + '%)' : 'مستوى مستقر';
-    if (da >= 8) strong.push('تطوّر مستمر في المستوى'); if (da <= -8) { weak.push('تراجع في الأداء مؤخراً'); tips.push('تواصلي/تواصل مع الطالب/ـة لمعرفة سبب التراجع وتشجيعه/ا.'); } }
+    if (da >= 8) strong.push('تطوّر مستمر في المستوى'); if (da <= -8) { weak.push('تراجع في الأداء مؤخراً'); tips.push('يُنصح بالتواصل مع الطالب/ـة لمعرفة سبب التراجع وتشجيعه/ا.'); } }
   if (days.length && days.length < 3) tips.push('المشاركة اليومية المنتظمة تعطي صورة أدق عن المستوى.');
-  if (!tips.length) tips.push(acc >= 85 ? 'مستوى ممتاز: أتيحي/أتح له/ا أسئلة أصعب أو دوراً قيادياً في الفريق.' : 'استمرّي/استمر على التدريب اليومي للحفاظ على المستوى.');
+  if (!tips.length) tips.push(acc >= 85 ? 'مستوى ممتاز: يُقترح إتاحة أسئلة أصعب له/ا أو دور قيادي في الفريق.' : 'استمرّي/استمر على التدريب اليومي للحفاظ على المستوى.');
+  tips.forEach((x, i) => { tips[i] = gx(x, g); });
   const bar = (n, p, t) => '<div class="rp-bar"><span>' + esc(n) + '</span><i><b style="width:' + p + '%"></b></i><em>' + p + '% · ' + t + '</em></div>';
   const list = (arr, empty) => arr.length ? '<ul class="rp-ul">' + arr.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '<div class="sub">' + empty + '</div>';
   const text = 'تقرير المستوى: ' + name + '\nالتقدير: ' + grade[0] + ' · الدقة ' + acc + '%\nنقاط القوة: ' + (strong.join('، ') || '—') + '\nنقاط الضعف: ' + (weak.join('، ') || '—') + '\nالتوصيات: ' + tips.join(' | ');
@@ -1689,9 +1766,9 @@ function buildReport(name, d){
 ACTS['r-report'] = async t => {
   const { id, name } = t.dataset; toast('جاري إعداد التقرير…');
   try {
-    const d = await rpc('teacher_student_report', { p_student: id });
+    const [d, gq] = await Promise.all([rpc('teacher_student_report', { p_student: id }), sb.from('students').select('gender').eq('id', id).maybeSingle()]);
     if (!d || !d.total) { toast('لا توجد جولات رسمية منتهية لهذا الطالب بعد'); return; }
-    const r = buildReport(name, d); RS.lastText = r.text; RS.lastName = name; RS.lastCls = t.dataset.cls || ''; closeModals(); modal(r.html);
+    const r = buildReport(name, d, gq.data && gq.data.gender); RS.lastText = r.text; RS.lastName = name; RS.lastCls = t.dataset.cls || ''; closeModals(); modal(r.html);
   } catch (e) { toast('تعذّر تحميل التقرير'); }
 };
 /* student report → PDF (rendered by the browser so Arabic shapes correctly) */
