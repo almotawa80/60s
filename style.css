@@ -281,3 +281,22 @@ td.code{font-family:ui-monospace,Menlo,monospace;font-weight:800;letter-spacing:
 .tabs button.on{background:linear-gradient(180deg,color-mix(in srgb,var(--primary) 78%,#fff),var(--primary));box-shadow:0 3px 0 var(--primary-dark)}
 .kpi{box-shadow:0 5px 0 var(--edge)}
 .kpi b{color:var(--primary)}
+/* dashboard */
+.kpis4{grid-template-columns:repeat(2,1fr)!important}
+@media(min-width:700px){.kpis4{grid-template-columns:repeat(4,1fr)!important}}
+.kpi{position:relative}
+.kpi-ic{width:38px;height:38px;margin:0 auto 4px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(180deg,#ff5a66,#C8102E 60%,#9C0B1E);box-shadow:0 3px 0 #7A0816,inset 0 2px 0 rgba(255,255,255,.4)}
+.kpi:nth-child(2) .kpi-ic{background:linear-gradient(180deg,var(--gold-1),var(--gold-2));color:#5A2600;box-shadow:0 3px 0 var(--gold-3)}
+.kpi:nth-child(3) .kpi-ic{background:linear-gradient(180deg,#4FD394,#1FA971);box-shadow:0 3px 0 #0E6A45}
+.kpi:nth-child(4) .kpi-ic{background:linear-gradient(180deg,#FF9A4D,#F26B1D);box-shadow:0 3px 0 #8F3608}
+.card b .ico,.card>b .ico{width:18px;height:18px;vertical-align:-3px;color:var(--primary)}
+.dash-link{text-decoration:none;color:inherit;padding:8px 2px;border-top:1px solid var(--line)}
+.rank-row{display:flex;gap:12px;align-items:flex-start;text-decoration:none;color:inherit;padding:10px 0;border-top:1px solid var(--line)}
+.rank-row .pts{color:var(--primary)}
+.rk{width:32px;height:32px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-weight:900;background:var(--soft);box-shadow:0 3px 0 var(--edge)}
+.rk1{background:radial-gradient(circle at 35% 30%,var(--gold-1),var(--gold-2));box-shadow:0 3px 0 var(--gold-3)}
+.rk2{background:radial-gradient(circle at 35% 30%,#fff,#C9D0D6);box-shadow:0 3px 0 #8F99A3}
+.rk3{background:radial-gradient(circle at 35% 30%,#F8C9A0,#D98A4E);box-shadow:0 3px 0 #9A5A28}
+.bar{height:12px;border-radius:99px;background:var(--soft);box-shadow:inset 0 2px 3px rgba(0,0,0,.08);overflow:hidden;margin:6px 0 4px}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(180deg,#ff5a66,var(--primary));box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}
+.bar.gold i{background:linear-gradient(180deg,var(--gold-1),var(--gold-2))}

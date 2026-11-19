@@ -410,7 +410,7 @@ async function teacherRoute(){
 }
 ACTS['t-retry'] = () => teacherRoute();
 
-/* ---- home ---- */
+/* ---- home (dashboard) ---- */
 async function tHome(){
   const [cl, cp] = await Promise.all([
     sb.from('classes').select('*').order('created_at'),
@@ -420,23 +420,67 @@ async function tHome(){
   if (cp.error) throw cp.error;
   const classes = cl.data, compBy = {};
   cp.data.forEach(c => { if (!compBy[c.class_id]) compBy[c.class_id] = c; });
+  if (!classes.length) {
+    return view('مرحباً، ' + (T.name || ''), `<div class="card center col"><b style="font-size:18px">ابدأ أول مسابقة</b><p class="muted">أضف صفوفك وارفع أسماء الطلبة، ثم أنشئ المسابقة من صفحة الصف.</p><a class="btn" href="#/t/classes" style="text-decoration:none">${ic('plus')} إضافة صفوف</a></div>`, 'home');
+  }
   const results = await Promise.all(classes.map(c => rpc('teacher_class_results', { p_class: c.id }).catch(() => [])));
-  const total = results.reduce((a, r) => a + r.length, 0);
-  let alerts = '', cards = '';
-  classes.forEach((c, i) => {
-    const comp = compBy[c.id], ph = phaseOf(comp), rs = results[i];
+  const stats = classes.map((c, i) => {
+    const rs = results[i], n = rs.length, comp = compBy[c.id], ph = phaseOf(comp);
     const played = rs.filter(r => r.played_today).length;
-    const pct = rs.length ? Math.round(played * 100 / rs.length) : 0;
-    if (ph === 'points' && rs.length - played > 0) alerts += `<a class="alert" href="#/t/class/${c.id}" style="text-decoration:none;color:inherit">${ic('clock')}<div><b>${rs.length - played} لم يلعبوا اليوم</b><div class="sub">${esc(c.name)}</div></div></a>`;
-    cards += `<a class="class-card" href="#/t/class/${c.id}">
-      <div class="ring" style="background:conic-gradient(var(--accent) ${pct * 3.6}deg,var(--soft) 0)"><span style="background:#fff;border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center">${ph === 'points' ? pct + '%' : '—'}</span></div>
-      <div class="grow"><b style="font-size:17px">${esc(c.name)}</b><div class="sub">${rs.length} من الطلبة</div><span class="chip ${ph === 'points' ? 'good' : ''}" style="margin-top:4px">${PHASE_AR[ph]}${comp ? ' · حتى ' + esc(fmtDate(comp.end_date)) : ''}</span></div>${ic('back')}</a>`;
+    const pts = rs.reduce((a, r) => a + (r.pts || 0), 0);
+    const rounds = rs.reduce((a, r) => a + (r.rounds || 0), 0);
+    const correct = rs.reduce((a, r) => a + (r.correct || 0), 0);
+    return { c, rs, n, comp, ph, played, pts, avg: n ? Math.round(pts / n) : 0, acc: rounds ? Math.round(correct * 100 / (rounds * 4)) : null, rounds, correct, partPct: n ? Math.round(played * 100 / n) : 0, never: rs.filter(r => !r.rounds).length };
   });
-  const body = `<div class="kpis"><div class="kpi"><b>${total}</b><span>إجمالي الطلبة</span></div><div class="kpi"><b>${classes.length}</b><span>عدد الصفوف</span></div><div class="kpi"><b>${Object.keys(compBy).length}</b><span>المسابقات النشطة</span></div></div>
-    ${alerts}
-    <div class="row between"><h3>صفوفي</h3><a class="btn sm" href="#/t/classes" style="text-decoration:none">${ic('plus')} إضافة صف</a></div>
-    ${cards || '<div class="card center col"><p>ابدأ بإضافة أول صف ثم ارفع أسماء الطلبة.</p><a class="btn" href="#/t/classes" style="text-decoration:none">إضافة صف</a></div>'}`;
-  view('مرحباً، ' + (T.name || ''), body, 'home');
+  const total = stats.reduce((a, s) => a + s.n, 0);
+  const playedToday = stats.reduce((a, s) => a + s.played, 0);
+  const allRounds = stats.reduce((a, s) => a + s.rounds, 0), allCorrect = stats.reduce((a, s) => a + s.correct, 0);
+  const acc = allRounds ? Math.round(allCorrect * 100 / (allRounds * 4)) : null;
+  const activeComps = stats.filter(s => s.ph === 'points' || s.ph === 'knockout').length;
+
+  const kpi = (v, l, ic2) => `<div class="kpi"><div class="kpi-ic">${ic(ic2)}</div><b>${v}</b><span>${l}</span></div>`;
+  let html = `<div class="kpis kpis4">${kpi(total, 'الطلبة', 'user')}${kpi(total ? Math.round(playedToday * 100 / total) + '%' : '—', 'لعبوا اليوم', 'clock')}${kpi(acc == null ? '—' : acc + '%', 'دقة الإجابات', 'check')}${kpi(activeComps, 'مسابقات جارية', 'trophy')}</div>`;
+
+  // alerts
+  const alerts = stats.filter(s => s.ph === 'points' && s.n - s.played > 0);
+  if (alerts.length) html += `<div class="card col"><div class="row between"><b>${ic('clock')} لم يلعبوا جولة اليوم</b><span class="chip warn">${alerts.reduce((a, s) => a + s.n - s.played, 0)}</span></div>` +
+    alerts.map(s => `<a class="row between dash-link" href="#/t/results/${s.c.id}"><span>${esc(s.c.name)}</span><span class="sub">${s.n - s.played} من ${s.n}</span></a>`).join('') + `</div>`;
+
+  // class ranking
+  const ranked = stats.slice().sort((x, y) => y.avg - x.avg);
+  const maxAvg = Math.max(1, ...ranked.map(s => s.avg));
+  html += `<div class="card col"><div class="row between"><b>${ic('chart')} ترتيب الصفوف</b><span class="sub">متوسط النقاط لكل طالب</span></div>` +
+    ranked.map((s, i) => `<a class="rank-row" href="#/t/results/${s.c.id}"><span class="rk rk${i + 1}">${i + 1}</span><div class="grow"><div class="row between"><b>${esc(s.c.name)}</b><b class="pts">${s.avg}</b></div>
+      <div class="bar"><i style="width:${Math.round(s.avg * 100 / maxAvg)}%"></i></div>
+      <div class="sub">${PHASE_AR[s.ph]} · دقة ${s.acc == null ? '—' : s.acc + '%'} · ${s.n} طالب/ـة</div></div></a>`).join('') + `</div>`;
+
+  // participation today
+  const live = stats.filter(s => s.ph === 'points');
+  if (live.length) html += `<div class="card col"><b>${ic('clock')} المشاركة اليوم</b>` +
+    live.map(s => `<div><div class="row between"><span>${esc(s.c.name)}</span><span class="sub">${s.played}/${s.n}</span></div><div class="bar gold"><i style="width:${s.partPct}%"></i></div></div>`).join('') + `</div>`;
+
+  // top students across classes
+  const all = [];
+  stats.forEach(s => s.rs.forEach(r => all.push(Object.assign({ cls: s.c.name }, r))));
+  const top = all.filter(r => r.pts > 0).sort((a, b) => b.pts - a.pts).slice(0, 5);
+  html += `<div class="card col"><b>${ic('trophy')} المتصدرون في كل الصفوف</b>` +
+    (top.length ? `<div class="lb">${top.map((r, i) => `<div class="r"><span class="no">${i + 1}</span><span class="nm">${esc(r.name)} <span class="sub">· ${esc(r.cls)}</span></span><b>${r.pts}</b></div>`).join('')}</div>` : '<p class="sub">لا توجد نتائج بعد. تظهر هنا بعد أول جولة رسمية.</p>') + `</div>`;
+
+  // needs attention
+  const never = stats.filter(s => s.comp && s.ph !== 'upcoming' && s.never > 0);
+  if (never.length) html += `<div class="card col"><b>${ic('user')} لم يشاركوا أبداً</b>` +
+    never.map(s => `<a class="row between dash-link" href="#/t/results/${s.c.id}"><span>${esc(s.c.name)}</span><span class="chip bad">${s.never}</span></a>`).join('') + `</div>`;
+
+  // competitions timeline
+  const comps = stats.filter(s => s.comp);
+  html += `<div class="card col"><div class="row between"><b>${ic('layers')} المسابقات</b><a class="sub" href="#/t/classes">إدارة</a></div>` +
+    (comps.length ? comps.map(s => {
+      const t = todayKW(), c = s.comp;
+      const dl = Math.round((new Date(c.end_date) - new Date(t)) / 864e5);
+      return `<a class="row between dash-link" href="#/t/class/${s.c.id}"><div><b>${esc(s.c.name)}</b><div class="sub">${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.end_date))}</div></div><span class="chip ${s.ph === 'points' ? 'good' : s.ph === 'knockout' ? 'warn' : ''}">${PHASE_AR[s.ph]}${dl >= 0 && s.ph !== 'finished' ? ' · ' + dl + ' يوم' : ''}</span></a>`;
+    }).join('') : '<p class="sub">لا توجد مسابقات. أنشئ مسابقة من صفحة الصف.</p>') + `</div>`;
+
+  view('مرحباً، ' + (T.name || ''), html, 'home');
 }
 
 /* ---- classes ---- */
