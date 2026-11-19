@@ -627,7 +627,7 @@ async function showResult(sm){
 /* ======================================================
    TEACHER
    ====================================================== */
-const T = { user: null, name: '', classTab: 'students', authMode: 'in', qf: { status: 'all', level: 'all', type: 'all' } };
+const T = { user: null, name: '', classTab: 'students', authMode: 'in', qf: { status: 'all', level: 'all', type: 'all', subj: '', cu: '' } };
 const CK = { cls: null, students: [], comp: null, pending: [] };
 const QS = { list: [], glob: [], globalCount: 0, stats: {}, q: '', sel: new Set(), selOn: false, dup: new Set(), norm: {} };
 const TYPE_AR = { curriculum: 'منهج', general: 'عام', quick: 'سرعة بديهة', memory: 'ذاكرة' };
@@ -1661,6 +1661,7 @@ async function tQuestions(){
     rpc('question_stats', {}).catch(() => [])
   ]);
   if (own.error) throw own.error;
+  await loadCurricula(true).catch(() => {});
   QS.list = own.data; QS.glob = glob.data || []; QS.globalCount = QS.glob.length;
   QS.stats = {}; (st || []).forEach(r => { QS.stats[r.question_id] = r; });
   qDupIndex();
@@ -1701,18 +1702,78 @@ function qItem(q, ro){
       q.status === 'draft' ? `<button class="q-ok" data-act="t-q-status" data-id="${q.id}" data-s="approved" aria-label="اعتماد">${ic('check')}<span>اعتماد</span></button><button class="q-no" data-act="t-q-status" data-id="${q.id}" data-s="rejected" aria-label="رفض">${ic('x')}<span>رفض</span></button>` :
       q.status === 'rejected' ? `<button class="btn sm soft" data-act="t-q-status" data-id="${q.id}" data-s="approved">استعادة</button>` : `<span class="qi-edit">${ic('edit')}</span>`}</div></div>`;
 }
+/* curriculum tree: subject → stage/grade → questions */
+const SUBJ_MAIN = ['اللغة العربية', 'التربية الإسلامية', 'الرياضيات', 'العلوم', 'اللغة الإنجليزية', 'الاجتماعيات'];
+const STAGE_ORDER = ['primary', 'middle', 'secondary', 'university'];
+function qStatusSrc(){ const f = T.qf; return f.status === 'global' ? QS.glob : QS.list.filter(q => q.status === f.status); }
+function qCuIds(subj){ return new Set(CU.list.filter(c => c.subject === subj).map(c => c.id)); }
+function qInScope(q){
+  const f = T.qf;
+  if (f.cu) return q.curriculum_id === f.cu;
+  if (f.subj === 'none') return !q.curriculum_id || !CU.list.some(c => c.id === q.curriculum_id);
+  if (f.subj && f.subj !== '__list') return qCuIds(f.subj).has(q.curriculum_id);
+  return true;
+}
 function qFiltered(){
   const f = T.qf, s = qNorm(QS.q);
-  const src = f.status === 'global' ? QS.glob : QS.list.filter(q => q.status === f.status);
-  return src.filter(q => (f.level === 'all' || q.level === f.level) && (f.type === 'all' || q.qtype === f.type) && (!s || qNorm(q.body + ' ' + q.options.join(' ')).includes(s)));
+  return qStatusSrc().filter(q => (s || qInScope(q)) && (f.level === 'all' || q.level === f.level) && (f.type === 'all' || q.qtype === f.type) && (!s || qNorm(q.body + ' ' + q.options.join(' ')).includes(s)));
+}
+function gradeAr(c){ if (!c.grade) return 'كل ' + (c.stage === 'university' ? 'السنوات' : 'الصفوف'); return c.stage === 'university' ? 'السنة ' + c.grade : 'الصف ' + (GRADES[c.grade - 1] || c.grade); }
+function qCrumb(){
+  const f = T.qf; if (T.qf.status === 'global' || QS.q || !f.subj) return '';
+  const c = f.cu && CU.list.find(x => x.id === f.cu);
+  const parts = [`<button data-act="q-nav" data-s="">كل المواد</button>`];
+  if (f.subj === '__list') parts.push('<b>كل الأسئلة</b>');
+  else if (f.subj === 'none') parts.push('<b>بدون منهج</b>');
+  else { parts.push(c ? `<button data-act="q-nav" data-s="${esc(f.subj)}">${esc(f.subj)}</button>` : `<b>${esc(f.subj)}</b>`);
+    if (c) parts.push(`<b>${STAGE_AR[c.stage]} · ${gradeAr(c)}${c.title ? ' · ' + esc(c.title) : ''}</b>`); }
+  return `<nav class="q-crumb">${parts.join('<i>‹</i>')}</nav>`;
+}
+const SUBJ_MARK = { 'اللغة العربية': 'ع', 'التربية الإسلامية': 'إ', 'الرياضيات': '÷', 'العلوم': '⚗', 'اللغة الإنجليزية': 'En', 'الاجتماعيات': 'ج', 'الحاسوب': '</>' };
+const subjMark = s => SUBJ_MARK[s] || s.replace(/^(اللغة|التربية)\s+/, '').replace(/^ال/, '').slice(0, 1);
+function qFolders(){
+  const src = qStatusSrc(), cnt = {}; let none = 0;
+  src.forEach(q => { const c = q.curriculum_id && CU.list.find(x => x.id === q.curriculum_id); if (c) cnt[c.subject] = (cnt[c.subject] || 0) + 1; else none++; });
+  const subs = [...new Set(SUBJ_MAIN.concat(CU.list.map(c => c.subject)))];
+  const stages = s => { const st = [...new Set(CU.list.filter(c => c.subject === s).map(c => STAGE_AR[c.stage]))]; return st.length ? st.join('، ') : 'أضف مرحلة'; };
+  return `<div class="qf-grid">${subs.map(s => `<button class="qf-tile${cnt[s] ? '' : ' empty'}" data-act="q-nav" data-s="${esc(s)}" style="--c:${SUBJ_COLOR(s)}"><span class="qf-ic">${esc(subjMark(s))}</span><b>${esc(s)}</b><small>${stages(s)}</small><em>${cnt[s] || 0}</em></button>`).join('')}
+    <button class="qf-tile${none ? '' : ' empty'}" data-act="q-nav" data-s="none" style="--c:#8E8E93"><span class="qf-ic">${ic('help')}</span><b>عام وسرعة بديهة</b><small>أسئلة بدون منهج</small><em>${none}</em></button>
+    <button class="qf-tile add" data-act="q-subj-add"><span class="qf-ic">${ic('plus')}</span><b>مادة أخرى</b><small>أضف مادة جديدة</small></button></div>
+    <button class="q-flat" data-act="q-nav" data-s="__list">عرض كل الأسئلة كقائمة</button>`;
+}
+function qSubjectView(subj){
+  const src = qStatusSrc(), cnt = {}; src.forEach(q => { if (q.curriculum_id) cnt[q.curriculum_id] = (cnt[q.curriculum_id] || 0) + 1; });
+  const mine = CU.list.filter(c => c.subject === subj);
+  const stg = STAGE_ORDER.filter(k => k !== 'university' || mine.some(c => c.stage === k));
+  return `<div class="qs-stages">${stg.map(k => { const have = mine.filter(c => c.stage === k).sort((a, b) => (a.grade || 0) - (b.grade || 0));
+      const free = STAGE_GRADES[k].filter(g => !have.some(c => c.grade === g));
+      return `<div class="qs-stage"><div class="qs-sh">${STAGE_AR[k]}</div><div class="qs-gr">${have.map(c => `<button class="qs-g on" data-act="q-nav-cu" data-id="${c.id}"><b>${gradeAr(c)}${c.title ? ' · ' + esc(c.title) : ''}</b><em>${cnt[c.id] || 0}</em></button>`).join('')}
+        ${free.map(g => `<button class="qs-g add" data-act="q-cu-new" data-st="${k}" data-g="${g}">${ic('plus')}${k === 'university' ? 'السنة ' + g : GRADES[g - 1]}</button>`).join('')}</div></div>`; }).join('')}</div>`;
 }
 function qListHtml(){
-  const f = T.qf, list = qFiltered(), ro = f.status === 'global';
-  if (!QS.list.length && !ro) return `<div class="card q-empty"><b>ابدأ بإضافة أسئلتك</b><p class="sub">أسئلتك تُعتمد مباشرة وتدخل في المسابقات مع البنك العام.</p>
-    <div class="q-empty-a"><button class="btn" data-act="t-q-add">${ic('plus')} إضافة سؤال</button><button class="btn soft" data-act="t-q-paste">${ic('edit')} لصق أسئلة</button><button class="btn soft" data-act="t-q-import">${ic('upload')} من ملف Excel</button><button class="btn soft" data-act="t-q-ocr">${ic('camera')} تصوير ورقة</button><button class="btn soft" data-act="t-q-code">${ic('share')} برمز من معلم</button><button class="btn ghost" data-act="t-qs" data-v="global">تصفح البنك العام</button></div></div>`;
-  if (!list.length) return `<div class="card center muted">${QS.q ? 'لا نتائج للبحث.' : f.status === 'draft' ? 'لا توجد أسئلة بانتظار المراجعة.' : 'لا توجد أسئلة هنا.'}</div>`;
-  return list.map(q => qItem(q, ro)).join('') + (ro ? '' : '');
+  const f = T.qf, ro = f.status === 'global';
+  if (!QS.list.length && !ro && !f.cu) return `<div class="card q-empty"><b>ابدأ بإضافة أسئلتك</b><p class="sub">أسئلتك تُعتمد مباشرة وتدخل في المسابقات مع البنك العام.</p>
+    <div class="q-empty-a"><button class="btn" data-act="t-q-add">${ic('plus')} إضافة سؤال</button><button class="btn soft" data-act="t-q-paste">${ic('edit')} لصق أسئلة</button><button class="btn soft" data-act="t-q-import">${ic('upload')} من ملف Excel</button><button class="btn soft" data-act="t-q-ocr">${ic('camera')} تصوير ورقة</button><button class="btn soft" data-act="t-q-code">${ic('share')} برمز من معلم</button><button class="btn ghost" data-act="t-qs" data-v="global">تصفح البنك العام</button></div></div>
+    <p class="sub center">أو رتّب أسئلتك حسب المادة:</p>${qFolders()}`;
+  if (!ro && !QS.q && !f.subj) return qFolders();
+  const list = qFiltered();
+  const head = !ro && !QS.q && f.subj && !['none', '__list'].includes(f.subj) && !f.cu ? qSubjectView(f.subj) : '';
+  const addHere = f.cu ? `<button class="q-addhere" data-act="t-q-add-menu">${ic('plus')} إضافة أسئلة لهذا المنهج</button>` : '';
+  if (!list.length) return head + `<div class="card center muted">${QS.q ? 'لا نتائج للبحث.' : f.cu ? 'لا توجد أسئلة في هذا المنهج بعد.' : f.status === 'draft' ? 'لا توجد أسئلة بانتظار المراجعة.' : 'لا توجد أسئلة هنا.'}</div>` + addHere;
+  return head + (head ? `<div class="qs-lh">كل أسئلة ${esc(f.subj)} (${list.length})</div>` : '') + list.map(q => qItem(q, ro)).join('') + addHere;
 }
+ACTS['q-nav'] = t => { T.qf.subj = t.dataset.s; T.qf.cu = ''; QS.selOn = false; QS.sel.clear(); renderQuestions(); scrollTo(0, 0); };
+ACTS['q-nav-cu'] = t => { T.qf.cu = t.dataset.id; renderQuestions(); scrollTo(0, 0); };
+ACTS['q-cu-new'] = async t => {
+  const row = { owner_id: T.user.id, subject: T.qf.subj, stage: t.dataset.st, grade: Number(t.dataset.g), title: null };
+  const { data, error } = await sb.from('curricula').insert(row).select().single();
+  if (error) return toast(errMsg(error));
+  CU.list.push(data); T.qf.cu = data.id; toast(`تمت إضافة ${STAGE_AR[data.stage]} · ${gradeAr(data)}`); renderQuestions();
+};
+ACTS['q-subj-add'] = async () => {
+  const v = await ask('اكتب اسم المادة', { title: 'مادة جديدة', input: '', placeholder: 'مثال: المكتبة', ok: 'متابعة' });
+  if (v && v.trim()) { SUBJ_MAIN.push(v.trim().slice(0, 60)); T.qf.subj = v.trim().slice(0, 60); T.qf.cu = ''; renderQuestions(); }
+};
 function qSelBar(){
   if (!QS.selOn) return '';
   const n = QS.sel.size;
@@ -1738,7 +1799,7 @@ function renderQuestions(){
     ${qSelBar()}
     ${f.status === 'draft' && cnt('draft') && !QS.selOn ? `<button class="btn accent" data-act="t-q-approve-all">${ic('check')} اعتماد الكل (${cnt('draft')})</button>` : ''}
     ${ro ? '<p class="sub q-ro">أسئلة جاهزة تدخل في مسابقاتك تلقائياً، فلا تحتاج إضافتها لأسئلتك.</p>' : ''}
-    <div id="qlist" class="qi-list">${qListHtml()}</div>
+    ${qCrumb()}<div id="qlist" class="qi-list">${qListHtml()}</div>
     ${ro ? '' : `<button class="fab" data-act="t-q-add-menu" aria-label="إضافة أسئلة">${ic('plus')}</button>`}
     <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen"><input type="file" id="qocr" accept="image/*" class="hide" data-change="t-q-ocr-chosen">`;
   view('الأسئلة', body, 'questions', top);
@@ -1753,7 +1814,7 @@ document.addEventListener('input', e => {
     const hit = k.length > 6 && (QS.norm[k] || []).some(x => x !== id);
     if (w) w.classList.toggle('hide', !hit); }
 });
-ACTS['t-qs'] = t => { T.qf.status = t.dataset.v; QS.selOn = false; QS.sel.clear(); renderQuestions(); };
+ACTS['t-qs'] = t => { T.qf.status = t.dataset.v; if (t.dataset.v === 'global') { T.qf.subj = ''; T.qf.cu = ''; } QS.selOn = false; QS.sel.clear(); renderQuestions(); };
 ACTS['t-qf'] = t => { T.qf[t.dataset.k] = t.value; renderQuestions(); };
 ACTS['t-q-more'] = () => sheet('الأسئلة', [
   { act: 'm-run', attrs: 'data-a="t-q-add"', icon: 'plus', label: 'إضافة سؤال' },
@@ -1825,7 +1886,7 @@ ACTS['qf-img-chosen'] = async t => {
   } catch(e){ box.innerHTML = qImgField(f.image.value); toast('تعذر رفع الصورة: ' + errMsg(e)); }
 };
 ACTS['t-save-q-next'] = t => { const f = t.closest('form'); f.next.value = '1'; f.requestSubmit(); };
-ACTS['t-q-add'] = async () => { QS.ocrQ = null; await loadCurricula().catch(() => {}); closeModals(); modal(qForm()); setTimeout(() => { const b = document.getElementById('q-b'); if (b) b.focus(); }, 60); };
+ACTS['t-q-add'] = async () => { QS.ocrQ = null; if (T.qf.cu) { QS.lastCu = T.qf.cu; QS.lastType = 'curriculum'; } await loadCurricula().catch(() => {}); closeModals(); modal(qForm()); setTimeout(() => { const b = document.getElementById('q-b'); if (b) b.focus(); }, 60); };
 ACTS['t-q-edit'] = async t => { await loadCurricula().catch(() => {}); modal(qForm(QS.list.find(x => x.id === t.dataset.id))); };
 ACTS['t-save-q'] = async f => {
   const next = f.next.value === '1'; f.next.value = '';
@@ -1991,7 +2052,7 @@ function qPreview(c, src){
 }
 ACTS['t-q-pv-save'] = async t => {
   const skip = document.getElementById('qpv-skip'), rev = document.getElementById('qpv-rev');
-  const rows = QS.pv.filter(x => !x.err && !x.dup).map(x => ({ owner_id: T.user.id, qtype: x.qtype, level: x.level, body: x.body, options: x.options, correct_index: x.correct_index, status: rev && rev.checked ? 'draft' : 'approved', source: 'teacher' }));
+  const rows = QS.pv.filter(x => !x.err && !x.dup).map(x => ({ owner_id: T.user.id, qtype: x.qtype, level: x.level, body: x.body, options: x.options, correct_index: x.correct_index, status: rev && rev.checked ? 'draft' : 'approved', source: 'teacher', curriculum_id: x.qtype === 'curriculum' ? (T.qf.cu || null) : null }));
   if (!rows.length) return toast('لا توجد أسئلة جديدة لإضافتها');
   t.disabled = true;
   try {
@@ -2349,7 +2410,9 @@ async function loadCurricula(force){
   if (error) throw error; CU.list = data; CU.loaded = true; return data;
 }
 function cuName(c){ if (!c) return ''; const g = c.grade ? (c.stage === 'university' ? ' · السنة ' + c.grade : ' · الصف ' + c.grade) : ''; return `${c.subject} · ${STAGE_AR[c.stage]}${g}${c.title ? ' · ' + c.title : ''}`; }
-function cuOptions(sel, emptyLabel){ return `<option value="">${emptyLabel || 'بدون منهج محدد'}</option>` + CU.list.map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${esc(cuName(c))}${c.owner_id ? '' : ' (عام)'}</option>`).join(''); }
+function cuOptions(sel, emptyLabel){
+  const subs = [...new Set(CU.list.map(c => c.subject))];
+  return `<option value="">${emptyLabel || 'بدون منهج محدد'}</option>` + subs.map(s => `<optgroup label="${esc(s)}">${CU.list.filter(c => c.subject === s).map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${STAGE_AR[c.stage]} · ${gradeAr(c)}${c.title ? ' · ' + esc(c.title) : ''}${c.owner_id ? '' : ' (عام)'}</option>`).join('')}</optgroup>`).join(''); }
 async function tQSet(){
   await loadCurricula(true);
   const st = T.settings || {}, diff = st.difficulty || 'normal', qt = st.qtypes || ['curriculum', 'general', 'quick'];
