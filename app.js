@@ -616,7 +616,7 @@ ACTS['w-file-chosen'] = async t => {
   try {
     const list = parseMulti(await readRows(file)); t.value = '';
     if (!list.length) return toast('لم أجد بيانات. تأكد من الأعمدة: الاسم، رقم الطالب، الصف');
-    const g = {}; list.forEach(x => (g[x.cls] = g[x.cls] || []).push({ name: x.name, student_no: x.student_no }));
+    const g = {}; list.forEach(x => (g[x.cls] = g[x.cls] || []).push({ name: x.name, student_no: x.student_no, phone: x.phone }));
     W.multi = g; renderWizard();
   } catch(e){ toast('تعذّرت قراءة الملف'); }
 };
@@ -775,7 +775,7 @@ ACTS['s-card'] = async t => {
   const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return;
   const comp = CL.comps[c.id];
   const ini = s.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
-  modal(`<div class="st-card" data-cid="${c.id}"><div class="st-top"><div class="avatar big-av">${esc(ini)}</div><div><b>${esc(s.name)}</b><div class="sub">${esc(c.name)} · رقم ${esc(s.student_no) || '—'}</div></div></div>
+  modal(`<div class="st-card" data-cid="${c.id}"><div class="st-top"><div class="avatar big-av">${esc(ini)}</div><div><b>${esc(s.name)}</b><div class="sub">${esc(c.name)} · رقم ${esc(s.student_no) || '—'}</div>${s.phone ? `<a class="sub" href="tel:${esc(s.phone)}" dir="ltr" style="color:var(--primary);text-decoration:none">${ic('send')} ${esc(s.phone)}</a>` : ''}</div></div>
     <button class="code-pill eye big-pill" data-act="c-eye" data-code="${esc(s.code)}"><span>••••••</span>${ic('eye')}</button>
     <div class="stats" id="st-stats"><div class="stat"><b>…</b><span>النقاط</span></div><div class="stat"><b>…</b><span>الترتيب</span></div><div class="stat"><b>…</b><span>الجولات</span></div><div class="stat"><b>…</b><span>الدقة</span></div></div>
     <div class="sub center" id="st-today">${comp ? esc(comp.title) + ' · ' + PHASE_AR[phaseOf(comp)] : 'لا توجد مسابقة نشطة'}</div>
@@ -799,12 +799,13 @@ ACTS['s-edit'] = t => {
   modal(`<h3>تعديل بيانات الطالب/ـة</h3><form class="col" data-form="s-edit-save" data-id="${s.id}" data-cid="${c.id}">
     <div class="field"><label for="se-n">الاسم</label><input class="input" id="se-n" name="name" value="${esc(s.name)}" required maxlength="60"></div>
     <div class="field"><label for="se-no">رقم الطالب</label><input class="input" id="se-no" name="no" value="${esc(s.student_no || '')}" dir="ltr" inputmode="numeric" maxlength="20"></div>
+    <div class="field"><label for="se-ph">رقم الهاتف</label><input class="input" id="se-ph" name="ph" type="tel" value="${esc(s.phone || '')}" dir="ltr" placeholder="مثال: 99999999" maxlength="20"></div>
     <div class="field"><label for="se-c">الصف</label><select class="input" id="se-c" name="cls">${CL.classes.map(x => `<option value="${x.id}" ${x.id === c.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
     <p class="sub">يبقى رمز الدخول كما هو، والنقل لصف آخر يحتفظ بالرمز.</p>
     <div class="row"><button type="button" class="btn soft" data-act="close-modal">إلغاء</button><button class="btn" type="submit">حفظ</button></div></form>`);
 };
 ACTS['s-edit-save'] = async f => {
-  const row = { name: f.name.value.trim(), student_no: f.no.value.trim(), class_id: f.cls.value };
+  const row = { name: f.name.value.trim(), student_no: f.no.value.trim(), class_id: f.cls.value, phone: f.ph.value.replace(/[^0-9+]/g, '').slice(0, 20) || null };
   if (row.name.length < 2) return toast('اكتب الاسم');
   const dup = (CL.students[row.class_id] || []).some(x => x.id !== f.dataset.id && row.student_no && x.student_no === row.student_no);
   if (dup) return toast('رقم الطالب موجود في هذا الصف');
@@ -817,7 +818,9 @@ ACTS['s-wa'] = t => {
   const s = Object.values(CL.students).flat().find(x => x.id === t.dataset.id); if (!s) return;
   const url = location.origin + location.pathname;
   const msg = `مرحباً ${s.name}\nرمز دخولك إلى «تحدّي الدقيقة»: ${s.code}\nادخل من الرابط: ${url}`;
-  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+  let ph = (s.phone || '').replace(/[^0-9]/g, '');
+  if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2);
+  window.open('https://wa.me/' + (ph || '') + '?text=' + encodeURIComponent(msg), '_blank');
 };
 ACTS['c-menu'] = t => {
   const c = ctx(t);
@@ -866,15 +869,16 @@ ACTS['t-save-class'] = async f => {
 /* ---- multi-class upload ---- */
 ACTS['t-multi-up'] = () => document.getElementById('mxl').click();
 ACTS['t-multi-sample'] = () => {
-  const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الصف'], ['سارة العتيبي', '1001', 'السادس / أ'], ['ليان الزامل', '1002', 'السادس / أ'], ['نور الحربي', '2001', 'السادس / ب']]);
+  const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الصف', 'الهاتف'], ['سارة العتيبي', '1001', 'السادس / أ', '99999999'], ['ليان الزامل', '1002', 'السادس / أ', ''], ['نور الحربي', '2001', 'السادس / ب', '']]);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'الطلبة'); XLSX.writeFile(wb, 'نموذج-الصفوف.xlsx');
 };
 function parseMulti(rows){
   if (!rows.length) return [];
   const head = rows[0].map(x => String(x).trim().toLowerCase());
-  let ni = head.findIndex(h => /اسم|name/.test(h)), ri = head.findIndex(h => /رقم|number|\bid\b|\bno\b/.test(h)), ci = head.findIndex(h => /صف|فصل|شعبة|class/.test(h)), start = 1;
-  if (ni < 0 || ci < 0) { ni = 0; ri = 1; ci = 2; start = 0; }
-  return rows.slice(start).map(r => ({ name: String(r[ni] == null ? '' : r[ni]).trim(), student_no: ri >= 0 ? String(r[ri] == null ? '' : r[ri]).trim() : '', cls: String(r[ci] == null ? '' : r[ci]).trim() })).filter(x => x.name && x.cls);
+  const isPh = h => /هاتف|جوال|موبايل|phone|mobile|واتس/.test(h);
+  let ni = head.findIndex(h => /اسم|name/.test(h)), ri = head.findIndex(h => !isPh(h) && /رقم|number|\bid\b|\bno\b/.test(h)), ci = head.findIndex(h => /صف|فصل|شعبة|class/.test(h)), pi = head.findIndex(isPh), start = 1;
+  if (ni < 0 || ci < 0) { ni = 0; ri = 1; ci = 2; pi = rows[0].length > 3 ? 3 : -1; start = 0; }
+  return rows.slice(start).map(r => ({ name: String(r[ni] == null ? '' : r[ni]).trim(), student_no: ri >= 0 ? String(r[ri] == null ? '' : r[ri]).trim() : '', cls: String(r[ci] == null ? '' : r[ci]).trim(), phone: pi >= 0 ? String(r[pi] == null ? '' : r[pi]).trim() : '' })).filter(x => x.name && x.cls);
 }
 ACTS['t-multi-chosen'] = async t => {
   const file = t.files && t.files[0];
@@ -884,7 +888,7 @@ ACTS['t-multi-chosen'] = async t => {
     t.value = '';
     if (!list.length) return toast('لم أجد بيانات. تأكد من الأعمدة: الاسم، رقم الطالب، الصف');
     const g = {};
-    list.forEach(x => (g[x.cls] = g[x.cls] || []).push({ name: x.name, student_no: x.student_no }));
+    list.forEach(x => (g[x.cls] = g[x.cls] || []).push({ name: x.name, student_no: x.student_no, phone: x.phone }));
     CK.multi = g;
     modal(`<h3>معاينة الصفوف</h3><p class="muted" style="margin-bottom:10px">وُجد <b>${Object.keys(g).length}</b> صف و<b>${list.length}</b> طالب/ـة. الصفوف الجديدة ستُنشأ، والموجودة بنفس الاسم تُضاف إليها الأسماء.</p>
       <div class="tbl-wrap"><table><thead><tr><th>الصف</th><th>عدد الطلبة</th></tr></thead><tbody>${Object.keys(g).map(k => `<tr><td>${esc(k)}</td><td>${g[k].length}</td></tr>`).join('')}</tbody></table></div>
@@ -933,7 +937,7 @@ ACTS['t-self'] = async t => {
   } catch(e){ toast(errMsg(e)); }
 };
 ACTS['t-sample-students'] = () => {
-  const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب'], ['سارة العتيبي', '1001'], ['ليان الزامل', '1002']]);
+  const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الهاتف'], ['سارة العتيبي', '1001', '99999999'], ['ليان الزامل', '1002', '']]);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'الطلبة'); XLSX.writeFile(wb, 'نموذج-الطلبة.xlsx');
 };
 async function readRows(file){
@@ -945,13 +949,14 @@ async function readRows(file){
 function parseStudents(rows){
   if (!rows.length) return [];
   const head = rows[0].map(x => String(x).trim().toLowerCase());
-  let ni = head.findIndex(h => /اسم|name/.test(h)), ri = head.findIndex(h => /رقم|number|\bid\b|\bno\b/.test(h)), start = 0;
+  const isPh = h => /هاتف|جوال|موبايل|phone|mobile|واتس/.test(h);
+  let ni = head.findIndex(h => /اسم|name/.test(h)), ri = head.findIndex(h => !isPh(h) && /رقم|number|\bid\b|\bno\b/.test(h)), pi = head.findIndex(isPh), start = 0;
   if (ni >= 0) { start = 1; if (ri < 0) ri = head.length > 1 ? (ni === 0 ? 1 : 0) : -1; }
   else {
     const numeric = i => rows.every(r => /^\d+$/.test(String(r[i] == null ? '' : r[i]).trim()));
     if (rows[0].length > 1 && numeric(0)) { ri = 0; ni = 1; } else { ni = 0; ri = rows[0].length > 1 ? 1 : -1; }
   }
-  return rows.slice(start).map(r => ({ name: String(r[ni] == null ? '' : r[ni]).trim(), student_no: ri >= 0 ? String(r[ri] == null ? '' : r[ri]).trim() : '' })).filter(x => x.name);
+  return rows.slice(start).map(r => ({ name: String(r[ni] == null ? '' : r[ni]).trim(), student_no: ri >= 0 ? String(r[ri] == null ? '' : r[ri]).trim() : '', phone: pi >= 0 ? String(r[pi] == null ? '' : r[pi]).trim() : '' })).filter(x => x.name);
 }
 ACTS['t-xl-chosen'] = async t => {
   const file = t.files && t.files[0];
@@ -981,11 +986,12 @@ ACTS['t-confirm-upload'] = async t => {
 };
 ACTS['t-add-one'] = t => { ctx(t);
   modal(`<h3>إضافة طالب/ـة</h3><form class="col" data-form="t-save-one"><div class="field"><label for="o-n">الاسم</label><input class="input" id="o-n" name="name" required></div>
-    <div class="field"><label for="o-no">رقم الطالب</label><input class="input" id="o-no" name="no" dir="ltr"></div><button class="btn" type="submit">إضافة</button></form>`);
+    <div class="field"><label for="o-no">رقم الطالب</label><input class="input" id="o-no" name="no" dir="ltr"></div>
+    <div class="field"><label for="o-ph">رقم الهاتف (اختياري)</label><input class="input" id="o-ph" name="ph" type="tel" dir="ltr" placeholder="مثال: 99999999"></div><button class="btn" type="submit">إضافة</button></form>`);
 };
 ACTS['t-save-one'] = async f => {
   try {
-    const r = await rpc('add_students', { p_class: CK.cls.id, p_rows: [{ name: f.name.value, student_no: f.no.value }] });
+    const r = await rpc('add_students', { p_class: CK.cls.id, p_rows: [{ name: f.name.value, student_no: f.no.value, phone: f.ph.value }] });
     closeModals();
     toast(r.added.length ? 'تمت الإضافة' : 'الرقم موجود مسبقاً في الصف');
     await tClasses();
@@ -1002,7 +1008,7 @@ ACTS['t-del-student'] = async t => { ctx(t); closeModals();
   await tClasses();
 };
 ACTS['t-export-codes'] = t => { ctx(t);
-  const rows = [['الاسم', 'رقم الطالب', 'الرمز']].concat(CK.students.map(s => [s.name, s.student_no, s.code]));
+  const rows = [['الاسم', 'رقم الطالب', 'الهاتف', 'الرمز']].concat(CK.students.map(s => [s.name, s.student_no, s.phone || '', s.code]));
   const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'الرموز');
   XLSX.writeFile(wb, 'رموز-' + CK.cls.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
@@ -1453,7 +1459,7 @@ ACTS['st-install'] = () => modal(`<h3>تثبيت التطبيق</h3><div class="
   <div class="set-row"><span class="set-ic" style="background:#2F80ED">2</span><span class="grow">اضغط زر المشاركة ⬆︎</span></div>
   <div class="set-row"><span class="set-ic" style="background:#2F80ED">3</span><span class="grow">اختر «إضافة إلى الشاشة الرئيسية»</span></div></div>
   <p class="sub">في أندرويد: من قائمة Chrome ⋮ اختر «تثبيت التطبيق». يتحدّث التطبيق تلقائياً بعد التثبيت.</p></div>`);
-ACTS['st-privacy'] = () => modal(`<h3>الخصوصية</h3><div class="col"><p>نحفظ فقط اسم الطالب ورقمه ونتائجه داخل المسابقة، ولا نجمع بريداً أو صوراً أو أرقام هواتف للطلبة.</p><p>يمكنك حذف أي طالب أو صف في أي وقت، فتُحذف بياناته ونتائجه نهائياً.</p><p class="sub">بيانات كل معلم/ـة لا يراها غيره.</p></div>`);
+ACTS['st-privacy'] = () => modal(`<h3>الخصوصية</h3><div class="col"><p>نحفظ فقط اسم الطالب ورقمه ونتائجه داخل المسابقة ورقم الهاتف إن أضفته لإرسال الرمز عبر واتساب. لا نجمع بريداً أو صوراً للطلبة.</p><p>يمكنك حذف أي طالب أو صف في أي وقت، فتُحذف بياناته ونتائجه نهائياً.</p><p class="sub">بيانات كل معلم/ـة لا يراها غيره.</p></div>`);
 ACTS['st-export'] = async () => {
   toast('جارٍ تجهيز الملف...');
   try {
