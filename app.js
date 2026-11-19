@@ -188,7 +188,7 @@ async function loadHome(){
   setTheme(S.home.class.style);
   renderHome();
 }
-ACTS['s-reload'] = () => loadHome();
+ACTS['s-reload'] = () => S.demo ? renderHome() : loadHome();
 
 function renderHome(){
   const h = S.home, c = h.competition, ph = h.phase;
@@ -246,6 +246,7 @@ ACTS['s-profile'] = () => { closeModals();
     '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button>');
 };
 ACTS['s-leaders'] = async () => {
+  if (S.demo) return toast('المتصدرون يظهرون في المسابقة الفعلية');
   const m = modal('<h3>المتصدرون</h3><div class="spin"></div>');
   try {
     const res = await rpc('class_leaderboard', { p_token: S.token });
@@ -350,9 +351,42 @@ const FX = (() => {
 })();
 ACTS['s-sound'] = t => { const on = FX.toggle(); t.innerHTML = ic(on ? 'sound' : 'mute'); toast(on ? 'الصوت مفعّل' : 'الصوت مكتوم'); };
 
+/* ---- theme preview (no server calls) ---- */
+const DEMO_Q = [
+  { body: 'ما عاصمة دولة الكويت؟', options: ['الكويت', 'دبي', 'القاهرة', 'الرياض'], c: 0 },
+  { body: 'كم يساوي 7 × 8 ؟', options: ['54', '56', '63', '48'], c: 1 },
+  { body: 'أي الكواكب أقرب إلى الشمس؟', options: ['الزهرة', 'المريخ', 'عطارد', 'الأرض'], c: 2 },
+  { body: 'ما جمع كلمة «كتاب»؟', options: ['كتابات', 'كاتب', 'مكتبة', 'كُتُب'], c: 3 }
+];
+function demoStart(th){
+  stopTimer(); closeModals();
+  document.body.classList.remove('wide');
+  setTheme(['kids', 'mid', 'uni'].includes(th) ? th : 'mid'); applyMode();
+  S.demo = { pts: 0, ok: 0 };
+  S.home = { class: { name: 'صف تجريبي', size: 24, style: th }, student: { name: 'طالب تجريبي' }, competition: { days_left_points: 4 }, phase: 'points', total_points: 0, rank: 1 };
+  renderHome();
+}
+function demoQ(pos){
+  if (pos === 1) { S.demo.pts = 0; S.demo.ok = 0; }
+  const q = DEMO_Q[pos - 1];
+  showQuestion({ attempt_id: 0, kind: 'practice', position: pos, total: 4, seconds_left: 15, question: { body: q.body, options: q.options } });
+}
+function demoSubmit(idx){
+  const st = S.cur, q = DEMO_Q[st.position - 1], ok = idx === q.c, d = S.demo;
+  const left = Number((document.getElementById('tnum') || {}).textContent) || 0, pts = ok ? 50 + left * 10 : 0;
+  if (ok) { S.demo.ok++; S.demo.pts += pts; }
+  const btns = $app.querySelectorAll('.opt');
+  btns.forEach((b, i) => { b.disabled = true; b.classList.add(i === q.c ? 'good' : i === idx ? 'bad' : 'dim'); });
+  if (ok) FX.correct(btns[q.c], pts); else FX.wrong(idx != null ? btns[idx] : null, idx == null);
+  const pop = document.getElementById('pop');
+  if (pop) { pop.className = 'pts-pop ' + (ok ? 'good' : 'bad'); pop.textContent = ok ? '+' + pts + ' نقطة' : (idx == null ? 'انتهى الوقت' : 'إجابة غير صحيحة'); }
+  setTimeout(() => { if (S.demo !== d || S.cur !== st || !$app.querySelector('.play')) return; if (st.position >= 4) showResult({ kind: 'practice', correct_count: S.demo.ok, total_points: S.demo.pts }); else demoQ(st.position + 1); }, 1500);
+}
+
 /* ---- play ---- */
 function stopTimer(){ document.body.classList.remove('danger'); if (S.timer) { cancelAnimationFrame(S.timer.raf); S.timer = null; } }
 ACTS['s-start'] = async (t) => {
+  if (S.demo) return demoQ(1);
   try {
     const st = await rpc('start_attempt', { p_token: S.token, p_kind: t.dataset.kind });
     if (st.finished) { toast('أنهيت هذه الجولة'); return loadHome(); }
@@ -433,10 +467,12 @@ function runTimer(secs){
 }
 ACTS['s-answer'] = (t) => { if (S.locked) return; S.locked = true; stopTimer(); submit(Number(t.dataset.idx)); };
 ACTS['s-quit'] = () => {
+  if (S.demo) { stopTimer(); return renderHome(); }
   if (!confirm('هل تريد الخروج؟ الأسئلة المتبقية ستُحتسب بلا نقاط عند انتهاء وقتها.')) return;
   stopTimer(); loadHome();
 };
 async function submit(idx){
+  if (S.demo) return demoSubmit(idx);
   const st = S.cur;
   try {
     const res = await rpc('submit_answer', { p_token: S.token, p_attempt: st.attempt_id, p_position: st.position, p_chosen: idx });
@@ -1253,6 +1289,7 @@ function compForm(){
     <div class="set-f">لكل صف ترتيبه وتصفياته الخاصة، والإعدادات واحدة للجميع.</div>
     <div class="set-h">نمط واجهة الطلبة</div>
     <div class="cf-themes">${CF_STYLES.map(x => `<button type="button" class="cf-th ${CC.style === x[0] ? 'on' : ''}" data-act="cp-style" data-v="${x[0]}"><span class="cf-ph cf-ph-${x[0]}"><i class="t"></i><i class="q"></i><i class="o"></i><i class="o"></i><i class="o"></i></span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>
+    <button type="button" class="btn sm soft cf-prev" data-act="cf-preview">${ic('play')} معاينة النمط كما يراه الطالب</button>
     <div class="set-f">يُطبَّق على كل الصفوف المشاركة.</div>
     <div class="set-h">المواعيد</div>
     <div class="set-grp">${date('start_date', 'بداية جمع النقاط', v.start_date)}${date('points_end_date', 'نهاية جمع النقاط', v.points_end_date)}${date('end_date', 'نهاية المسابقة', v.end_date)}
@@ -1283,6 +1320,21 @@ function cfUpdate(){
   const tot = pd + Math.max(kd, 0);
   tl.innerHTML = `<div class="cf-bar2"><i class="pts" style="flex:${pd}"><span>نقاط · ${pd} يوم</span></i>${kd > 0 ? `<i class="ko" style="flex:${kd}"><span>تصفيات · ${kd}</span></i>` : ''}</div><div class="cf-dates"><span>${esc(fmtDate(s))}</span><span>${esc(fmtDate(e))}</span></div>`;
   tl.title = tot + ' يوم';
+}
+ACTS['cf-preview'] = () => themePreview(CC.style || 'mid');
+function themePreview(th){
+  const old = document.getElementById('pvw'); if (old) old.remove();
+  const w = document.createElement('div'); w.id = 'pvw'; w.className = 'pvw';
+  const seg = () => CF_STYLES.map(x => `<button type="button" class="${x[0] === th ? 'on' : ''}" data-v="${x[0]}">${x[1]}</button>`).join('');
+  w.innerHTML = `<div class="pvw-top"><div class="tabs">${seg()}</div><button type="button" class="pvw-x" aria-label="إغلاق">${ic('x')}</button></div>
+    <div class="pvw-phone"><iframe title="معاينة" src="${location.pathname}#/p/${th}"></iframe></div>
+    <div class="pvw-f">معاينة تجريبية، لا تُحتسب نقاط ولا يراها الطلبة</div>`;
+  w.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.classList.contains('pvw-x')) { w.remove(); return; }
+    if (b.dataset.v) { th = b.dataset.v; w.querySelector('.tabs').innerHTML = seg(); w.querySelector('iframe').src = location.pathname + '#/p/' + th; }
+  });
+  document.body.appendChild(w);
 }
 ACTS['cf-step'] = t => { const i = t.parentElement.querySelector('input'); const v = Math.min(Number(i.max), Math.max(Number(i.min), (Number(i.value) || 0) + Number(t.dataset.d))); i.value = v; };
 document.addEventListener('input', e => { if (e.target.closest && e.target.closest('[data-form="cp-save"]')) cfUpdate(); });
@@ -1887,6 +1939,7 @@ function route(){
   const h = location.hash || '#/s';
   if (h.indexOf('#/t') === 0) teacherRoute();
   else if (h.indexOf('#/j/') === 0) studentJoin(decodeURIComponent(h.slice(4)));
+  else if (h.indexOf('#/p/') === 0) demoStart(h.slice(4));
   else if (h.indexOf('#/c/') === 0) { S.preCode = decodeURIComponent(h.slice(4)); LS.del('mc_token'); S.token = null; history.replaceState(null, '', '#/s'); studentLogin(); }
   else studentRoute();
 }
@@ -1894,6 +1947,7 @@ window.addEventListener('hashchange', () => { saveUI(); route(); });
 /* remember where the user was, restore on reopen */
 function saveUI(){
   try {
+    if (location.hash.indexOf('#/p/') === 0) return;
     if (location.hash.indexOf('#/j/') !== 0) LS.set('mc_last', location.hash || '#/s');
     LS.set('mc_ui', JSON.stringify({ open: [...CL.open], tab: CL.tab, sort: RS.sort, qf: T.qf, ctab: T.classTab, y: scrollY, h: location.hash }));
   } catch(e){}
