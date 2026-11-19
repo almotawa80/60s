@@ -25,7 +25,8 @@ const ERR = {
   bad_name: 'اكتب الاسم الثلاثي بشكل صحيح',
   bad_no: 'اكتب رقم الطالب',
   already_registered: 'هذا الرقم مسجل مسبقاً في الصف، اطلب رمزك من المعلم/ـة',
-  class_full: 'الصف ممتلئ'
+  class_full: 'الصف ممتلئ',
+  no_mistakes: 'لا توجد أخطاء لتتدرّب عليها، أحسنت! 👏'
 };
 function errMsg(e){
   const m = (e && e.message) || String(e);
@@ -103,6 +104,26 @@ function modal(html){
   return el;
 }
 const closeModals = () => document.querySelectorAll('.modal-back').forEach(m => m.remove());
+/* in-app dialogs (replace the browser's confirm / prompt) */
+function ask(msg, o){
+  o = o || {};
+  return new Promise(res => {
+    const danger = o.danger != null ? o.danger : /حذف|إنهاء|الخروج/.test(msg);
+    const el = document.createElement('div'); el.className = 'dlg-back';
+    el.innerHTML = `<div class="dlg" role="alertdialog" aria-modal="true"><div class="dlg-b">${o.title ? `<b>${esc(o.title)}</b>` : ''}<p>${esc(msg).replace(/\n/g, '<br>')}</p>` +
+      (o.input != null ? `<input class="dlg-in" ${o.readonly ? 'readonly' : ''} dir="${o.dir || 'auto'}" value="${esc(o.input)}" placeholder="${esc(o.placeholder || '')}">` : '') +
+      `</div><div class="dlg-a">${o.alert ? '' : `<button type="button" data-r="0">${esc(o.cancel || 'إلغاء')}</button>`}<button type="button" data-r="1" class="${danger ? 'dng' : 'pri'}">${esc(o.ok || (danger ? (/حذف/.test(msg) ? 'حذف' : 'متابعة') : 'متابعة'))}</button></div></div>`;
+    const inp = el.querySelector('.dlg-in'), ok = el.querySelector('[data-r="1"]');
+    const need = o.require;
+    if (need) { ok.disabled = true; inp.addEventListener('input', () => { ok.disabled = inp.value.trim() !== need; }); }
+    const done = v => { el.classList.add('out'); setTimeout(() => el.remove(), 160); res(v); };
+    el.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) done(b.dataset.r === '1' ? (inp && !o.readonly ? inp.value : true) : (inp && !o.readonly ? null : false)); else if (e.target === el && !o.alert) done(inp && !o.readonly ? null : false); });
+    if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !ok.disabled) ok.click(); });
+    document.body.appendChild(el);
+    setTimeout(() => { if (inp) { inp.focus(); if (o.readonly) inp.select(); } else ok.focus(); }, 60);
+  });
+}
+const copyBox = (v, title) => ask('اضغط مطولاً على الرابط لنسخه', { title: title || 'نسخ', input: v, readonly: true, alert: true, ok: 'تم', dir: 'ltr' });
 const ACTS = {};
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]');
@@ -132,9 +153,10 @@ const S = { token: LS.get('mc_token'), home: null, cur: null, locked: false, tim
 
 function studentLogin(){
   stopTimer();
-  setTheme('mid');
+  const th = ['kids', 'mid', 'uni'].includes(LS.get('mc_theme')) ? LS.get('mc_theme') : 'mid';
+  setTheme(th);
   document.body.classList.remove('wide');
-  $app.innerHTML =
+  $app.innerHTML = '<div class="sh sl pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
     '<div class="hero">' + LOGO +
     '<h1>تحدّي الدقيقة</h1><p>٤ أسئلة، ٦٠ ثانية، ومن يتصدّر؟</p></div>' +
     '<div class="pad col">' +
@@ -144,7 +166,7 @@ function studentLogin(){
     '<button class="paste-btn" data-act="s-paste">' + ic('download') + ' لصق الرمز</button>' +
     '<div id="lerr"></div>' +
     '<button class="btn" data-act="s-login">ادخل/ي</button></div>' +
-    '<div class="center"><button class="link" data-act="go-teacher">دخول المعلمين والمعلمات</button></div></div>';
+    '<div class="center sl-t"><button class="link" data-act="go-teacher">أنت معلم/ـة؟ ادخل من هنا</button></div></div></div>';
   const inp = document.getElementById('code');
   const paint = v => $app.querySelectorAll('.code-box').forEach((el, i) => { el.textContent = v[i] || ''; el.classList.toggle('on', i === Math.min(v.length, 5)); });
   inp.addEventListener('input', () => {
@@ -158,7 +180,7 @@ function studentLogin(){
 }
 ACTS['s-paste'] = async () => {
   try { const t = await navigator.clipboard.readText(); if (!t) return toast('لا يوجد رمز منسوخ'); S.fill(t); }
-  catch(e){ const v = prompt('الصق الرمز هنا:'); if (v) S.fill(v); }
+  catch(e){ const v = await ask('الصق الرمز هنا', { input: '', placeholder: 'الرمز', dir: 'ltr', ok: 'دخول', danger: false }); if (v) S.fill(v); }
 };
 ACTS['go-teacher'] = () => { location.hash = '#/t'; };
 ACTS['go-student'] = () => { location.hash = '#/s'; };
@@ -185,7 +207,7 @@ async function loadHome(){
     $app.innerHTML = '<div class="pad col"><div class="err">' + esc(errMsg(e)) + '</div><button class="btn" data-act="s-reload">إعادة المحاولة</button></div>';
     return;
   }
-  setTheme(S.home.class.style);
+  setTheme(S.home.class.style); LS.set('mc_theme', S.home.class.style || 'mid');
   renderHome();
 }
 ACTS['s-reload'] = () => S.demo ? renderHome() : loadHome();
@@ -199,7 +221,8 @@ function renderHome(){
     body = '<div class="phase"><b>تبدأ المسابقة قريباً</b><span class="chip warn">' + esc(fmtDate(c.start_date)) + '</span></div><p class="muted">يمكنك التدريب حتى موعد البداية.</p>';
   } else if (ph === 'points') {
     body = '<div class="phase"><b>مرحلة جمع النقاط</b><span class="chip warn">' + (c.days_left_points > 0 ? 'تنتهي بعد ' + c.days_left_points + ' يوم' : 'آخر يوم') + '</span></div>' +
-      '<div class="stats"><div class="stat"><b>' + h.total_points + '</b><span>نقاطي</span></div><div class="stat"><b>' + (h.rank || '-') + '</b><span>ترتيبي في الصف</span></div></div>';
+      '<div class="stats"><div class="stat"><b>' + h.total_points + '</b><span>نقاطي</span></div><div class="stat"><b>' + (h.rank || '-') + '</b><span>ترتيبي في الصف</span></div></div>' +
+      (h.gap != null && h.rank > 1 ? '<div class="gap-l">' + (h.gap > 0 ? 'ينقصك <b>' + h.gap + '</b> نقطة لتتقدم في الترتيب' : 'أنت متعادل مع من فوقك، جولة واحدة تكفي!') + '</div>' : (h.rank === 1 && h.total_points ? '<div class="gap-l">أنت في الصدارة 🏆 حافظ عليها</div>' : ''));
   } else if (ph === 'knockout') {
     body = '<div class="phase"><b>مرحلة التصفيات</b><span class="chip">حتى ' + esc(fmtDate(c.end_date)) + '</span></div>' +
       '<div class="stats"><div class="stat"><b>' + h.total_points + '</b><span>نقاطي</span></div><div class="stat"><b>' + (h.rank || '-') + '</b><span>ترتيبي في الصف</span></div></div>' +
@@ -210,20 +233,32 @@ function renderHome(){
   let main = '';
   if (ph === 'points') {
     if (h.in_progress_attempt) main = '<button class="btn accent" data-act="s-start" data-kind="official">' + ic('play') + ' أكمل جولتك</button>';
-    else if (h.played_today) main = '<button class="btn" disabled>أنهيت جولة اليوم، عد غداً</button>';
+    else if (h.played_today) main = '<div class="next-r"><span>جولتك القادمة بعد</span><b id="cd">' + cdText() + '</b></div>';
     else main = '<button class="btn accent" data-act="s-start" data-kind="official">' + ic('play') + ' ابدأ التحدي</button>';
   }
   const th = document.body.dataset.theme || 'mid';
+  const steps = [['points', 'جمع النقاط'], ['knockout', 'التصفيات'], ['finished', 'النهاية']], si = steps.findIndex(x => x[0] === ph);
+  if (si >= 0) body = '<div class="ph-strip">' + steps.map((x, i) => '<span class="' + (i < si ? 'done' : i === si ? 'cur' : '') + '">' + x[1] + '</span>').join('<i></i>') + '</div>' + body;
   $app.innerHTML = '<div class="sh pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
-    '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
+    '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋' + (h.streak ? ' <span class="streak" title="أيام متتالية">🔥 ' + h.streak + '</span>' : '') + '</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
     '<button class="avatar av-btn" data-act="s-menu" aria-label="القائمة">' + esc((h.student.name || '?').trim().charAt(0)) + '</button></div>' +
     '<div class="quick q2">' +
     '<button data-act="s-badges">' + ic('star') + '<span>شاراتي</span></button>' +
     '<button data-act="s-leaders">' + ic('trophy') + '<span>المتصدرون</span></button></div>' +
     '<div class="comp">' + body + main +
-    '<button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button></div></div>';
+    '<button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button>' +
+    (h.wrong_count ? '<button class="btn ghost rv-btn" data-act="s-start" data-kind="review">' + ic('star') + ' تدرّب على أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div>';
+  startCountdown();
 }
-ACTS['s-badges'] = () => toast('الشارات قريباً');
+const BADGES = { first: ['🎯', 'أول جولة', 'أنهيت أول جولة رسمية'], perfect: ['💯', '4 من 4', 'أجبت الأسئلة الأربعة كلها صح'], streak3: ['🔥', '3 أيام متتالية', 'لعبت 3 أيام وراء بعض'], fast: ['⚡', 'البرق', 'إجابة صحيحة في أقل من 3 ثوانٍ'], practice10: ['🏋️', 'المتدرّب', '10 جولات تدريب'] };
+ACTS['s-badges'] = () => {
+  const b = (S.home && S.home.badges) || [], n = b.filter(x => x.on).length;
+  modal('<h3>شاراتي <span class="sub">(' + n + ' من ' + b.length + ')</span></h3><div class="bdg-grid">' + b.map(x => { const d = BADGES[x.k] || ['⭐', x.k, '']; return '<div class="bdg ' + (x.on ? 'on' : '') + '"><span class="bdg-i">' + d[0] + '</span><b>' + d[1] + '</b><small>' + d[2] + (x.k === 'practice10' && !x.on ? ' (' + (x.n || 0) + '/10)' : '') + '</small></div>'; }).join('') + '</div>' +
+    (S.home && S.home.streak ? '<p class="center sub" style="margin-top:12px">🔥 سلسلتك الحالية: ' + S.home.streak + ' يوم متتالي</p>' : '') +
+    '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button>');
+};
+function cdText(){ const day = 864e5, k = 3 * 36e5, now = Date.now(), next = Math.floor((now + k) / day) * day + day - k, d = Math.max(0, next - now); const p = x => String(x).padStart(2, '0'); return p(Math.floor(d / 36e5)) + ':' + p(Math.floor(d % 36e5 / 6e4)) + ':' + p(Math.floor(d % 6e4 / 1e3)); }
+function startCountdown(){ clearInterval(S.cdT); const el = document.getElementById('cd'); if (!el) return; S.cdT = setInterval(() => { const e = document.getElementById('cd'); if (!e) return clearInterval(S.cdT); const t = cdText(); e.textContent = t; if (t === '00:00:00') { clearInterval(S.cdT); setTimeout(() => S.demo ? null : loadHome(), 1500); } }, 1000); }
 ACTS['s-menu'] = () => {
   const m = LS.get('mc_mode') || 'auto';
   modal('<div class="sheet"><div class="sheet-list">' +
@@ -234,7 +269,7 @@ ACTS['s-menu'] = () => {
     '<button class="sheet-i sheet-cancel" data-act="close-modal">إغلاق</button></div>');
 };
 ACTS['s-sound-row'] = t => { const on = FX.toggle(); t.innerHTML = ic(on ? 'sound' : 'mute') + '<span>الصوت: ' + (on ? 'مفعّل' : 'مكتوم') + '</span>'; };
-ACTS['s-logout-ask'] = () => { if (!confirm('تسجيل الخروج؟ ستحتاج رمزك للدخول مرة أخرى.')) return; closeModals(); ACTS['s-logout'](); };
+ACTS['s-logout-ask'] = async () => { if (!await ask('تسجيل الخروج؟ ستحتاج رمزك للدخول مرة أخرى.')) return; closeModals(); ACTS['s-logout'](); };
 ACTS['s-profile'] = () => { closeModals();
   const h = S.home;
   modal('<h3>ملفي</h3><div class="rows card">' +
@@ -363,7 +398,7 @@ function demoStart(th){
   document.body.classList.remove('wide');
   setTheme(['kids', 'mid', 'uni'].includes(th) ? th : 'mid'); applyMode();
   S.demo = { pts: 0, ok: 0 };
-  S.home = { class: { name: 'صف تجريبي', size: 24, style: th }, student: { name: 'طالب تجريبي' }, competition: { days_left_points: 4 }, phase: 'points', total_points: 0, rank: 1 };
+  S.home = { class: { name: 'صف تجريبي', size: 24, style: th }, student: { name: 'طالب تجريبي' }, competition: { days_left_points: 4 }, phase: 'points', total_points: 120, rank: 3, gap: 40, streak: 2, wrong_count: 0, badges: [{ k: 'first', on: true }, { k: 'perfect', on: false }, { k: 'streak3', on: false }, { k: 'fast', on: true }, { k: 'practice10', on: false, n: 3 }] };
   renderHome();
 }
 function demoQ(pos){
@@ -375,6 +410,7 @@ function demoSubmit(idx){
   const st = S.cur, q = DEMO_Q[st.position - 1], ok = idx === q.c, d = S.demo;
   const left = Number((document.getElementById('tnum') || {}).textContent) || 0, pts = ok ? 50 + left * 10 : 0;
   if (ok) { S.demo.ok++; S.demo.pts += pts; }
+  (S.log = S.log || []).push({ q: q.body, o: q.options, c: q.c, x: idx, ok });
   const btns = $app.querySelectorAll('.opt');
   btns.forEach((b, i) => { b.disabled = true; b.classList.add(i === q.c ? 'good' : i === idx ? 'bad' : 'dim'); });
   if (ok) FX.correct(btns[q.c], pts); else FX.wrong(idx != null ? btns[idx] : null, idx == null);
@@ -386,6 +422,7 @@ function demoSubmit(idx){
 /* ---- play ---- */
 function stopTimer(){ document.body.classList.remove('danger'); if (S.timer) { cancelAnimationFrame(S.timer.raf); S.timer = null; } }
 ACTS['s-start'] = async (t) => {
+  S.log = [];
   if (S.demo) return demoQ(1);
   try {
     const st = await rpc('start_attempt', { p_token: S.token, p_kind: t.dataset.kind });
@@ -466,9 +503,9 @@ function runTimer(secs){
   tick();
 }
 ACTS['s-answer'] = (t) => { if (S.locked) return; S.locked = true; stopTimer(); submit(Number(t.dataset.idx)); };
-ACTS['s-quit'] = () => {
+ACTS['s-quit'] = async () => {
   if (S.demo) { stopTimer(); return renderHome(); }
-  if (!confirm('هل تريد الخروج؟ الأسئلة المتبقية ستُحتسب بلا نقاط عند انتهاء وقتها.')) return;
+  if (!await ask('هل تريد الخروج؟ الأسئلة المتبقية ستُحتسب بلا نقاط عند انتهاء وقتها.')) return;
   stopTimer(); loadHome();
 };
 async function submit(idx){
@@ -477,6 +514,7 @@ async function submit(idx){
   try {
     const res = await rpc('submit_answer', { p_token: S.token, p_attempt: st.attempt_id, p_position: st.position, p_chosen: idx });
     const r = res.result;
+    (S.log = S.log || []).push({ q: st.question.body, o: st.question.options, c: r.correct_index, x: idx, ok: !!r.correct });
     const btns = $app.querySelectorAll('.opt');
     btns.forEach((b, i) => {
       b.disabled = true;
@@ -503,6 +541,11 @@ async function submit(idx){
     } catch(e2){ loadHome(); }
   }
 }
+function reviewHtml(){
+  const L = S.log || []; if (!L.length) return '';
+  return '<div class="rv"><b class="rv-h">مراجعة إجاباتك</b>' + L.map((x, i) => '<div class="rv-i ' + (x.ok ? 'ok' : 'no') + '"><span class="rv-n">' + (x.ok ? '✓' : '✗') + '</span><div><div class="rv-q">' + esc(x.q) + '</div>' +
+    (x.ok ? '<div class="rv-a good">' + esc(x.o[x.c]) + '</div>' : '<div class="rv-a good">الصحيحة: ' + esc(x.o[x.c]) + '</div><div class="rv-a bad">' + (x.x == null ? 'انتهى الوقت' : 'إجابتك: ' + esc(x.o[x.x])) + '</div>') + '</div></div>').join('') + '</div>';
+}
 async function showResult(sm){
   stopTimer();
   const cc = sm ? sm.correct_count : 0, lose = cc <= 1, win = cc >= 3, perfect = cc === 4;
@@ -523,8 +566,10 @@ async function showResult(sm){
     '<h2 class="center res-h">' + head + '</h2><p class="center muted" style="margin-top:-8px">' + sub + (sm && sm.kind === 'practice' ? ' · تدريب' : '') + '</p>' +
     '<div class="stars-row">' + stars + '</div>' +
     '<div class="center"><div class="big" id="bigpts">0</div><div class="muted">مجموع النقاط</div></div>' +
+    reviewHtml() +
     '<div class="rows card"><div class="r"><span>الإجابات الصحيحة</span><b>' + (sm ? sm.correct_count : 0) + ' من 4</b></div>' + rankRow + '</div>' +
     (sm && sm.kind === 'official' ? '<button class="btn accent" data-act="s-leaders">' + ic('trophy') + ' عرض الترتيب</button>' : '') +
+    ((S.log || []).some(x => !x.ok) && !S.demo ? '<button class="btn ghost" data-act="s-start" data-kind="review">تدرّب على أخطائك</button>' : '') +
     '<button class="btn" data-act="s-reload">العودة للرئيسية</button></div></div>';
   const target = sm ? sm.total_points : 0, el = document.getElementById('bigpts'), t0 = performance.now();
   (function roll(t){ const k = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - k, 3); if (el) el.textContent = Math.round(target * e); if (k < 1) requestAnimationFrame(roll); })(t0);
@@ -607,12 +652,35 @@ function teacherAuth(){
     ${up ? '<div class="field"><label for="a-name">الاسم</label><input class="input" id="a-name" name="name" required></div>' : ''}
     <div class="field"><label for="a-email">البريد الإلكتروني</label><input class="input" id="a-email" name="email" type="email" required dir="ltr" placeholder="example@school.edu.kw"></div>
     <div class="field"><label for="a-pw">كلمة المرور</label><input class="input" id="a-pw" name="password" type="password" required minlength="6" dir="ltr"></div>
+    ${up ? '' : '<button type="button" class="link forgot" data-act="t-forgot">نسيت كلمة المرور؟</button>'}
     <div id="aerr"></div>
     <button class="btn" type="submit">${up ? 'إنشاء الحساب' : 'دخول'}</button>
     ${cfg.GOOGLE_LOGIN ? '<button type="button" class="btn ghost" data-act="t-oauth" data-p="google">المتابعة باستخدام Google</button>' : ''}
     ${cfg.APPLE_LOGIN ? '<button type="button" class="btn ghost" data-act="t-oauth" data-p="apple">المتابعة باستخدام Apple</button>' : ''}
   </form>
   <div class="center"><button class="link" data-act="go-student">دخول الطلبة</button></div></div>`;
+}
+ACTS['t-forgot'] = async () => {
+  const cur = (document.getElementById('a-email') || {}).value || '';
+  const email = await ask('سنرسل رابطاً لتعيين كلمة مرور جديدة إلى بريدك.', { title: 'استعادة كلمة المرور', input: cur, placeholder: 'example@school.edu.kw', dir: 'ltr', ok: 'إرسال الرابط', danger: false });
+  if (!email) return;
+  const { error } = await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: location.origin + location.pathname });
+  if (error) return toast(errMsg(error));
+  ask('افتح الرسالة التي وصلتك واضغط الرابط، وستظهر لك خانة كلمة المرور الجديدة.', { title: 'تم الإرسال ✉️', alert: true, ok: 'حسناً', danger: false });
+};
+/* returning from an e-mail link (sign-up confirm / password recovery) */
+async function authReturn(){
+  const h = location.hash, rec = /type=recovery/.test(h);
+  const err = (h.match(/error_description=([^&]+)/) || [])[1];
+  await sb.auth.getSession();
+  history.replaceState(null, '', location.pathname + '#/t/home');
+  if (err) toast(decodeURIComponent(err.replace(/\+/g, ' ')));
+  await teacherRoute();
+  if (rec) newPassword();
+}
+function newPassword(){
+  modal(`<h3>كلمة مرور جديدة</h3><form class="col" data-form="st-pass-save"><div class="field"><label for="np">كلمة المرور الجديدة</label><input class="input" id="np" name="p1" type="password" minlength="6" required dir="ltr" autocomplete="new-password"></div><p class="sub">6 أحرف على الأقل.</p><button class="btn" type="submit">حفظ</button></form>`);
+  setTimeout(() => { const i = document.getElementById('np'); if (i) i.focus(); }, 80);
 }
 ACTS['t-mode'] = t => { T.authMode = t.dataset.mode; teacherAuth(); };
 ACTS['t-oauth'] = async t => {
@@ -960,7 +1028,7 @@ function selBar(){
 }
 ACTS['sel-del'] = async () => {
   const ids = [...CL.sel.ids], isC = CL.sel.type === 'classes';
-  if (!confirm(isC ? `حذف ${ids.length} صف مع طلبتها ونتائجها نهائياً؟` : `حذف ${ids.length} طالب/ـة ونتائجهم نهائياً؟`)) return;
+  if (!await ask(isC ? `حذف ${ids.length} صف مع طلبتها ونتائجها نهائياً؟` : `حذف ${ids.length} طالب/ـة ونتائجهم نهائياً؟`)) return;
   const { error } = await sb.from(isC ? 'classes' : 'students').delete().in('id', ids);
   if (error) return toast(errMsg(error));
   CL.sel = null; toast('تم الحذف'); await tClasses();
@@ -1044,7 +1112,7 @@ ACTS['c-menu'] = t => {
 };
 ACTS['c-del-all'] = async () => {
   const n = CL.classes.length, st = Object.values(CL.students).reduce((x, s) => x + s.length, 0);
-  const v = prompt(`سيتم حذف ${n} صف و${st} طالب/ـة وكل النتائج والمسابقات نهائياً.\nللتأكيد اكتب كلمة: حذف`);
+  const v = await ask(`سيتم حذف ${n} صف و${st} طالب/ـة وكل النتائج والمسابقات نهائياً.\nللتأكيد اكتب كلمة: حذف`, { title: 'حذف جميع الصفوف', input: '', placeholder: 'حذف', require: 'حذف', ok: 'حذف الكل' });
   if ((v || '').trim() !== 'حذف') return v === null ? null : toast('لم يتم الحذف');
   const { error } = await sb.from('classes').delete().in('id', CL.classes.map(c => c.id));
   if (error) return toast(errMsg(error));
@@ -1062,7 +1130,7 @@ ACTS['c-style'] = async t => {
 };
 ACTS['c-del'] = async t => {
   const c = ctx(t);
-  if (!confirm(`حذف «${c.name}» وكل طلبته ونتائجهم نهائياً؟`)) return;
+  if (!await ask(`حذف «${c.name}» وكل طلبته ونتائجهم نهائياً؟`)) return;
   const { error } = await sb.from('classes').delete().eq('id', c.id);
   if (error) return toast(errMsg(error)); closeModals(); CL.open.delete(c.id); await tClasses();
 };
@@ -1138,7 +1206,7 @@ ACTS['t-upload'] = t => { ctx(t); document.getElementById('xl').click(); };
 function joinLink(code){ return code ? location.origin + location.pathname + '#/j/' + code : ''; }
 ACTS['copy'] = async t => {
   try { await navigator.clipboard.writeText(t.dataset.v); toast('تم النسخ'); }
-  catch(e){ prompt('انسخ الرابط:', t.dataset.v); }
+  catch(e){ copyBox(t.dataset.v); }
 };
 ACTS['t-self'] = async t => {
   ctx(t);
@@ -1209,11 +1277,11 @@ ACTS['t-save-one'] = async f => {
   } catch(e){ toast(errMsg(e)); }
 };
 ACTS['t-regen'] = async t => { ctx(t); closeModals();
-  if (!confirm('إنشاء رمز جديد؟ سيتوقف الرمز القديم عن العمل.')) return;
+  if (!await ask('إنشاء رمز جديد؟ سيتوقف الرمز القديم عن العمل.')) return;
   try { await rpc('regenerate_code', { p_student: t.dataset.id }); await tClasses(); toast('تم إنشاء رمز جديد'); } catch(e){ toast(errMsg(e)); }
 };
 ACTS['t-del-student'] = async t => { ctx(t); closeModals();
-  if (!confirm('حذف هذا الطالب/ـة ونتائجه نهائياً؟')) return;
+  if (!await ask('حذف هذا الطالب/ـة ونتائجه نهائياً؟')) return;
   const { error } = await sb.from('students').delete().eq('id', t.dataset.id);
   if (error) return toast(errMsg(error));
   await tClasses();
@@ -1268,7 +1336,7 @@ ACTS['cp-edit'] = async t => {
 };
 ACTS['cp-cancel'] = () => { T.compEdit = null; renderClasses(); };
 ACTS['cp-end'] = async t => {
-  if (!confirm('إنهاء هذه المسابقة لكل صفوفها؟ تبقى النتائج محفوظة.')) return;
+  if (!await ask('إنهاء هذه المسابقة لكل صفوفها؟ تبقى النتائج محفوظة.')) return;
   const { error } = await sb.from('competitions').update({ status: 'finished' }).eq('group_id', t.dataset.g);
   if (error) return toast(errMsg(error)); await tClasses();
 };
@@ -1364,7 +1432,7 @@ ACTS['cp-save'] = async f => {
   const isNew = T.compEdit === 'new', gid = isNew ? crypto.randomUUID() : T.compEdit;
   const inGroup = isNew ? [] : CL.allComps.filter(c => c.group_id === gid);
   const moving = ids.filter(id => CL.comps[id] && CL.comps[id].group_id !== gid);
-  if (moving.length && !confirm(`${moving.length} صف مشترك في مسابقة أخرى، سيتم إنهاؤها لهذه الصفوف. متابعة؟`)) return;
+  if (moving.length && !await ask(`${moving.length} صف مشترك في مسابقة أخرى، سيتم إنهاؤها لهذه الصفوف. متابعة؟`)) return;
   try {
     const chk = r => { if (r.error) throw r.error; };
     if (moving.length) chk(await sb.from('competitions').update({ status: 'finished' }).in('id', moving.map(id => CL.comps[id].id)));
@@ -1396,7 +1464,7 @@ function renderQuestions(){
   const items = list.map(q => `<div class="q-item" data-act="t-q-edit" data-id="${q.id}"><b class="q-body">${esc(q.body)}</b>
     <div class="opts-s">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${LETTERS[i]}. ${esc(o)}</span>`).join('')}</div>
     <div class="row"><span class="chip lv-${q.level}">${LEVEL_AR[q.level]}</span><span class="chip">${TYPE_AR[q.qtype] || q.qtype}</span><span class="grow"></span>
-    ${q.status === 'draft' ? `<button class="q-ok" data-act="t-q-status" data-id="${q.id}" data-s="approved" aria-label="اعتماد">${ic('check')}</button><button class="q-no" data-act="t-q-status" data-id="${q.id}" data-s="rejected" aria-label="رفض">${ic('x')}</button>` : ''}
+    ${q.status === 'draft' ? `<button class="q-ok" data-act="t-q-status" data-id="${q.id}" data-s="approved" aria-label="اعتماد">${ic('check')}<span>اعتماد</span></button><button class="q-no" data-act="t-q-status" data-id="${q.id}" data-s="rejected" aria-label="رفض">${ic('x')}<span>رفض</span></button>` : ''}
     ${q.status === 'rejected' ? `<button class="btn sm soft" data-act="t-q-status" data-id="${q.id}" data-s="approved">استعادة</button>` : ''}</div></div>`).join('');
   const top = `<button class="icon-btn" data-act="t-q-more" aria-label="المزيد">${ic('more')}</button>`;
   const body = `<div class="tabs"><button class="${f.status === 'draft' ? 'on' : ''}" data-act="t-qs" data-v="draft">للمراجعة ${cnt('draft') ? `<span class="badge">${cnt('draft')}</span>` : ''}</button><button class="${f.status === 'approved' ? 'on' : ''}" data-act="t-qs" data-v="approved">معتمدة (${cnt('approved')})</button><button class="${f.status === 'rejected' ? 'on' : ''}" data-act="t-qs" data-v="rejected">مرفوضة</button></div>
@@ -1421,7 +1489,7 @@ ACTS['t-q-more'] = () => sheet('الأسئلة', [
 ACTS['t-q-del-rejected'] = async () => {
   const n = QS.list.filter(q => q.status === 'rejected').length;
   if (!n) return toast('لا توجد أسئلة مرفوضة');
-  if (!confirm(`حذف ${n} سؤالاً مرفوضاً نهائياً؟`)) return;
+  if (!await ask(`حذف ${n} سؤالاً مرفوضاً نهائياً؟`)) return;
   const { error } = await sb.from('questions').delete().eq('owner_id', T.user.id).eq('status', 'rejected');
   if (error) return toast(errMsg(error)); await tQuestions();
 };
@@ -1455,13 +1523,13 @@ ACTS['t-q-status'] = async t => {
   await tQuestions();
 };
 ACTS['t-q-del'] = async t => {
-  if (!confirm('حذف هذا السؤال نهائياً؟')) return;
+  if (!await ask('حذف هذا السؤال نهائياً؟')) return;
   const { error } = await sb.from('questions').delete().eq('id', t.dataset.id);
   if (error) return toast(errMsg(error));
   closeModals(); await tQuestions();
 };
 ACTS['t-q-approve-all'] = async () => {
-  if (!confirm('اعتماد كل المسودات؟ تأكد أنك راجعتها.')) return;
+  if (!await ask('اعتماد كل المسودات؟ تأكد أنك راجعتها.')) return;
   const { error } = await sb.from('questions').update({ status: 'approved' }).eq('owner_id', T.user.id).eq('status', 'draft');
   if (error) return toast(errMsg(error));
   toast('تم اعتماد المسودات'); await tQuestions();
@@ -1805,7 +1873,7 @@ ACTS['cu-save'] = async f => {
   closeModals(); toast('تم الحفظ'); await tQSet();
 };
 ACTS['cu-del'] = async t => {
-  if (!confirm('حذف المنهج؟ تبقى أسئلته موجودة لكن بدون منهج.')) return;
+  if (!await ask('حذف المنهج؟ تبقى أسئلته موجودة لكن بدون منهج.')) return;
   const { error } = await sb.from('curricula').delete().eq('id', t.dataset.id);
   if (error) return toast(errMsg(error)); closeModals(); await tQSet();
 };
@@ -1822,7 +1890,7 @@ ACTS['av-menu'] = () => {
 ACTS['av-pick'] = () => { closeModals(); profileSheet(); setTimeout(() => document.getElementById('av-file').click(), 50); };
 ACTS['av-recrop'] = () => { closeModals(); cropper(T.avatar); };
 ACTS['av-del'] = async () => {
-  if (!confirm('حذف صورة الملف؟')) return;
+  if (!await ask('حذف صورة الملف؟')) return;
   const { error } = await sb.from('teachers').update({ avatar_url: null }).eq('id', T.user.id);
   if (error) return toast(errMsg(error));
   T.avatar = ''; closeModals(); tSettings(); toast('تم حذف الصورة');
@@ -1891,13 +1959,13 @@ ACTS['st-name'] = () => modal(`<h3>الاسم</h3><form class="col" data-form="t
 ACTS['st-pass'] = () => modal(`<h3>تغيير كلمة المرور</h3><form class="col" data-form="st-pass-save"><div class="field"><label for="np">كلمة المرور الجديدة</label><input class="input" id="np" name="p1" type="password" minlength="6" required dir="ltr"></div>
   <div class="field"><label for="np2">تأكيد كلمة المرور</label><input class="input" id="np2" name="p2" type="password" minlength="6" required dir="ltr"></div><button class="btn" type="submit">حفظ</button></form>`);
 ACTS['st-pass-save'] = async f => {
-  if (f.p1.value !== f.p2.value) return toast('كلمتا المرور غير متطابقتين');
+  if (f.p2 && f.p1.value !== f.p2.value) return toast('كلمتا المرور غير متطابقتين');
   const { error } = await sb.auth.updateUser({ password: f.p1.value });
   if (error) return toast(errMsg(error)); closeModals(); toast('تم تغيير كلمة المرور');
 };
 async function shareOrCopy(title, text, url){
   if (navigator.share) { try { await navigator.share({ title, text, url }); return; } catch(e){ if (e && e.name === 'AbortError') return; } }
-  try { await navigator.clipboard.writeText(text + '\n' + url); toast('تم نسخ الرابط'); } catch(e){ prompt('انسخ الرابط:', url); }
+  try { await navigator.clipboard.writeText(text + '\n' + url); toast('تم نسخ الرابط'); } catch(e){ copyBox(url); }
 }
 ACTS['st-share-students'] = () => shareOrCopy('تحدّي الدقيقة', 'ادخل إلى «تحدّي الدقيقة» برمزك:', location.origin + location.pathname);
 ACTS['st-invite'] = () => shareOrCopy('تحدّي الدقيقة', 'جرّب «تحدّي الدقيقة»: مسابقات صفية ممتعة لطلابك، 4 أسئلة في 60 ثانية. سجّل مجاناً:', location.origin + location.pathname + '#/t');
@@ -1920,7 +1988,7 @@ ACTS['st-export'] = async () => {
     XLSX.writeFile(wb, 'بيانات-تحدي-الدقيقة.xlsx');
   } catch(e){ toast(errMsg(e)); }
 };
-ACTS['st-logout-ask'] = () => { if (confirm('تسجيل الخروج من الحساب؟')) ACTS['t-logout'](); };
+ACTS['st-logout-ask'] = async () => { if (await ask('تسجيل الخروج من الحساب؟')) ACTS['t-logout'](); };
 ACTS['t-save-name'] = async f => {
   const name = f.name.value.trim();
   const { error } = await sb.from('teachers').update({ display_name: name }).eq('id', T.user.id);
@@ -1967,6 +2035,7 @@ function studentRoute(){
 function route(){
   setTimeout(applyMode, 0);
   const h = location.hash || '#/s';
+  if (/access_token=|error_description=|type=recovery/.test(h)) return authReturn();
   if (h.indexOf('#/t') === 0) teacherRoute();
   else if (h.indexOf('#/j/') === 0) studentJoin(decodeURIComponent(h.slice(4)));
   else if (h.indexOf('#/p/') === 0) demoStart(h.slice(4));
@@ -2005,8 +2074,13 @@ if (_ui.y && _ui.h === location.hash) {
   setTimeout(tryScroll, 300);
 }
 /* app feel: block pinch / double-tap zoom */
-['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
-document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => { if (document.querySelector('.play')) e.preventDefault(); }, { passive: false }));
+/* connection banner */
+function netBanner(){ let b = document.getElementById('net'); if (navigator.onLine) { if (b) b.remove(); return; } if (!b) { b = document.createElement('div'); b.id = 'net'; b.setAttribute('role', 'status'); b.textContent = 'لا يوجد اتصال بالإنترنت، تحقق من الشبكة قبل أن تبدأ الجولة'; document.body.appendChild(b); } }
+window.addEventListener('online', () => { netBanner(); toast('عاد الاتصال ✓'); });
+window.addEventListener('offline', netBanner);
+netBanner();
+document.addEventListener('touchmove', e => { if (e.touches.length > 1 && document.querySelector('.play')) e.preventDefault(); }, { passive: false });
 let lastTap = 0;
 document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTap < 300 && !e.target.closest('input,textarea,select')) e.preventDefault(); lastTap = n; }, { passive: false });
 /* swipe from the right edge to go back; swipe rows to reveal delete */
@@ -2057,7 +2131,7 @@ document.addEventListener('touchend', () => {
   }
   G = null;
 });
-sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT' && location.hash.indexOf('#/t') === 0) teacherAuth(); });
+sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') setTimeout(() => { if (!document.getElementById('np')) newPassword(); }, 400); if (ev === 'SIGNED_OUT' && location.hash.indexOf('#/t') === 0) teacherAuth(); });
 route();
 if ('serviceWorker' in navigator) {
   let reloaded = false, had = !!navigator.serviceWorker.controller;
