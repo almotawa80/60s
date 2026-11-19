@@ -1035,3 +1035,74 @@ body.wide.dark .cf-date,body.wide.dark .cf-sel,body.wide.dark .cf-step{backgroun
 body.wide.dark .cf-step button{color:#FF6482}
 body.wide.dark .cf-in{color:var(--ink)}
 .t-menu .set-ic .ico{color:#fff!important;stroke:#fff}
+
+/* ================= STUDENT HOME + RESULT matching question themes ================= */
+.sh{position:relative;isolation:isolate;min-height:100vh;min-height:100dvh;padding-bottom:130px;overflow-x:clip}
+.sh .pv-bld,.sh .pv-ic,.sh .pv-kids .c3{display:none}
+html body .sh .comp,html body .sh .quick button,html body .sh .stat,html body .sh .card{animation:none}
+html body .sh .btn::after{display:none}
+html body .sh .btn{text-shadow:none!important;border-radius:999px;font-weight:800}
+/* kids */
+.sh.pv-kids .s-head .who b{color:#fff;text-shadow:0 2px 0 rgba(20,70,140,.35);font-size:24px}
+.sh.pv-kids .s-head .sub{color:#EAF6FF!important}
+html body .sh.pv-kids .av-btn{background:radial-gradient(circle at 40% 30%,#FFD86B,#F5A90B 70%)!important;box-shadow:0 4px 0 #C26D06!important;border:3px solid #fff;color:#fff}
+html body .sh.pv-kids .quick button{background:linear-gradient(180deg,#FFFEF6,#FFF2C6)!important;border:3px solid #F7C948!important;box-shadow:0 5px 0 #E2A92B!important;border-radius:26px;color:#1E2A4A}
+html body .sh.pv-kids .quick button:nth-child(1) svg{background:radial-gradient(circle at 40% 30%,#C59BF3,#8E5BD6 70%)!important;box-shadow:0 4px 0 #6A3FB0!important;color:#fff}
+html body .sh.pv-kids .comp{background:rgba(255,255,255,.94)!important;border:4px solid #F7C948!important;box-shadow:0 6px 0 #E2A92B,0 14px 24px rgba(0,60,120,.15)!important;border-radius:32px;color:#1E2A4A}
+html body .sh.pv-kids .stat{background:#FFF8DC!important;box-shadow:inset 0 0 0 2px #F7E3A0!important;border-radius:20px}
+html body .sh.pv-kids .stat b{color:#1F56A8;text-shadow:none}
+html body .sh.pv-kids .btn{background:linear-gradient(180deg,#4FD394,#1FA971 60%,#168A5B)!important;color:#fff!important;box-shadow:0 6px 0 #0E6A45!important}
+html body .sh.pv-kids .btn.accent{background:linear-gradient(180deg,#FFD86B,#F5A90B)!important;color:#5A2600!important;box-shadow:0 6px 0 #C26D06!important}
+html body .sh.pv-kids .btn.ghost{background:#fff!important;color:#1F56A8!important;border:3px solid #6EC1FA!important;box-shadow:0 5px 0 #3A8FD6!important}
+html body .sh.pv-kids .btn:disabled{background:#E7E3D6!important;color:#6B6455!important;box-shadow:0 5px 0 #C9C2B0!important}
+/* mid */
+.sh.pv-mid .s-head .who b{color:#fff;font-size:23px}
+.sh.pv-mid .s-head .sub{color:#BFE6E2!important}
+html body .sh.pv-mid .av-btn{background:radial-gradient(circle at 40% 30%,#FFE48A,#F5B72B 70%)!important;color:#3A2600;box-shadow:0 0 0 3px rgba(255,255,255,.9)!important;text-shadow:none}
+html body .sh.pv-mid .quick button{background:#FFFBF4!important;border:0!important;box-shadow:0 10px 24px rgba(0,0,0,.18)!important;border-radius:22px;color:#173032}
+html body .sh.pv-mid .quick button svg{background:linear-gradient(180deg,#14898B,#0E6E70)!important;box-shadow:0 3px 0 #094B4D!important;color:#fff}
+html body .sh.pv-mid .quick button:nth-child(2) svg{background:linear-gradient(180deg,#FFE48A,#F5B72B)!important;box-shadow:0 3px 0 #C98A0B!important;color:#3A2600}
+html body .sh.pv-mid .comp{background:#FFFBF4!important;border:0!important;box-shadow:0 18px 34px rgba(0,0,0,.22)!important;border-radius:30px;color:#173032}
+html body .sh.pv-mid .stat{background:#fff!important;box-shadow:inset 0 0 0 2px #A9D8D3!important;border-radius:18px}
+html body .sh.pv-mid .stat b{color:#0E6E70;text-shadow:none}
+html body .sh.pv-mid .btn{background:linear-gradient(180deg,#14898B,#0E6E70)!important;color:#fff!important;box-shadow:0 5px 0 #094B4D!important}
+html body .sh.pv-mid .btn.accent{background:linear-gradient(180deg,#FFD86B,#F5B72B)!important;color:#3A2600!important;box-shadow:0 5px 0 #C98A0B!important}
+html body .sh.pv-mid .btn.ghost{background:#fff!important;color:#0E6E70!important;border:2px solid #A9D8D3!important;box-shadow:0 4px 0 #CFE7E4!important}
+html body .sh.pv-mid .btn:disabled{background:#E6EEED!important;color:#5C7071!important;box-shadow:none!important}
+/* uni */
+.sh.pv-uni .s-head .who b{color:#1B2A2C}
+html body .sh.pv-uni .av-btn{background:#0E5C5E!important;color:#fff;box-shadow:none!important;text-shadow:none}
+html body .sh.pv-uni .quick button{background:#fff!important;border:1.5px solid #E1E7E8!important;box-shadow:none!important;border-radius:14px;color:#1B2A2C}
+html body .sh.pv-uni .quick button svg{background:#E6EFEE!important;box-shadow:none!important;color:#0E5C5E;filter:none}
+html body .sh.pv-uni .comp{background:#fff!important;border:1.5px solid #E1E7E8!important;box-shadow:none!important;border-radius:16px;color:#1B2A2C}
+html body .sh.pv-uni .stat{background:#F5F8F8!important;box-shadow:none!important;border-radius:12px}
+html body .sh.pv-uni .stat b{color:#0E4F51;text-shadow:none}
+html body .sh.pv-uni .btn{border-radius:12px;background:#0E5C5E!important;color:#fff!important;box-shadow:none!important}
+html body .sh.pv-uni .btn.accent{background:#0E5C5E!important;color:#fff!important}
+html body .sh.pv-uni .btn.ghost{background:#fff!important;color:#0E5C5E!important;border:1.5px solid #CBD4D7!important}
+html body .sh.pv-uni .btn:disabled{background:#E9EEEF!important;color:#5E6C70!important}
+/* result screen bits */
+.sh .result{position:relative}
+.sh.pv-kids .res-h,.sh.pv-mid .res-h{color:#fff!important;text-shadow:0 2px 0 rgba(0,0,0,.2)}
+.sh.pv-kids .result>p.muted,.sh.pv-mid .result>p.muted,.sh.pv-kids .result .center .muted,.sh.pv-mid .result .center .muted{color:rgba(255,255,255,.9)!important}
+.sh.pv-kids .big,.sh.pv-mid .big{color:#fff!important;text-shadow:0 4px 0 rgba(0,0,0,.18)!important}
+.sh.pv-uni .big{color:#0E4F51!important;text-shadow:none!important}
+html body .sh.pv-mid .rows.card,html body .sh.pv-kids .rows.card{background:#FFFBF4!important;color:#173032;border:0!important}
+html body .sh.pv-uni .rows.card{background:#fff!important;border:1.5px solid #E1E7E8!important;box-shadow:none!important;color:#1B2A2C}
+/* dark */
+html body.dark .sh.pv-kids .comp,html body.dark .sh.pv-kids .quick button{background:linear-gradient(180deg,#2A3566,#212A55)!important;color:#FFF4D0}
+html body.dark .sh.pv-kids .stat{background:#1B2350!important;box-shadow:inset 0 0 0 2px #3A4580!important}
+html body.dark .sh.pv-kids .stat b{color:#FFD86B}
+html body.dark .sh.pv-kids .btn.ghost{background:#212A55!important;color:#BFE4FF!important}
+html body.dark .sh.pv-mid .comp,html body.dark .sh.pv-mid .quick button,html body.dark .sh.pv-mid .rows.card{background:#0F2223!important;color:#E8F4F3}
+html body.dark .sh.pv-mid .stat{background:#163234!important;box-shadow:inset 0 0 0 2px #2C5C5D!important}
+html body.dark .sh.pv-mid .stat b{color:#F5B72B}
+html body.dark .sh.pv-mid .btn.ghost{background:#163234!important;color:#A9E3DD!important;border-color:#2C5C5D!important;box-shadow:0 4px 0 #0A1A1B!important}
+html body.dark .sh.pv-uni .s-head .who b,html body.dark .sh.pv-uni .big{color:#E6EEEF!important}
+html body.dark .sh.pv-uni .comp,html body.dark .sh.pv-uni .quick button,html body.dark .sh.pv-uni .rows.card{background:#192023!important;border-color:#2E3A3E!important;color:#E6EEEF}
+html body.dark .sh.pv-uni .stat{background:#111719!important}
+html body.dark .sh.pv-uni .stat b{color:#7FD1CC}
+html body.dark .sh.pv-uni .quick button svg{background:#1E2B2C!important;color:#7FD1CC}
+html body.dark .sh.pv-uni .av-btn{background:#3FB3AE!important;color:#0B1B1C}
+html body.dark .sh.pv-uni .btn{background:#3FB3AE!important;color:#0B1B1C!important}
+html body.dark .sh.pv-uni .btn.ghost{background:#192023!important;color:#7FD1CC!important;border-color:#2E3A3E!important}

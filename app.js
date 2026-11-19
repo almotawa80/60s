@@ -213,14 +213,15 @@ function renderHome(){
     else if (h.played_today) main = '<button class="btn" disabled>أنهيت جولة اليوم، عد غداً</button>';
     else main = '<button class="btn accent" data-act="s-start" data-kind="official">' + ic('play') + ' ابدأ التحدي</button>';
   }
-  $app.innerHTML =
+  const th = document.body.dataset.theme || 'mid';
+  $app.innerHTML = '<div class="sh pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
     '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
     '<button class="avatar av-btn" data-act="s-menu" aria-label="القائمة">' + esc((h.student.name || '?').trim().charAt(0)) + '</button></div>' +
     '<div class="quick q2">' +
     '<button data-act="s-badges">' + ic('star') + '<span>شاراتي</span></button>' +
     '<button data-act="s-leaders">' + ic('trophy') + '<span>المتصدرون</span></button></div>' +
     '<div class="comp">' + body + main +
-    '<button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button></div>';
+    '<button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button></div></div>';
 }
 ACTS['s-badges'] = () => toast('الشارات قريباً');
 ACTS['s-menu'] = () => {
@@ -480,14 +481,15 @@ async function showResult(sm){
     const delta = d > 0 ? '<span class="up">▲ صعدت ' + d + '</span>' : d < 0 ? '<span class="down">▼ نزلت ' + (-d) + '</span>' : '<span class="muted">بلا تغيير</span>';
     rankRow = '<div class="r"><span>ترتيبي الجديد</span><b>' + sm.rank_after + ' ' + delta + '</b></div>';
   }
-  $app.innerHTML =
+  const th = document.body.dataset.theme || 'mid';
+  $app.innerHTML = '<div class="sh pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
     '<div class="result ' + (win ? 'is-win' : lose ? 'is-lose' : '') + '"><div class="medal-wrap">' + (win ? '<div class="rays"></div>' : '') + '<div class="medal">' + ic(lose ? 'clock' : 'trophy') + '</div></div>' +
     '<h2 class="center res-h">' + head + '</h2><p class="center muted" style="margin-top:-8px">' + sub + (sm && sm.kind === 'practice' ? ' · تدريب' : '') + '</p>' +
     '<div class="stars-row">' + stars + '</div>' +
     '<div class="center"><div class="big" id="bigpts">0</div><div class="muted">مجموع النقاط</div></div>' +
     '<div class="rows card"><div class="r"><span>الإجابات الصحيحة</span><b>' + (sm ? sm.correct_count : 0) + ' من 4</b></div>' + rankRow + '</div>' +
     (sm && sm.kind === 'official' ? '<button class="btn accent" data-act="s-leaders">' + ic('trophy') + ' عرض الترتيب</button>' : '') +
-    '<button class="btn" data-act="s-reload">العودة للرئيسية</button></div>';
+    '<button class="btn" data-act="s-reload">العودة للرئيسية</button></div></div>';
   const target = sm ? sm.total_points : 0, el = document.getElementById('bigpts'), t0 = performance.now();
   (function roll(t){ const k = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - k, 3); if (el) el.textContent = Math.round(target * e); if (k < 1) requestAnimationFrame(roll); })(t0);
 }
