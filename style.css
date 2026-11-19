@@ -1353,3 +1353,4 @@ body.dark .lbx-r{background:rgba(255,255,255,.06)}
 a.btn.cp-res{text-decoration:none;justify-content:center}
 a.cp-all{text-decoration:none;color:inherit;border-radius:14px;background:var(--card,#fff);margin-top:4px}
 body.dark a.cp-all{background:rgba(255,255,255,.06)}
+.rs-cls{font-size:14px;font-weight:700;opacity:.7;margin:-4px 2px 2px}

@@ -1360,7 +1360,7 @@ function compsPanel(){
       <div class="row"><button class="btn sm soft" data-act="cp-edit" data-g="${c.group_id}">${ic('edit')} الإعدادات</button><button class="btn sm soft" data-act="cp-end" data-g="${c.group_id}">إنهاء المسابقة</button></div></div>`; }).join('')
       : '<div class="card center muted">لا توجد مسابقات نشطة.</div>') +
     (groups.length && free.length ? `<p class="sub">صفوف بلا مسابقة: ${free.map(c => esc(c.name)).join('، ')}</p>` : '') +
-    (CL.classes.length ? `<a class="set-row cp-all" href="#/t/results"><span class="set-ic" style="background:#FF9500">${ic('chart')}</span><span class="grow">نتائج كل الصفوف</span><span class="set-chev">${ic('back')}</span></a>` : '');
+'';
 }
 ACTS['t-remind'] = t => {
   const s = (T.homeStats || []).find(x => x.c.id === t.dataset.c); if (!s) return;
@@ -1642,16 +1642,20 @@ ACTS['t-q-chosen'] = async t => {
 /* ---- results ---- */
 const RS = { sort: 'pts', q: '', rows: [], name: '' };
 async function tResults(classId){
-  const { data: classes, error } = await sb.from('classes').select('id,name').order('created_at');
-  if (error) throw error;
-  if (!classes.length) return view('النتائج', '<div class="card center muted">أضف صفاً أولاً لتظهر النتائج.</div>', 'comps', '', '#/t/comps');
-  const id = classId || 'all';
-  const pick = id === 'all' ? classes : classes.filter(c => c.id === id);
+  if (!classId) return location.replace('#/t/comps');
+  const [cq, kq] = await Promise.all([sb.from('classes').select('id,name').order('created_at'), sb.from('competitions').select('id,group_id,class_id,title').eq('status', 'active')]);
+  if (cq.error) throw cq.error;
+  const comp = (kq.data || []).find(k => k.class_id === classId);
+  const inGroup = comp ? new Set(kq.data.filter(k => k.group_id === comp.group_id).map(k => k.class_id)) : new Set([classId]);
+  const classes = cq.data.filter(c => inGroup.has(c.id));
+  if (!classes.length) return location.replace('#/t/comps');
+  const id = classId, pick = classes.filter(c => c.id === id);
+  RS.title = comp ? comp.title : 'النتائج';
   const res = await Promise.all(pick.map(c => rpc('teacher_class_results', { p_class: c.id }).then(r => r.map(x => Object.assign({ cls: c.name }, x))).catch(() => [])));
-  RS.rows = res.flat(); RS.all = id === 'all'; RS.id = id; RS.classes = classes;
-  RS.name = id === 'all' ? 'كل الصفوف' : (classes.find(c => c.id === id) || {}).name || '';
+  RS.rows = res.flat(); RS.all = false; RS.id = id; RS.classes = classes;
+  RS.name = (classes.find(c => c.id === id) || {}).name || '';
   RS.ko = null;
-  if (id !== 'all') { try { const b = await rpc('teacher_bracket', { p_class: id }); if (b && b.size && b.rounds.length && b.today >= b.rounds[0].day) RS.ko = b; } catch(e){} }
+  { try { const b = await rpc('teacher_bracket', { p_class: id }); if (b && b.size && b.rounds.length && b.today >= b.rounds[0].day) RS.ko = b; } catch(e){} }
   renderResults();
 }
 function renderResults(){
@@ -1669,7 +1673,7 @@ function renderResults(){
   const avg = n ? Math.round(rows.reduce((a, r) => a + r.pts, 0) / n) : 0;
   const top3 = byPts.filter(r => r.pts > 0).slice(0, 3);
   const pod = top3.length >= 2 ? `<div class="podium">${[1, 0, 2].map(i => top3[i] ? `<div class="pd pd${i + 1}"><div class="pd-medal">${i + 1}</div><b>${esc(top3[i].name.split(' ')[0])}</b><span>${top3[i].pts}</span><div class="pd-step"></div></div>` : '<div class="pd"></div>').join('')}</div>` : '';
-  const chips = `<div class="lv-chips"><button class="${RS.id === 'all' ? 'on' : ''}" data-act="r-cls" data-id="all">كل الصفوف</button>${RS.classes.map(c => `<button class="${RS.id === c.id ? 'on' : ''}" data-act="r-cls" data-id="${c.id}">${esc(c.name)}</button>`).join('')}</div>`;
+  const chips = RS.classes.length > 1 ? `<div class="lv-chips">${RS.classes.map(c => `<button class="${RS.id === c.id ? 'on' : ''}" data-act="r-cls" data-id="${c.id}">${esc(c.name)}</button>`).join('')}</div>` : `<div class="rs-cls">${esc(RS.name)}</div>`;
   const sorts = [['pts', 'النقاط'], ['acc', 'الدقة'], ['rounds', 'الجولات'], ['idle', 'لم يلعبوا']];
   const max = Math.max(1, ...rows.map(r => r.pts));
   const any = rows.some(r => r.rounds > 0);
@@ -1689,7 +1693,7 @@ function renderResults(){
      <div class="tabs rs-seg">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
      <div class="rl-grp" id="r-list">${items || '<div class="set-row center muted">لا يوجد طلبة.</div>'}</div>
      <div class="set-f center">${list.length} من ${n} · النقطة الخضراء: لعب اليوم</div>`;
-  view('النتائج', body, 'comps', `<button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, '#/t/comps');
+  view(RS.title || 'النتائج', body, 'comps', `<button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, '#/t/comps');
 }
 ACTS['r-cls'] = t => go('#/t/results/' + t.dataset.id);
 ACTS['r-sort'] = t => { RS.sort = t.dataset.v; renderResults(); };
