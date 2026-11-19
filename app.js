@@ -860,4 +860,18 @@ function route(){
 window.addEventListener('hashchange', route);
 sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT' && location.hash.indexOf('#/t') === 0) teacherAuth(); });
 route();
+if ('serviceWorker' in navigator) {
+  let reloaded = false, had = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!had) { had = true; return; }
+    if (reloaded) return;
+    if (document.getElementById('app').querySelector('.play, .qbox, .timer')) return;
+    reloaded = true; location.reload();
+  });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+    const chk = () => reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) chk(); });
+    setInterval(chk, 30 * 60 * 1000);
+  }).catch(() => {});
+}
 })();
