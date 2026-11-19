@@ -630,7 +630,7 @@ const STATUS_AR = { draft: 'مسودة', approved: 'معتمد', rejected: 'مر
 const STYLE_AR = { kids: 'مرح · ابتدائي', mid: 'مرح قليلاً · متوسط', uni: 'هادئ · ثانوي وجامعة' };
 const STYLE_SW = { kids: 'linear-gradient(135deg,#FFD9B0,#E3262F)', mid: 'linear-gradient(135deg,#C8102E,#F5B72B)', uni: 'linear-gradient(135deg,#FAF6F3,#7A1220)' };
 const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png" alt=""></div>';
-const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['questions', 'الأسئلة', 'help'], ['results', 'النتائج', 'chart'], ['comps', 'المسابقات', 'trophy']];
+const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['questions', 'الأسئلة', 'help'], ['comps', 'المسابقات', 'trophy'], ['settings', 'الإعدادات', 'gear']];
 
 function shell(title, body, active, top, back){
   return `<div class="t-top"><div class="brand">${back ? `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>` : LOGO_S}<span class="t-title">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
@@ -816,39 +816,19 @@ async function tHome(){
   if (alerts.length) html += `<div class="card col today-card"><div class="row between"><b>${ic('clock')} اليوم: لم يلعبوا بعد</b><span class="chip warn">${alerts.reduce((a, s) => a + s.n - s.played, 0)}</span></div>` +
     alerts.map(s => `<div class="row between today-row"><a class="grow dash-link" href="#/t/results/${s.c.id}"><b>${esc(s.c.name)}</b><div class="sub">${s.n - s.played} من ${s.n}: ${s.rs.filter(r => !r.played_today).slice(0, 4).map(r => esc(r.name.split(' ')[0])).join('، ')}${s.n - s.played > 4 ? '…' : ''}</div></a><button class="btn sm wa-btn" data-act="t-remind" data-c="${s.c.id}">${ic('send')} تذكير</button></div>`).join('') + `</div>`;
 
-  // class ranking
-  const ranked = stats.slice().sort((x, y) => y.avg - x.avg);
-  const maxAvg = Math.max(1, ...ranked.map(s => s.avg));
-  html += `<div class="card col"><div class="row between"><b>${ic('chart')} ترتيب الصفوف</b><span class="sub">متوسط النقاط لكل طالب</span></div>` +
-    ranked.map((s, i) => `<a class="rank-row" href="#/t/results/${s.c.id}"><span class="rk rk${i + 1}">${i + 1}</span><div class="grow"><div class="row between"><b>${esc(s.c.name)}</b><b class="pts">${s.avg}</b></div>
-      <div class="bar"><i style="width:${Math.round(s.avg * 100 / maxAvg)}%"></i></div>
-      <div class="sub">${PHASE_AR[s.ph]} · دقة ${s.acc == null ? '—' : s.acc + '%'} · ${s.n} طالب/ـة</div></div></a>`).join('') + `</div>`;
-
-  // participation today
-  const live = stats.filter(s => s.ph === 'points');
-  if (live.length) html += `<div class="card col"><b>${ic('clock')} المشاركة اليوم</b>` +
-    live.map(s => `<div><div class="row between"><span>${esc(s.c.name)}</span><span class="sub">${s.played}/${s.n}</span></div><div class="bar gold"><i style="width:${s.partPct}%"></i></div></div>`).join('') + `</div>`;
-
-  // top students across classes
-  const all = [];
-  stats.forEach(s => s.rs.forEach(r => all.push(Object.assign({ cls: s.c.name }, r))));
-  const top = all.filter(r => r.pts > 0).sort((a, b) => b.pts - a.pts).slice(0, 5);
-  html += `<div class="card col"><b>${ic('trophy')} المتصدرون في كل الصفوف</b>` +
-    (top.length ? `<div class="lb">${top.map((r, i) => `<div class="r"><span class="no">${i + 1}</span><span class="nm">${esc(r.name)} <span class="sub">· ${esc(r.cls)}</span></span><b>${r.pts}</b></div>`).join('')}</div>` : '<p class="sub">لا توجد نتائج بعد. تظهر هنا بعد أول جولة رسمية.</p>') + `</div>`;
-
-  // needs attention
-  const never = stats.filter(s => s.comp && s.ph !== 'upcoming' && s.never > 0);
-  if (never.length) html += `<div class="card col"><b>${ic('user')} لم يشاركوا أبداً</b>` +
-    never.map(s => `<a class="row between dash-link" href="#/t/results/${s.c.id}"><span>${esc(s.c.name)}</span><span class="chip bad">${s.never}</span></a>`).join('') + `</div>`;
-
   // competitions timeline
   const comps = stats.filter(s => s.comp);
-  html += `<div class="card col"><div class="row between"><b>${ic('layers')} المسابقات</b><a class="sub" href="#/t/classes">إدارة</a></div>` +
+  html += `<div class="card col"><div class="row between"><b>${ic('layers')} المسابقات</b><a class="sub" href="#/t/comps">إدارة</a></div>` +
     (comps.length ? comps.map(s => {
       const t = todayKW(), c = s.comp;
       const dl = Math.round((new Date(c.end_date) - new Date(t)) / 864e5);
-      return `<a class="row between dash-link" href="#/t/class/${s.c.id}"><div><b>${esc(s.c.name)}</b><div class="sub">${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.end_date))}</div></div><span class="chip ${s.ph === 'points' ? 'good' : s.ph === 'knockout' ? 'warn' : ''}">${PHASE_AR[s.ph]}${dl >= 0 && s.ph !== 'finished' ? ' · ' + dl + ' يوم' : ''}</span></a>`;
-    }).join('') : '<p class="sub">لا توجد مسابقات. أنشئ مسابقة من صفحة الصف.</p>') + `</div>`;
+      return `<a class="row between dash-link" href="#/t/results/${s.c.id}"><div><b>${esc(s.c.name)}</b><div class="sub">${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.end_date))}</div></div><span class="chip ${s.ph === 'points' ? 'good' : s.ph === 'knockout' ? 'warn' : ''}">${PHASE_AR[s.ph]}${dl >= 0 && s.ph !== 'finished' ? ' · ' + dl + ' يوم' : ''}</span></a>`;
+    }).join('') : '<p class="sub">لا توجد مسابقات. أنشئ مسابقة من باب المسابقات.</p>') + `</div>`;
+  // needs attention
+  const never = stats.filter(s => s.comp && s.ph !== 'upcoming' && s.never > 0);
+  if (never.length) html += `<div class="card col"><b>${ic('user')} يحتاجون متابعة: لم يشاركوا أبداً</b>` +
+    never.map(s => `<a class="row between dash-link" href="#/t/results/${s.c.id}"><span>${esc(s.c.name)}</span><span class="chip bad">${s.never}</span></a>`).join('') + `</div>`;
+
 
   view('مرحباً، ' + (T.name || ''), html, 'home');
 }
@@ -1376,9 +1356,11 @@ function compsPanel(){
       <div class="sub">النقاط: ${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.points_end_date))} · النهاية: ${esc(fmtDate(c.end_date))}</div>
       <div class="sub">الصعوبة: ${(DIFF.find(d => d[0] === (c.difficulty || 'normal')) || DIFF[1])[1]}${c.curriculum_id && CU.list.length ? ' · ' + esc(cuName(CU.list.find(x => x.id === c.curriculum_id))) : ''}</div>
       <div class="row" style="flex-wrap:wrap;gap:6px">${g.map(x => `<span class="chip">${esc((CL.byId[x.class_id] || {}).name || '')}</span>`).join('')}</div>
-      <div class="row"><button class="btn sm" data-act="cp-edit" data-g="${c.group_id}">${ic('edit')} الإعدادات</button><button class="btn sm soft" data-act="cp-end" data-g="${c.group_id}">إنهاء المسابقة</button></div></div>`; }).join('')
+      <a class="btn cp-res" href="#/t/results/${g[0].class_id}">${ic('chart')} النتائج والترتيب${ph === 'knockout' || ph === 'finished' ? ' والتصفيات' : ''}</a>
+      <div class="row"><button class="btn sm soft" data-act="cp-edit" data-g="${c.group_id}">${ic('edit')} الإعدادات</button><button class="btn sm soft" data-act="cp-end" data-g="${c.group_id}">إنهاء المسابقة</button></div></div>`; }).join('')
       : '<div class="card center muted">لا توجد مسابقات نشطة.</div>') +
-    (groups.length && free.length ? `<p class="sub">صفوف بلا مسابقة: ${free.map(c => esc(c.name)).join('، ')}</p>` : '');
+    (groups.length && free.length ? `<p class="sub">صفوف بلا مسابقة: ${free.map(c => esc(c.name)).join('، ')}</p>` : '') +
+    (CL.classes.length ? `<a class="set-row cp-all" href="#/t/results"><span class="set-ic" style="background:#FF9500">${ic('chart')}</span><span class="grow">نتائج كل الصفوف</span><span class="set-chev">${ic('back')}</span></a>` : '');
 }
 ACTS['t-remind'] = t => {
   const s = (T.homeStats || []).find(x => x.c.id === t.dataset.c); if (!s) return;
@@ -1662,7 +1644,7 @@ const RS = { sort: 'pts', q: '', rows: [], name: '' };
 async function tResults(classId){
   const { data: classes, error } = await sb.from('classes').select('id,name').order('created_at');
   if (error) throw error;
-  if (!classes.length) return view('النتائج', '<div class="card center muted">أضف صفاً أولاً لتظهر النتائج.</div>', 'results');
+  if (!classes.length) return view('النتائج', '<div class="card center muted">أضف صفاً أولاً لتظهر النتائج.</div>', 'comps', '', '#/t/comps');
   const id = classId || 'all';
   const pick = id === 'all' ? classes : classes.filter(c => c.id === id);
   const res = await Promise.all(pick.map(c => rpc('teacher_class_results', { p_class: c.id }).then(r => r.map(x => Object.assign({ cls: c.name }, x))).catch(() => [])));
@@ -1707,7 +1689,7 @@ function renderResults(){
      <div class="tabs rs-seg">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
      <div class="rl-grp" id="r-list">${items || '<div class="set-row center muted">لا يوجد طلبة.</div>'}</div>
      <div class="set-f center">${list.length} من ${n} · النقطة الخضراء: لعب اليوم</div>`;
-  view('النتائج', body, 'results', `<button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`);
+  view('النتائج', body, 'comps', `<button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, '#/t/comps');
 }
 ACTS['r-cls'] = t => go('#/t/results/' + t.dataset.id);
 ACTS['r-sort'] = t => { RS.sort = t.dataset.v; renderResults(); };
@@ -1871,7 +1853,7 @@ ACTS['t-menu'] = () => {
     <button class="sheet-list tm-head" data-act="tm-go" data-a="st-profile">${avatarHtml('big-av')}<div class="grow"><b>${esc(T.name)}</b><div class="sub" dir="ltr" style="text-align:right">${esc((T.user && T.user.email) || '')}</div></div><span class="set-chev">${ic('back')}</span></button>
     <div class="sheet-list">${it('tm-go', 'user', '#8E8E93', 'حسابي', 'data-a="st-profile"')}
       <div class="sheet-i tm-mode"><span class="set-ic" style="background:#5856D6">${ic('moon')}</span><span class="grow">الوضع</span></div><div class="tm-seg">${modeSeg()}</div></div>
-    <div class="sheet-list">${it('tm-go', 'help', '#C8102E', 'إعدادات الأسئلة', 'data-a="go-qset"')}${it('tm-go', 'chart', '#FF9500', 'إعدادات النتائج', 'data-a="go-rset"')}${it('tm-go', 'send', '#1FA971', 'رابط دخول الطلبة', 'data-a="st-share-students"')}${it('tm-go', 'gear', '#8E8E93', 'كل الإعدادات', 'data-a="tm-settings"')}</div>
+    <div class="sheet-list">${it('tm-go', 'gear', '#8E8E93', 'كل الإعدادات', 'data-a="tm-settings"')}</div>
     <div class="sheet-list"><button class="sheet-i danger" data-act="tm-go" data-a="st-logout-ask">${ic('logout')}<span>تسجيل الخروج</span></button></div>
     <button class="sheet-i sheet-cancel" data-act="close-modal">إغلاق</button></div>`);
 };
