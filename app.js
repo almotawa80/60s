@@ -1234,22 +1234,26 @@ function renderResults(){
   const tr = rows.reduce((a, r) => a + r.rounds, 0), tc = rows.reduce((a, r) => a + r.correct, 0);
   const avg = n ? Math.round(rows.reduce((a, r) => a + r.pts, 0) / n) : 0;
   const top3 = byPts.filter(r => r.pts > 0).slice(0, 3);
-  const pod = top3.length ? `<div class="podium">${[1, 0, 2].map(i => top3[i] ? `<div class="pd pd${i + 1}"><div class="pd-medal">${i + 1}</div><b>${esc(top3[i].name.split(' ')[0])}</b><span>${top3[i].pts}</span><div class="pd-step"></div></div>` : '<div class="pd"></div>').join('')}</div>` : '';
+  const pod = top3.length >= 2 ? `<div class="podium">${[1, 0, 2].map(i => top3[i] ? `<div class="pd pd${i + 1}"><div class="pd-medal">${i + 1}</div><b>${esc(top3[i].name.split(' ')[0])}</b><span>${top3[i].pts}</span><div class="pd-step"></div></div>` : '<div class="pd"></div>').join('')}</div>` : '';
   const chips = `<div class="lv-chips"><button class="${RS.id === 'all' ? 'on' : ''}" data-act="r-cls" data-id="all">كل الصفوف</button>${RS.classes.map(c => `<button class="${RS.id === c.id ? 'on' : ''}" data-act="r-cls" data-id="${c.id}">${esc(c.name)}</button>`).join('')}</div>`;
   const sorts = [['pts', 'النقاط'], ['acc', 'الدقة'], ['rounds', 'الجولات'], ['idle', 'لم يلعبوا']];
   const max = Math.max(1, ...rows.map(r => r.pts));
-  const items = list.map(r => { const a2 = acc(r); return `<div class="res-row" data-act="r-open" data-k="${esc(r.cls + '|' + r.name + '|' + r.student_no)}">
-    <span class="rk ${rank.get(r) <= 3 && r.pts ? 'rk' + rank.get(r) : ''}">${r.pts ? rank.get(r) : '—'}</span>
-    <div class="grow"><div class="row between"><b>${esc(r.name)}</b><b class="pts">${r.pts}</b></div>
-    <div class="bar"><i style="width:${Math.round(r.pts * 100 / max)}%"></i></div>
-    <div class="sub">${RS.all ? esc(r.cls) + ' · ' : ''}${r.rounds} جولة · دقة ${a2 < 0 ? '—' : a2 + '%'}</div></div>
-    <span class="today ${r.played_today ? 'y' : ''}" title="اليوم">${r.played_today ? ic('check') : ''}</span></div>`; }).join('');
-  const body = chips +
-    `<div class="kpis kpis4"><div class="kpi"><b>${n}</b><span>طالب/ـة</span></div><div class="kpi"><b>${n ? Math.round(played * 100 / n) : 0}%</b><span>لعبوا اليوم</span></div><div class="kpi"><b>${avg}</b><span>متوسط النقاط</span></div><div class="kpi"><b>${tr ? Math.round(tc * 100 / (tr * 4)) + '%' : '—'}</b><span>الدقة</span></div></div>` +
-    pod +
-    `<div class="row res-tools"><input class="input" id="r-q" placeholder="بحث بالاسم أو الرقم" value="${esc(RS.q)}" data-input="r-q"></div>
-     <div class="lv-chips">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
-     <div class="res-list" id="r-list">${items || '<div class="card center muted">لا يوجد طلبة.</div>'}</div>`;
+  const any = rows.some(r => r.rounds > 0);
+  if (!any && RS.sort === 'pts') list.sort((x, y) => x.name.localeCompare(y.name, 'ar'));
+  const items = list.map(r => { const a2 = acc(r), rr = rank.get(r);
+    return `<button class="rl-row" data-act="r-open" data-k="${esc(r.cls + '|' + r.name + '|' + r.student_no)}">
+      <span class="rl-rk ${r.pts && rr <= 3 ? 'm' + rr : ''}">${r.pts ? rr : ''}</span>
+      <span class="grow rl-txt"><b>${esc(r.name)}</b><small>${RS.all ? esc(r.cls) + ' · ' : ''}${r.rounds ? r.rounds + ' جولة · دقة ' + a2 + '%' : 'لم يلعب بعد'}</small>
+      ${r.pts ? `<span class="rl-bar"><i style="width:${Math.round(r.pts * 100 / max)}%"></i></span>` : ''}</span>
+      ${r.played_today ? `<span class="rl-dot" title="لعب اليوم"></span>` : ''}
+      <span class="rl-pts ${r.pts ? '' : 'z'}">${r.pts}</span></button>`; }).join('');
+  const sum = `<div class="rs-sum"><div><b>${n}</b><span>طالب/ـة</span></div><div><b>${n ? Math.round(played * 100 / n) : 0}%</b><span>لعبوا اليوم</span></div><div><b>${avg}</b><span>متوسط النقاط</span></div><div><b>${tr ? Math.round(tc * 100 / (tr * 4)) + '%' : '—'}</b><span>الدقة</span></div></div>`;
+  const body = chips + sum + pod +
+    (!any ? `<div class="rs-empty">${ic('clock')}<div><b>لم تبدأ الجولات بعد</b><small>تظهر النقاط والترتيب هنا بعد أول جولة رسمية.</small></div></div>` : '') +
+    `<div class="rs-search">${ic('help')}<input id="r-q" placeholder="بحث بالاسم أو الرقم" value="${esc(RS.q)}"></div>
+     <div class="tabs rs-seg">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
+     <div class="rl-grp" id="r-list">${items || '<div class="set-row center muted">لا يوجد طلبة.</div>'}</div>
+     <div class="set-f center">${list.length} من ${n} · النقطة الخضراء: لعب اليوم</div>`;
   view('النتائج', body, 'results', `<button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`);
 }
 ACTS['r-cls'] = t => go('#/t/results/' + t.dataset.id);
