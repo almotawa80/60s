@@ -601,3 +601,52 @@ body.wide .t-nav a{font-weight:500!important}
 .rl-dot{width:8px;height:8px;border-radius:50%;background:#34C759;flex:none}
 .rl-pts{font-size:18px;font-weight:700;color:var(--primary);min-width:36px;text-align:left}
 .rl-pts.z{color:#C4BAB5;font-weight:500}
+.mode-seg button{display:flex;align-items:center;justify-content:center;gap:6px}
+.mode-seg .ico{width:16px;height:16px}
+
+/* ================= DARK MODE (teacher) ================= */
+body.wide.dark{--bg:#000;--card:#1C1C1E;--ink:#F5F5F7;--muted:#98989F;--line:rgba(255,255,255,.12);--soft:#2C2C2E;--edge:#000;--primary:#FF375F;--primary-dark:#C8102E;color-scheme:dark;background:#000!important;color:var(--ink)}
+body.wide.dark .card,body.wide.dark .cls,body.wide.dark .q-item,body.wide.dark .res-row,body.wide.dark .kpi,body.wide.dark .class-card,
+body.wide.dark .set-grp,body.wide.dark .set-row,body.wide.dark .set-profile,body.wide.dark .sheet-list,body.wide.dark .sheet-i,body.wide.dark .rl-grp,body.wide.dark .rl-row,
+body.wide.dark .rs-sum,body.wide.dark .sw-main,body.wide.dark .sw-list,body.wide.dark .pick,body.wide.dark .stat,body.wide.dark .cls-head{background:#1C1C1E!important;color:var(--ink);box-shadow:none!important}
+body.wide.dark .cls-body{background:#151517}
+body.wide.dark .set-row:active,body.wide.dark .rl-row:active,body.wide.dark .sheet-i:active{background:#2C2C2E!important}
+body.wide.dark .modal{background:#1C1C1E}
+body.wide.dark .modal .set-grp,body.wide.dark .modal .set-row,body.wide.dark .modal .sheet-list,body.wide.dark .modal .sheet-i,body.wide.dark .modal .card{background:#2C2C2E!important}
+body.wide.dark .sheet-sep{background:#1C1C1E}
+body.wide.dark .modal::before{background:rgba(255,255,255,.3)}
+body.wide.dark.scrolled .t-top{background:rgba(0,0,0,.72)}
+body.wide.dark .input,body.wide.dark select.input,body.wide.dark textarea.input,body.wide.dark .rs-search{background:#1C1C1E;color:var(--ink)}
+body.wide.dark .modal .input{background:#3A3A3C}
+body.wide.dark .input:focus{background:#2C2C2E}
+body.wide.dark .tabs{background:rgba(118,118,128,.24)}
+body.wide.dark .tabs button{color:var(--ink)}
+body.wide.dark .tabs button.on{background:#636366!important;color:#fff!important}
+body.wide.dark .lv-chips button{background:rgba(118,118,128,.24);color:var(--ink)}
+body.wide.dark .lv-chips button.on{background:var(--primary);color:#fff}
+body.wide.dark .btn.soft,body.wide.dark .btn.ghost,body.wide.dark .btn.danger{background:rgba(255,55,95,.16);color:#FF6482}
+body.wide.dark .icon-btn{background:rgba(118,118,128,.24);color:#FF6482}
+body.wide.dark .chip{background:#2C2C2E;color:var(--ink)}
+body.wide.dark .count{background:rgba(255,55,95,.2);color:#FF6482}
+body.wide.dark .code-pill{background:#2C2C2E;color:var(--ink)}
+body.wide.dark .sw-n,body.wide.dark .rk{background:#2C2C2E;color:var(--ink)}
+body.wide.dark .sw-act button{color:var(--ink)}
+body.wide.dark .bar,body.wide.dark .rl-bar{background:#2C2C2E}
+body.wide.dark .rs-empty{background:rgba(255,214,10,.14);color:#FFD60A}
+body.wide.dark .alert{background:rgba(255,214,10,.12);color:var(--ink)}
+body.wide.dark .set-chev{color:#5A5A5E}
+body.wide.dark .prof-cam{border-color:#1C1C1E}
+body.wide.dark .t-nav{background:rgba(30,30,32,.62)!important;border-color:rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08)}
+body.wide.dark .t-nav a{color:#AEAEB2!important}
+body.wide.dark .t-nav a.on{color:#FF6482!important}
+body.wide.dark .lens{background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06));box-shadow:inset 0 1px 1px rgba(255,255,255,.35),0 4px 14px rgba(0,0,0,.4)}
+body.wide.dark .sel-bar{background:rgba(30,30,32,.75);border-color:rgba(255,255,255,.1)}
+body.wide.dark .err{background:rgba(255,69,58,.18);color:#FF8A80}
+body.wide.dark .ok{background:rgba(48,209,88,.18);color:#7CE6A0}
+body.wide.dark .pick.on{background:rgba(255,55,95,.14)}
+body.wide.dark .pick-ic{background:#2C2C2E}
+body.wide.dark .w-st span{background:#2C2C2E}
+body.wide.dark .join-box,body.wide.dark .join-row{background:#2C2C2E}
+body.wide.dark table th,body.wide.dark table td{border-color:var(--line)}
+body.wide.dark .q-item .opts-s .c{color:#30D158}
+body.wide.dark #toast{background:#3A3A3C}
