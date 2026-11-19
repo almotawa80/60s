@@ -550,3 +550,12 @@ body.wide .t-nav a{font-weight:500!important}
   transition:right .45s cubic-bezier(.34,1.45,.5,1),transform .25s}
 .lens::after{content:"";position:absolute;inset:2px 8px auto;height:40%;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,0))}
 .lens.drag{transition:none;transform:scale(1.18,1.12);box-shadow:inset 0 1px 1px #fff,0 8px 24px rgba(200,16,46,.25),0 0 0 .5px rgba(200,16,46,.2)}
+/* swipe actions: round icons; delete on the right, WhatsApp + new code on the left */
+.sw-row,body.wide .sw-row{background:transparent!important;overflow:hidden}
+.sw-act{position:absolute;inset:0;display:flex!important;justify-content:space-between!important;align-items:center;direction:rtl;padding:0 8px}
+.sw-r,.sw-l{display:flex;gap:10px;align-items:center;height:100%}
+.sw-act button,body.wide .sw-act button{width:auto!important;background:none!important;border:0;color:var(--ink);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 4px}
+.sw-act button i{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15)}
+.sw-act button i .ico{width:20px;height:20px}
+.sw-act .del i{background:#FF3B30}.sw-act .wa i{background:#25D366}.sw-act .rg i{background:#FF9500}
+.sw-main{will-change:transform}

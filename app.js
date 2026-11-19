@@ -670,7 +670,7 @@ ACTS['c-tab'] = t => { CL.tab = t.dataset.t; T.compEdit = null; renderClasses();
 function classesList(){
   const top = CL.sel ? '' : `<button class="btn" data-act="t-add-class">${ic('plus')} صف جديد</button><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
   if (!CL.classes.length) return top + '<div class="card center muted">لا توجد صفوف بعد.</div>';
-  return top + CL.classes.map(classSection).join('') + (CL.sel ? '' : '<p class="sub center">اسحب اسم الطالب/ـة لليسار لإظهار: واتساب، رمز جديد، حذف</p>');
+  return top + CL.classes.map(classSection).join('') + (CL.sel ? '' : '<p class="sub center">اسحب الاسم لليسار للحذف، ولليمين للواتساب والرمز الجديد</p>');
 }
 function classSection(c){
   const st = CL.students[c.id] || [], open = CL.open.has(c.id), comp = CL.comps[c.id];
@@ -680,9 +680,8 @@ function classSection(c){
     body = `<div class="cls-body">${CL.sel ? '' : `<div class="row"><button class="btn sm soft" data-act="t-upload">${ic('upload')} رفع أسماء</button><button class="btn sm soft" data-act="t-add-one">${ic('plus')} إضافة</button><span class="grow"></span><button class="icon-btn" data-act="c-cmore" aria-label="المزيد">${ic('more')}</button></div>`}` +
       (c.self_join ? `<div class="join-row"><span class="sub">التسجيل الذاتي مفعّل</span><button class="btn sm" data-act="copy" data-v="${esc(link)}">نسخ رابط التسجيل</button></div>` : '') +
       (st.length ? `<div class="sw-list">${st.map((s, i) => `<div class="sw-row"><div class="sw-act">
-          <button class="wa" data-act="s-wa" data-id="${s.id}">${ic('send')}<span>واتساب</span></button>
-          <button class="rg" data-act="t-regen" data-id="${s.id}">${ic('refresh')}<span>رمز جديد</span></button>
-          <button class="del" data-act="t-del-student" data-id="${s.id}">${ic('trash')}<span>حذف</span></button></div>
+          <div class="sw-r"><button class="del" data-act="t-del-student" data-id="${s.id}"><i>${ic('trash')}</i><span>حذف</span></button></div>
+          <div class="sw-l"><button class="rg" data-act="t-regen" data-id="${s.id}"><i>${ic('refresh')}</i><span>رمز جديد</span></button><button class="wa" data-act="s-wa" data-id="${s.id}"><i>${ic('send')}</i><span>واتساب</span></button></div></div>
         <div class="sw-main" data-act="s-card" data-id="${s.id}">${CL.sel && CL.sel.type === 'students' && CL.sel.cid === c.id ? `<span class="selmark">${ic(CL.sel.ids.has(s.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${i + 1}</span>`}<div class="grow"><b>${esc(s.name)}</b><div class="sub">${esc(s.student_no) || '—'}</div></div>
         <button class="code-pill eye" data-act="c-eye" data-code="${esc(s.code)}" aria-label="إظهار الرمز"><span>••••••</span>${ic('eye')}</button></div></div>`).join('')}</div>`
         : '<p class="sub center" style="padding:12px">لا يوجد طلبة. ارفع ملفاً أو أضف يدوياً.</p>') + '</div>';
@@ -755,7 +754,7 @@ ACTS['c-eye'] = t => {
 };
 ACTS['s-card'] = async t => {
   if (CL.sel && CL.sel.type === 'students') { const id = t.dataset.id; CL.sel.ids.has(id) ? CL.sel.ids.delete(id) : CL.sel.ids.add(id); return renderClasses(); }
-  if (t.classList.contains('open')) { t.classList.remove('open'); t.style.transform = ''; return; }
+  if (t.classList.contains('open')) { t.classList.remove('open'); t.style.transform = ''; t.dataset.off = 0; return; }
   const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return;
   const comp = CL.comps[c.id];
   const ini = s.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
@@ -1432,8 +1431,11 @@ document.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) { G = null; return; }
   if (e.target.closest('.t-nav')) { G = null; return; }
   const t = e.touches[0], row = e.target.closest('.sw-main');
-  G = { x: t.clientX, y: t.clientY, row, edge: t.clientX > innerWidth - 28, dx: 0, lock: null, open: row && row.classList.contains('open'), w: row ? row.parentElement.querySelector('.sw-act').scrollWidth : 0 };
-  if (!row) document.querySelectorAll('.sw-main.open').forEach(r => { if (!e.target.closest('.sw-act')) { r.classList.remove('open'); r.style.transform = ''; } });
+  const rw = row ? row.parentElement : null;
+  G = { x: t.clientX, y: t.clientY, row, edge: !row && t.clientX > innerWidth - 28, dx: 0, lock: null,
+    base: row ? (Number(row.dataset.off) || 0) : 0,
+    wr: rw ? rw.querySelector('.sw-r').offsetWidth : 0, wl: rw ? rw.querySelector('.sw-l').offsetWidth : 0 };
+  if (!row) document.querySelectorAll('.sw-main.open').forEach(r => { if (!e.target.closest('.sw-act')) { r.classList.remove('open'); r.style.transform = ''; r.dataset.off = 0; } });
 }, { passive: true });
 document.addEventListener('touchmove', e => {
   if (!G) return;
@@ -1443,7 +1445,7 @@ document.addEventListener('touchmove', e => {
   G.dx = dx;
   if (G.row) {
     e.preventDefault();
-    const base = G.open ? -G.w : 0, v = Math.max(-G.w - 24, Math.min(0, base + dx));
+    const v = Math.max(-G.wr - 20, Math.min(G.wl + 20, G.base + dx));
     G.row.style.transition = 'none'; G.row.style.transform = `translateX(${v}px)`;
   } else if (G.edge) {
     e.preventDefault();
@@ -1454,9 +1456,9 @@ document.addEventListener('touchend', () => {
   if (!G) return;
   if (G.row) {
     const r = G.row; r.style.transition = '';
-    const open = (G.open ? -G.w : 0) + G.dx < -50;
-    document.querySelectorAll('.sw-main.open').forEach(x => { if (x !== r) { x.classList.remove('open'); x.style.transform = ''; } });
-    r.classList.toggle('open', open); r.style.transform = open ? `translateX(${-G.w}px)` : '';
+    const v = G.base + G.dx, off = v < -45 ? -G.wr : v > 45 ? G.wl : 0;
+    document.querySelectorAll('.sw-main.open').forEach(x => { if (x !== r) { x.classList.remove('open'); x.style.transform = ''; x.dataset.off = 0; } });
+    r.classList.toggle('open', off !== 0); r.dataset.off = off; r.style.transform = off ? `translateX(${off}px)` : '';
   } else if (G.edge) {
     document.body.style.transition = 'transform .2s'; document.body.style.transform = '';
     setTimeout(() => { document.body.style.transition = ''; }, 220);
