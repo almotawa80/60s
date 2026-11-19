@@ -247,8 +247,8 @@ function renderHome(){
     '<button data-act="s-badges">' + ic('star') + '<span>شاراتي</span></button>' +
     '<button data-act="s-leaders">' + ic('trophy') + '<span>المتصدرون</span></button></div>' +
     '<div class="comp">' + body + main +
-    '<button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button>' +
-    (h.wrong_count ? '<button class="btn ghost rv-btn" data-act="s-start" data-kind="review">' + ic('star') + ' تدرّب على أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div>';
+    '<div class="s-row2"><button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button>' +
+    (h.wrong_count ? '<button class="btn ghost rv-btn" data-act="s-start" data-kind="review">أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div></div>';
   startCountdown();
   if ((ph === 'knockout' || ph === 'finished') && !S.demo) loadKo();
 }
