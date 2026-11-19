@@ -214,17 +214,27 @@ function renderHome(){
     else main = '<button class="btn accent" data-act="s-start" data-kind="official">' + ic('play') + ' ابدأ التحدي</button>';
   }
   $app.innerHTML =
-    '<div class="s-head"><div class="avatar" aria-hidden="true">' + esc((h.student.name || '?').trim().charAt(0)) + '</div>' +
-    '<div class="who"><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
-    '<button class="icon-btn" data-act="s-logout" aria-label="تسجيل الخروج">' + ic('logout') + '</button></div>' +
-    '<div class="quick"><button data-act="s-profile">' + ic('user') + '<span>ملفي</span></button>' +
+    '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
+    '<button class="avatar av-btn" data-act="s-menu" aria-label="القائمة">' + esc((h.student.name || '?').trim().charAt(0)) + '</button></div>' +
+    '<div class="quick q2">' +
     '<button data-act="s-badges">' + ic('star') + '<span>شاراتي</span></button>' +
     '<button data-act="s-leaders">' + ic('trophy') + '<span>المتصدرون</span></button></div>' +
     '<div class="comp">' + body + main +
     '<button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button></div>';
 }
 ACTS['s-badges'] = () => toast('الشارات قريباً');
-ACTS['s-profile'] = () => {
+ACTS['s-menu'] = () => {
+  const m = LS.get('mc_mode') || 'auto';
+  modal('<div class="sheet"><div class="sheet-list">' +
+    '<button class="sheet-i" data-act="s-profile">' + ic('user') + '<span>ملفي</span></button>' +
+    '<div class="sheet-i" style="flex-direction:column;align-items:stretch;gap:8px"><span style="display:flex;gap:12px;align-items:center">' + ic('moon') + 'المظهر</span>' + modeSeg() + '</div>' +
+    '<button class="sheet-i" data-act="s-sound-row">' + ic(FX.on() ? 'sound' : 'mute') + '<span>الصوت: ' + (FX.on() ? 'مفعّل' : 'مكتوم') + '</span></button>' +
+    '</div><div class="sheet-list"><button class="sheet-i danger" data-act="s-logout-ask">' + ic('logout') + '<span>تسجيل الخروج</span></button></div>' +
+    '<button class="sheet-i sheet-cancel" data-act="close-modal">إغلاق</button></div>');
+};
+ACTS['s-sound-row'] = t => { const on = FX.toggle(); t.innerHTML = ic(on ? 'sound' : 'mute') + '<span>الصوت: ' + (on ? 'مفعّل' : 'مكتوم') + '</span>'; };
+ACTS['s-logout-ask'] = () => { if (!confirm('تسجيل الخروج؟ ستحتاج رمزك للدخول مرة أخرى.')) return; closeModals(); ACTS['s-logout'](); };
+ACTS['s-profile'] = () => { closeModals();
   const h = S.home;
   modal('<h3>ملفي</h3><div class="rows card">' +
     '<div class="r"><span>الاسم</span><b>' + esc(h.student.name) + '</b></div>' +

@@ -745,3 +745,30 @@ body.quake #app{animation:quake .55s}
 @keyframes starIn{to{transform:scale(1)}}
 [data-theme=uni] .rays{display:none}
 @media (prefers-reduced-motion: reduce){.timer.beat,.fx-clock,.star-s,.rays,body.danger::after{animation:none!important}.star-s{transform:none}}
+/* student header: avatar on the left opens menu */
+.s-head{justify-content:space-between}
+.s-head .who{display:flex;flex-direction:column;gap:0}
+.av-btn{border:0;cursor:pointer;width:54px;height:54px}
+.av-btn:active{transform:translateY(3px)}
+.quick.q2{grid-template-columns:1fr 1fr}
+
+/* ===== student dark mode ===== */
+body.dark:not(.wide){--bg:#120A0A;--card:#1E1414;--ink:#F7EFEA;--muted:#B8A9A3;--line:rgba(255,255,255,.1);--soft:#2A1C1C;--edge:#0A0505;color-scheme:dark;background:#120A0A!important;color:var(--ink)}
+body.dark:not(.wide)[data-theme=kids]{background:linear-gradient(180deg,#2A0F12,#140909) fixed!important}
+body.dark:not(.wide) .card,body.dark:not(.wide) .comp,body.dark:not(.wide) .quick button,body.dark:not(.wide) .stat,body.dark:not(.wide) .code-box,body.dark:not(.wide) .icon-btn{background:#1E1414!important;border-color:var(--line)!important;color:var(--ink)}
+body.dark:not(.wide) .qbox{background:linear-gradient(180deg,#241818,#1A1111)!important;border-color:#3A2626!important;color:var(--ink)}
+body.dark:not(.wide)[data-theme=mid] .opt,body.dark:not(.wide)[data-theme=uni] .opt{background:linear-gradient(180deg,#2A1C1C,#1F1515)!important;border-color:#3A2626!important;color:var(--ink)}
+body.dark:not(.wide) .timer{background:radial-gradient(circle at 50% 45%,#221616 0 52%,transparent 53%),conic-gradient(from 200deg,var(--gold-1),var(--gold-2),var(--gold-3),var(--gold-2),var(--gold-1))}
+body.dark:not(.wide)[data-theme=uni] .timer{background:#1E1414}
+body.dark:not(.wide) .timer .num{color:#FFE48A}
+body.dark:not(.wide) .modal{background:#1E1414;color:var(--ink)}
+body.dark:not(.wide) .sheet-list,body.dark:not(.wide) .sheet-i{background:#2A1C1C;color:var(--ink)}
+body.dark:not(.wide) .sheet-sep{background:#1E1414}
+body.dark:not(.wide) .tabs{background:rgba(255,255,255,.08)}
+body.dark:not(.wide) .tabs button.on{background:#4A3434!important;color:#fff!important}
+body.dark:not(.wide) .rows .r{border-color:var(--line)}
+body.dark:not(.wide) .lb .r.me{background:rgba(79,211,148,.15)}
+body.dark:not(.wide) .btn.soft,body.dark:not(.wide) .btn.ghost{background:#2A1C1C!important;color:var(--ink);border-color:var(--line)!important;box-shadow:0 5px 0 #0A0505!important}
+body.dark:not(.wide) .hero h1{color:#FF8A95}
+body.dark:not(.wide) .paste-btn{background:#2A1C1C;box-shadow:0 3px 0 #0A0505}
+body.dark:not(.wide) .star-s{color:#3A2A2A}
