@@ -1465,8 +1465,59 @@ ACTS['r-open'] = t => {
   const ini = r.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
   modal(`<div class="st-card"><div class="st-top"><div class="avatar big-av">${esc(ini)}</div><div><b>${esc(r.name)}</b><div class="sub">${esc(r.cls)} · رقم ${esc(r.student_no) || '—'}</div></div></div>
     <div class="stats"><div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? sorted.indexOf(r) + 1 : '—'}</b><span>في صفه من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>الدقة</span></div></div>
-    <div class="sub center">${r.correct} إجابة صحيحة من ${r.rounds * 4} · ${r.played_today ? '<b style="color:#168A5B">لعب اليوم ✓</b>' : '<b style="color:#8a5a00">لم يلعب اليوم</b>'}</div></div>`);
+    <div class="sub center">${r.correct} إجابة صحيحة من ${r.rounds * 4} · ${r.played_today ? '<b style="color:#168A5B">لعب اليوم ✓</b>' : '<b style="color:#8a5a00">لم يلعب اليوم</b>'}</div>
+    <button class="btn" style="margin-top:14px" data-act="r-report" data-id="${r.id}" data-name="${esc(r.name)}" data-cls="${esc(r.cls)}">تقرير المستوى المفصّل</button></div>`);
 };
+const LV_AR = { easy: 'السهلة', medium: 'المتوسطة', hard: 'الصعبة' };
+function buildReport(name, d){
+  const pc = (c, t) => t ? Math.round(c * 100 / t) : 0;
+  const acc = pc(d.correct, d.total);
+  const grade = acc >= 85 ? ['متفوّق', '#168A5B'] : acc >= 70 ? ['جيد جداً', '#2F80ED'] : acc >= 55 ? ['جيد', '#8a5a00'] : ['يحتاج دعماً', '#C22E33'];
+  const lv = d.by_level.map(x => ({ n: LV_AR[x.k] || x.k, k: x.k, t: x.t, c: x.c, p: pc(x.c, x.t) }));
+  const sb = d.by_subject.map(x => ({ n: x.k, t: x.t, c: x.c, p: pc(x.c, x.t) }));
+  const ok = a => a.filter(x => x.t >= 3).sort((x, y) => y.p - x.p);
+  const strong = [], weak = [], tips = [];
+  const so = ok(sb), lo = ok(lv);
+  so.filter(x => x.p >= 70).slice(0, 2).forEach(x => strong.push('مادة ' + x.n + ' (' + x.p + '%)'));
+  lo.filter(x => x.p >= 75).slice(0, 2).forEach(x => strong.push('الأسئلة ' + x.n + ' (' + x.p + '%)'));
+  so.slice().reverse().filter(x => x.p < 60).slice(0, 2).forEach(x => { weak.push('مادة ' + x.n + ' (' + x.p + '%)'); tips.push('راجعي/راجع دروس ' + x.n + ' ثم أعيدي/أعد الحل في التدريب المفتوح.'); });
+  lo.slice().reverse().filter(x => x.p < 50).slice(0, 2).forEach(x => { weak.push('الأسئلة ' + x.n + ' (' + x.p + '%)'); tips.push(x.k === 'hard' ? 'ركّزي/ركّز على فهم الأفكار الأعمق قبل السرعة، وجرّبي/جرّب الأسئلة الصعبة تدريباً.' : 'أخطاء في الأسئلة ' + x.n + ' تعني ثغرة في الأساسيات؛ يلزم مراجعة المفاهيم الأولية.'); });
+  const sp = d.avg_secs;
+  let speed = '—';
+  if (sp != null) { speed = sp < 6 ? 'سريع' : sp <= 11 ? 'متوازن' : 'بطيء';
+    if (sp < 6 && acc < 60) { weak.push('التسرّع: إجابات سريعة (' + sp + ' ث) بدقة منخفضة'); tips.push('خذي/خذ ثانية إضافية لقراءة الخيارات كلها قبل الاختيار.'); }
+    else if (sp < 6) strong.push('سرعة عالية (' + sp + ' ث للسؤال)');
+    if (sp > 11) { weak.push('بطء في الإجابة (' + sp + ' ث)'); tips.push('زيادة التدريب المفتوح لرفع سرعة الاسترجاع.'); } }
+  if (d.timeouts && pc(d.timeouts, d.total) >= 10) { weak.push('انتهى الوقت دون إجابة ' + d.timeouts + ' مرة'); tips.push('إذا لم تعرفي/تعرف الإجابة فاختاري/اختر الأقرب بدل ترك الوقت ينتهي.'); }
+  const days = d.by_day; let trend = '';
+  if (days.length >= 4) { const h = Math.floor(days.length / 2), a = days.slice(0, h), b = days.slice(h), f = z => pc(z.reduce((m, x) => m + x.c, 0), z.reduce((m, x) => m + x.t, 0)), da = f(b) - f(a);
+    trend = da >= 8 ? 'في تحسّن ملحوظ (+' + da + '%)' : da <= -8 ? 'تراجع في الفترة الأخيرة (' + da + '%)' : 'مستوى مستقر';
+    if (da >= 8) strong.push('تطوّر مستمر في المستوى'); if (da <= -8) { weak.push('تراجع في الأداء مؤخراً'); tips.push('تواصلي/تواصل مع الطالب/ـة لمعرفة سبب التراجع وتشجيعه/ا.'); } }
+  if (days.length && days.length < 3) tips.push('المشاركة اليومية المنتظمة تعطي صورة أدق عن المستوى.');
+  if (!tips.length) tips.push(acc >= 85 ? 'مستوى ممتاز: أتيحي/أتح له/ا أسئلة أصعب أو دوراً قيادياً في الفريق.' : 'استمرّي/استمر على التدريب اليومي للحفاظ على المستوى.');
+  const bar = (n, p, t) => '<div class="rp-bar"><span>' + esc(n) + '</span><i><b style="width:' + p + '%"></b></i><em>' + p + '% · ' + t + '</em></div>';
+  const list = (arr, empty) => arr.length ? '<ul class="rp-ul">' + arr.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '<div class="sub">' + empty + '</div>';
+  const text = 'تقرير المستوى: ' + name + '\nالتقدير: ' + grade[0] + ' · الدقة ' + acc + '%\nنقاط القوة: ' + (strong.join('، ') || '—') + '\nنقاط الضعف: ' + (weak.join('، ') || '—') + '\nالتوصيات: ' + tips.join(' | ');
+  return { text, html: `<div class="rp"><div class="rp-head"><b>${esc(name)}</b><span style="background:${grade[1]}">${grade[0]}</span></div>
+    <div class="stats"><div class="stat"><b>${acc}%</b><span>الدقة</span></div><div class="stat"><b>${d.total}</b><span>أسئلة</span></div><div class="stat"><b>${sp != null ? sp + ' ث' : '—'}</b><span>${speed}</span></div></div>
+    ${trend ? '<div class="sub center">' + trend + '</div>' : ''}
+    <h4>حسب الصعوبة</h4>${lv.map(x => bar(x.n, x.p, x.c + '/' + x.t)).join('')}
+    ${sb.length > 1 || (sb[0] && sb[0].n !== 'عام') ? '<h4>حسب المادة</h4>' + sb.map(x => bar(x.n, x.p, x.c + '/' + x.t)).join('') : ''}
+    <h4>نقاط القوة</h4>${list(strong, 'لم تتضح بعد (تحتاج 3 أسئلة على الأقل في كل محور).')}
+    <h4>نقاط الضعف</h4>${list(weak, 'لا توجد نقاط ضعف واضحة.')}
+    <h4>توصيات</h4>${list(tips, '')}
+    ${d.wrong.length ? '<h4>آخر الأسئلة الخاطئة</h4>' + d.wrong.map(w => '<div class="rp-w"><b>' + esc(w.q) + '</b><div>✅ ' + esc(w.right) + '</div><div>❌ ' + (w.chosen ? esc(w.chosen) : 'لم يجب') + '</div></div>').join('') : ''}
+    <button class="btn" data-act="r-report-copy">نسخ ملخص التقرير</button></div>` };
+}
+ACTS['r-report'] = async t => {
+  const { id, name } = t.dataset; toast('جاري إعداد التقرير…');
+  try {
+    const d = await rpc('teacher_student_report', { p_student: id });
+    if (!d || !d.total) { toast('لا توجد جولات رسمية منتهية لهذا الطالب بعد'); return; }
+    const r = buildReport(name, d); RS.lastText = r.text; closeModals(); modal(r.html);
+  } catch (e) { toast('تعذّر تحميل التقرير'); }
+};
+ACTS['r-report-copy'] = () => { navigator.clipboard && navigator.clipboard.writeText(RS.lastText || ''); toast('تم النسخ'); };
 ACTS['t-res-export'] = () => {
   const rows = [['الصف', 'الاسم', 'رقم الطالب', 'النقاط', 'الجولات', 'الإجابات الصحيحة', 'الدقة %', 'لعب اليوم']].concat(RS.rows.slice().sort((x, y) => y.pts - x.pts).map(r => [r.cls, r.name, r.student_no, r.pts, r.rounds, r.correct, r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) : '', r.played_today ? 'نعم' : 'لا']));
   const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
