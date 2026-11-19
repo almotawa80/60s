@@ -1,16 +1,16 @@
 :root{
-  --bg:#FBF8F1;--ink:#1B1B3A;--muted:#5B5B78;--primary:#0F766E;--primary-dark:#0B5A54;--primary-ink:#fff;
-  --accent:#F5A623;--accent-ink:#1B1B3A;--card:#fff;--line:#E7E1D3;--soft:#F3EEE2;
+  --bg:#F2F6FF;--ink:#1B1B3A;--muted:#5B5B78;--primary:#2457D6;--primary-dark:#1B3FA0;--primary-ink:#fff;
+  --accent:#F5A623;--accent-ink:#1B1B3A;--card:#fff;--line:#D5E0F5;--soft:#E7EEFC;
   --good:#1FA971;--good-bg:#E4F7EE;--bad:#E5484D;--bad-bg:#FDEBEC;
   --radius:18px;--font-q:22px;--btn-h:54px;--opt-h:60px;
   --o1:#fff;--o2:#fff;--o3:#fff;--o4:#fff;--o-ink:var(--ink);--o-border:var(--line);
 }
 [data-theme=kids]{
-  --bg:#E6F5FF;--primary:#0F766E;--soft:#FFF6DD;--radius:26px;--font-q:28px;--btn-h:64px;--opt-h:70px;
+  --bg:#E3F0FF;--primary:#2F6BFF;--soft:#FFF6DD;--radius:26px;--font-q:28px;--btn-h:64px;--opt-h:70px;
   --o1:#2F80ED;--o2:#9B51E0;--o3:#F2994A;--o4:#14A89B;--o-ink:#fff;--o-border:transparent;--line:#CBE6F7;
 }
 [data-theme=uni]{
-  --bg:#F6F7F8;--primary:#0B4F4A;--primary-dark:#083A36;--soft:#EEF0F1;--radius:10px;--font-q:20px;--btn-h:50px;--opt-h:54px;--line:#DADFE2;
+  --bg:#F6F7F8;--primary:#1E3A8A;--primary-dark:#172B66;--soft:#EEF1F8;--radius:10px;--font-q:20px;--btn-h:50px;--opt-h:54px;--line:#DADFE2;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -49,10 +49,10 @@ h1,h2,h3,p{margin:0}
 .chip.good{background:var(--good-bg);color:#0b6a43}.chip.warn{background:#FFF1D6;color:#8a5a00}.chip.bad{background:var(--bad-bg);color:#9b1c20}
 .ico{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .brand{display:flex;align-items:center;gap:10px;font-weight:800}
-.logo{width:56px;height:56px;border-radius:18px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;position:relative}
-.logo b{position:absolute;font-size:15px;top:50%;left:50%;transform:translate(-50%,-48%)}
-.logo svg{width:46px;height:46px}
-.hero{padding:56px 24px 12px}
+.logo{width:56px;height:56px;display:flex;align-items:center;justify-content:center;position:relative}
+.logo svg{width:100%;height:100%;display:block}
+.hero{padding:48px 24px 12px;text-align:center;display:flex;flex-direction:column;align-items:center}
+.hero .logo{width:120px;height:120px}
 .hero h1{font-size:36px;font-weight:800;line-height:1.2;margin-top:10px}
 .hero p{color:var(--muted);margin-top:6px;font-size:17px}
 .sub{font-size:14px;color:var(--muted)}
@@ -60,7 +60,7 @@ h1,h2,h3,p{margin:0}
 .code-wrap{position:relative}
 .code-boxes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;direction:ltr}
 .code-box{height:56px;border-radius:14px;border:1.5px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800}
-.code-box.on{border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,118,110,.15)}
+.code-box.on{border-color:var(--primary);box-shadow:0 0 0 3px rgba(36,87,214,.18)}
 .code-input{position:absolute;inset:0;opacity:0;width:100%;height:100%;font-size:16px;text-transform:uppercase}
 /* student home */
 .s-head{display:flex;align-items:center;gap:12px;padding:20px 20px 4px}
