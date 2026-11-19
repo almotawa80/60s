@@ -561,3 +561,15 @@ body.wide .t-nav a{font-weight:500!important}
 .sw-main{will-change:transform}
 .sw-act{padding:0 12px!important}
 .sw-main.open{box-shadow:0 0 12px rgba(0,0,0,.08)}
+/* profile + avatar cropper */
+.av-img{object-fit:cover;padding:0;background:#eee}
+.prof{display:flex;flex-direction:column;align-items:center;gap:12px}
+.prof-av{position:relative;border:0;background:none;padding:0}
+.prof-big{width:110px!important;height:110px!important;font-size:36px!important;box-shadow:none!important}
+.prof-cam{position:absolute;bottom:2px;left:2px;width:34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;border:3px solid #F5F2EF}
+.prof-cam .ico{width:16px;height:16px}
+.prof-in{flex:1;border:0;background:none;font-size:17px!important;text-align:left;outline:0;color:var(--ink);min-width:0}
+.crop-wrap{display:flex;justify-content:center;padding:10px 0}
+.crop{width:280px;height:280px;border-radius:50%;overflow:hidden;position:relative;background:#222;touch-action:none;box-shadow:0 0 0 4px #fff,0 6px 20px rgba(0,0,0,.2);cursor:grab}
+.crop img{position:absolute;top:0;left:0;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.crop-z{width:100%;accent-color:var(--primary);margin:6px 0 12px}

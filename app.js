@@ -437,8 +437,9 @@ async function teacherRoute(){
   view('', '<div class="spin"></div>', page);
   try {
     if (!T.name) {
-      const r = await sb.from('teachers').select('display_name').eq('id', T.user.id).maybeSingle();
+      const r = await sb.from('teachers').select('display_name,avatar_url').eq('id', T.user.id).maybeSingle();
       T.name = (r.data && r.data.display_name) || (T.user.email || '').split('@')[0];
+      T.avatar = (r.data && r.data.avatar_url) || '';
     }
     if (page === 'classes') await tClasses();
     else if (page === 'class') await tClass(parts[1]);
@@ -1280,11 +1281,7 @@ async function tSettings(){
   const row = (act, icon, color, label, val, extra) => `<button class="set-row" data-act="${act}" ${extra || ''}><span class="set-ic" style="background:${color}">${ic(icon)}</span><span class="grow">${label}</span>${val ? `<span class="set-val">${val}</span>` : ''}<span class="set-chev">${ic('back')}</span></button>`;
   const grp = (title, rows, foot) => `${title ? `<div class="set-h">${title}</div>` : ''}<div class="set-grp">${rows.join('')}</div>${foot ? `<div class="set-f">${foot}</div>` : ''}`;
   view('الإعدادات',
-    `<button class="set-profile" data-act="st-name"><div class="avatar big-av">${esc(ini)}</div><div class="grow"><b>${esc(T.name)}</b><div class="sub" dir="ltr" style="text-align:right">${esc(T.user.email || '')}</div></div><span class="set-chev">${ic('back')}</span></button>` +
-    grp('الحساب', [
-      row('st-name', 'user', '#C8102E', 'الاسم', esc(T.name)),
-      row('st-pass', 'gear', '#8E8E93', 'تغيير كلمة المرور')
-    ]) +
+    `<button class="set-profile" data-act="st-profile">${avatarHtml('big-av')}<div class="grow"><b>${esc(T.name)}</b><div class="sub" dir="ltr" style="text-align:right">${esc(T.user.email || '')}</div></div><span class="set-chev">${ic('back')}</span></button>` +
     grp('الطلبة', [
       row('st-share-students', 'send', '#1FA971', 'رابط دخول الطلبة', 'مشاركة'),
       row('copy', 'layers', '#F26B1D', 'نسخ الرابط', '', `data-v="${esc(url)}"`)
@@ -1300,6 +1297,99 @@ async function tSettings(){
     grp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
     `<div class="set-f center">تحدّي الدقيقة · الإصدار 0.2</div>`, 'settings');
 }
+function avatarHtml(cls){
+  const ini = (T.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
+  return T.avatar ? `<img class="avatar av-img ${cls || ''}" src="${T.avatar}" alt="">` : `<div class="avatar ${cls || ''}">${esc(ini)}</div>`;
+}
+function profileSheet(){
+  modal(`<div class="prof">
+    <button class="prof-av" data-act="av-menu" aria-label="تغيير الصورة">${avatarHtml('prof-big')}<span class="prof-cam">${ic('edit')}</span></button>
+    <button class="link" data-act="av-menu">${T.avatar ? 'تعديل الصورة' : 'إضافة صورة'}</button>
+    <form class="col" data-form="t-save-name" style="width:100%"><div class="set-grp">
+      <label class="set-row"><span class="grow" style="flex:0 0 auto;color:var(--muted)">الاسم</span><input class="prof-in" name="name" value="${esc(T.name)}" required maxlength="60"></label>
+      <div class="set-row"><span style="color:var(--muted)">البريد</span><span class="grow" dir="ltr" style="text-align:left;color:var(--muted)">${esc(T.user.email || '')}</span></div></div>
+      <button class="btn" type="submit">حفظ الاسم</button></form>
+    <div class="set-grp" style="width:100%"><button class="set-row" data-act="st-pass"><span class="set-ic" style="background:#8E8E93">${ic('gear')}</span><span class="grow">تغيير كلمة المرور</span><span class="set-chev">${ic('back')}</span></button></div>
+    <input type="file" id="av-file" accept="image/*" class="hide" data-change="av-chosen"></div>`);
+}
+ACTS['st-profile'] = () => profileSheet();
+ACTS['av-menu'] = () => {
+  if (!T.avatar) return document.getElementById('av-file').click();
+  sheet('صورة الملف', [
+    { act: 'av-pick', icon: 'upload', label: 'اختيار صورة جديدة' },
+    { act: 'av-recrop', icon: 'edit', label: 'قص الصورة الحالية' },
+    null,
+    { act: 'av-del', icon: 'trash', label: 'حذف الصورة', danger: true }
+  ]);
+};
+ACTS['av-pick'] = () => { closeModals(); profileSheet(); setTimeout(() => document.getElementById('av-file').click(), 50); };
+ACTS['av-recrop'] = () => { closeModals(); cropper(T.avatar); };
+ACTS['av-del'] = async () => {
+  if (!confirm('حذف صورة الملف؟')) return;
+  const { error } = await sb.from('teachers').update({ avatar_url: null }).eq('id', T.user.id);
+  if (error) return toast(errMsg(error));
+  T.avatar = ''; closeModals(); tSettings(); toast('تم حذف الصورة');
+};
+ACTS['av-chosen'] = t => {
+  const f = t.files && t.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = () => { closeModals(); cropper(r.result); }; r.readAsDataURL(f);
+};
+/* circular cropper: drag to move, pinch or slider to zoom */
+function cropper(src){
+  const V = 280;
+  modal(`<h3 class="center">قص الصورة</h3><div class="crop-wrap"><div class="crop" id="crop"><img id="crop-img" src="${src}" alt="" draggable="false"></div></div>
+    <input type="range" id="crop-z" min="1" max="4" step="0.01" value="1" class="crop-z" aria-label="تكبير">
+    <div class="row"><button class="btn soft" data-act="close-modal">إلغاء</button><button class="btn" data-act="crop-save">حفظ</button></div>`);
+  const img = document.getElementById('crop-img'), box = document.getElementById('crop'), zr = document.getElementById('crop-z');
+  const C = { s: 1, base: 1, x: 0, y: 0 };
+  const apply = () => {
+    const w = img.naturalWidth * C.base * C.s, h = img.naturalHeight * C.base * C.s;
+    C.x = Math.min(0, Math.max(V - w, C.x)); C.y = Math.min(0, Math.max(V - h, C.y));
+    img.style.width = w + 'px'; img.style.height = h + 'px'; img.style.transform = `translate(${C.x}px,${C.y}px)`;
+  };
+  const zoomTo = (s, cx, cy) => {
+    const old = C.s; s = Math.max(1, Math.min(4, s));
+    C.x = cx - (cx - C.x) * s / old; C.y = cy - (cy - C.y) * s / old; C.s = s; zr.value = s; apply();
+  };
+  img.onload = () => {
+    C.base = V / Math.min(img.naturalWidth, img.naturalHeight);
+    C.x = (V - img.naturalWidth * C.base) / 2; C.y = (V - img.naturalHeight * C.base) / 2; apply();
+  };
+  if (img.complete) img.onload();
+  let p = null;
+  box.addEventListener('touchstart', e => {
+    e.stopPropagation();
+    const t = e.touches;
+    p = t.length === 2 ? { d: Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY), s: C.s } : { x: t[0].clientX, y: t[0].clientY, ox: C.x, oy: C.y };
+  }, { passive: true });
+  box.addEventListener('touchmove', e => {
+    e.preventDefault(); e.stopPropagation(); if (!p) return;
+    const t = e.touches, r = box.getBoundingClientRect();
+    if (t.length === 2 && p.d) { const d = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); zoomTo(p.s * d / p.d, (t[0].clientX + t[1].clientX) / 2 - r.left, (t[0].clientY + t[1].clientY) / 2 - r.top); }
+    else if (t.length === 1 && p.x !== undefined) { C.x = p.ox + t[0].clientX - p.x; C.y = p.oy + t[0].clientY - p.y; apply(); }
+  }, { passive: false });
+  box.addEventListener('touchend', e => { e.stopPropagation(); p = null; });
+  let md = null;
+  box.addEventListener('mousedown', e => { md = { x: e.clientX, y: e.clientY, ox: C.x, oy: C.y }; });
+  window.addEventListener('mousemove', e => { if (!md) return; C.x = md.ox + e.clientX - md.x; C.y = md.oy + e.clientY - md.y; apply(); });
+  window.addEventListener('mouseup', () => { md = null; });
+  zr.addEventListener('input', () => zoomTo(Number(zr.value), V / 2, V / 2));
+  CROP.get = () => {
+    const out = document.createElement('canvas'); out.width = out.height = 320;
+    const k = 320 / V, g = out.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, 320, 320);
+    g.drawImage(img, C.x * k, C.y * k, img.naturalWidth * C.base * C.s * k, img.naturalHeight * C.base * C.s * k);
+    return out.toDataURL('image/jpeg', .85);
+  };
+}
+const CROP = { get: null };
+ACTS['crop-save'] = async t => {
+  if (!CROP.get) return; t.disabled = true;
+  const url = CROP.get();
+  const { error } = await sb.from('teachers').update({ avatar_url: url }).eq('id', T.user.id);
+  if (error) { t.disabled = false; return toast(errMsg(error)); }
+  T.avatar = url; closeModals(); tSettings(); toast('تم حفظ الصورة');
+};
 ACTS['st-name'] = () => modal(`<h3>الاسم</h3><form class="col" data-form="t-save-name"><div class="field"><input class="input" name="name" value="${esc(T.name)}" required maxlength="60"></div><p class="sub">يظهر هذا الاسم للطلبة في صفحة التسجيل الذاتي.</p><button class="btn" type="submit">حفظ</button></form>`);
 ACTS['st-pass'] = () => modal(`<h3>تغيير كلمة المرور</h3><form class="col" data-form="st-pass-save"><div class="field"><label for="np">كلمة المرور الجديدة</label><input class="input" id="np" name="p1" type="password" minlength="6" required dir="ltr"></div>
   <div class="field"><label for="np2">تأكيد كلمة المرور</label><input class="input" id="np2" name="p2" type="password" minlength="6" required dir="ltr"></div><button class="btn" type="submit">حفظ</button></form>`);
@@ -1429,7 +1519,7 @@ function goBack(){
 let G = null;
 document.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) { G = null; return; }
-  if (e.target.closest('.t-nav')) { G = null; return; }
+  if (e.target.closest('.t-nav, .crop')) { G = null; return; }
   const t = e.touches[0], row = e.target.closest('.sw-main');
   const rw = row ? row.parentElement : null;
   G = { x: t.clientX, y: t.clientY, row, edge: !row && t.clientX > innerWidth - 28, dx: 0, lock: null,
