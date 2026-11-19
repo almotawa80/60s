@@ -823,9 +823,9 @@ function renderClasses(){
 }
 ACTS['c-tab'] = t => { CL.tab = t.dataset.t; T.compEdit = null; renderClasses(); };
 function classesList(){
-  const top = CL.sel ? '' : `<button class="btn" data-act="t-add-class">${ic('plus')} صف جديد</button><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
+  const top = CL.sel ? '' : `<button class="btn cl-add" data-act="t-add-class">${ic('plus')} صف جديد</button><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
   if (!CL.classes.length) return top + '<div class="card center muted">لا توجد صفوف بعد.</div>';
-  return top + CL.classes.map(classSection).join('') + (CL.sel ? '' : '<p class="sub center">اسحب الاسم لليسار للحذف، ولليمين للواتساب والرمز الجديد</p>');
+  return top + CL.classes.map(classSection).join('') + (CL.sel || !CL.open.size ? '' : '<p class="sub center cl-hint">اسحب اسم الطالب لليسار للحذف، ولليمين للواتساب والرمز الجديد</p>');
 }
 function classSection(c){
   const st = CL.students[c.id] || [], open = CL.open.has(c.id), comp = CL.comps[c.id];
@@ -842,9 +842,19 @@ function classSection(c){
         : '<p class="sub center" style="padding:12px">لا يوجد طلبة. ارفع ملفاً أو أضف يدوياً.</p>') + '</div>';
   }
   const selC = CL.sel && CL.sel.type === 'classes';
-  return `<div class="cls ${open ? 'open' : ''} ${selC && CL.sel.ids.has(c.id) ? 'picked' : ''}" data-cid="${c.id}"><button class="cls-head" data-act="c-toggle">${selC ? `<span class="selmark">${ic(CL.sel.ids.has(c.id) ? 'checkc' : 'circle')}</span>` : `<span class="chev">${ic('back')}</span>`}
-    <div class="grow"><b>${esc(c.name)}</b><div class="sub">${comp ? PHASE_AR[phaseOf(comp)] + ' · ' + esc(comp.title) : 'بدون مسابقة'}</div></div><span class="count">${st.length}</span></button>${body}</div>`;
+  const ph = comp ? phaseOf(comp) : null;
+  const tag = comp ? `<span class="cl-tag on">${PHASE_AR[ph]}</span>` : `<span class="cl-tag">بدون مسابقة</span>`;
+  return `<div class="cls ${open ? 'open' : ''} ${selC && CL.sel.ids.has(c.id) ? 'picked' : ''}" data-cid="${c.id}"><button class="cls-head" data-act="c-toggle">${selC ? `<span class="selmark">${ic(CL.sel.ids.has(c.id) ? 'checkc' : 'circle')}</span>` : ''}
+    <span class="cl-ic" style="--h:${clsHue(c.name)}">${esc(clsBadge(c.name))}</span>
+    <div class="grow cl-txt"><b>${esc(c.name)}</b><div class="cl-meta"><span>${st.length} طالب</span>${tag}</div></div>${selC ? '' : `<span class="chev">${ic('back')}</span>`}</button>${body}</div>`;
 }
+const ORD = [['الحادي عشر', 11], ['الثاني عشر', 12], ['الأول', 1], ['الثاني', 2], ['الثالث', 3], ['الرابع', 4], ['الخامس', 5], ['السادس', 6], ['السابع', 7], ['الثامن', 8], ['التاسع', 9], ['العاشر', 10]];
+function clsBadge(n){
+  n = (n || '').trim(); const o = ORD.find(x => n.includes(x[0])); const m = n.match(/\d+/);
+  const g = o ? o[1] : m ? m[0] : n.charAt(0); const sec = (n.split('/')[1] || '').trim().charAt(0);
+  return g + (sec || '');
+}
+function clsHue(n){ const o = ORD.find(x => (n || '').includes(x[0])); if (o) return [0, 350, 25, 40, 150, 200, 215, 265, 290, 320, 10, 180, 230][o[1]]; let h = 0; for (const ch of n || '') h = (h * 31 + ch.charCodeAt(0)) % 360; return h; }
 function ctx(t){ const el = t.closest('[data-cid]'); if (el) { CK.cls = CL.byId[el.dataset.cid]; CK.students = CL.students[el.dataset.cid] || []; } return CK.cls; }
 function sheet(title, items){
   modal(`<div class="sheet">${title ? `<div class="sheet-t">${esc(title)}</div>` : ''}<div class="sheet-list">${items.map(x => x ? `<button class="sheet-i ${x.danger ? 'danger' : ''}" data-act="${x.act}" ${x.attrs || ''}>${ic(x.icon)}<span>${x.label}</span></button>` : '<div class="sheet-sep"></div>').join('')}</div>
