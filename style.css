@@ -1354,3 +1354,17 @@ a.btn.cp-res{text-decoration:none;justify-content:center}
 a.cp-all{text-decoration:none;color:inherit;border-radius:14px;background:var(--card,#fff);margin-top:4px}
 body.dark a.cp-all{background:rgba(255,255,255,.06)}
 .rs-cls{font-size:14px;font-weight:700;opacity:.7;margin:-4px 2px 2px}
+/* question settings v2 */
+.qs-intro{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(47,128,237,.1);font-size:14px;line-height:1.7;margin-bottom:6px}
+.qs-intro .ico{width:20px;height:20px;flex:none;margin-top:3px;color:#2F80ED}
+body.dark .qs-intro{background:rgba(47,128,237,.18)}
+.set-h small{font-weight:400;opacity:.7;font-size:12px}
+.qd-row{display:flex;gap:4px;margin-top:6px}
+.qd{font-style:normal;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px}
+.qd.e{background:rgba(52,199,89,.16);color:#1f8a3e}
+.qd.m{background:rgba(255,149,0,.16);color:#b86a00}
+.qd.h{background:rgba(255,59,48,.14);color:#c4281f}
+body.dark .qd.e{color:#6fdc8c}body.dark .qd.m{color:#ffb340}body.dark .qd.h{color:#ff7a70}
+.tick.sq{width:24px;height:24px;border-radius:7px;border:2px solid rgba(120,120,128,.4);align-items:center;justify-content:center}
+.tick.sq .ico{width:16px;height:16px}
+.tick.sq.on{background:var(--primary);border-color:var(--primary);color:#fff}

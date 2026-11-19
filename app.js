@@ -1901,14 +1901,20 @@ async function tQSet(){
   const counts = {}; (await sb.from('questions').select('curriculum_id').not('curriculum_id', 'is', null)).data?.forEach(q => counts[q.curriculum_id] = (counts[q.curriculum_id] || 0) + 1);
   const mine = CU.list.filter(c => c.owner_id), glob = CU.list.filter(c => !c.owner_id);
   const cuRow = c => `<button class="set-row" data-act="cu-open" data-id="${c.id}"><span class="set-ic" style="background:${SUBJ_COLOR(c.subject)}">${esc(c.subject.slice(0, 1))}</span><span class="grow rl-txt"><b>${esc(c.subject)}${c.title ? ' · ' + esc(c.title) : ''}</b><small>${STAGE_AR[c.stage]}${c.grade ? ' · ' + (c.stage === 'university' ? 'السنة ' : 'الصف ') + c.grade : ''} · ${counts[c.id] || 0} سؤال</small></span><span class="set-chev">${ic('back')}</span></button>`;
+  const LVC = { 'سهل': 'e', 'متوسط': 'm', 'صعب': 'h' };
+  const dots = d => d[2].split(' · ').map(x => { const [n, l] = x.split(' '); return Array(+n).fill(`<i class="qd ${LVC[l]}">${l}</i>`).join(''); }).join('');
   view('إعدادات الأسئلة',
-    `<div class="set-h">مناهجي</div><div class="set-grp">${mine.map(cuRow).join('')}<button class="set-row" data-act="cu-add"><span class="set-ic" style="background:#34C759">${ic('plus')}</span><span class="grow" style="color:var(--primary)">إضافة منهج</span></button></div>
-     <div class="set-f">المنهج = مادة + مرحلة + صف. اربط أسئلة المنهج به ثم اختره عند إنشاء المسابقة.</div>` +
-    (glob.length ? `<div class="set-h">المناهج العامة</div><div class="set-grp">${glob.map(cuRow).join('')}</div>` : '') +
-    `<div class="set-h">مستوى الصعوبة الافتراضي</div><div class="picks">${DIFF.map(d => `<button class="pick wide ${diff === d[0] ? 'on' : ''}" data-act="qs-diff" data-v="${d[0]}"><span class="pick-ic">${ic(d[0] === 'beginner' ? 'star' : d[0] === 'normal' ? 'chart' : 'trophy')}</span><div><b>${d[1]}</b><small>${d[2]}</small></div></button>`).join('')}</div>
-     <div class="set-h">أنواع الأسئلة الافتراضية</div><div class="picks picks2">${QTYPES.map(q => `<button class="pick ${qt.includes(q[0]) ? 'on' : ''}" data-act="qs-type" data-v="${q[0]}"><span class="pick-ic">${ic(q[3])}</span><b>${q[1]}</b></button>`).join('')}</div>
-     <div class="set-grp"><div class="set-row"><span class="set-ic" style="background:#FF9500">${ic('clock')}</span><span class="grow">وقت السؤال</span><span class="set-val">15 ثانية</span></div><div class="set-row"><span class="set-ic" style="background:#5856D6">${ic('help')}</span><span class="grow">أسئلة الجولة</span><span class="set-val">4 أسئلة</span></div></div>
-     <div class="set-f">تُطبَّق هذه القيم تلقائياً على المسابقات الجديدة، ويمكن تغييرها لكل مسابقة.</div>`, 'settings', '', '#/t/settings');
+    `<div class="qs-intro">${ic('help')}<span>هذه الإعدادات تُطبَّق تلقائياً على كل <b>مسابقة جديدة</b>، وتقدر تغيّرها لكل مسابقة لحالها. كل جولة فيها <b>4 أسئلة</b>، ولكل سؤال <b>15 ثانية</b>.</span></div>
+     <div class="set-h">١. صعوبة الجولة</div>
+     <div class="set-grp">${DIFF.map(d => `<button class="set-row radio qs-row" data-act="qs-diff" data-v="${d[0]}"><span class="grow rl-txt"><b>${d[1]}</b><span class="qd-row">${dots(d)}</span></span><span class="tick ${diff === d[0] ? 'on' : ''}">${ic('check')}</span></button>`).join('')}</div>
+     <div class="set-f">يحدد كيف تتوزع الأسئلة الأربعة بين السهل والمتوسط والصعب.</div>
+     <div class="set-h">٢. أنواع الأسئلة</div>
+     <div class="set-grp">${QTYPES.map(q => `<button class="set-row radio" data-act="qs-type" data-v="${q[0]}"><span class="set-ic" style="background:${{ curriculum: '#2F80ED', general: '#14A89B', quick: '#FF9500', memory: '#AF52DE' }[q[0]]}">${ic(q[3])}</span><span class="grow rl-txt"><b>${q[1]}</b><small>${q[2]}</small></span><span class="tick sq ${qt.includes(q[0]) ? 'on' : ''}">${ic('check')}</span></button>`).join('')}</div>
+     <div class="set-f">اختر نوعاً أو أكثر، وتُسحب الأسئلة منها عشوائياً.</div>
+     <div class="set-h">٣. المناهج${qt.includes('curriculum') ? '' : ' <small>(تُستخدم مع نوع «المنهج»)</small>'}</div>
+     <div class="set-grp">${mine.map(cuRow).join('')}<button class="set-row" data-act="cu-add"><span class="set-ic" style="background:#34C759">${ic('plus')}</span><span class="grow" style="color:var(--primary)">إضافة منهج</span></button></div>
+     <div class="set-f">المنهج هو المادة والصف، مثل «الرياضيات · الصف الخامس». أضف أسئلته من صفحة الأسئلة، ثم اختره عند إنشاء المسابقة.</div>` +
+    (glob.length ? `<div class="set-h">مناهج جاهزة</div><div class="set-grp">${glob.map(cuRow).join('')}</div>` : ''), 'settings', '', '#/t/settings');
 }
 function SUBJ_COLOR(s){ const m = { 'اللغة العربية': '#C8102E', 'الرياضيات': '#2F80ED', 'العلوم': '#14A89B', 'التربية الإسلامية': '#1FA971', 'اللغة الإنجليزية': '#9B51E0', 'الاجتماعيات': '#F2994A', 'الحاسوب': '#5856D6' }; return m[s] || '#8E8E93'; }
 async function saveSettings(patch){
@@ -1916,11 +1922,11 @@ async function saveSettings(patch){
   const { error } = await sb.from('teachers').update({ settings: T.settings }).eq('id', T.user.id);
   if (error) toast(errMsg(error));
 }
-ACTS['qs-diff'] = async t => { await saveSettings({ difficulty: t.dataset.v }); t.parentElement.querySelectorAll('.pick').forEach(b => b.classList.toggle('on', b === t)); };
+ACTS['qs-diff'] = async t => { await saveSettings({ difficulty: t.dataset.v }); t.parentElement.querySelectorAll('.tick').forEach(x => x.classList.toggle('on', x.parentElement === t)); };
 ACTS['qs-type'] = async t => {
   let v = ((T.settings || {}).qtypes || ['curriculum', 'general', 'quick']).slice(); const k = t.dataset.v;
   if (v.includes(k)) { if (v.length === 1) return toast('اختر نوعاً واحداً على الأقل'); v = v.filter(x => x !== k); } else v.push(k);
-  await saveSettings({ qtypes: v }); t.classList.toggle('on');
+  await saveSettings({ qtypes: v }); const k2 = t.querySelector('.tick'); if (k2) k2.classList.toggle('on'); else t.classList.toggle('on');
 };
 function cuForm(c){
   c = c || { subject: '', stage: 'primary', grade: null, title: '' }; CU.form = { stage: c.stage, grade: c.grade, subject: c.subject };
