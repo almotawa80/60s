@@ -351,7 +351,7 @@ const QS = { list: [], globalCount: 0 };
 const TYPE_AR = { curriculum: 'منهج', general: 'عام', quick: 'سرعة بديهة', memory: 'ذاكرة' };
 const LEVEL_AR = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' };
 const STATUS_AR = { draft: 'مسودة', approved: 'معتمد', rejected: 'مرفوض' };
-const STYLE_AR = { kids: 'الصغار (ابتدائي)', mid: 'متوسط / ثانوي', uni: 'الجامعة' };
+const STYLE_AR = { kids: 'مرح · ابتدائي', mid: 'مرح قليلاً · متوسط', uni: 'هادئ · ثانوي وجامعة' };
 const STYLE_SW = { kids: 'linear-gradient(135deg,#FFD9B0,#E3262F)', mid: 'linear-gradient(135deg,#C8102E,#F5B72B)', uni: 'linear-gradient(135deg,#FAF6F3,#7A1220)' };
 const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png" alt=""></div>';
 const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['questions', 'الأسئلة', 'help'], ['results', 'النتائج', 'chart'], ['settings', 'الإعدادات', 'gear']];
@@ -1057,7 +1057,7 @@ ACTS['cp-new'] = async () => {
   if (!CL.classes.length) return toast('أضف صفاً أولاً');
   await loadCurricula().catch(() => {});
   T.compEdit = 'new'; CC.sel = new Set(CL.classes.filter(c => !CL.comps[c.id]).map(c => c.id));
-  const st = T.settings || {}; CC.qtypes = (st.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = st.difficulty || 'normal'; CC.cu = '';
+  const st = T.settings || {}; CC.qtypes = (st.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = st.difficulty || 'normal'; CC.cu = ''; CC.style = (CL.classes.find(c => CC.sel.has(c.id)) || CL.classes[0]).style || 'mid';
   renderClasses();
 };
 ACTS['cp-edit'] = async t => {
@@ -1065,7 +1065,7 @@ ACTS['cp-edit'] = async t => {
   T.compEdit = t.dataset.g;
   const g = CL.allComps.filter(c => c.group_id === T.compEdit);
   CC.sel = new Set(g.map(c => c.class_id));
-  const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (g[0].qtypes || first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = g[0].difficulty || 'normal'; CC.cu = g[0].curriculum_id || '';
+  const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (g[0].qtypes || first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = g[0].difficulty || 'normal'; CC.cu = g[0].curriculum_id || ''; CC.style = first.style || 'mid';
   renderClasses();
 };
 ACTS['cp-cancel'] = () => { T.compEdit = null; renderClasses(); };
@@ -1085,6 +1085,8 @@ function compForm(){
     <div class="card col"><div class="row between"><b>الصفوف المشاركة</b><button type="button" class="link" data-act="cp-all">تحديد الكل</button></div>
       <div class="picks picks2">${CL.classes.map(c => { const other = CL.comps[c.id] && CL.comps[c.id].group_id !== T.compEdit; return `<button type="button" class="pick ${CC.sel.has(c.id) ? 'on' : ''}" data-act="cp-cls" data-id="${c.id}"><b>${esc(c.name)}</b><small>${(CL.students[c.id] || []).length} طالب/ـة${other ? ' · في مسابقة أخرى' : ''}</small></button>`; }).join('')}</div>
       <p class="sub">كل صف له ترتيبه وتصفياته الخاصة، والإعدادات واحدة للجميع.</p></div>
+    <div class="card col"><b>ثيم واجهة الطلبة</b><div class="picks">${[['kids', 'مرح', 'للابتدائي: ألوان زاهية وحركة أكثر', 'star'], ['mid', 'مرح قليلاً', 'للمتوسط: لمسات مرحة متوازنة', 'layers'], ['uni', 'هادئ', 'للثانوي والجامعة: بسيط ومركّز', 'check']].map(x => `<button type="button" class="pick wide ${CC.style === x[0] ? 'on' : ''}" data-act="cp-style" data-v="${x[0]}"><span class="pick-ic">${ic(x[3])}</span><div><b>${x[1]}</b><small>${x[2]}</small></div></button>`).join('')}</div>
+      <p class="sub">يُطبَّق على كل الصفوف المشاركة.</p></div>
     <div class="card col"><b>المواعيد</b>
       <div class="grid2"><div class="field"><label for="k-s">بداية جمع النقاط</label><input class="input" type="date" id="k-s" name="start_date" value="${v.start_date}" required></div>
       <div class="field"><label for="k-p">نهاية جمع النقاط</label><input class="input" type="date" id="k-p" name="points_end_date" value="${v.points_end_date}" required></div></div>
@@ -1103,6 +1105,7 @@ function compForm(){
     <div class="row w-nav"><button type="button" class="btn soft" data-act="cp-cancel">إلغاء</button><button class="btn" type="submit">${isNew ? 'إنشاء المسابقة' : 'حفظ'}</button></div></form>`;
 }
 function cpKeep(){ const f = document.querySelector('[data-form="cp-save"]'); if (f && f.cu) CC.cu = f.cu.value; }
+ACTS['cp-style'] = t => { CC.style = t.dataset.v; t.parentElement.querySelectorAll('.pick').forEach(b => b.classList.toggle('on', b === t)); };
 ACTS['cp-diff'] = t => { CC.diff = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const d = document.getElementById('cp-diff-d'); if (d) d.textContent = DIFF.find(x => x[0] === CC.diff)[2]; };
 ACTS['cp-cls'] = t => { const id = t.dataset.id; CC.sel.has(id) ? CC.sel.delete(id) : CC.sel.add(id); t.classList.toggle('on'); };
 ACTS['cp-all'] = () => { CL.classes.forEach(c => CC.sel.add(c.id)); document.querySelectorAll('[data-act="cp-cls"]').forEach(b => b.classList.add('on')); };
@@ -1136,7 +1139,7 @@ ACTS['cp-save'] = async f => {
     if (drop.length) chk(await sb.from('competitions').update({ status: 'finished' }).in('id', drop.map(c => c.id)));
     const add = ids.filter(id => !keep.some(c => c.class_id === id));
     if (add.length) chk(await sb.from('competitions').insert(add.map(id => Object.assign({ class_id: id, group_id: gid }, p))));
-    chk(await sb.from('classes').update({ qtypes: CC.qtypes }).in('id', ids));
+    chk(await sb.from('classes').update({ qtypes: CC.qtypes, style: CC.style || 'mid' }).in('id', ids));
     T.compEdit = null; toast('تم الحفظ'); await tClasses();
   } catch(e){ toast(errMsg(e)); }
 };
