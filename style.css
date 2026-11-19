@@ -499,3 +499,24 @@ body.wide .stat{background:#fff;box-shadow:none}
 body.wide .stat b{text-shadow:none}
 /* tab bar refinement */
 body.wide .t-nav a{font-weight:500!important}
+/* action sheet (⋯ المزيد) */
+.sheet{display:flex;flex-direction:column;gap:10px}
+.sheet-t{text-align:center;font-size:13px;color:var(--muted);font-weight:600}
+.sheet-list{background:#fff;border-radius:14px;overflow:hidden}
+.sheet-i{display:flex;align-items:center;gap:12px;width:100%;padding:15px 16px;border:0;background:#fff;font-size:17px;color:var(--ink);text-align:right}
+.sheet-list .sheet-i+.sheet-i{border-top:.5px solid var(--line)}
+.sheet-i .ico{color:var(--primary);width:22px;height:22px}
+.sheet-i.danger,.sheet-i.danger .ico{color:#D70015}
+.sheet-i:active{background:#F2EEEA}
+.sheet-sep{height:8px;background:var(--bg)}
+.sheet-cancel{justify-content:center;border-radius:14px;font-weight:700;color:var(--primary)}
+/* selection mode */
+.selmark{display:flex;color:var(--primary);flex:none}
+.selmark .ico{width:26px;height:26px}
+.cls.picked{box-shadow:0 0 0 2px var(--primary)!important}
+.sel-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(6px, calc(env(safe-area-inset-bottom) - 20px)) + 84px);width:calc(100% - 24px);max-width:560px;z-index:26;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px 10px;padding:10px 14px;border-radius:22px;text-align:center;
+  background:rgba(255,255,255,.75);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(255,255,255,.8);box-shadow:0 10px 30px rgba(60,20,10,.18)}
+.sel-bar .link{text-decoration:none;font-weight:600}
+.sel-acts{grid-column:1/-1;display:flex;gap:8px}
+.sel-acts .btn{flex:1;width:auto}

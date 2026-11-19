@@ -64,6 +64,9 @@ const ICON = {
   edit:'<path d="M4 20h4L19 9l-4-4L4 16v4z"/>',
   eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   send:'<path d="M21 3L3 10.5l7 2.5 2.5 7L21 3z"/><path d="M10 13l5-5"/>',
+  more:'<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>',
+  circle:'<circle cx="12" cy="12" r="9"/>',
+  checkc:'<circle cx="12" cy="12" r="9" fill="currentColor" stroke="none"/><path d="M8 12.5l2.8 2.8L16.5 9.5" stroke="#fff"/>',
   star:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3z"/>'
 };
 const ic = n => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + ICON[n] + '</svg>';
@@ -628,46 +631,98 @@ async function tClasses(){
 }
 function renderClasses(){
   const tabs = `<div class="tabs"><button class="${CL.tab === 'classes' ? 'on' : ''}" data-act="c-tab" data-t="classes">الصفوف (${CL.classes.length})</button><button class="${CL.tab === 'comps' ? 'on' : ''}" data-act="c-tab" data-t="comps">المسابقات</button></div>`;
-  view('الصفوف', tabs + (CL.tab === 'classes' ? classesList() : compsPanel()), 'classes');
+  const more = CL.tab === 'classes' ? `<button class="icon-btn" data-act="c-more" aria-label="المزيد">${ic('more')}</button>` : '';
+  view('الصفوف', tabs + (CL.tab === 'classes' ? classesList() : compsPanel()) + selBar(), 'classes', more);
 }
 ACTS['c-tab'] = t => { CL.tab = t.dataset.t; T.compEdit = null; renderClasses(); };
 function classesList(){
-  const top = `<div class="row" style="flex-wrap:wrap"><button class="btn sm" data-act="t-add-class">${ic('plus')} صف جديد</button><button class="btn sm soft" data-act="t-multi-up">${ic('upload')} رفع صفوف Excel</button><button class="btn sm soft" data-act="t-multi-sample">نموذج</button>
-    ${CL.classes.length ? `<button class="btn sm soft" data-act="c-all">${CL.open.size ? 'طي الكل' : 'فتح الكل'}</button>` : ''}<input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen"></div>`;
+  const top = CL.sel ? '' : `<button class="btn" data-act="t-add-class">${ic('plus')} صف جديد</button><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
   if (!CL.classes.length) return top + '<div class="card center muted">لا توجد صفوف بعد.</div>';
-  return top + CL.classes.map(classSection).join('') + '<p class="sub center">اسحب اسم الطالب/ـة لليسار لإظهار: واتساب، رمز جديد، حذف</p>' +
-    `<button class="btn soft" data-act="c-del-all" style="color:#B3122A;margin-top:18px">${ic('trash')} حذف جميع الصفوف</button>`;
+  return top + CL.classes.map(classSection).join('') + (CL.sel ? '' : '<p class="sub center">اسحب اسم الطالب/ـة لليسار لإظهار: واتساب، رمز جديد، حذف</p>');
 }
 function classSection(c){
   const st = CL.students[c.id] || [], open = CL.open.has(c.id), comp = CL.comps[c.id];
   let body = '';
   if (open) {
     const link = joinLink(c.join_code);
-    body = `<div class="cls-body"><div class="row" style="flex-wrap:wrap">
-      <button class="btn sm soft" data-act="t-upload">${ic('upload')} رفع أسماء</button><button class="btn sm soft" data-act="t-add-one">${ic('plus')} إضافة</button>
-      <button class="btn sm soft" data-act="t-export-codes">${ic('download')} الرموز</button><button class="btn sm soft" data-act="t-print-codes">${ic('print')} طباعة</button>
-      <button class="btn sm soft" data-act="c-menu">${ic('gear')} إعدادات الصف</button>
-      <button class="btn sm soft" data-act="c-del" style="color:#B3122A">${ic('trash')} حذف الصف</button></div>` +
+    body = `<div class="cls-body">${CL.sel ? '' : `<div class="row"><button class="btn sm soft" data-act="t-upload">${ic('upload')} رفع أسماء</button><button class="btn sm soft" data-act="t-add-one">${ic('plus')} إضافة</button><span class="grow"></span><button class="icon-btn" data-act="c-cmore" aria-label="المزيد">${ic('more')}</button></div>`}` +
       (c.self_join ? `<div class="join-row"><span class="sub">التسجيل الذاتي مفعّل</span><button class="btn sm" data-act="copy" data-v="${esc(link)}">نسخ رابط التسجيل</button></div>` : '') +
       (st.length ? `<div class="sw-list">${st.map((s, i) => `<div class="sw-row"><div class="sw-act">
           <button class="wa" data-act="s-wa" data-id="${s.id}">${ic('send')}<span>واتساب</span></button>
           <button class="rg" data-act="t-regen" data-id="${s.id}">${ic('refresh')}<span>رمز جديد</span></button>
           <button class="del" data-act="t-del-student" data-id="${s.id}">${ic('trash')}<span>حذف</span></button></div>
-        <div class="sw-main" data-act="s-card" data-id="${s.id}"><span class="sw-n">${i + 1}</span><div class="grow"><b>${esc(s.name)}</b><div class="sub">${esc(s.student_no) || '—'}</div></div>
+        <div class="sw-main" data-act="s-card" data-id="${s.id}">${CL.sel && CL.sel.type === 'students' && CL.sel.cid === c.id ? `<span class="selmark">${ic(CL.sel.ids.has(s.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${i + 1}</span>`}<div class="grow"><b>${esc(s.name)}</b><div class="sub">${esc(s.student_no) || '—'}</div></div>
         <button class="code-pill eye" data-act="c-eye" data-code="${esc(s.code)}" aria-label="إظهار الرمز"><span>••••••</span>${ic('eye')}</button></div></div>`).join('')}</div>`
         : '<p class="sub center" style="padding:12px">لا يوجد طلبة. ارفع ملفاً أو أضف يدوياً.</p>') + '</div>';
   }
-  return `<div class="cls ${open ? 'open' : ''}" data-cid="${c.id}"><button class="cls-head" data-act="c-toggle"><span class="chev">${ic('back')}</span>
+  const selC = CL.sel && CL.sel.type === 'classes';
+  return `<div class="cls ${open ? 'open' : ''} ${selC && CL.sel.ids.has(c.id) ? 'picked' : ''}" data-cid="${c.id}"><button class="cls-head" data-act="c-toggle">${selC ? `<span class="selmark">${ic(CL.sel.ids.has(c.id) ? 'checkc' : 'circle')}</span>` : `<span class="chev">${ic('back')}</span>`}
     <div class="grow"><b>${esc(c.name)}</b><div class="sub">${comp ? PHASE_AR[phaseOf(comp)] + ' · ' + esc(comp.title) : 'بدون مسابقة'}</div></div><span class="count">${st.length}</span></button>${body}</div>`;
 }
 function ctx(t){ const el = t.closest('[data-cid]'); if (el) { CK.cls = CL.byId[el.dataset.cid]; CK.students = CL.students[el.dataset.cid] || []; } return CK.cls; }
-ACTS['c-toggle'] = t => { const id = t.closest('[data-cid]').dataset.cid; CL.open.has(id) ? CL.open.delete(id) : CL.open.add(id); renderClasses(); };
+function sheet(title, items){
+  modal(`<div class="sheet">${title ? `<div class="sheet-t">${esc(title)}</div>` : ''}<div class="sheet-list">${items.map(x => x ? `<button class="sheet-i ${x.danger ? 'danger' : ''}" data-act="${x.act}" ${x.attrs || ''}>${ic(x.icon)}<span>${x.label}</span></button>` : '<div class="sheet-sep"></div>').join('')}</div>
+    <button class="sheet-i sheet-cancel" data-act="close-modal">إلغاء</button></div>`);
+}
+ACTS['c-more'] = () => sheet('الصفوف', [
+  { act: 'm-run', attrs: 'data-a="t-multi-up"', icon: 'upload', label: 'رفع صفوف من Excel' },
+  { act: 'm-run', attrs: 'data-a="t-multi-sample"', icon: 'download', label: 'تنزيل نموذج الصفوف' },
+  { act: 'm-run', attrs: 'data-a="t-sample-students"', icon: 'download', label: 'تنزيل نموذج الطلبة' },
+  null,
+  { act: 'm-run', attrs: 'data-a="c-all"', icon: 'layers', label: CL.open.size ? 'طي كل الصفوف' : 'فتح كل الصفوف' },
+  { act: 'm-run', attrs: 'data-a="c-select"', icon: 'check', label: 'تحديد صفوف' },
+  { act: 'm-run', attrs: 'data-a="c-export-all"', icon: 'download', label: 'تصدير رموز كل الصفوف' },
+  null,
+  { act: 'm-run', attrs: 'data-a="c-del-all"', icon: 'trash', label: 'حذف جميع الصفوف', danger: true }
+]);
+ACTS['c-cmore'] = t => { const c = ctx(t); sheet(c.name, [
+  { act: 'm-run', attrs: `data-a="t-export-codes" data-cid="${c.id}"`, icon: 'download', label: 'تصدير الرموز Excel' },
+  { act: 'm-run', attrs: `data-a="t-print-codes" data-cid="${c.id}"`, icon: 'print', label: 'طباعة بطاقات الرموز' },
+  { act: 'm-run', attrs: `data-a="t-sample-students" data-cid="${c.id}"`, icon: 'download', label: 'تنزيل نموذج الطلبة' },
+  { act: 'm-run', attrs: `data-a="s-select" data-cid="${c.id}"`, icon: 'check', label: 'تحديد طلبة' },
+  null,
+  { act: 'm-run', attrs: `data-a="c-menu" data-cid="${c.id}"`, icon: 'gear', label: 'إعدادات الصف والتسجيل الذاتي' },
+  { act: 'm-run', attrs: `data-a="c-del" data-cid="${c.id}"`, icon: 'trash', label: 'حذف الصف', danger: true }
+]); };
+ACTS['m-run'] = t => { closeModals(); const a2 = t.dataset.a; const fake = document.querySelector(`[data-cid="${t.dataset.cid}"]`) || t; setTimeout(() => ACTS[a2](fake.querySelector ? (fake.querySelector('.cls-head') || fake) : fake), 30); };
+ACTS['c-select'] = () => { CL.sel = { type: 'classes', ids: new Set() }; renderClasses(); };
+ACTS['s-select'] = t => { const c = ctx(t); CL.open.add(c.id); CL.sel = { type: 'students', cid: c.id, ids: new Set() }; renderClasses(); };
+ACTS['sel-cancel'] = () => { CL.sel = null; renderClasses(); };
+ACTS['sel-all'] = () => {
+  const all = CL.sel.type === 'classes' ? CL.classes.map(c => c.id) : (CL.students[CL.sel.cid] || []).map(s => s.id);
+  CL.sel.ids = CL.sel.ids.size === all.length ? new Set() : new Set(all); renderClasses();
+};
+function selBar(){
+  if (!CL.sel || CL.tab !== 'classes') return '';
+  const n = CL.sel.ids.size, isC = CL.sel.type === 'classes';
+  return `<div class="sel-bar"><button class="link" data-act="sel-cancel">إلغاء</button><b>${n ? `تم تحديد ${n}` : isC ? 'حدد الصفوف' : 'حدد الطلبة'}</b><button class="link" data-act="sel-all">الكل</button>
+    <div class="sel-acts">${!isC ? `<button class="btn sm soft" data-act="sel-export" ${n ? '' : 'disabled'}>${ic('download')} تصدير</button>` : ''}<button class="btn sm danger" data-act="sel-del" ${n ? '' : 'disabled'}>${ic('trash')} حذف</button></div></div>`;
+}
+ACTS['sel-del'] = async () => {
+  const ids = [...CL.sel.ids], isC = CL.sel.type === 'classes';
+  if (!confirm(isC ? `حذف ${ids.length} صف مع طلبتها ونتائجها نهائياً؟` : `حذف ${ids.length} طالب/ـة ونتائجهم نهائياً؟`)) return;
+  const { error } = await sb.from(isC ? 'classes' : 'students').delete().in('id', ids);
+  if (error) return toast(errMsg(error));
+  CL.sel = null; toast('تم الحذف'); await tClasses();
+};
+ACTS['sel-export'] = () => {
+  const st = (CL.students[CL.sel.cid] || []).filter(s => CL.sel.ids.has(s.id));
+  const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الرمز']].concat(st.map(s => [s.name, s.student_no, s.code]))), wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'الرموز'); XLSX.writeFile(wb, 'رموز-محددة.xlsx');
+};
+ACTS['c-export-all'] = () => {
+  const wb = XLSX.utils.book_new();
+  CL.classes.forEach((c, i) => { const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الرمز']].concat((CL.students[c.id] || []).map(s => [s.name, s.student_no, s.code]))); XLSX.utils.book_append_sheet(wb, ws, ((i + 1) + '-' + c.name).replace(/[\\\/?*\[\]:]/g, '-').slice(0, 30)); });
+  XLSX.writeFile(wb, 'رموز-كل-الصفوف.xlsx');
+};
+ACTS['c-toggle'] = t => { const id = t.closest('[data-cid]').dataset.cid; if (CL.sel && CL.sel.type === 'classes') { CL.sel.ids.has(id) ? CL.sel.ids.delete(id) : CL.sel.ids.add(id); return renderClasses(); } CL.open.has(id) ? CL.open.delete(id) : CL.open.add(id); renderClasses(); };
 ACTS['c-all'] = () => { if (CL.open.size) CL.open.clear(); else CL.classes.forEach(c => CL.open.add(c.id)); renderClasses(); };
 ACTS['c-eye'] = t => {
   const sp = t.querySelector('span'), on = t.classList.toggle('shown');
   sp.textContent = on ? t.dataset.code : '••••••';
 };
 ACTS['s-card'] = async t => {
+  if (CL.sel && CL.sel.type === 'students') { const id = t.dataset.id; CL.sel.ids.has(id) ? CL.sel.ids.delete(id) : CL.sel.ids.add(id); return renderClasses(); }
   if (t.classList.contains('open')) { t.classList.remove('open'); t.style.transform = ''; return; }
   const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return;
   const comp = CL.comps[c.id];
@@ -1010,7 +1065,7 @@ function renderQuestions(){
     <div class="row"><span class="chip lv-${q.level}">${LEVEL_AR[q.level]}</span><span class="chip">${TYPE_AR[q.qtype] || q.qtype}</span><span class="grow"></span>
     ${q.status === 'draft' ? `<button class="q-ok" data-act="t-q-status" data-id="${q.id}" data-s="approved" aria-label="اعتماد">${ic('check')}</button><button class="q-no" data-act="t-q-status" data-id="${q.id}" data-s="rejected" aria-label="رفض">${ic('x')}</button>` : ''}
     ${q.status === 'rejected' ? `<button class="btn sm soft" data-act="t-q-status" data-id="${q.id}" data-s="approved">استعادة</button>` : ''}</div></div>`).join('');
-  const top = `<button class="icon-btn" data-act="t-q-more" aria-label="المزيد">${ic('upload')}</button>`;
+  const top = `<button class="icon-btn" data-act="t-q-more" aria-label="المزيد">${ic('more')}</button>`;
   const body = `<div class="tabs"><button class="${f.status === 'draft' ? 'on' : ''}" data-act="t-qs" data-v="draft">للمراجعة ${cnt('draft') ? `<span class="badge">${cnt('draft')}</span>` : ''}</button><button class="${f.status === 'approved' ? 'on' : ''}" data-act="t-qs" data-v="approved">معتمدة (${cnt('approved')})</button><button class="${f.status === 'rejected' ? 'on' : ''}" data-act="t-qs" data-v="rejected">مرفوضة</button></div>
     <div class="lv-chips">${lv.map(x => `<button class="${f.level === x[0] ? 'on' : ''}" data-act="t-ql" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
     ${f.status === 'draft' && list.length ? `<button class="btn accent" data-act="t-q-approve-all">${ic('check')} اعتماد الكل (${cnt('draft')})</button>` : ''}
@@ -1022,11 +1077,21 @@ function renderQuestions(){
 }
 ACTS['t-qs'] = t => { T.qf.status = t.dataset.v; renderQuestions(); };
 ACTS['t-ql'] = t => { T.qf.level = t.dataset.v; renderQuestions(); };
-ACTS['t-q-more'] = () => modal(`<h3>استيراد وتصدير</h3><div class="col">
-  <button class="btn" data-act="t-q-import">${ic('upload')} استيراد أسئلة من Excel</button>
-  <button class="btn soft" data-act="t-q-template">${ic('download')} تنزيل النموذج</button>
-  <button class="btn soft" data-act="t-q-export">${ic('download')} تنزيل أسئلتي</button>
-  <p class="sub">الأسئلة المستوردة تدخل «للمراجعة» ولا تظهر للطلبة حتى تعتمدها.</p></div>`);
+ACTS['t-q-more'] = () => sheet('الأسئلة', [
+  { act: 'm-run', attrs: 'data-a="t-q-add"', icon: 'plus', label: 'إضافة سؤال' },
+  { act: 'm-run', attrs: 'data-a="t-q-import"', icon: 'upload', label: 'استيراد أسئلة من Excel' },
+  { act: 'm-run', attrs: 'data-a="t-q-template"', icon: 'download', label: 'تنزيل النموذج' },
+  { act: 'm-run', attrs: 'data-a="t-q-export"', icon: 'download', label: 'تنزيل أسئلتي' },
+  null,
+  { act: 'm-run', attrs: 'data-a="t-q-del-rejected"', icon: 'trash', label: 'حذف كل الأسئلة المرفوضة', danger: true }
+]);
+ACTS['t-q-del-rejected'] = async () => {
+  const n = QS.list.filter(q => q.status === 'rejected').length;
+  if (!n) return toast('لا توجد أسئلة مرفوضة');
+  if (!confirm(`حذف ${n} سؤالاً مرفوضاً نهائياً؟`)) return;
+  const { error } = await sb.from('questions').delete().eq('owner_id', T.user.id).eq('status', 'rejected');
+  if (error) return toast(errMsg(error)); await tQuestions();
+};
 ACTS['t-qf'] = t => { T.qf[t.dataset.k] = t.value; renderQuestions(); };
 function qForm(q){
   q = q || { qtype: 'curriculum', level: 'medium', body: '', options: ['', '', '', ''], correct_index: 0 };
