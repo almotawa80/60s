@@ -1616,15 +1616,45 @@ function buildReport(name, d){
     <h4>نقاط الضعف</h4>${list(weak, 'لا توجد نقاط ضعف واضحة.')}
     <h4>توصيات</h4>${list(tips, '')}
     ${d.wrong.length ? '<h4>آخر الأسئلة الخاطئة</h4>' + d.wrong.map(w => '<div class="rp-w"><b>' + esc(w.q) + '</b><div>✅ ' + esc(w.right) + '</div><div>❌ ' + (w.chosen ? esc(w.chosen) : 'لم يجب') + '</div></div>').join('') : ''}
-    <button class="btn" data-act="r-report-copy">نسخ ملخص التقرير</button></div>` };
+    <div class="row rp-acts"><button class="btn" data-act="r-report-pdf">${ic('download')} تنزيل PDF</button><button class="btn soft" data-act="r-report-copy">نسخ الملخص</button></div></div>` };
 }
 ACTS['r-report'] = async t => {
   const { id, name } = t.dataset; toast('جاري إعداد التقرير…');
   try {
     const d = await rpc('teacher_student_report', { p_student: id });
     if (!d || !d.total) { toast('لا توجد جولات رسمية منتهية لهذا الطالب بعد'); return; }
-    const r = buildReport(name, d); RS.lastText = r.text; closeModals(); modal(r.html);
+    const r = buildReport(name, d); RS.lastText = r.text; RS.lastName = name; RS.lastCls = t.dataset.cls || ''; closeModals(); modal(r.html);
   } catch (e) { toast('تعذّر تحميل التقرير'); }
+};
+/* student report → PDF (rendered by the browser so Arabic shapes correctly) */
+const H2P = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+function loadScript(src){ return new Promise((ok, no) => { if (window.html2pdf) return ok(); const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); }
+/* canvas draws RTL runs badly: give each word / punctuation mark its own box (mirrored brackets) */
+function rpSplitWords(root){
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = [];
+  while (w.nextNode()) if (/\S/.test(w.currentNode.nodeValue)) nodes.push(w.currentNode);
+  nodes.forEach(n => { const f = document.createDocumentFragment();
+    n.nodeValue.split(/(\s+|[.:،,؛()%·\/؟?!\-])/).forEach(p => { if (!p) return; if (/^\s+$/.test(p)) f.appendChild(document.createTextNode(p)); else { const s = document.createElement('x-w'); s.textContent = /^[()]+$/.test(p) ? p.replace(/[()]/g, c => c === '(' ? ')' : '(') : p; f.appendChild(s); } });
+    n.parentNode.replaceChild(f, n); });
+}
+ACTS['r-report-pdf'] = async t => {
+  const src = t.closest('.rp'); if (!src) return;
+  t.disabled = true; const lbl = t.innerHTML; t.textContent = 'جاري التجهيز…';
+  const wrap = document.createElement('div'); wrap.className = 'rp-pdf-host';
+  const page = document.createElement('div'); page.className = 'rp-pdf'; page.dir = 'rtl';
+  const body = src.cloneNode(true); body.querySelectorAll('.rp-acts,button').forEach(b => b.remove());
+  page.innerHTML = `<div class="rp-pdf-top"><img src="icon-192.png" alt=""><div><b>تحدّي الدقيقة</b><span>تقرير المستوى المفصّل</span></div><div class="rp-pdf-meta">${RS.lastCls ? esc(RS.lastCls) + '<br>' : ''}${esc(RS.name || '')}<br>${new Date().toLocaleDateString('ar-KW-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}</div></div>`;
+  page.appendChild(body);
+  page.insertAdjacentHTML('beforeend', `<div class="rp-pdf-foot">المعلم/ـة: ${esc(T.name || '')} · أُعدّ هذا التقرير آلياً من نتائج الجولات الرسمية</div>`);
+  wrap.appendChild(page); document.body.appendChild(wrap); rpSplitWords(page);
+  const file = 'تقرير-' + String(RS.lastName || 'طالب').replace(/[\\/:*?"<>|]/g, '-') + '.pdf';
+  try {
+    await loadScript(H2P);
+    await html2pdf().set({ margin: [8, 8, 10, 8], filename: file, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['css', 'avoid-all'] } }).from(page).save();
+    toast('تم تنزيل التقرير');
+  } catch (e) {
+    const pa = document.getElementById('print-area'); pa.innerHTML = ''; pa.appendChild(page.cloneNode(true)); window.print();
+  } finally { wrap.remove(); t.disabled = false; t.innerHTML = lbl; }
 };
 ACTS['r-report-copy'] = () => { navigator.clipboard && navigator.clipboard.writeText(RS.lastText || ''); toast('تم النسخ'); };
 ACTS['t-res-export'] = () => {
