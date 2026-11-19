@@ -507,7 +507,7 @@ const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="tr
 const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['questions', 'الأسئلة', 'help'], ['results', 'النتائج', 'chart'], ['settings', 'الإعدادات', 'gear']];
 
 function shell(title, body, active, top, back){
-  return `<div class="t-top"><div class="brand">${back ? `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>` : LOGO_S}<span class="t-title">${esc(title)}</span></div>${top || ''}</div>` +
+  return `<div class="t-top"><div class="brand">${back ? `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>` : LOGO_S}<span class="t-title">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
     `<div class="t-body">${body}</div>` +
     `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}">${ic(n[2])}<span>${n[1]}</span></a>`).join('')}</nav>`;
 }
@@ -845,6 +845,7 @@ function renderClasses(){
   const tabs = `<div class="tabs"><button class="${CL.tab === 'classes' ? 'on' : ''}" data-act="c-tab" data-t="classes">الصفوف (${CL.classes.length})</button><button class="${CL.tab === 'comps' ? 'on' : ''}" data-act="c-tab" data-t="comps">المسابقات</button></div>`;
   const more = CL.tab === 'classes' ? `<button class="icon-btn" data-act="c-more" aria-label="المزيد">${ic('more')}</button>` : '';
   view('الصفوف', tabs + (CL.tab === 'classes' ? classesList() : compsPanel()) + selBar(), 'classes', more);
+  cfUpdate();
 }
 ACTS['c-tab'] = t => { CL.tab = t.dataset.t; T.compEdit = null; renderClasses(); };
 function classesList(){
@@ -1030,11 +1031,10 @@ ACTS['c-del'] = async t => {
 ACTS['t-add-class'] = () => {
   modal(`<h3>إضافة صف</h3><form class="col" data-form="t-save-class">
     <div class="field"><label for="c-name">اسم الصف</label><input class="input" id="c-name" name="name" required maxlength="60" placeholder="مثال: السادس / ب"></div>
-    <div class="field"><label>نمط الواجهة للطلبة</label>${styleCards('mid')}<input type="hidden" name="style" value="mid"></div>
     <button class="btn" type="submit">حفظ</button></form>`);
 };
 ACTS['t-save-class'] = async f => {
-  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name: f.name.value.trim(), style: f.style.value }).select().single();
+  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name: f.name.value.trim(), style: 'mid' }).select().single();
   if (error) return toast(errMsg(error));
   closeModals(); CL.open.add(data.id); CL.tab = 'classes'; await tClasses();
 };
@@ -1234,41 +1234,61 @@ ACTS['cp-end'] = async t => {
   const { error } = await sb.from('competitions').update({ status: 'finished' }).eq('group_id', t.dataset.g);
   if (error) return toast(errMsg(error)); await tClasses();
 };
+const CF_STYLES = [['kids', 'مرح', 'ابتدائي'], ['mid', 'مرح قليلاً', 'متوسط'], ['uni', 'هادئ', 'ثانوي وجامعة']];
 function compForm(){
   const isNew = T.compEdit === 'new', t = todayKW();
   const g = isNew ? null : CL.allComps.find(c => c.group_id === T.compEdit);
   const v = g || { title: 'مسابقة تحدّي الدقيقة', start_date: t, points_end_date: addDays(t, 4), end_date: addDays(t, 7), group_size: 6, qualifiers: 8, round_window_hours: 24 };
   const opt = (val, lab) => `<option value="${val}" ${Number(v.round_window_hours) === val ? 'selected' : ''}>${lab}</option>`;
-  return `<form class="col" data-form="cp-save">
-    <div class="card col"><b>${isNew ? 'مسابقة جديدة' : 'إعدادات المسابقة'}</b>
-      <div class="field"><label for="k-title">عنوان المسابقة</label><input class="input" id="k-title" name="title" value="${esc(v.title)}" required></div></div>
-    <div class="card col"><div class="row between"><b>الصفوف المشاركة</b><button type="button" class="link" data-act="cp-all">تحديد الكل</button></div>
-      <div class="picks picks2">${CL.classes.map(c => { const other = CL.comps[c.id] && CL.comps[c.id].group_id !== T.compEdit; return `<button type="button" class="pick ${CC.sel.has(c.id) ? 'on' : ''}" data-act="cp-cls" data-id="${c.id}"><b>${esc(c.name)}</b><small>${(CL.students[c.id] || []).length} طالب/ـة${other ? ' · في مسابقة أخرى' : ''}</small></button>`; }).join('')}</div>
-      <p class="sub">كل صف له ترتيبه وتصفياته الخاصة، والإعدادات واحدة للجميع.</p></div>
-    <div class="card col"><b>ثيم واجهة الطلبة</b><div class="picks">${[['kids', 'مرح', 'للابتدائي: ألوان زاهية وحركة أكثر', 'star'], ['mid', 'مرح قليلاً', 'للمتوسط: لمسات مرحة متوازنة', 'layers'], ['uni', 'هادئ', 'للثانوي والجامعة: بسيط ومركّز', 'check']].map(x => `<button type="button" class="pick wide ${CC.style === x[0] ? 'on' : ''}" data-act="cp-style" data-v="${x[0]}"><span class="pick-ic">${ic(x[3])}</span><div><b>${x[1]}</b><small>${x[2]}</small></div></button>`).join('')}</div>
-      <p class="sub">يُطبَّق على كل الصفوف المشاركة.</p></div>
-    <div class="card col"><b>المواعيد</b>
-      <div class="grid2"><div class="field"><label for="k-s">بداية جمع النقاط</label><input class="input" type="date" id="k-s" name="start_date" value="${v.start_date}" required></div>
-      <div class="field"><label for="k-p">نهاية جمع النقاط</label><input class="input" type="date" id="k-p" name="points_end_date" value="${v.points_end_date}" required></div></div>
-      <div class="field"><label for="k-e">نهاية المسابقة (بعد التصفيات)</label><input class="input" type="date" id="k-e" name="end_date" value="${v.end_date}" required></div>
-      <button type="button" class="btn sm soft" data-act="t-suggest">اقتراح التواريخ تلقائياً</button></div>
-    <div class="card col"><b>التصفيات</b>
-      <div class="grid2"><div class="field"><label for="k-g">حجم المجموعة</label><input class="input" type="number" min="2" max="40" id="k-g" name="group_size" value="${v.group_size}"></div>
-      <div class="field"><label for="k-q">المتأهلون من كل صف</label><input class="input" type="number" min="2" max="64" id="k-q" name="qualifiers" value="${v.qualifiers}"></div></div>
-      <div class="field"><label for="k-w">مدة كل دور</label><select class="input" id="k-w" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></div></div>
-    <div class="card col"><b>الأسئلة</b><div class="picks picks2">${QTYPES.map(q => `<button type="button" class="pick ${CC.qtypes.includes(q[0]) ? 'on' : ''}" data-act="cp-qt" data-v="${q[0]}"><span class="pick-ic">${ic(q[3])}</span><b>${q[1]}</b></button>`).join('')}</div>
-      <div class="field"><label for="k-cu">المنهج</label><select class="input" id="k-cu" name="cu">${cuOptions(CC.cu, 'كل أسئلة المنهج المعتمدة')}</select>
-      <button type="button" class="link" data-act="go-qset" style="align-self:flex-start">إدارة المناهج</button></div>
-      <div class="field"><label>مستوى الصعوبة</label><div class="tabs">${DIFF.map(d => `<button type="button" class="${CC.diff === d[0] ? 'on' : ''}" data-act="cp-diff" data-v="${d[0]}">${d[1]}</button>`).join('')}</div>
-      <p class="sub" id="cp-diff-d">${(DIFF.find(d => d[0] === CC.diff) || DIFF[1])[2]}</p></div>
-      <p class="sub">كل جولة: 4 أسئلة × 15 ثانية. جولة رسمية يومياً، والتدريب مفتوح.</p></div>
-    <div class="row w-nav"><button type="button" class="btn soft" data-act="cp-cancel">إلغاء</button><button class="btn" type="submit">${isNew ? 'إنشاء المسابقة' : 'حفظ'}</button></div></form>`;
+  const step = (name, label, val, min, max, hint) => `<div class="set-row cf-row"><span class="grow">${label}${hint ? `<small class="cf-hint">${hint}</small>` : ''}</span><div class="cf-step"><button type="button" data-act="cf-step" data-n="${name}" data-d="-1" aria-label="إنقاص">−</button><input name="${name}" type="number" inputmode="numeric" min="${min}" max="${max}" value="${val}"><button type="button" data-act="cf-step" data-n="${name}" data-d="1" aria-label="زيادة">+</button></div></div>`;
+  const date = (name, label, val) => `<label class="set-row cf-row"><span class="grow">${label}</span><input class="cf-date" type="date" name="${name}" value="${val}" required></label>`;
+  return `<form class="col cf" data-form="cp-save">
+    <div class="cf-hero"><span class="cf-hero-ic">${ic('trophy')}</span><div class="grow"><b>${isNew ? 'مسابقة جديدة' : 'إعدادات المسابقة'}</b><div class="sub" id="cf-sum"></div></div></div>
+    <div class="set-h">العنوان</div>
+    <div class="set-grp"><label class="set-row cf-row"><input class="cf-in" name="title" value="${esc(v.title)}" required maxlength="80" placeholder="عنوان المسابقة"></label></div>
+    <div class="set-h cf-h"><span>الصفوف المشاركة <em id="cf-cnt"></em></span><button type="button" class="link" data-act="cp-all">تحديد الكل</button></div>
+    <div class="set-grp">${CL.classes.map(c => { const other = CL.comps[c.id] && CL.comps[c.id].group_id !== T.compEdit; return `<button type="button" class="set-row cf-cls ${CC.sel.has(c.id) ? 'on' : ''}" data-act="cp-cls" data-id="${c.id}"><span class="cl-ic" style="--h:${clsHue(c.name)};width:34px;height:34px;border-radius:9px;font-size:13px">${esc(clsBadge(c.name))}</span><span class="grow"><b>${esc(c.name)}</b><small class="cf-hint">${(CL.students[c.id] || []).length} طالب/ـة${other ? ' · في مسابقة أخرى' : ''}</small></span><span class="cf-chk">${ic('check')}</span></button>`; }).join('')}</div>
+    <div class="set-f">لكل صف ترتيبه وتصفياته الخاصة، والإعدادات واحدة للجميع.</div>
+    <div class="set-h">نمط واجهة الطلبة</div>
+    <div class="cf-themes">${CF_STYLES.map(x => `<button type="button" class="cf-th ${CC.style === x[0] ? 'on' : ''}" data-act="cp-style" data-v="${x[0]}"><span class="cf-ph cf-ph-${x[0]}"><i class="t"></i><i class="q"></i><i class="o"></i><i class="o"></i><i class="o"></i></span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>
+    <div class="set-f">يُطبَّق على كل الصفوف المشاركة.</div>
+    <div class="set-h">المواعيد</div>
+    <div class="set-grp">${date('start_date', 'بداية جمع النقاط', v.start_date)}${date('points_end_date', 'نهاية جمع النقاط', v.points_end_date)}${date('end_date', 'نهاية المسابقة', v.end_date)}
+      <div class="cf-tl" id="cf-tl"></div>
+      <button type="button" class="set-row cf-link" data-act="t-suggest"><span class="set-ic" style="background:#5856D6">${ic('star')}</span><span class="grow">اقتراح التواريخ تلقائياً</span></button></div>
+    <div class="set-h">التصفيات</div>
+    <div class="set-grp">${step('group_size', 'حجم المجموعة', v.group_size, 2, 40, 'عدد الطلبة في كل مجموعة')}${step('qualifiers', 'المتأهلون من كل صف', v.qualifiers, 2, 64, 'يدخلون مرحلة خروج المغلوب')}
+      <label class="set-row cf-row"><span class="grow">مدة كل دور</span><select class="cf-sel" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></label></div>
+    <div class="set-h">الأسئلة</div>
+    <div class="cf-qt">${QTYPES.map(q => `<button type="button" class="cf-chip ${CC.qtypes.includes(q[0]) ? 'on' : ''}" data-act="cp-qt" data-v="${q[0]}">${ic(q[3])}<span>${q[1]}</span></button>`).join('')}</div>
+    <div class="set-grp"><label class="set-row cf-row"><span class="grow">المنهج</span><select class="cf-sel" name="cu">${cuOptions(CC.cu, 'كل المعتمد')}</select></label>
+      <div class="set-row cf-row cf-col"><span>مستوى الصعوبة</span><div class="tabs">${DIFF.map(d => `<button type="button" class="${CC.diff === d[0] ? 'on' : ''}" data-act="cp-diff" data-v="${d[0]}">${d[1]}</button>`).join('')}</div><small class="cf-hint" id="cp-diff-d">${(DIFF.find(d => d[0] === CC.diff) || DIFF[1])[2]}</small></div>
+      <button type="button" class="set-row cf-link" data-act="go-qset"><span class="set-ic" style="background:#C8102E">${ic('layers')}</span><span class="grow">إدارة المناهج</span><span class="set-chev">${ic('back')}</span></button></div>
+    <div class="set-f">كل جولة: 4 أسئلة × 15 ثانية. جولة رسمية يومياً، والتدريب مفتوح.</div>
+    <div class="row w-nav cf-bar"><button type="button" class="btn soft" data-act="cp-cancel">إلغاء</button><button class="btn" type="submit">${isNew ? 'إنشاء المسابقة' : 'حفظ'}</button></div></form>`;
 }
+/* live summary + timeline for the competition form */
+function cfDays(a, b){ return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5); }
+function cfUpdate(){
+  const f = document.querySelector('[data-form="cp-save"]'); if (!f) return;
+  const n = CC.sel.size, st = [...CC.sel].reduce((x, id) => x + (CL.students[id] || []).length, 0);
+  const s = f.start_date.value, p = f.points_end_date.value, e = f.end_date.value;
+  const pd = s && p ? cfDays(s, p) + 1 : 0, kd = p && e ? cfDays(p, e) : 0;
+  const cnt = document.getElementById('cf-cnt'); if (cnt) cnt.textContent = `(${n} من ${CL.classes.length})`;
+  const sum = document.getElementById('cf-sum'); if (sum) sum.textContent = `${n} صف · ${st} طالب/ـة · ${pd > 0 ? pd + ' يوم نقاط' : ''}${kd > 0 ? ' ثم ' + kd + ' يوم تصفيات' : ''}`;
+  const tl = document.getElementById('cf-tl'); if (!tl) return;
+  if (pd <= 0 || kd < 0) { tl.innerHTML = '<span class="cf-bad">تحقق من ترتيب التواريخ</span>'; return; }
+  const tot = pd + Math.max(kd, 0);
+  tl.innerHTML = `<div class="cf-bar2"><i class="pts" style="flex:${pd}"><span>نقاط · ${pd} يوم</span></i>${kd > 0 ? `<i class="ko" style="flex:${kd}"><span>تصفيات · ${kd}</span></i>` : ''}</div><div class="cf-dates"><span>${esc(fmtDate(s))}</span><span>${esc(fmtDate(e))}</span></div>`;
+  tl.title = tot + ' يوم';
+}
+ACTS['cf-step'] = t => { const i = t.parentElement.querySelector('input'); const v = Math.min(Number(i.max), Math.max(Number(i.min), (Number(i.value) || 0) + Number(t.dataset.d))); i.value = v; };
+document.addEventListener('input', e => { if (e.target.closest && e.target.closest('[data-form="cp-save"]')) cfUpdate(); });
 function cpKeep(){ const f = document.querySelector('[data-form="cp-save"]'); if (f && f.cu) CC.cu = f.cu.value; }
-ACTS['cp-style'] = t => { CC.style = t.dataset.v; t.parentElement.querySelectorAll('.pick').forEach(b => b.classList.toggle('on', b === t)); };
+ACTS['cp-style'] = t => { CC.style = t.dataset.v; t.parentElement.querySelectorAll('.cf-th').forEach(b => b.classList.toggle('on', b === t)); };
 ACTS['cp-diff'] = t => { CC.diff = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const d = document.getElementById('cp-diff-d'); if (d) d.textContent = DIFF.find(x => x[0] === CC.diff)[2]; };
-ACTS['cp-cls'] = t => { const id = t.dataset.id; CC.sel.has(id) ? CC.sel.delete(id) : CC.sel.add(id); t.classList.toggle('on'); };
-ACTS['cp-all'] = () => { CL.classes.forEach(c => CC.sel.add(c.id)); document.querySelectorAll('[data-act="cp-cls"]').forEach(b => b.classList.add('on')); };
+ACTS['cp-cls'] = t => { const id = t.dataset.id; CC.sel.has(id) ? CC.sel.delete(id) : CC.sel.add(id); t.classList.toggle('on'); cfUpdate(); };
+ACTS['cp-all'] = () => { CL.classes.forEach(c => CC.sel.add(c.id)); document.querySelectorAll('[data-act="cp-cls"]').forEach(b => b.classList.add('on')); cfUpdate(); };
 ACTS['cp-qt'] = t => { const k = t.dataset.v; if (CC.qtypes.includes(k)) { if (CC.qtypes.length === 1) return toast('اختر نوعاً واحداً على الأقل'); CC.qtypes = CC.qtypes.filter(x => x !== k); } else CC.qtypes.push(k); t.classList.toggle('on'); };
 ACTS['t-suggest'] = () => {
   const f = document.querySelector('[data-form="cp-save"]');
@@ -1277,7 +1297,7 @@ ACTS['t-suggest'] = () => {
   const days = Math.ceil((Number(f.round_window_hours.value) || 24) / 24);
   const pe = addDays(start, 4);
   f.start_date.value = start; f.points_end_date.value = pe; f.end_date.value = addDays(pe, rounds * days);
-  toast('5 أيام لجمع النقاط ثم ' + rounds + ' أدوار تصفيات');
+  cfUpdate(); toast('5 أيام لجمع النقاط ثم ' + rounds + ' أدوار تصفيات');
 };
 ACTS['cp-save'] = async f => {
   cpKeep();
@@ -1601,6 +1621,19 @@ function profileSheet(){
     <input type="file" id="av-file" accept="image/*" class="hide" data-change="av-chosen"></div>`);
 }
 ACTS['st-profile'] = () => profileSheet();
+/* profile icon menu (every teacher screen) */
+ACTS['t-menu'] = () => {
+  const it = (act, icon, color, label, attrs) => `<button class="sheet-i" data-act="${act}" ${attrs || ''}><span class="set-ic" style="background:${color}">${ic(icon)}</span><span class="grow">${label}</span></button>`;
+  modal(`<div class="sheet t-menu">
+    <button class="sheet-list tm-head" data-act="tm-go" data-a="st-profile">${avatarHtml('big-av')}<div class="grow"><b>${esc(T.name)}</b><div class="sub" dir="ltr" style="text-align:right">${esc((T.user && T.user.email) || '')}</div></div><span class="set-chev">${ic('back')}</span></button>
+    <div class="sheet-list">${it('tm-go', 'user', '#8E8E93', 'حسابي', 'data-a="st-profile"')}
+      <div class="sheet-i tm-mode"><span class="set-ic" style="background:#5856D6">${ic('moon')}</span><span class="grow">الوضع</span></div><div class="tm-seg">${modeSeg()}</div></div>
+    <div class="sheet-list">${it('tm-go', 'help', '#C8102E', 'إعدادات الأسئلة', 'data-a="go-qset"')}${it('tm-go', 'chart', '#FF9500', 'إعدادات النتائج', 'data-a="go-rset"')}${it('tm-go', 'send', '#1FA971', 'رابط دخول الطلبة', 'data-a="st-share-students"')}${it('tm-go', 'gear', '#8E8E93', 'كل الإعدادات', 'data-a="tm-settings"')}</div>
+    <div class="sheet-list"><button class="sheet-i danger" data-act="tm-go" data-a="st-logout-ask">${ic('logout')}<span>تسجيل الخروج</span></button></div>
+    <button class="sheet-i sheet-cancel" data-act="close-modal">إغلاق</button></div>`);
+};
+ACTS['tm-go'] = t => { const a = t.dataset.a; closeModals(); setTimeout(() => ACTS[a](t), 30); };
+ACTS['tm-settings'] = () => go('#/t/settings');
 ACTS['go-qset'] = () => go('#/t/qset');
 ACTS['go-rset'] = () => go('#/t/rset');
 /* ---- results settings ---- */
