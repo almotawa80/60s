@@ -655,3 +655,6 @@ body.wide.dark #toast{background:#3A3A3C}
 .paste-btn .ico{width:18px;height:18px}
 .paste-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
 .code-input{-webkit-user-select:text;user-select:text}
+.set-row.radio{min-height:56px}
+.tick{display:flex;color:transparent}.tick.on{color:var(--primary)}
+.tick .ico{width:22px;height:22px;stroke-width:2.6}

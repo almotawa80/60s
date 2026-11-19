@@ -235,8 +235,10 @@ ACTS['s-profile'] = () => {
 ACTS['s-leaders'] = async () => {
   const m = modal('<h3>المتصدرون</h3><div class="spin"></div>');
   try {
-    const rows = await rpc('class_leaderboard', { p_token: S.token });
-    m.querySelector('.modal').innerHTML = '<h3>المتصدرون في ' + esc(S.home.class.name) + '</h3><div class="lb">' +
+    const res = await rpc('class_leaderboard', { p_token: S.token });
+    const hidden = res && res.hidden, rows = hidden ? res.rows : res;
+    m.querySelector('.modal').innerHTML = '<h3>المتصدرون في ' + esc(S.home.class.name) + '</h3>' +
+      (hidden ? '<div class="card center" style="margin-bottom:10px"><b>الترتيب مخفي حتى نهاية المسابقة 🤫</b><div class="sub">هذا ترتيبك أنت فقط</div></div>' : '') + '<div class="lb">' +
       rows.map(r => '<div class="r' + (r.is_me ? ' me' : '') + '"><span class="no">' + r.rank + '</span><span class="nm">' + esc(r.name) + '</span><b>' + r.points + '</b></div>').join('') +
       '</div><button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button>';
   } catch(e){ m.remove(); toast(errMsg(e)); }
@@ -471,6 +473,7 @@ async function teacherRoute(){
     else if (page === 'results') await tResults(parts[1]);
     else if (page === 'settings') await tSettings();
     else if (page === 'qset') await tQSet();
+    else if (page === 'rset') tRSet();
     else await tHome();
   } catch(e){
     view('', `<div class="err">${esc(errMsg(e))}</div><button class="btn" data-act="t-retry">إعادة المحاولة</button>`, page);
@@ -1349,7 +1352,7 @@ async function tSettings(){
   const grp = (title, rows, foot) => `${title ? `<div class="set-h">${title}</div>` : ''}<div class="set-grp">${rows.join('')}</div>${foot ? `<div class="set-f">${foot}</div>` : ''}`;
   view('الإعدادات',
     `<button class="set-profile" data-act="st-profile">${avatarHtml('big-av')}<div class="grow"><b>${esc(T.name)}</b><div class="sub" dir="ltr" style="text-align:right">${esc(T.user.email || '')}</div></div><span class="set-chev">${ic('back')}</span></button>` +
-    grp('المسابقة', [row('go-qset', 'help', '#C8102E', 'إعدادات الأسئلة', 'المناهج والصعوبة')]) +
+    grp('المسابقة', [row('go-qset', 'help', '#C8102E', 'إعدادات الأسئلة', 'المناهج والصعوبة'), row('go-rset', 'chart', '#FF9500', 'إعدادات النتائج', 'النقاط والترتيب')]) +
     grp('المظهر', [row('st-mode', 'moon', '#5856D6', 'الوضع', `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>`)]) +
     grp('الطلبة', [
       row('st-share-students', 'send', '#1FA971', 'رابط دخول الطلبة', 'مشاركة'),
@@ -1384,6 +1387,25 @@ function profileSheet(){
 }
 ACTS['st-profile'] = () => profileSheet();
 ACTS['go-qset'] = () => go('#/t/qset');
+ACTS['go-rset'] = () => go('#/t/rset');
+/* ---- results settings ---- */
+const RSET = {
+  scoring: { t: 'حساب النقاط', o: [['speed', 'الصحة والسرعة', 'الصحيح 500 نقطة + حتى 500 حسب السرعة'], ['correct', 'الصحة فقط', 'كل إجابة صحيحة 1000 نقطة'], ['penalty', 'مع خصم للخطأ', 'مثل الأول، والخاطئة تخصم 250 نقطة (لا تقل الجولة عن صفر)']] },
+  tiebreak: { t: 'عند تساوي النقاط', o: [['accuracy', 'الأعلى دقة', 'نسبة الإجابات الصحيحة'], ['speed', 'الأسرع', 'متوسط زمن الإجابات الصحيحة'], ['rounds', 'الأكثر مشاركة', 'عدد الجولات الرسمية']] },
+  lb: { t: 'لوحة المتصدرين للطلبة', o: [['all', 'كاملة', 'يرى الطالب ترتيب كل الصف'], ['top10', 'أفضل 10', 'مع ترتيبه هو إن لم يكن منهم'], ['hidden', 'مخفية حتى النهاية', 'يرى ترتيبه فقط حتى تنتهي المسابقة']] },
+  names: { t: 'أسماء الطلبة في اللوحة', o: [['full', 'الاسم كاملاً', ''], ['first', 'الاسم الأول فقط', 'لخصوصية أكبر']] }
+};
+function tRSet(){
+  const st = T.settings || {};
+  const def = { scoring: 'speed', tiebreak: 'accuracy', lb: 'all', names: 'full' };
+  view('إعدادات النتائج', Object.keys(RSET).map(k => { const cur = st[k] || def[k];
+    return `<div class="set-h">${RSET[k].t}</div><div class="set-grp">${RSET[k].o.map(o => `<button class="set-row radio" data-act="rs-pick" data-k="${k}" data-v="${o[0]}"><span class="grow rl-txt"><b>${o[1]}</b>${o[2] ? `<small>${o[2]}</small>` : ''}</span><span class="tick ${cur === o[0] ? 'on' : ''}">${ic('check')}</span></button>`).join('')}</div>`; }).join('') +
+    `<div class="set-f">تُطبَّق على كل مسابقاتك. تغيير طريقة الحساب يؤثر على الجولات القادمة فقط، أما الترتيب والعرض فيتحدثان فوراً.</div>`, 'settings', '', '#/t/settings');
+}
+ACTS['rs-pick'] = async t => {
+  await saveSettings({ [t.dataset.k]: t.dataset.v });
+  t.parentElement.querySelectorAll('.tick').forEach(x => x.classList.toggle('on', x.parentElement === t));
+};
 /* ---- question settings: curricula library + defaults ---- */
 const STAGE_AR = { primary: 'ابتدائي', middle: 'متوسط', secondary: 'ثانوي', university: 'جامعة' };
 const STAGE_GRADES = { primary: [1, 2, 3, 4, 5], middle: [6, 7, 8, 9], secondary: [10, 11, 12], university: [1, 2, 3, 4] };
