@@ -14,6 +14,7 @@ const LS = {
 };
 const ERR = {
   bad_code: 'رمز المشاركة غير صحيح',
+  duplicate_question: 'هذا السؤال موجود في البنك، لا يمكن تكراره',
   no_questions: 'لم يتم تحديد أسئلة',
   invalid_code: 'الرمز غير صحيح، تأكد منه وحاول مرة أخرى',
   invalid_session: 'انتهت الجلسة، أدخل الرمز من جديد',
@@ -1696,7 +1697,7 @@ function qItem(q, ro){
     <div class="qi-opts">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${i === q.correct_index ? ic('check') : ''}${esc(o)}</span>`).join('')}</div>
     ${qStat(q)}
     <div class="qi-foot"><span class="qi-meta"><i class="lvd lv-${q.level}"></i>${LEVEL_AR[q.level]}<em>·</em>${TYPE_AR[q.qtype] || q.qtype}${QS.dup.has(q.id) ? '<b class="qi-dup">مكرر</b>' : ''}</span><span class="grow"></span>
-    ${ro ? `<button class="btn sm soft" data-act="t-q-copy" data-id="${q.id}">${ic('plus')} إلى أسئلتي</button>` : sel ? '' :
+    ${ro ? '' : sel ? '' :
       q.status === 'draft' ? `<button class="q-ok" data-act="t-q-status" data-id="${q.id}" data-s="approved" aria-label="اعتماد">${ic('check')}<span>اعتماد</span></button><button class="q-no" data-act="t-q-status" data-id="${q.id}" data-s="rejected" aria-label="رفض">${ic('x')}<span>رفض</span></button>` :
       q.status === 'rejected' ? `<button class="btn sm soft" data-act="t-q-status" data-id="${q.id}" data-s="approved">استعادة</button>` : `<span class="qi-edit">${ic('edit')}</span>`}</div></div>`;
 }
@@ -1736,7 +1737,7 @@ function renderQuestions(){
       <select class="input sm" data-change="t-qf" data-k="type">${ty.map(x => `<option value="${x[0]}" ${f.type === x[0] ? 'selected' : ''}>${x[1]}</option>`).join('')}</select></div>
     ${qSelBar()}
     ${f.status === 'draft' && cnt('draft') && !QS.selOn ? `<button class="btn accent" data-act="t-q-approve-all">${ic('check')} اعتماد الكل (${cnt('draft')})</button>` : ''}
-    ${ro ? '<p class="sub q-ro">أسئلة جاهزة تدخل في مسابقاتك تلقائياً. انسخ أي سؤال إلى أسئلتك لتعدّله.</p>' : ''}
+    ${ro ? '<p class="sub q-ro">أسئلة جاهزة تدخل في مسابقاتك تلقائياً، فلا تحتاج إضافتها لأسئلتك.</p>' : ''}
     <div id="qlist" class="qi-list">${qListHtml()}</div>
     ${ro ? '' : `<button class="fab" data-act="t-q-add-menu" aria-label="إضافة أسئلة">${ic('plus')}</button>`}
     <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen"><input type="file" id="qocr" accept="image/*" class="hide" data-change="t-q-ocr-chosen">`;
@@ -1788,7 +1789,7 @@ function qForm(q){
   const seg = (name, cur, map) => `<input type="hidden" name="${name}" value="${cur}"><div class="qf-seg" data-name="${name}">${Object.keys(map).filter(k => k !== 'memory').map(k => `<button type="button" class="${cur === k ? 'on' : ''}" data-act="qf-seg" data-v="${k}">${map[k]}</button>`).join('')}</div>`;
   return `<h3>${ocr ? `سؤال ${QS.ocrQ.total - QS.ocrQ.list.length} من ${QS.ocrQ.total} من الصورة` : isNew ? 'إضافة سؤال' : 'تعديل سؤال'}</h3>${ocr ? '<p class="sub">راجع النص واضغط الدائرة بجانب الإجابة الصحيحة.</p>' : ''}<form class="col qf" data-form="t-save-q"><input type="hidden" name="id" value="${q.id || ''}"><input type="hidden" name="next" value="">
     <div class="field"><label for="q-b">نص السؤال</label><textarea class="input" id="q-b" name="body" rows="2" required maxlength="300" placeholder="اكتب السؤال هنا">${esc(q.body)}</textarea>
-      <small id="q-dupw" class="q-dupw hide">يوجد سؤال مشابه في البنك.</small></div>
+      <small id="q-dupw" class="q-dupw hide">هذا السؤال موجود في البنك، ولن يُحفظ مكرراً.</small></div>
     <div class="field"><input type="hidden" name="image" value="${esc(q.image || '')}"><div class="q-imgf" id="q-imgf">${qImgField(q.image)}</div><input type="file" id="qf-file" accept="image/*" class="hide" data-change="qf-img-chosen"></div>
     <div class="field"><label>الخيارات <small class="muted">اضغط الدائرة بجانب الإجابة الصحيحة</small></label><input type="hidden" name="correct" value="${q.correct_index}">
     ${[0, 1, 2, 3].map(i => `<div class="qo${q.correct_index === i ? ' on' : ''}"><button type="button" class="qo-c" data-act="qf-c" data-i="${i}" aria-label="الإجابة الصحيحة ${LETTERS[i]}">${ic('check')}</button><input class="input" name="o${i}" value="${esc(q.options[i])}" required maxlength="100" placeholder="${i === q.correct_index ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[i]}"></div>`).join('')}</div>
@@ -1833,7 +1834,7 @@ ACTS['t-save-q'] = async f => {
   QS.lastCu = f.cu.value; QS.lastType = row.qtype; QS.lastLevel = row.level;
   if (new Set(row.options).size < 4) return toast('الخيارات يجب أن تكون مختلفة');
   const k = qNorm(row.body);
-  if (!f.id.value && (QS.norm[k] || []).length && !await ask('يوجد سؤال بنفس النص في البنك. أضيفه على أي حال؟', { ok: 'إضافة' })) return;
+  if ((QS.norm[k] || []).some(x => x !== f.id.value)) return toast('هذا السؤال موجود في البنك، لا يمكن تكراره');
   const r = f.id.value ? await sb.from('questions').update(row).eq('id', f.id.value).select().single() : await sb.from('questions').insert(Object.assign({ owner_id: T.user.id, status: 'approved', source: 'teacher' }, row)).select().single();
   if (r.error) return toast(errMsg(r.error));
   if (f.id.value) { const i = QS.list.findIndex(x => x.id === f.id.value); if (i >= 0) QS.list[i] = r.data; } else QS.list.unshift(r.data);
@@ -1924,7 +1925,7 @@ function qCheck(c, seen){
   const k = qNorm(c.body);
   if (seen.has(k)) return 'مكرر داخل الملف';
   seen.add(k);
-  if ((QS.norm[k] || []).length) c.dup = true;
+  if ((QS.norm[k] || []).length) return 'موجود مسبقاً في البنك';
   return '';
 }
 function parseQuestions(rows){
@@ -1985,13 +1986,12 @@ function qPreview(c, src){
     <div class="pv-sum"><span class="ok">${ok.length} صالح</span>${dup.length ? `<span class="warn">${dup.length} موجود مسبقاً</span>` : ''}${bad.length ? `<span class="bad">${bad.length} فيه مشكلة</span>` : ''}</div>
     ${bad.length ? `<div class="qpv-bad"><b>لن تُضاف هذه الأسطر:</b>${bad.slice(0, 30).map(x => `<div><em>سطر ${x.line}</em> ${esc(x.err)}${x.body ? `: <span>${esc(x.body.slice(0, 40))}</span>` : ''}</div>`).join('')}${bad.length > 30 ? `<div class="muted">و${bad.length - 30} أخرى</div>` : ''}</div>` : ''}
     <div class="qpv-list">${ok.slice(0, 40).map(x => `<div class="qpv${x.dup ? ' dup' : ''}"><b>${esc(x.body)}</b><small>${esc(x.options[x.correct_index])} · ${LEVEL_AR[x.level]}${x.dup ? ' · موجود مسبقاً' : ''}</small></div>`).join('')}${ok.length > 40 ? `<p class="muted center">و${ok.length - 40} سؤالاً آخر</p>` : ''}</div>
-    ${dup.length ? `<label class="chk"><input type="checkbox" id="qpv-skip" checked> تخطي الأسئلة الموجودة مسبقاً</label>` : ''}
     <label class="chk"><input type="checkbox" id="qpv-rev"> أريد مراجعتها قبل اعتمادها</label>
     <button class="btn" data-act="t-q-pv-save" ${ok.length ? '' : 'disabled'}>إضافة الأسئلة</button>`);
 }
 ACTS['t-q-pv-save'] = async t => {
   const skip = document.getElementById('qpv-skip'), rev = document.getElementById('qpv-rev');
-  const rows = QS.pv.filter(x => !x.err && !(x.dup && skip && skip.checked)).map(x => ({ owner_id: T.user.id, qtype: x.qtype, level: x.level, body: x.body, options: x.options, correct_index: x.correct_index, status: rev && rev.checked ? 'draft' : 'approved', source: 'teacher' }));
+  const rows = QS.pv.filter(x => !x.err && !x.dup).map(x => ({ owner_id: T.user.id, qtype: x.qtype, level: x.level, body: x.body, options: x.options, correct_index: x.correct_index, status: rev && rev.checked ? 'draft' : 'approved', source: 'teacher' }));
   if (!rows.length) return toast('لا توجد أسئلة جديدة لإضافتها');
   t.disabled = true;
   try {
