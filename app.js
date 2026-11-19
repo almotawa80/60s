@@ -452,7 +452,7 @@ ACTS['pick-style'] = t => {
 async function tClasses(){
   const { data, error } = await sb.from('classes').select('*, students(count)').order('created_at');
   if (error) throw error;
-  const body = `<button class="btn" data-act="t-add-class">${ic('plus')} إضافة صف</button>` +
+  const body = `<div class="row" style="flex-wrap:wrap"><button class="btn" data-act="t-add-class" style="flex:1">${ic('plus')} إضافة صف</button><button class="btn soft" data-act="t-multi-up" style="flex:1">${ic('upload')} رفع صفوف من Excel</button><button class="btn sm soft" data-act="t-multi-sample">نموذج</button><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"></div>` +
     (data.map(c => `<a class="class-card" href="#/t/class/${c.id}"><div class="grow"><b style="font-size:18px">${esc(c.name)}</b><div class="sub">${(c.students && c.students[0] ? c.students[0].count : 0)} من الطلبة · نمط ${esc(STYLE_AR[c.style])}</div></div>${ic('back')}</a>`).join('') ||
     '<div class="card center muted">لا توجد صفوف بعد.</div>');
   view('الصفوف', body, 'classes');
@@ -468,6 +468,60 @@ ACTS['t-save-class'] = async f => {
   if (error) return toast(errMsg(error));
   closeModals();
   go('#/t/class/' + data.id);
+};
+
+/* ---- multi-class upload ---- */
+ACTS['t-multi-up'] = () => document.getElementById('mxl').click();
+ACTS['t-multi-sample'] = () => {
+  const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الصف'], ['سارة العتيبي', '1001', 'السادس / أ'], ['ليان الزامل', '1002', 'السادس / أ'], ['نور الحربي', '2001', 'السادس / ب']]);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'الطلبة'); XLSX.writeFile(wb, 'نموذج-الصفوف.xlsx');
+};
+function parseMulti(rows){
+  if (!rows.length) return [];
+  const head = rows[0].map(x => String(x).trim().toLowerCase());
+  let ni = head.findIndex(h => /اسم|name/.test(h)), ri = head.findIndex(h => /رقم|number|\bid\b|\bno\b/.test(h)), ci = head.findIndex(h => /صف|فصل|شعبة|class/.test(h)), start = 1;
+  if (ni < 0 || ci < 0) { ni = 0; ri = 1; ci = 2; start = 0; }
+  return rows.slice(start).map(r => ({ name: String(r[ni] == null ? '' : r[ni]).trim(), student_no: ri >= 0 ? String(r[ri] == null ? '' : r[ri]).trim() : '', cls: String(r[ci] == null ? '' : r[ci]).trim() })).filter(x => x.name && x.cls);
+}
+ACTS['t-multi-chosen'] = async t => {
+  const file = t.files && t.files[0];
+  if (!file) return;
+  try {
+    const list = parseMulti(await readRows(file));
+    t.value = '';
+    if (!list.length) return toast('لم أجد بيانات. تأكد من الأعمدة: الاسم، رقم الطالب، الصف');
+    const g = {};
+    list.forEach(x => (g[x.cls] = g[x.cls] || []).push({ name: x.name, student_no: x.student_no }));
+    CK.multi = g;
+    modal(`<h3>معاينة الصفوف</h3><p class="muted" style="margin-bottom:10px">وُجد <b>${Object.keys(g).length}</b> صف و<b>${list.length}</b> طالب/ـة. الصفوف الجديدة ستُنشأ، والموجودة بنفس الاسم تُضاف إليها الأسماء.</p>
+      <div class="tbl-wrap"><table><thead><tr><th>الصف</th><th>عدد الطلبة</th></tr></thead><tbody>${Object.keys(g).map(k => `<tr><td>${esc(k)}</td><td>${g[k].length}</td></tr>`).join('')}</tbody></table></div>
+      <div class="row" style="margin-top:14px"><button class="btn" data-act="t-multi-confirm">تأكيد الإضافة</button><button class="btn soft" data-act="close-modal" style="width:auto">إلغاء</button></div>`);
+  } catch(e){ toast('تعذّرت قراءة الملف'); }
+};
+ACTS['t-multi-confirm'] = async t => {
+  t.disabled = true; t.textContent = 'جارٍ الإضافة...';
+  try {
+    const ex = await sb.from('classes').select('id,name');
+    if (ex.error) throw ex.error;
+    const byName = {}; ex.data.forEach(c => byName[c.name.trim()] = c.id);
+    let added = 0, skipped = 0, made = 0;
+    for (const name of Object.keys(CK.multi)) {
+      let id = byName[name];
+      if (!id) {
+        const r = await sb.from('classes').insert({ teacher_id: T.user.id, name, style: 'mid' }).select().single();
+        if (r.error) throw r.error;
+        id = r.data.id; made++;
+      }
+      const rows = CK.multi[name];
+      for (let i = 0; i < rows.length; i += 150) {
+        const r = await rpc('add_students', { p_class: id, p_rows: rows.slice(i, i + 150) });
+        added += r.added.length; skipped += r.skipped;
+      }
+    }
+    closeModals();
+    toast(`أُنشئ ${made} صف وأُضيف ${added} طالب/ـة` + (skipped ? ` (تخطي ${skipped})` : ''));
+    await tClasses();
+  } catch(e){ closeModals(); toast(errMsg(e)); }
 };
 
 /* ---- class page ---- */
