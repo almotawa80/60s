@@ -536,3 +536,17 @@ body.wide .t-nav a{font-weight:500!important}
 .set-chev .ico{width:18px;height:18px}
 .set-f{font-size:13px;color:var(--muted);padding:0 16px;margin-top:-8px}
 .danger-row{color:#D70015;font-weight:600}
+/* liquid glass lens on tab bar */
+.t-nav{position:fixed}
+.t-nav a{position:relative;z-index:1;background:transparent!important}
+.t-nav a.on{background:transparent!important}
+.t-nav a .ico,.t-nav a span{transition:transform .25s cubic-bezier(.3,1.4,.5,1)}
+.t-nav a.on .ico{transform:scale(1.12)}
+.t-nav a.hover .ico{transform:scale(1.28)}.t-nav a.hover span{transform:scale(1.08)}
+.lens{position:absolute;top:6px;bottom:6px;width:calc((100% - 12px) / 5);right:calc(6px + (100% - 12px) / 5 * var(--i));z-index:0;border-radius:26px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,235,230,.45));
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.95),inset 0 -1px 2px rgba(200,16,46,.12),0 4px 14px rgba(200,16,46,.18),0 0 0 .5px rgba(200,16,46,.15);
+  -webkit-backdrop-filter:blur(6px) saturate(200%) brightness(1.05);backdrop-filter:blur(6px) saturate(200%) brightness(1.05);
+  transition:right .45s cubic-bezier(.34,1.45,.5,1),transform .25s}
+.lens::after{content:"";position:absolute;inset:2px 8px auto;height:40%;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,0))}
+.lens.drag{transition:none;transform:scale(1.18,1.12);box-shadow:inset 0 1px 1px #fff,0 8px 24px rgba(200,16,46,.25),0 0 0 .5px rgba(200,16,46,.2)}

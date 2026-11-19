@@ -347,9 +347,41 @@ const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', '
 function shell(title, body, active, top, back){
   return `<div class="t-top"><div class="brand">${back ? `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>` : LOGO_S}<span class="t-title">${esc(title)}</span></div>${top || ''}</div>` +
     `<div class="t-body">${body}</div>` +
-    `<nav class="t-nav" aria-label="القائمة">${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}">${ic(n[2])}<span>${n[1]}</span></a>`).join('')}</nav>`;
+    `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}">${ic(n[2])}<span>${n[1]}</span></a>`).join('')}</nav>`;
 }
-function view(title, body, active, top, back){ $app.innerHTML = shell(title, body, active, top, back); window.scrollTo(0, 0); }
+const NAVI = { prev: 0 };
+function view(title, body, active, top, back){
+  $app.innerHTML = shell(title, body, active, top, back); window.scrollTo(0, 0);
+  const i = Math.max(0, NAV.findIndex(n => n[0] === active)), lens = $app.querySelector('.lens');
+  if (lens) requestAnimationFrame(() => requestAnimationFrame(() => { lens.style.setProperty('--i', i); NAVI.prev = i; }));
+}
+/* liquid-glass lens: drag across the tab bar */
+(function(){
+  let drag = null;
+  const idxAt = (nav, x) => { const r = nav.getBoundingClientRect(), w = r.width / NAV.length; return Math.max(0, Math.min(NAV.length - 1, Math.floor((r.right - x) / w))); };
+  document.addEventListener('touchstart', e => {
+    const nav = e.target.closest('.t-nav'); if (!nav) return;
+    drag = { nav, lens: nav.querySelector('.lens'), x0: e.touches[0].clientX, moved: false };
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!drag) return;
+    const x = e.touches[0].clientX; if (Math.abs(x - drag.x0) > 6) drag.moved = true;
+    if (!drag.moved) return;
+    e.preventDefault();
+    const r = drag.nav.getBoundingClientRect(), w = r.width / NAV.length, pos = Math.max(0, Math.min(NAV.length - 1, (r.right - x) / w - .5));
+    drag.lens.classList.add('drag'); drag.lens.style.setProperty('--i', pos);
+    const k = idxAt(drag.nav, x); drag.nav.querySelectorAll('a').forEach((el, j) => el.classList.toggle('hover', j === k));
+  }, { passive: false });
+  document.addEventListener('touchend', e => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (!d.moved) return;
+    const k = idxAt(d.nav, e.changedTouches[0].clientX);
+    d.lens.classList.remove('drag'); d.lens.style.setProperty('--i', k);
+    d.nav.querySelectorAll('a').forEach(el => el.classList.remove('hover'));
+    const h = '#/t/' + NAV[k][0]; if (location.hash !== h) location.hash = h;
+  });
+})();
 function go(h){ if (location.hash === h) route(); else location.hash = h; }
 
 /* ---- auth ---- */
@@ -1398,6 +1430,7 @@ function goBack(){
 let G = null;
 document.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) { G = null; return; }
+  if (e.target.closest('.t-nav')) { G = null; return; }
   const t = e.touches[0], row = e.target.closest('.sw-main');
   G = { x: t.clientX, y: t.clientY, row, edge: t.clientX > innerWidth - 28, dx: 0, lock: null, open: row && row.classList.contains('open'), w: row ? row.parentElement.querySelector('.sw-act').scrollWidth : 0 };
   if (!row) document.querySelectorAll('.sw-main.open').forEach(r => { if (!e.target.closest('.sw-act')) { r.classList.remove('open'); r.style.transform = ''; } });
