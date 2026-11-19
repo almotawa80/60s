@@ -635,7 +635,8 @@ function classesList(){
   const top = `<div class="row" style="flex-wrap:wrap"><button class="btn sm" data-act="t-add-class">${ic('plus')} صف جديد</button><button class="btn sm soft" data-act="t-multi-up">${ic('upload')} رفع صفوف Excel</button><button class="btn sm soft" data-act="t-multi-sample">نموذج</button>
     ${CL.classes.length ? `<button class="btn sm soft" data-act="c-all">${CL.open.size ? 'طي الكل' : 'فتح الكل'}</button>` : ''}<input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen"></div>`;
   if (!CL.classes.length) return top + '<div class="card center muted">لا توجد صفوف بعد.</div>';
-  return top + CL.classes.map(classSection).join('') + '<p class="sub center">اسحب اسم الطالب/ـة لليسار لإظهار: واتساب، رمز جديد، حذف</p>';
+  return top + CL.classes.map(classSection).join('') + '<p class="sub center">اسحب اسم الطالب/ـة لليسار لإظهار: واتساب، رمز جديد، حذف</p>' +
+    `<button class="btn soft" data-act="c-del-all" style="color:#B3122A;margin-top:18px">${ic('trash')} حذف جميع الصفوف</button>`;
 }
 function classSection(c){
   const st = CL.students[c.id] || [], open = CL.open.has(c.id), comp = CL.comps[c.id];
@@ -645,7 +646,8 @@ function classSection(c){
     body = `<div class="cls-body"><div class="row" style="flex-wrap:wrap">
       <button class="btn sm soft" data-act="t-upload">${ic('upload')} رفع أسماء</button><button class="btn sm soft" data-act="t-add-one">${ic('plus')} إضافة</button>
       <button class="btn sm soft" data-act="t-export-codes">${ic('download')} الرموز</button><button class="btn sm soft" data-act="t-print-codes">${ic('print')} طباعة</button>
-      <button class="btn sm soft" data-act="c-menu">${ic('gear')} إعدادات الصف</button></div>` +
+      <button class="btn sm soft" data-act="c-menu">${ic('gear')} إعدادات الصف</button>
+      <button class="btn sm soft" data-act="c-del" style="color:#B3122A">${ic('trash')} حذف الصف</button></div>` +
       (c.self_join ? `<div class="join-row"><span class="sub">التسجيل الذاتي مفعّل</span><button class="btn sm" data-act="copy" data-v="${esc(link)}">نسخ رابط التسجيل</button></div>` : '') +
       (st.length ? `<div class="sw-list">${st.map((s, i) => `<div class="sw-row"><div class="sw-act">
           <button class="wa" data-act="s-wa" data-id="${s.id}">${ic('send')}<span>واتساب</span></button>
@@ -700,6 +702,14 @@ ACTS['c-menu'] = t => {
     <div class="row between card" style="margin-top:8px"><div><b>التسجيل الذاتي</b><div class="sub">رابط يسجل به الطلبة بأنفسهم</div></div><button class="btn sm ${c.self_join ? 'soft' : ''}" data-act="t-self" data-on="${c.self_join ? 0 : 1}">${c.self_join ? 'إيقاف' : 'تفعيل'}</button></div>
     ${c.self_join ? `<div class="join-box" dir="ltr">${esc(joinLink(c.join_code))}</div><button class="btn sm" data-act="copy" data-v="${esc(joinLink(c.join_code))}">نسخ الرابط</button>` : ''}
     <button class="btn danger" data-act="c-del" style="margin-top:10px">${ic('trash')} حذف الصف</button></div>`);
+};
+ACTS['c-del-all'] = async () => {
+  const n = CL.classes.length, st = Object.values(CL.students).reduce((x, s) => x + s.length, 0);
+  const v = prompt(`سيتم حذف ${n} صف و${st} طالب/ـة وكل النتائج والمسابقات نهائياً.\nللتأكيد اكتب كلمة: حذف`);
+  if ((v || '').trim() !== 'حذف') return v === null ? null : toast('لم يتم الحذف');
+  const { error } = await sb.from('classes').delete().in('id', CL.classes.map(c => c.id));
+  if (error) return toast(errMsg(error));
+  CL.open.clear(); toast('تم حذف جميع الصفوف'); await tClasses();
 };
 ACTS['c-rename'] = async f => {
   const { error } = await sb.from('classes').update({ name: f.name.value.trim() }).eq('id', f.dataset.cid);
