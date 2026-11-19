@@ -1102,29 +1102,69 @@ ACTS['t-q-chosen'] = async t => {
 };
 
 /* ---- results ---- */
+const RS = { sort: 'pts', q: '', rows: [], name: '' };
 async function tResults(classId){
   const { data: classes, error } = await sb.from('classes').select('id,name').order('created_at');
   if (error) throw error;
   if (!classes.length) return view('النتائج', '<div class="card center muted">أضف صفاً أولاً لتظهر النتائج.</div>', 'results');
-  const id = classId || classes[0].id;
-  const rows = await rpc('teacher_class_results', { p_class: id });
-  CK.results = rows; CK.resultsName = (classes.find(c => c.id === id) || {}).name || '';
-  let rank = 0, prev = null;
-  const tr = rows.map((r, i) => {
-    if (r.pts !== prev) { rank = i + 1; prev = r.pts; }
-    const acc = r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) + '%' : '—';
-    return `<tr><td>${rank}</td><td>${esc(r.name)}</td><td>${esc(r.student_no)}</td><td><b>${r.pts}</b></td><td>${r.rounds}</td><td>${acc}</td><td>${r.played_today ? '✓' : '—'}</td></tr>`;
-  }).join('');
-  const body = `<div class="filters"><select data-change="t-res-class" aria-label="الصف">${classes.map(c => `<option value="${c.id}" ${c.id === id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
-    <button class="btn sm soft" data-act="t-res-export">${ic('download')} تنزيل Excel</button></div>
-    ${rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>الترتيب</th><th>الاسم</th><th>رقم الطالب</th><th>النقاط</th><th>الجولات</th><th>الدقة</th><th>لعب اليوم</th></tr></thead><tbody>${tr}</tbody></table></div>` : '<div class="card center muted">لا يوجد طلبة في هذا الصف.</div>'}`;
-  view('النتائج', body, 'results');
+  const id = classId || 'all';
+  const pick = id === 'all' ? classes : classes.filter(c => c.id === id);
+  const res = await Promise.all(pick.map(c => rpc('teacher_class_results', { p_class: c.id }).then(r => r.map(x => Object.assign({ cls: c.name }, x))).catch(() => [])));
+  RS.rows = res.flat(); RS.all = id === 'all'; RS.id = id; RS.classes = classes;
+  RS.name = id === 'all' ? 'كل الصفوف' : (classes.find(c => c.id === id) || {}).name || '';
+  renderResults();
 }
-ACTS['t-res-class'] = t => go('#/t/results/' + t.value);
+function renderResults(){
+  const rows = RS.rows, n = rows.length;
+  const acc = r => r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) : -1;
+  const byPts = rows.slice().sort((x, y) => y.pts - x.pts);
+  const rank = new Map(); let rk = 0, prev = null;
+  byPts.forEach((r, i) => { if (r.pts !== prev) { rk = i + 1; prev = r.pts; } rank.set(r, rk); });
+  const sorters = { pts: (x, y) => y.pts - x.pts, acc: (x, y) => acc(y) - acc(x), rounds: (x, y) => y.rounds - x.rounds, idle: (x, y) => (x.played_today - y.played_today) || (x.rounds - y.rounds) };
+  let list = rows.slice().sort(sorters[RS.sort]);
+  if (RS.q) list = list.filter(r => (r.name + ' ' + r.student_no).includes(RS.q));
+  const played = rows.filter(r => r.played_today).length;
+  const tr = rows.reduce((a, r) => a + r.rounds, 0), tc = rows.reduce((a, r) => a + r.correct, 0);
+  const avg = n ? Math.round(rows.reduce((a, r) => a + r.pts, 0) / n) : 0;
+  const top3 = byPts.filter(r => r.pts > 0).slice(0, 3);
+  const pod = top3.length ? `<div class="podium">${[1, 0, 2].map(i => top3[i] ? `<div class="pd pd${i + 1}"><div class="pd-medal">${i + 1}</div><b>${esc(top3[i].name.split(' ')[0])}</b><span>${top3[i].pts}</span><div class="pd-step"></div></div>` : '<div class="pd"></div>').join('')}</div>` : '';
+  const chips = `<div class="lv-chips"><button class="${RS.id === 'all' ? 'on' : ''}" data-act="r-cls" data-id="all">كل الصفوف</button>${RS.classes.map(c => `<button class="${RS.id === c.id ? 'on' : ''}" data-act="r-cls" data-id="${c.id}">${esc(c.name)}</button>`).join('')}</div>`;
+  const sorts = [['pts', 'النقاط'], ['acc', 'الدقة'], ['rounds', 'الجولات'], ['idle', 'لم يلعبوا']];
+  const max = Math.max(1, ...rows.map(r => r.pts));
+  const items = list.map(r => { const a2 = acc(r); return `<div class="res-row" data-act="r-open" data-k="${esc(r.cls + '|' + r.name + '|' + r.student_no)}">
+    <span class="rk ${rank.get(r) <= 3 && r.pts ? 'rk' + rank.get(r) : ''}">${r.pts ? rank.get(r) : '—'}</span>
+    <div class="grow"><div class="row between"><b>${esc(r.name)}</b><b class="pts">${r.pts}</b></div>
+    <div class="bar"><i style="width:${Math.round(r.pts * 100 / max)}%"></i></div>
+    <div class="sub">${RS.all ? esc(r.cls) + ' · ' : ''}${r.rounds} جولة · دقة ${a2 < 0 ? '—' : a2 + '%'}</div></div>
+    <span class="today ${r.played_today ? 'y' : ''}" title="اليوم">${r.played_today ? ic('check') : ''}</span></div>`; }).join('');
+  const body = chips +
+    `<div class="kpis kpis4"><div class="kpi"><b>${n}</b><span>طالب/ـة</span></div><div class="kpi"><b>${n ? Math.round(played * 100 / n) : 0}%</b><span>لعبوا اليوم</span></div><div class="kpi"><b>${avg}</b><span>متوسط النقاط</span></div><div class="kpi"><b>${tr ? Math.round(tc * 100 / (tr * 4)) + '%' : '—'}</b><span>الدقة</span></div></div>` +
+    pod +
+    `<div class="row res-tools"><input class="input" id="r-q" placeholder="بحث بالاسم أو الرقم" value="${esc(RS.q)}" data-input="r-q"></div>
+     <div class="lv-chips">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
+     <div class="res-list" id="r-list">${items || '<div class="card center muted">لا يوجد طلبة.</div>'}</div>`;
+  view('النتائج', body, 'results', `<button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`);
+}
+ACTS['r-cls'] = t => go('#/t/results/' + t.dataset.id);
+ACTS['r-sort'] = t => { RS.sort = t.dataset.v; renderResults(); };
+document.addEventListener('input', e => {
+  if (e.target.id !== 'r-q') return;
+  RS.q = e.target.value.trim(); const pos = e.target.selectionStart;
+  renderResults(); const i = document.getElementById('r-q'); if (i) { i.focus(); i.setSelectionRange(pos, pos); }
+});
+ACTS['r-open'] = t => {
+  const r = RS.rows.find(x => (x.cls + '|' + x.name + '|' + x.student_no) === t.dataset.k); if (!r) return;
+  const sorted = RS.rows.filter(x => x.cls === r.cls).sort((x, y) => y.pts - x.pts);
+  const acc = r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) + '%' : '—';
+  const ini = r.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
+  modal(`<div class="st-card"><div class="st-top"><div class="avatar big-av">${esc(ini)}</div><div><b>${esc(r.name)}</b><div class="sub">${esc(r.cls)} · رقم ${esc(r.student_no) || '—'}</div></div></div>
+    <div class="stats"><div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? sorted.indexOf(r) + 1 : '—'}</b><span>في صفه من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>الدقة</span></div></div>
+    <div class="sub center">${r.correct} إجابة صحيحة من ${r.rounds * 4} · ${r.played_today ? '<b style="color:#168A5B">لعب اليوم ✓</b>' : '<b style="color:#8a5a00">لم يلعب اليوم</b>'}</div></div>`);
+};
 ACTS['t-res-export'] = () => {
-  const rows = [['الاسم', 'رقم الطالب', 'النقاط', 'الجولات', 'الإجابات الصحيحة']].concat((CK.results || []).map(r => [r.name, r.student_no, r.pts, r.rounds, r.correct]));
+  const rows = [['الصف', 'الاسم', 'رقم الطالب', 'النقاط', 'الجولات', 'الإجابات الصحيحة', 'الدقة %', 'لعب اليوم']].concat(RS.rows.slice().sort((x, y) => y.pts - x.pts).map(r => [r.cls, r.name, r.student_no, r.pts, r.rounds, r.correct, r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) : '', r.played_today ? 'نعم' : 'لا']));
   const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'النتائج'); XLSX.writeFile(wb, 'نتائج-' + (CK.resultsName || '').replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
+  XLSX.utils.book_append_sheet(wb, ws, 'النتائج'); XLSX.writeFile(wb, 'نتائج-' + RS.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };
 
 /* ---- settings ---- */
