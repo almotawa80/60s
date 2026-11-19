@@ -362,21 +362,46 @@ ACTS['s-start'] = async (t) => {
     else if (/already_played|official_not_open/.test(String(e.message || ''))) loadHome();
   }
 };
+/* themed backdrops for the question screen (kids / mid / uni) */
+const PV_BG = {
+  kids: '<i class="cl c1"></i><i class="cl c2"></i><i class="cl c3"></i>' +
+    '<svg class="pv-land" viewBox="0 0 400 120" preserveAspectRatio="xMidYMax slice"><path d="M0 70 Q60 30 130 62 T260 58 T400 50 V120 H0Z" fill="#7CCB5A"/><path d="M0 92 Q90 60 190 86 T400 80 V120 H0Z" fill="#4FAE3E"/>' +
+    '<g fill="#3E9A32"><circle cx="40" cy="78" r="16"/><circle cx="62" cy="84" r="12"/><circle cx="340" cy="74" r="17"/><circle cx="362" cy="82" r="12"/></g>' +
+    '<g transform="translate(160 66)"><rect x="0" y="16" width="80" height="34" rx="2" fill="#FFD27A"/><path d="M-6 18 L40 -2 L86 18Z" fill="#E8544E"/><rect x="34" y="28" width="12" height="22" fill="#8A5A2B"/><rect x="10" y="24" width="12" height="10" fill="#7FC4F5"/><rect x="58" y="24" width="12" height="10" fill="#7FC4F5"/><path d="M40 -2 V-14 L52 -10 L40 -6" fill="#E8544E" stroke="#8A5A2B" stroke-width="1.5"/></g></svg>',
+  mid: '<svg class="pv-ic pv-book" viewBox="0 0 64 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M32 10C24 4 12 4 4 7v34c8-3 20-3 28 3 8-6 20-6 28-3V7c-8-3-20-3-28 3zM32 10v34M10 16c5-1 11-1 16 1M10 24c5-1 11-1 16 1M38 17c5-2 11-2 16-1M38 25c5-2 11-2 16-1"/></svg>' +
+    '<svg class="pv-ic pv-cup" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M14 6h20v12a10 10 0 0 1-20 0zM14 10H6c0 8 4 12 9 13M34 10h8c0 8-4 12-9 13M24 28v8M16 42h16l-2-6H18z"/></svg>' +
+    '<svg class="pv-waves" viewBox="0 0 400 110" preserveAspectRatio="none"><path d="M0 40 C90 0 170 70 260 36 S380 20 400 30 V110 H0Z" fill="#F5B72B"/><path d="M0 62 C100 30 190 96 290 62 S380 50 400 58 V110 H0Z" fill="#0E6E70"/><path d="M0 86 C110 66 210 110 400 80 V110 H0Z" fill="#0A4F51"/></svg>',
+  uni: '<svg class="pv-bld" viewBox="0 0 160 120" fill="none"><rect x="20" y="30" width="110" height="80" fill="#E9EEF0"/><rect x="20" y="22" width="110" height="10" fill="#D7DEE1"/><rect x="88" y="10" width="52" height="100" fill="#DCE3E6"/>' +
+    '<g fill="#C9D3D7"><rect x="30" y="44" width="14" height="22"/><rect x="50" y="44" width="14" height="22"/><rect x="70" y="44" width="14" height="22"/><rect x="30" y="74" width="14" height="22"/><rect x="50" y="74" width="14" height="22"/><rect x="70" y="74" width="14" height="22"/>' +
+    '<rect x="96" y="20" width="36" height="8"/><rect x="96" y="34" width="36" height="8"/><rect x="96" y="48" width="36" height="8"/><rect x="96" y="62" width="36" height="8"/><rect x="96" y="76" width="36" height="8"/></g>' +
+    '<circle cx="12" cy="92" r="12" fill="#D5E2D8"/><circle cx="150" cy="96" r="10" fill="#D5E2D8"/><rect x="0" y="108" width="160" height="4" fill="#DCE3E6"/></svg>' +
+    '<svg class="pv-waves" viewBox="0 0 400 90" preserveAspectRatio="none"><path d="M0 30 C70 10 120 60 200 90 H0Z" fill="#0E6E70"/><path d="M0 60 C60 50 110 70 150 90 H0Z" fill="#F5B72B" opacity=".9"/></svg>'
+};
+const PV_GLASS = '<svg class="pv-glass" viewBox="0 0 140 170" aria-hidden="true"><defs><linearGradient id="pvg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#FFE48A"/><stop offset=".55" stop-color="#F5B72B"/><stop offset="1" stop-color="#C98A0B"/></linearGradient></defs>' +
+  '<g stroke="#F5B72B" stroke-width="6" stroke-linecap="round"><path d="M8 60 L-6 52"/><path d="M6 85 H-10"/><path d="M8 110 L-6 118"/><path d="M132 60 L146 52"/><path d="M134 85 H150"/><path d="M132 110 L146 118"/></g>' +
+  '<path d="M28 22 H112 C112 58 88 70 80 85 C88 100 112 112 112 148 H28 C28 112 52 100 60 85 C52 70 28 58 28 22Z" fill="#FFE9C4" stroke="#E09A12" stroke-width="4"/>' +
+  '<path d="M44 140 C50 120 64 112 70 106 C76 112 90 120 96 140Z" fill="#F5B72B" opacity=".75"/>' +
+  '<rect x="14" y="6" width="112" height="18" rx="8" fill="url(#pvg)"/><rect x="14" y="146" width="112" height="18" rx="8" fill="url(#pvg)"/></svg>' +
+  '<svg class="pv-star s1" viewBox="0 0 24 24"><path d="M12 2l3 6.6 7 .8-5.2 4.8 1.5 7L12 17.6 5.7 21.2l1.5-7L2 9.4l7-.8z"/></svg>' +
+  '<svg class="pv-star s2" viewBox="0 0 24 24"><path d="M12 2l3 6.6 7 .8-5.2 4.8 1.5 7L12 17.6 5.7 21.2l1.5-7L2 9.4l7-.8z"/></svg>';
 function showQuestion(st){
   stopTimer();
   S.cur = st; S.locked = false;
-  const q = st.question;
+  const q = st.question, th = document.body.dataset.theme || 'mid';
   let dots = '';
   for (let i = 1; i <= st.total; i++) dots += '<span class="dot' + (i < st.position ? ' done' : i === st.position ? ' cur' : '') + '"></span>';
+  const long = q.options.some(o => String(o).length > 22);
   $app.innerHTML =
-    '<div class="play"><div class="play-top"><span class="chip">' + (st.kind === 'practice' ? 'تدريب' : 'جولة رسمية') + '</span>' +
-    '<b>السؤال ' + st.position + ' من ' + st.total + '</b>' +
-    '<div class="row" style="gap:8px"><button class="icon-btn" data-act="s-sound" aria-label="الصوت">' + ic(FX.on() ? 'sound' : 'mute') + '</button><button class="icon-btn" data-act="s-quit" aria-label="خروج">' + ic('x') + '</button></div></div>' +
-    '<div class="dots">' + dots + '</div>' +
+    '<div class="play pv pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
+    '<div class="play-top"><button class="icon-btn pv-btn" data-act="s-quit" aria-label="الخروج للرئيسية">' + ic('home') + '</button>' +
+    '<div class="pv-head"><b class="pv-pill">السؤال ' + st.position + ' من ' + st.total + '</b><div class="dots">' + dots + '</div>' +
+    (st.kind === 'practice' ? '<span class="pv-kind">تدريب</span>' : '') + '</div>' +
+    '<button class="icon-btn pv-btn pv-snd" data-act="s-sound" aria-label="الصوت">' + ic(FX.on() ? 'sound' : 'mute') + '</button></div>' +
+    '<div class="pv-clock">' + (th === 'kids' ? PV_GLASS : '') +
     '<div class="timer' + (st.position === st.total ? ' last' : '') + '" id="timer"><div class="tfill" id="tfill"></div><svg viewBox="0 0 116 116" aria-hidden="true"><circle class="bg" cx="58" cy="58" r="48"/><circle class="fg" id="tfg" cx="58" cy="58" r="48" stroke-dasharray="301.6" stroke-dashoffset="0"/></svg>' +
-    '<div class="num"><span id="tnum">' + Math.ceil(st.seconds_left) + '</span><small>ثانية</small></div></div>' +
-    '<div class="qbox">' + esc(q.body) + '</div><div class="pts-pop" id="pop"></div>' +
-    '<div class="opts">' + q.options.map((o, i) => '<button class="opt" data-act="s-answer" data-idx="' + i + '"><span class="letter">' + LETTERS[i] + '</span><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div>';
+    '<div class="num"><span id="tnum">' + Math.ceil(st.seconds_left) + '</span><small>ثانية</small></div></div></div>' +
+    '<div class="pv-panel"><div class="qbox">' + esc(q.body) + '</div><div class="pts-pop" id="pop"></div>' +
+    '<div class="opts' + (long ? ' long' : '') + '">' + q.options.map((o, i) => '<button class="opt" data-act="s-answer" data-idx="' + i + '"><span class="letter">' + LETTERS[i] + '</span><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
   runTimer(st.seconds_left);
 }
 function runTimer(secs){
