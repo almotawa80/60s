@@ -623,7 +623,7 @@ async function showResult(sm){
    ====================================================== */
 const T = { user: null, name: '', classTab: 'students', authMode: 'in', qf: { status: 'all', level: 'all', type: 'all' } };
 const CK = { cls: null, students: [], comp: null, pending: [] };
-const QS = { list: [], globalCount: 0 };
+const QS = { list: [], glob: [], globalCount: 0, stats: {}, q: '', sel: new Set(), selOn: false, dup: new Set(), norm: {} };
 const TYPE_AR = { curriculum: 'منهج', general: 'عام', quick: 'سرعة بديهة', memory: 'ذاكرة' };
 const LEVEL_AR = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' };
 const STATUS_AR = { draft: 'مسودة', approved: 'معتمد', rejected: 'مرفوض' };
@@ -1645,44 +1645,122 @@ ACTS['cp-save'] = async f => {
 };
 
 /* ---- questions ---- */
+const QPD = 4; // questions a student plays per day
+const qNorm = s => String(s || '').replace(/[ً-ْـ]/g, '').replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().toLowerCase();
 async function tQuestions(){
-  const [own, glob] = await Promise.all([
+  const [own, glob, st] = await Promise.all([
     sb.from('questions').select('*').eq('owner_id', T.user.id).order('created_at', { ascending: false }),
-    sb.from('questions').select('id', { count: 'exact', head: true }).is('owner_id', null)
+    sb.from('questions').select('id,body,options,correct_index,level,qtype').is('owner_id', null).eq('status', 'approved').limit(2000),
+    rpc('question_stats', {}).catch(() => [])
   ]);
   if (own.error) throw own.error;
-  QS.list = own.data; QS.globalCount = glob.count || 0;
+  QS.list = own.data; QS.glob = glob.data || []; QS.globalCount = QS.glob.length;
+  QS.stats = {}; (st || []).forEach(r => { QS.stats[r.question_id] = r; });
+  qDupIndex();
+  if (!QS.sel) QS.sel = new Set();
   renderQuestions();
 }
-function renderQuestions(){
-  const f = T.qf; if (f.status === 'all') f.status = QS.list.some(q => q.status === 'draft') ? 'draft' : 'approved';
-  const cnt = k => QS.list.filter(q => q.status === k).length;
-  const list = QS.list.filter(q => q.status === f.status && (f.level === 'all' || q.level === f.level));
-  const lv = [['all', 'الكل'], ['easy', 'سهل'], ['medium', 'متوسط'], ['hard', 'صعب']];
-  const items = list.map(q => `<div class="q-item" data-act="t-q-edit" data-id="${q.id}"><b class="q-body">${esc(q.body)}</b>
+function qDupIndex(){
+  const m = {}; QS.list.filter(q => q.source !== 'copy').concat(QS.glob).forEach(q => { const k = qNorm(q.body); if (k) (m[k] = m[k] || []).push(q.id); });
+  QS.dup = new Set(); Object.values(m).forEach(ids => { if (ids.length > 1) ids.forEach(id => QS.dup.add(id)); });
+  QS.norm = m;
+}
+const daysAr = n => n === 1 ? 'يوماً واحداً' : n === 2 ? 'يومين' : n >= 3 && n <= 10 ? `${n} أيام` : `${n} يوماً`;
+function qBank(){
+  const pool = QS.list.filter(q => q.status === 'approved').concat(QS.glob);
+  const lv = { easy: 0, medium: 0, hard: 0 }; pool.forEach(q => { if (lv[q.level] != null) lv[q.level]++; });
+  const n = pool.length, days = Math.floor(n / QPD), mine = QS.list.filter(q => q.status === 'approved').length;
+  const pc = k => n ? Math.round(lv[k] * 100 / n) : 0;
+  const low = days < 14, weak = n && ['easy', 'medium', 'hard'].find(k => lv[k] < n * 0.15);
+  return `<div class="qb ${low ? 'low' : 'ok'}"><div class="qb-h"><b>${n}</b><span>سؤالاً معتمداً متاحاً لطلبتك</span><span class="grow"></span><em>تكفي ${daysAr(days)}</em></div>
+    <div class="qb-bar">${['easy', 'medium', 'hard'].map(k => `<i class="lv-${k}" style="width:${pc(k)}%"></i>`).join('')}</div>
+    <div class="qb-lg">${['easy', 'medium', 'hard'].map(k => `<span><i class="lv-${k}"></i>${LEVEL_AR[k]} ${lv[k]}</span>`).join('')}</div>
+    <p class="qb-n">منها ${mine} من أسئلتك و${QS.glob.length} من البنك العام.${low ? ` أضف ${14 * QPD - n} سؤالاً لتكفي أسبوعين.` : ''}${weak ? ` أسئلة مستوى «${LEVEL_AR[weak]}» قليلة.` : ''}</p></div>`;
+}
+function qStat(q){
+  const s = QS.stats[q.id]; if (!s || !s.answered) return '';
+  const p = Math.round(s.correct * 100 / s.answered);
+  const tag = s.answered >= 5 && p < 35 ? '<b class="qs-hard">صعب على الطلبة</b>' : s.answered >= 5 && p > 90 ? '<b class="qs-easy">سهل جداً</b>' : '';
+  return `<div class="q-stat">${ic('chart')}<span>أجاب ${s.answered}، صحيح ${p}%</span>${tag}</div>`;
+}
+function qItem(q, ro){
+  const sel = QS.selOn && !ro, on = QS.sel.has(q.id);
+  return `<div class="q-item${on ? ' sel' : ''}" data-act="${ro ? 't-q-view' : sel ? 't-q-pick' : 't-q-edit'}" data-id="${q.id}">
+    ${sel ? `<span class="tick sq${on ? ' on' : ''}" aria-hidden="true">${ic('check')}</span>` : ''}<b class="q-body">${esc(q.body)}</b>
     <div class="opts-s">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${LETTERS[i]}. ${esc(o)}</span>`).join('')}</div>
-    <div class="row"><span class="chip lv-${q.level}">${LEVEL_AR[q.level]}</span><span class="chip">${TYPE_AR[q.qtype] || q.qtype}</span><span class="grow"></span>
-    ${q.status === 'draft' ? `<button class="q-ok" data-act="t-q-status" data-id="${q.id}" data-s="approved" aria-label="اعتماد">${ic('check')}<span>اعتماد</span></button><button class="q-no" data-act="t-q-status" data-id="${q.id}" data-s="rejected" aria-label="رفض">${ic('x')}<span>رفض</span></button>` : ''}
-    ${q.status === 'rejected' ? `<button class="btn sm soft" data-act="t-q-status" data-id="${q.id}" data-s="approved">استعادة</button>` : ''}</div></div>`).join('');
+    ${qStat(q)}
+    <div class="row"><span class="chip lv-${q.level}">${LEVEL_AR[q.level]}</span><span class="chip">${TYPE_AR[q.qtype] || q.qtype}</span>${QS.dup.has(q.id) ? '<span class="chip dup">مكرر</span>' : ''}<span class="grow"></span>
+    ${ro ? `<button class="btn sm soft" data-act="t-q-copy" data-id="${q.id}">${ic('plus')} إلى أسئلتي</button>` : sel ? '' :
+      q.status === 'draft' ? `<button class="q-ok" data-act="t-q-status" data-id="${q.id}" data-s="approved" aria-label="اعتماد">${ic('check')}<span>اعتماد</span></button><button class="q-no" data-act="t-q-status" data-id="${q.id}" data-s="rejected" aria-label="رفض">${ic('x')}<span>رفض</span></button>` :
+      q.status === 'rejected' ? `<button class="btn sm soft" data-act="t-q-status" data-id="${q.id}" data-s="approved">استعادة</button>` : ''}</div></div>`;
+}
+function qFiltered(){
+  const f = T.qf, s = qNorm(QS.q);
+  const src = f.status === 'global' ? QS.glob : QS.list.filter(q => q.status === f.status);
+  return src.filter(q => (f.level === 'all' || q.level === f.level) && (f.type === 'all' || q.qtype === f.type) && (!s || qNorm(q.body + ' ' + q.options.join(' ')).includes(s)));
+}
+function qListHtml(){
+  const f = T.qf, list = qFiltered(), ro = f.status === 'global';
+  if (!QS.list.length && !ro) return `<div class="card q-empty"><b>ابدأ بإضافة أسئلتك</b><p class="sub">أسئلتك تُعتمد مباشرة وتدخل في المسابقات مع البنك العام.</p>
+    <div class="q-empty-a"><button class="btn" data-act="t-q-add">${ic('plus')} إضافة سؤال</button><button class="btn soft" data-act="t-q-paste">${ic('edit')} لصق أسئلة</button><button class="btn soft" data-act="t-q-import">${ic('upload')} من ملف Excel</button><button class="btn ghost" data-act="t-qs" data-v="global">تصفح البنك العام</button></div></div>`;
+  if (!list.length) return `<div class="card center muted">${QS.q ? 'لا نتائج للبحث.' : f.status === 'draft' ? 'لا توجد أسئلة بانتظار المراجعة.' : 'لا توجد أسئلة هنا.'}</div>`;
+  return list.map(q => qItem(q, ro)).join('') + (ro ? '' : '');
+}
+function qSelBar(){
+  if (!QS.selOn) return '';
+  const n = QS.sel.size;
+  return `<div class="q-selbar"><button class="btn sm ghost" data-act="t-q-selall">الكل</button><b>${n} محدد</b><span class="grow"></span>
+    <button class="btn sm" data-act="t-q-bulk" data-s="approved" ${n ? '' : 'disabled'}>${ic('check')} اعتماد</button>
+    <button class="btn sm soft" data-act="t-q-bulk-more" ${n ? '' : 'disabled'}>${ic('more')}</button>
+    <button class="icon-btn" data-act="t-q-selx" aria-label="إلغاء التحديد">${ic('x')}</button></div>`;
+}
+function renderQuestions(){
+  const f = T.qf; if (!f.type) f.type = 'all';
+  if (f.status === 'all') f.status = QS.list.some(q => q.status === 'draft') ? 'draft' : QS.list.length ? 'approved' : 'global';
+  const cnt = k => QS.list.filter(q => q.status === k).length;
+  const lv = [['all', 'كل المستويات'], ['easy', 'سهل'], ['medium', 'متوسط'], ['hard', 'صعب']];
+  const ty = [['all', 'كل الأنواع'], ['curriculum', 'منهج'], ['general', 'عام'], ['quick', 'سرعة بديهة']];
+  const ro = f.status === 'global';
   const top = `<button class="icon-btn" data-act="t-q-more" aria-label="المزيد">${ic('more')}</button>`;
-  const body = `<div class="tabs"><button class="${f.status === 'draft' ? 'on' : ''}" data-act="t-qs" data-v="draft">للمراجعة ${cnt('draft') ? `<span class="badge">${cnt('draft')}</span>` : ''}</button><button class="${f.status === 'approved' ? 'on' : ''}" data-act="t-qs" data-v="approved">معتمدة (${cnt('approved')})</button><button class="${f.status === 'rejected' ? 'on' : ''}" data-act="t-qs" data-v="rejected">مرفوضة</button></div>
-    <div class="lv-chips">${lv.map(x => `<button class="${f.level === x[0] ? 'on' : ''}" data-act="t-ql" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
-    ${f.status === 'draft' && list.length ? `<button class="btn accent" data-act="t-q-approve-all">${ic('check')} اعتماد الكل (${cnt('draft')})</button>` : ''}
-    ${items || `<div class="card center muted">${f.status === 'draft' ? 'لا توجد أسئلة بانتظار المراجعة.' : 'لا توجد أسئلة هنا.'}</div>`}
-    <p class="sub center">اضغط على السؤال لتعديله. البنك العام المعتمد: ${QS.globalCount} سؤالاً.</p>
-    <button class="fab" data-act="t-q-add" aria-label="إضافة سؤال">${ic('plus')}</button>
+  const body = `${qBank()}
+    <div class="tabs q-tabs"><button class="${f.status === 'draft' ? 'on' : ''}" data-act="t-qs" data-v="draft">للمراجعة ${cnt('draft') ? `<span class="badge">${cnt('draft')}</span>` : ''}</button><button class="${f.status === 'approved' ? 'on' : ''}" data-act="t-qs" data-v="approved">معتمدة ${cnt('approved')}</button><button class="${f.status === 'rejected' ? 'on' : ''}" data-act="t-qs" data-v="rejected">مرفوضة</button><button class="${ro ? 'on' : ''}" data-act="t-qs" data-v="global">البنك العام</button></div>
+    <div class="q-tools"><label class="q-search">${ic('search')}<input class="q-q" type="search" placeholder="ابحث في الأسئلة" value="${esc(QS.q || '')}"></label>
+      ${ro || !QS.list.length ? '' : `<button class="btn sm ${QS.selOn ? '' : 'soft'}" data-act="t-q-selon">تحديد</button>`}</div>
+    <div class="q-flt"><select class="input sm" data-change="t-qf" data-k="level">${lv.map(x => `<option value="${x[0]}" ${f.level === x[0] ? 'selected' : ''}>${x[1]}</option>`).join('')}</select>
+      <select class="input sm" data-change="t-qf" data-k="type">${ty.map(x => `<option value="${x[0]}" ${f.type === x[0] ? 'selected' : ''}>${x[1]}</option>`).join('')}</select></div>
+    ${qSelBar()}
+    ${f.status === 'draft' && cnt('draft') && !QS.selOn ? `<button class="btn accent" data-act="t-q-approve-all">${ic('check')} اعتماد الكل (${cnt('draft')})</button>` : ''}
+    ${ro ? '<p class="sub q-ro">أسئلة جاهزة تدخل في مسابقاتك تلقائياً. انسخ أي سؤال إلى أسئلتك لتعدّله.</p>' : ''}
+    <div id="qlist">${qListHtml()}</div>
+    ${ro ? '' : `<button class="fab" data-act="t-q-add-menu" aria-label="إضافة أسئلة">${ic('plus')}</button>`}
     <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen">`;
   view('الأسئلة', body, 'questions', top);
 }
-ACTS['t-qs'] = t => { T.qf.status = t.dataset.v; renderQuestions(); };
-ACTS['t-ql'] = t => { T.qf.level = t.dataset.v; renderQuestions(); };
+document.addEventListener('input', e => {
+  const q = e.target.closest && e.target.closest('.q-q');
+  if (q) { QS.q = q.value; const l = document.getElementById('qlist'); if (l) l.innerHTML = qListHtml(); return; }
+  const pt = e.target.closest && e.target.closest('.qp-ta');
+  if (pt) qPasteInfo();
+  const qb = e.target.closest && e.target.closest('#q-b');
+  if (qb) { const k = qNorm(qb.value), w = document.getElementById('q-dupw'), id = qb.form.id.value;
+    const hit = k.length > 6 && (QS.norm[k] || []).some(x => x !== id);
+    if (w) w.classList.toggle('hide', !hit); }
+});
+ACTS['t-qs'] = t => { T.qf.status = t.dataset.v; QS.selOn = false; QS.sel.clear(); renderQuestions(); };
+ACTS['t-qf'] = t => { T.qf[t.dataset.k] = t.value; renderQuestions(); };
 ACTS['t-q-more'] = () => sheet('الأسئلة', [
   { act: 'm-run', attrs: 'data-a="t-q-add"', icon: 'plus', label: 'إضافة سؤال' },
+  { act: 'm-run', attrs: 'data-a="t-q-paste"', icon: 'edit', label: 'لصق أسئلة كنص' },
   { act: 'm-run', attrs: 'data-a="t-q-import"', icon: 'upload', label: 'استيراد أسئلة من Excel' },
-  { act: 'm-run', attrs: 'data-a="t-q-template"', icon: 'download', label: 'تنزيل النموذج' },
+  { act: 'm-run', attrs: 'data-a="t-q-template"', icon: 'download', label: 'تنزيل نموذج Excel' },
   { act: 'm-run', attrs: 'data-a="t-q-export"', icon: 'download', label: 'تنزيل أسئلتي' },
   null,
   { act: 'm-run', attrs: 'data-a="t-q-del-rejected"', icon: 'trash', label: 'حذف كل الأسئلة المرفوضة', danger: true }
+]);
+ACTS['t-q-add-menu'] = () => sheet('إضافة أسئلة', [
+  { act: 'm-run', attrs: 'data-a="t-q-add"', icon: 'plus', label: 'سؤال واحد' },
+  { act: 'm-run', attrs: 'data-a="t-q-paste"', icon: 'edit', label: 'لصق عدة أسئلة كنص' },
+  { act: 'm-run', attrs: 'data-a="t-q-import"', icon: 'upload', label: 'من ملف Excel' }
 ]);
 ACTS['t-q-del-rejected'] = async () => {
   const n = QS.list.filter(q => q.status === 'rejected').length;
@@ -1691,47 +1769,101 @@ ACTS['t-q-del-rejected'] = async () => {
   const { error } = await sb.from('questions').delete().eq('owner_id', T.user.id).eq('status', 'rejected');
   if (error) return toast(errMsg(error)); await tQuestions();
 };
-ACTS['t-qf'] = t => { T.qf[t.dataset.k] = t.value; renderQuestions(); };
+
+/* question form: tap the right answer, segment pickers, save & next */
 function qForm(q){
-  q = q || { qtype: 'curriculum', level: 'medium', body: '', options: ['', '', '', ''], correct_index: 0 };
-  const o = (v, cur, map) => Object.keys(map).filter(k => k !== 'memory').map(k => `<option value="${k}" ${cur === k ? 'selected' : ''}>${map[k]}</option>`).join('');
-  return `<h3>${q.id ? 'تعديل سؤال' : 'إضافة سؤال'}</h3><form class="col" data-form="t-save-q"><input type="hidden" name="id" value="${q.id || ''}">
-    <div class="grid2"><div class="field"><label for="q-t">النوع</label><select class="input" id="q-t" name="qtype">${o(0, q.qtype, TYPE_AR)}</select></div>
-    <div class="field"><label for="q-l">المستوى</label><select class="input" id="q-l" name="level">${o(0, q.level, LEVEL_AR)}</select></div></div>
-    <div class="field"><label for="q-cu">المنهج (لأسئلة المنهج)</label><select class="input" id="q-cu" name="cu">${cuOptions(q.curriculum_id || QS.lastCu || '')}</select></div>
-    <div class="field"><label for="q-b">نص السؤال</label><textarea class="input" id="q-b" name="body" rows="2" required maxlength="300">${esc(q.body)}</textarea></div>
-    ${[0, 1, 2, 3].map(i => `<div class="field"><label for="q-o${i}">الخيار ${LETTERS[i]}</label><input class="input" id="q-o${i}" name="o${i}" value="${esc(q.options[i])}" required maxlength="100"></div>`).join('')}
-    <div class="field"><label for="q-c">الإجابة الصحيحة</label><select class="input" id="q-c" name="correct">${LETTERS.map((l, i) => `<option value="${i}" ${q.correct_index === i ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-    <button class="btn" type="submit">حفظ</button>
+  const isNew = !q;
+  q = q || { qtype: QS.lastType || 'curriculum', level: QS.lastLevel || 'medium', body: '', options: ['', '', '', ''], correct_index: 0, curriculum_id: QS.lastCu || '' };
+  const seg = (name, cur, map) => `<input type="hidden" name="${name}" value="${cur}"><div class="qf-seg" data-name="${name}">${Object.keys(map).filter(k => k !== 'memory').map(k => `<button type="button" class="${cur === k ? 'on' : ''}" data-act="qf-seg" data-v="${k}">${map[k]}</button>`).join('')}</div>`;
+  return `<h3>${isNew ? 'إضافة سؤال' : 'تعديل سؤال'}</h3><form class="col qf" data-form="t-save-q"><input type="hidden" name="id" value="${q.id || ''}"><input type="hidden" name="next" value="">
+    <div class="field"><label for="q-b">نص السؤال</label><textarea class="input" id="q-b" name="body" rows="2" required maxlength="300" placeholder="اكتب السؤال هنا">${esc(q.body)}</textarea>
+      <small id="q-dupw" class="q-dupw hide">يوجد سؤال مشابه في البنك.</small></div>
+    <div class="field"><label>الخيارات <small class="muted">اضغط الدائرة بجانب الإجابة الصحيحة</small></label><input type="hidden" name="correct" value="${q.correct_index}">
+    ${[0, 1, 2, 3].map(i => `<div class="qo${q.correct_index === i ? ' on' : ''}"><button type="button" class="qo-c" data-act="qf-c" data-i="${i}" aria-label="الإجابة الصحيحة ${LETTERS[i]}">${ic('check')}</button><input class="input" name="o${i}" value="${esc(q.options[i])}" required maxlength="100" placeholder="${i === q.correct_index ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[i]}"></div>`).join('')}</div>
+    <div class="field"><label>المستوى</label>${seg('level', q.level, LEVEL_AR)}</div>
+    <div class="field"><label>النوع</label>${seg('qtype', q.qtype, TYPE_AR)}</div>
+    <div class="field ${q.qtype === 'curriculum' ? '' : 'hide'}" id="q-cuf"><label for="q-cu">المنهج</label><select class="input" id="q-cu" name="cu">${cuOptions(q.curriculum_id || '')}</select></div>
+    ${isNew ? `<div class="grid2"><button class="btn" type="submit">حفظ</button><button class="btn soft" type="button" data-act="t-save-q-next">حفظ والتالي</button></div>` : `<button class="btn" type="submit">حفظ التعديل</button>`}
     ${q.id ? `<button type="button" class="btn danger" data-act="t-q-del" data-id="${q.id}">${ic('trash')} حذف السؤال</button>` : ''}</form>`;
 }
-ACTS['t-q-add'] = async () => { await loadCurricula().catch(() => {}); modal(qForm()); };
+ACTS['qf-seg'] = t => { const s = t.parentElement, f = t.closest('form'); f[s.dataset.name].value = t.dataset.v; s.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t));
+  if (s.dataset.name === 'qtype') f.querySelector('#q-cuf').classList.toggle('hide', t.dataset.v !== 'curriculum'); };
+ACTS['qf-c'] = t => { const f = t.closest('form'), i = Number(t.dataset.i); f.correct.value = i;
+  f.querySelectorAll('.qo').forEach((r, j) => { r.classList.toggle('on', j === i); r.querySelector('input').placeholder = j === i ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[j]; }); };
+ACTS['t-save-q-next'] = t => { const f = t.closest('form'); f.next.value = '1'; f.requestSubmit(); };
+ACTS['t-q-add'] = async () => { await loadCurricula().catch(() => {}); closeModals(); modal(qForm()); setTimeout(() => { const b = document.getElementById('q-b'); if (b) b.focus(); }, 60); };
 ACTS['t-q-edit'] = async t => { await loadCurricula().catch(() => {}); modal(qForm(QS.list.find(x => x.id === t.dataset.id))); };
 ACTS['t-save-q'] = async f => {
-  const row = { qtype: f.qtype.value, level: f.level.value, body: f.body.value.trim(), options: [0, 1, 2, 3].map(i => f['o' + i].value.trim()), correct_index: Number(f.correct.value), curriculum_id: f.cu.value || null };
-  QS.lastCu = f.cu.value;
+  const next = f.next.value === '1'; f.next.value = '';
+  const row = { qtype: f.qtype.value, level: f.level.value, body: f.body.value.trim(), options: [0, 1, 2, 3].map(i => f['o' + i].value.trim()), correct_index: Number(f.correct.value), curriculum_id: f.qtype.value === 'curriculum' ? (f.cu.value || null) : null };
+  QS.lastCu = f.cu.value; QS.lastType = row.qtype; QS.lastLevel = row.level;
   if (new Set(row.options).size < 4) return toast('الخيارات يجب أن تكون مختلفة');
-  const r = f.id.value ? await sb.from('questions').update(row).eq('id', f.id.value) : await sb.from('questions').insert(Object.assign({ owner_id: T.user.id, status: 'draft', source: 'teacher' }, row));
+  const k = qNorm(row.body);
+  if (!f.id.value && (QS.norm[k] || []).length && !await ask('يوجد سؤال بنفس النص في البنك. أضيفه على أي حال؟', { ok: 'إضافة' })) return;
+  const r = f.id.value ? await sb.from('questions').update(row).eq('id', f.id.value).select().single() : await sb.from('questions').insert(Object.assign({ owner_id: T.user.id, status: 'approved', source: 'teacher' }, row)).select().single();
   if (r.error) return toast(errMsg(r.error));
-  closeModals(); toast('تم الحفظ'); await tQuestions();
+  if (f.id.value) { const i = QS.list.findIndex(x => x.id === f.id.value); if (i >= 0) QS.list[i] = r.data; } else QS.list.unshift(r.data);
+  qDupIndex();
+  if (next) {
+    f.body.value = ''; [0, 1, 2, 3].forEach(i => { f['o' + i].value = ''; }); ACTS['qf-c'](f.querySelector('[data-i="0"]'));
+    const w = document.getElementById('q-dupw'); if (w) w.classList.add('hide');
+    f.body.focus(); toast(`تم الحفظ. أسئلتك المعتمدة: ${QS.list.filter(q => q.status === 'approved').length}`);
+    renderQuestionsKeepModal(); return;
+  }
+  closeModals(); toast(f.id.value ? 'تم حفظ التعديل' : 'تمت إضافة السؤال ودخل البنك'); if (!f.id.value && T.qf.status !== 'approved') T.qf.status = 'approved'; renderQuestions();
 };
-ACTS['t-q-status'] = async t => {
-  const { error } = await sb.from('questions').update({ status: t.dataset.s }).eq('id', t.dataset.id);
-  if (error) return toast(errMsg(error));
-  await tQuestions();
-};
+function renderQuestionsKeepModal(){ const m = [...document.querySelectorAll('.modal-back')]; m.forEach(x => x.remove()); renderQuestions(); m.forEach(x => document.body.appendChild(x)); }
+
+/* approve / reject with undo */
+function qSetStatus(ids, s, msg){
+  const prev = {}; ids.forEach(id => { const q = QS.list.find(x => x.id === id); if (q) { prev[id] = q.status; q.status = s; } });
+  QS.sel.clear(); renderQuestions();
+  snack(msg, () => { ids.forEach(id => { const q = QS.list.find(x => x.id === id); if (q && prev[id]) q.status = prev[id]; }); renderQuestions(); },
+    async () => { const { error } = await sb.from('questions').update({ status: s }).in('id', ids); if (error) { toast(errMsg(error)); await tQuestions(); } });
+}
+ACTS['t-q-status'] = t => { const s = t.dataset.s; qSetStatus([t.dataset.id], s, s === 'approved' ? 'تم اعتماد السؤال' : 'تم رفض السؤال'); };
+ACTS['t-q-approve-all'] = () => { const ids = QS.list.filter(q => q.status === 'draft').map(q => q.id); qSetStatus(ids, 'approved', `تم اعتماد ${ids.length} سؤالاً`); };
 ACTS['t-q-del'] = async t => {
   if (!await ask('حذف هذا السؤال نهائياً؟')) return;
   const { error } = await sb.from('questions').delete().eq('id', t.dataset.id);
   if (error) return toast(errMsg(error));
   closeModals(); await tQuestions();
 };
-ACTS['t-q-approve-all'] = async () => {
-  if (!await ask('اعتماد كل المسودات؟ تأكد أنك راجعتها.')) return;
-  const { error } = await sb.from('questions').update({ status: 'approved' }).eq('owner_id', T.user.id).eq('status', 'draft');
+
+/* bulk selection */
+ACTS['t-q-selon'] = () => { QS.selOn = !QS.selOn; QS.sel.clear(); renderQuestions(); };
+ACTS['t-q-selx'] = () => { QS.selOn = false; QS.sel.clear(); renderQuestions(); };
+ACTS['t-q-pick'] = t => { const id = t.dataset.id; QS.sel.has(id) ? QS.sel.delete(id) : QS.sel.add(id); renderQuestions(); };
+ACTS['t-q-selall'] = () => { const ids = qFiltered().map(q => q.id); const all = ids.every(id => QS.sel.has(id)); ids.forEach(id => all ? QS.sel.delete(id) : QS.sel.add(id)); renderQuestions(); };
+ACTS['t-q-bulk'] = t => { const ids = [...QS.sel], s = t.dataset.s; closeModals(); qSetStatus(ids, s, `${s === 'approved' ? 'تم اعتماد' : s === 'rejected' ? 'تم رفض' : 'تم نقل'} ${ids.length} سؤالاً`); };
+ACTS['t-q-bulk-more'] = () => sheet(`${QS.sel.size} سؤالاً محدداً`, [
+  { act: 't-q-bulk', attrs: 'data-s="approved"', icon: 'check', label: 'اعتماد' },
+  { act: 't-q-bulk', attrs: 'data-s="draft"', icon: 'eye', label: 'إرجاعها للمراجعة' },
+  { act: 't-q-bulk', attrs: 'data-s="rejected"', icon: 'x', label: 'رفض' },
+  { act: 't-q-bulk-lv', attrs: 'data-v="easy"', icon: 'layers', label: 'جعلها سهلة' },
+  { act: 't-q-bulk-lv', attrs: 'data-v="medium"', icon: 'layers', label: 'جعلها متوسطة' },
+  { act: 't-q-bulk-lv', attrs: 'data-v="hard"', icon: 'layers', label: 'جعلها صعبة' },
+  null,
+  { act: 't-q-bulk-del', icon: 'trash', label: 'حذف المحدد', danger: true }
+]);
+ACTS['t-q-bulk-lv'] = async t => { const ids = [...QS.sel]; closeModals();
+  const { error } = await sb.from('questions').update({ level: t.dataset.v }).in('id', ids); if (error) return toast(errMsg(error));
+  ids.forEach(id => { const q = QS.list.find(x => x.id === id); if (q) q.level = t.dataset.v; }); QS.sel.clear(); toast('تم تغيير المستوى'); renderQuestions(); };
+ACTS['t-q-bulk-del'] = async () => { const ids = [...QS.sel]; closeModals();
+  if (!await ask(`حذف ${ids.length} سؤالاً نهائياً؟`)) return;
+  const { error } = await sb.from('questions').delete().in('id', ids); if (error) return toast(errMsg(error));
+  QS.sel.clear(); QS.selOn = false; await tQuestions(); };
+
+/* public bank */
+ACTS['t-q-view'] = () => toast('هذا سؤال من البنك العام. انسخه إلى أسئلتك لتعدّله.');
+ACTS['t-q-copy'] = async t => {
+  const g = QS.glob.find(x => x.id === t.dataset.id); if (!g) return;
+  const { data, error } = await sb.from('questions').insert({ owner_id: T.user.id, status: 'approved', source: 'copy', qtype: g.qtype, level: g.level, body: g.body, options: g.options, correct_index: g.correct_index }).select().single();
   if (error) return toast(errMsg(error));
-  toast('تم اعتماد المسودات'); await tQuestions();
+  QS.list.unshift(data); qDupIndex(); toast('تم النسخ إلى أسئلتك، يمكنك تعديله الآن'); renderQuestions();
 };
+
+/* Excel template / export */
 const QHEAD = ['السؤال', 'أ', 'ب', 'ج', 'د', 'الإجابة الصحيحة', 'المستوى', 'النوع'];
 ACTS['t-q-template'] = () => {
   const ws = XLSX.utils.aoa_to_sheet([QHEAD, ['ما عاصمة دولة الكويت؟', 'مدينة الكويت', 'الجهراء', 'الفحيحيل', 'الأحمدي', 'أ', 'سهل', 'عام'], ['كم يساوي 12 × 12؟', '124', '144', '154', '164', 'ب', 'متوسط', 'سرعة بديهة']]);
@@ -1743,38 +1875,94 @@ ACTS['t-q-export'] = () => {
   XLSX.utils.book_append_sheet(wb, ws, 'الأسئلة'); XLSX.writeFile(wb, 'أسئلتي.xlsx');
 };
 ACTS['t-q-import'] = () => { closeModals(); document.getElementById('qxl').click(); };
-function parseQuestions(rows){
-  const out = []; let bad = 0;
-  const first = String((rows[0] || [])[0] || '');
-  const body = /سؤال|question/i.test(first) ? rows.slice(1) : rows;
-  const lv = { 'سهل': 'easy', 'متوسط': 'medium', 'صعب': 'hard' };
-  const ty = { 'منهج': 'curriculum', 'عام': 'general', 'بديهة': 'quick', 'سرعة بديهة': 'quick', 'ذاكرة': 'general' };
-  body.forEach(r => {
-    const text = String(r[0] || '').trim();
-    const opts = [1, 2, 3, 4].map(i => String(r[i] == null ? '' : r[i]).trim());
-    const ans = String(r[5] == null ? '' : r[5]).trim();
-    let ci = -1;
-    const map = { 'أ': 0, 'ا': 0, 'a': 0, '1': 0, 'ب': 1, 'b': 1, '2': 1, 'ج': 2, 'c': 2, '3': 2, 'د': 3, 'd': 3, '4': 3 };
-    if (ans.toLowerCase() in map) ci = map[ans.toLowerCase()]; else ci = opts.indexOf(ans);
-    if (!text || opts.some(o => !o) || new Set(opts).size < 4 || ci < 0) { bad++; return; }
-    out.push({ owner_id: T.user.id, qtype: ty[String(r[7] || '').trim()] || 'curriculum', level: lv[String(r[6] || '').trim()] || 'medium', body: text, options: opts, correct_index: ci, status: 'draft', source: 'teacher' });
-  });
-  return { out, bad };
+
+/* parse rows (Excel) into checked candidates with a reason for each problem */
+const Q_LV = { 'سهل': 'easy', 'متوسط': 'medium', 'صعب': 'hard', easy: 'easy', medium: 'medium', hard: 'hard' };
+const Q_TY = { 'منهج': 'curriculum', 'عام': 'general', 'بديهة': 'quick', 'سرعة بديهة': 'quick', 'ذاكرة': 'general' };
+function qCheck(c, seen){
+  if (!c.body) return 'نص السؤال فارغ';
+  if (c.options.some(o => !o)) return 'أحد الخيارات فارغ';
+  if (new Set(c.options).size < 4) return 'خيارات مكررة';
+  if (c.correct_index < 0) return 'الإجابة الصحيحة غير واضحة';
+  const k = qNorm(c.body);
+  if (seen.has(k)) return 'مكرر داخل الملف';
+  seen.add(k);
+  if ((QS.norm[k] || []).length) c.dup = true;
+  return '';
 }
+function parseQuestions(rows){
+  const first = String((rows[0] || [])[0] || '');
+  const head = /سؤال|question/i.test(first), body = head ? rows.slice(1) : rows, seen = new Set();
+  const map = { 'أ': 0, 'ا': 0, 'a': 0, '1': 0, 'ب': 1, 'b': 1, '2': 1, 'ج': 2, 'c': 2, '3': 2, 'د': 3, 'd': 3, '4': 3 };
+  return body.map((r, i) => {
+    if (!r || r.every(x => String(x == null ? '' : x).trim() === '')) return null;
+    const opts = [1, 2, 3, 4].map(j => String(r[j] == null ? '' : r[j]).trim());
+    const ans = String(r[5] == null ? '' : r[5]).trim();
+    const ci = ans.toLowerCase() in map ? map[ans.toLowerCase()] : opts.indexOf(ans);
+    const c = { line: i + (head ? 2 : 1), body: String(r[0] || '').trim(), options: opts, correct_index: ci, level: Q_LV[String(r[6] || '').trim()] || 'medium', qtype: Q_TY[String(r[7] || '').trim()] || 'curriculum' };
+    c.err = qCheck(c, seen); return c;
+  }).filter(Boolean);
+}
+/* paste: one question per line → السؤال | الصحيح | خطأ | خطأ | خطأ */
+function parsePasteQ(txt, level, qtype){
+  const seen = new Set();
+  return String(txt || '').split(/\r?\n/).map((l, i) => ({ l: l.trim(), i })).filter(x => x.l).map(x => {
+    const p = x.l.split(/\s*[|\t]\s*/).map(s => s.trim());
+    const right = p[1] || '', wrong = p.slice(2, 5);
+    const ci = Math.floor(Math.random() * 4), opts = wrong.slice(); opts.splice(ci, 0, right);
+    while (opts.length < 4) opts.push('');
+    const c = { line: x.i + 1, body: p[0].replace(/^\d+[\.\-\)]\s*/, ''), options: opts.slice(0, 4), correct_index: right ? ci : -1, level, qtype };
+    c.err = p.length < 5 ? 'يحتاج السؤال والإجابة الصحيحة و3 خيارات خاطئة' : qCheck(c, seen); return c;
+  });
+}
+ACTS['t-q-paste'] = () => { closeModals();
+  modal(`<h3>لصق أسئلة كنص</h3><p class="sub">كل سؤال في سطر: السؤال | الإجابة الصحيحة | خطأ | خطأ | خطأ</p>
+    <textarea class="input qp-ta" rows="7" dir="auto" placeholder="ما عاصمة الكويت؟ | مدينة الكويت | الجهراء | الأحمدي | الفروانية"></textarea>
+    <div class="grid2"><select class="input" id="qp-lv">${Object.keys(LEVEL_AR).map(k => `<option value="${k}" ${k === 'medium' ? 'selected' : ''}>${LEVEL_AR[k]}</option>`).join('')}</select>
+    <select class="input" id="qp-ty">${['curriculum', 'general', 'quick'].map(k => `<option value="${k}">${TYPE_AR[k]}</option>`).join('')}</select></div>
+    <p class="sub" id="qp-info">ترتيب الخيارات يُخلط تلقائياً.</p>
+    <button class="btn" data-act="t-q-paste-go">معاينة</button>`);
+  setTimeout(() => { const t = document.querySelector('.qp-ta'); if (t) t.focus(); }, 60);
+};
+function qPasteInfo(){ const ta = document.querySelector('.qp-ta'), el = document.getElementById('qp-info'); if (!ta || !el) return;
+  const c = parsePasteQ(ta.value, 'medium', 'general'), ok = c.filter(x => !x.err).length;
+  el.textContent = c.length ? `${ok} سؤالاً صالحاً${c.length - ok ? `، و${c.length - ok} سطراً فيه مشكلة` : ''}` : 'ترتيب الخيارات يُخلط تلقائياً.'; }
+ACTS['t-q-paste-go'] = () => {
+  const c = parsePasteQ(document.querySelector('.qp-ta').value, document.getElementById('qp-lv').value, document.getElementById('qp-ty').value);
+  if (!c.length) return toast('الصق الأسئلة أولاً');
+  closeModals(); qPreview(c, 'لصق');
+};
 ACTS['t-q-chosen'] = async t => {
   const file = t.files && t.files[0];
   if (!file) return;
-  try {
-    const { out, bad } = parseQuestions(await readRows(file));
-    t.value = '';
-    if (!out.length) return toast('لم أجد أسئلة صالحة في الملف');
-    for (let i = 0; i < out.length; i += 100) {
-      const { error } = await sb.from('questions').insert(out.slice(i, i + 100));
-      if (error) throw error;
-    }
-    toast(`تم استيراد ${out.length} سؤالاً كمسودات للمراجعة` + (bad ? ` (تخطي ${bad} غير صالح)` : ''));
-    await tQuestions();
+  try { const c = parseQuestions(await readRows(file)); t.value = '';
+    if (!c.length) return toast('الملف فارغ');
+    qPreview(c, file.name);
   } catch(e){ toast(errMsg(e)); }
+};
+/* preview before inserting: valid / duplicates / errors with reasons */
+function qPreview(c, src){
+  QS.pv = c;
+  const ok = c.filter(x => !x.err), bad = c.filter(x => x.err), dup = ok.filter(x => x.dup);
+  modal(`<h3>معاينة الأسئلة</h3><p class="sub">${esc(src)}</p>
+    <div class="pv-sum"><span class="ok">${ok.length} صالح</span>${dup.length ? `<span class="warn">${dup.length} موجود مسبقاً</span>` : ''}${bad.length ? `<span class="bad">${bad.length} فيه مشكلة</span>` : ''}</div>
+    ${bad.length ? `<div class="qpv-bad"><b>لن تُضاف هذه الأسطر:</b>${bad.slice(0, 30).map(x => `<div><em>سطر ${x.line}</em> ${esc(x.err)}${x.body ? `: <span>${esc(x.body.slice(0, 40))}</span>` : ''}</div>`).join('')}${bad.length > 30 ? `<div class="muted">و${bad.length - 30} أخرى</div>` : ''}</div>` : ''}
+    <div class="qpv-list">${ok.slice(0, 40).map(x => `<div class="qpv${x.dup ? ' dup' : ''}"><b>${esc(x.body)}</b><small>${esc(x.options[x.correct_index])} · ${LEVEL_AR[x.level]}${x.dup ? ' · موجود مسبقاً' : ''}</small></div>`).join('')}${ok.length > 40 ? `<p class="muted center">و${ok.length - 40} سؤالاً آخر</p>` : ''}</div>
+    ${dup.length ? `<label class="chk"><input type="checkbox" id="qpv-skip" checked> تخطي الأسئلة الموجودة مسبقاً</label>` : ''}
+    <label class="chk"><input type="checkbox" id="qpv-rev"> أريد مراجعتها قبل اعتمادها</label>
+    <button class="btn" data-act="t-q-pv-save" ${ok.length ? '' : 'disabled'}>إضافة الأسئلة</button>`);
+}
+ACTS['t-q-pv-save'] = async t => {
+  const skip = document.getElementById('qpv-skip'), rev = document.getElementById('qpv-rev');
+  const rows = QS.pv.filter(x => !x.err && !(x.dup && skip && skip.checked)).map(x => ({ owner_id: T.user.id, qtype: x.qtype, level: x.level, body: x.body, options: x.options, correct_index: x.correct_index, status: rev && rev.checked ? 'draft' : 'approved', source: 'teacher' }));
+  if (!rows.length) return toast('لا توجد أسئلة جديدة لإضافتها');
+  t.disabled = true;
+  try {
+    for (let i = 0; i < rows.length; i += 100) { const { error } = await sb.from('questions').insert(rows.slice(i, i + 100)); if (error) throw error; }
+    closeModals(); T.qf.status = rows[0].status;
+    toast(`تمت إضافة ${rows.length} سؤالاً` + (rows[0].status === 'draft' ? ' للمراجعة' : ''));
+    await tQuestions();
+  } catch(e){ t.disabled = false; toast(errMsg(e)); }
 };
 
 /* ---- results ---- */
