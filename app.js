@@ -20,7 +20,12 @@ const ERR = {
   no_competition: 'لا توجد مسابقة نشطة لصفك بعد',
   not_enough_questions: 'لا توجد أسئلة معتمدة كافية بعد، أخبر المعلم/ـة',
   forbidden: 'غير مسموح بهذا الإجراء',
-  wrong_position: 'تعذّر تسجيل الإجابة، أعد المحاولة'
+  wrong_position: 'تعذّر تسجيل الإجابة، أعد المحاولة',
+  invalid_join: 'رابط التسجيل غير صالح أو مغلق، اطلب رابطاً جديداً من المعلم/ـة',
+  bad_name: 'اكتب الاسم الثلاثي بشكل صحيح',
+  bad_no: 'اكتب رقم الطالب',
+  already_registered: 'هذا الرقم مسجل مسبقاً في الصف، اطلب رمزك من المعلم/ـة',
+  class_full: 'الصف ممتلئ'
 };
 function errMsg(e){
   const m = (e && e.message) || String(e);
@@ -57,6 +62,8 @@ const ICON = {
   trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   refresh:'<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/>',
   edit:'<path d="M4 20h4L19 9l-4-4L4 16v4z"/>',
+  eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  send:'<path d="M21 3L3 10.5l7 2.5 2.5 7L21 3z"/><path d="M10 13l5-5"/>',
   star:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3z"/>'
 };
 const ic = n => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + ICON[n] + '</svg>';
@@ -334,12 +341,12 @@ const STYLE_SW = { kids: 'linear-gradient(135deg,#FFD9B0,#E3262F)', mid: 'linear
 const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png" alt=""></div>';
 const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['questions', 'الأسئلة', 'help'], ['results', 'النتائج', 'chart'], ['settings', 'الإعدادات', 'gear']];
 
-function shell(title, body, active, top){
-  return `<div class="t-top"><div class="brand">${LOGO_S}<span class="t-title">${esc(title)}</span></div>${top || ''}</div>` +
+function shell(title, body, active, top, back){
+  return `<div class="t-top"><div class="brand">${back ? `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>` : LOGO_S}<span class="t-title">${esc(title)}</span></div>${top || ''}</div>` +
     `<div class="t-body">${body}</div>` +
     `<nav class="t-nav" aria-label="القائمة">${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}">${ic(n[2])}<span>${n[1]}</span></a>`).join('')}</nav>`;
 }
-function view(title, body, active, top){ $app.innerHTML = shell(title, body, active, top); window.scrollTo(0, 0); }
+function view(title, body, active, top, back){ $app.innerHTML = shell(title, body, active, top, back); window.scrollTo(0, 0); }
 function go(h){ if (location.hash === h) route(); else location.hash = h; }
 
 /* ---- auth ---- */
@@ -420,9 +427,7 @@ async function tHome(){
   if (cp.error) throw cp.error;
   const classes = cl.data, compBy = {};
   cp.data.forEach(c => { if (!compBy[c.class_id]) compBy[c.class_id] = c; });
-  if (!classes.length) {
-    return view('مرحباً، ' + (T.name || ''), `<div class="card center col"><b style="font-size:18px">ابدأ أول مسابقة</b><p class="muted">أضف صفوفك وارفع أسماء الطلبة، ثم أنشئ المسابقة من صفحة الصف.</p><a class="btn" href="#/t/classes" style="text-decoration:none">${ic('plus')} إضافة صفوف</a></div>`, 'home');
-  }
+  if (!classes.length) { if (!W.step) W.step = 1; return renderWizard(); }
   const results = await Promise.all(classes.map(c => rpc('teacher_class_results', { p_class: c.id }).catch(() => [])));
   const stats = classes.map((c, i) => {
     const rs = results[i], n = rs.length, comp = compBy[c.id], ph = phaseOf(comp);
@@ -483,6 +488,120 @@ async function tHome(){
   view('مرحباً، ' + (T.name || ''), html, 'home');
 }
 
+/* ---- quick-start wizard ---- */
+const STAGES = [['primary', 'ابتدائي', 'الصفوف 1–5', 'kids', 'star'], ['middle', 'متوسط', 'الصفوف 6–9', 'mid', 'layers'], ['secondary', 'ثانوي', 'الصفوف 10–12', 'mid', 'chart'], ['university', 'جامعة', 'طلبة الجامعة', 'uni', 'trophy']];
+const QTYPES = [['curriculum', 'المنهج', 'أسئلة من مادتك', 'layers'], ['general', 'معلومات عامة', 'ثقافة ومعرفة', 'help'], ['quick', 'سرعة بديهة', 'حساب وألغاز', 'clock'], ['memory', 'الذاكرة', 'تذكّر وترتيب', 'star']];
+const SUBJECTS = ['عام', 'اللغة العربية', 'الرياضيات', 'العلوم', 'التربية الإسلامية', 'اللغة الإنجليزية', 'الاجتماعيات', 'الحاسوب', 'أخرى'];
+const METHODS = [['manual', 'إضافة يدوية', 'اكتب اسم الصف وأسماء الطلبة', 'edit'], ['file', 'رفع ملف Excel', 'عدة صفوف دفعة واحدة', 'upload'], ['self', 'تسجيل ذاتي', 'رابط يسجل به الطلبة بأنفسهم', 'user']];
+const W = { step: 0, stage: null, qtypes: ['curriculum', 'general', 'quick'], subject: 'عام', method: null, cname: '', names: '', self: '', multi: null, compNow: true, start: '' };
+const WSTEPS = ['المرحلة', 'الأسئلة', 'الإضافة', 'الطلبة', 'المسابقة'];
+function wSave(){
+  const g = id => document.getElementById(id);
+  if (g('w-cname')) W.cname = g('w-cname').value.trim();
+  if (g('w-names')) W.names = g('w-names').value;
+  if (g('w-self')) W.self = g('w-self').value;
+  if (g('w-sub')) W.subject = g('w-sub').value;
+  if (g('w-start')) W.start = g('w-start').value;
+}
+function renderWizard(){
+  const s = W.step;
+  const prog = `<div class="w-prog">${WSTEPS.map((n, i) => `<div class="w-st ${i + 1 < s ? 'done' : i + 1 === s ? 'cur' : ''}"><span>${i + 1 < s ? '✓' : i + 1}</span><small>${n}</small></div>`).join('')}</div>`;
+  let body = '', ok = true;
+  if (s === 1) {
+    body = `<h2 class="w-h">ما المرحلة الدراسية؟</h2><p class="sub">نختار لك شكل الواجهة المناسب للطلبة.</p><div class="picks picks2">${STAGES.map(x => `<button class="pick ${W.stage === x[0] ? 'on' : ''}" data-act="w-stage" data-v="${x[0]}"><span class="pick-ic">${ic(x[4])}</span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>`;
+    ok = !!W.stage;
+  } else if (s === 2) {
+    body = `<h2 class="w-h">أنواع الأسئلة</h2><p class="sub">اختر نوعاً أو أكثر. كل جولة: 1 سهل، 2 متوسط، 1 صعب.</p><div class="picks picks2">${QTYPES.map(x => `<button class="pick ${W.qtypes.includes(x[0]) ? 'on' : ''}" data-act="w-qtype" data-v="${x[0]}"><span class="pick-ic">${ic(x[3])}</span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>` +
+      (W.qtypes.includes('curriculum') ? `<div class="field"><label for="w-sub">المادة / المنهج</label><select class="input" id="w-sub">${SUBJECTS.map(x => `<option ${W.subject === x ? 'selected' : ''}>${x}</option>`).join('')}</select><p class="sub">المناهج المعتمدة يرفعها المشرف، ويمكنك إضافة أسئلتك من صفحة الأسئلة.</p></div>` : '');
+    ok = W.qtypes.length > 0;
+  } else if (s === 3) {
+    body = `<h2 class="w-h">كيف تضيف الصفوف والطلبة؟</h2><div class="picks">${METHODS.map(x => `<button class="pick wide ${W.method === x[0] ? 'on' : ''}" data-act="w-method" data-v="${x[0]}"><span class="pick-ic">${ic(x[3])}</span><div><b>${x[1]}</b><small>${x[2]}</small></div></button>`).join('')}</div>`;
+    ok = !!W.method;
+  } else if (s === 4) {
+    if (W.method === 'manual') {
+      body = `<h2 class="w-h">بيانات الصف</h2><div class="field"><label for="w-cname">اسم الصف</label><input class="input" id="w-cname" value="${esc(W.cname)}" placeholder="مثال: السادس / أ"></div>
+        <div class="field"><label for="w-names">أسماء الطلبة (اسم في كل سطر، ويمكن إضافة الرقم بعد فاصلة)</label><textarea class="input" id="w-names" rows="8" placeholder="سارة العتيبي، 1001&#10;ليان الزامل، 1002">${esc(W.names)}</textarea></div>
+        <p class="sub">يمكنك ترك الأسماء فارغة وإضافتها لاحقاً.</p>`;
+    } else if (W.method === 'file') {
+      const g = W.multi;
+      body = `<h2 class="w-h">رفع ملف الصفوف</h2><p class="sub">ملف واحد بثلاثة أعمدة: الاسم، رقم الطالب، الصف.</p>
+        <div class="row"><button class="btn soft" data-act="t-multi-sample">${ic('download')} نموذج</button><button class="btn" data-act="w-file">${ic('upload')} اختيار الملف</button></div><input type="file" id="wxl" accept=".xlsx,.xls,.csv" class="hide" data-change="w-file-chosen">` +
+        (g ? `<div class="card"><b>${Object.keys(g).length} صف · ${Object.values(g).reduce((a, x) => a + x.length, 0)} طالب/ـة</b>${Object.keys(g).map(k => `<div class="row between dash-link"><span>${esc(k)}</span><span class="sub">${g[k].length}</span></div>`).join('')}</div>` : '');
+      ok = !!g;
+    } else {
+      body = `<h2 class="w-h">التسجيل الذاتي</h2><p class="sub">اكتب أسماء الصفوف (صف في كل سطر). سنعطيك رابطاً لكل صف ترسله للطلبة، فيسجل كل طالب اسمه ورقمه ويحصل على رمزه.</p>
+        <div class="field"><textarea class="input" id="w-self" rows="5" placeholder="السادس / أ&#10;السادس / ب">${esc(W.self)}</textarea></div>`;
+    }
+  } else if (s === 5) {
+    if (!W.start) W.start = todayKW();
+    const pe = addDays(W.start, 4), end = addDays(pe, 3);
+    body = `<h2 class="w-h">المسابقة</h2><div class="picks">
+      <button class="pick wide ${W.compNow ? 'on' : ''}" data-act="w-comp" data-v="1"><span class="pick-ic">${ic('trophy')}</span><div><b>أنشئ المسابقة الآن</b><small>بإعدادات مقترحة يمكنك تعديلها لاحقاً</small></div></button>
+      <button class="pick wide ${!W.compNow ? 'on' : ''}" data-act="w-comp" data-v="0"><span class="pick-ic">${ic('clock')}</span><div><b>لاحقاً</b><small>أنشئها من صفحة الصف متى شئت</small></div></button></div>` +
+      (W.compNow ? `<div class="card col"><div class="field"><label for="w-start">بداية جمع النقاط</label><input class="input" type="date" id="w-start" value="${W.start}" data-change="w-start"></div>
+        <div class="row between"><span class="sub">جمع النقاط</span><b>${esc(fmtDate(W.start))} ← ${esc(fmtDate(pe))}</b></div>
+        <div class="row between"><span class="sub">التصفيات حتى</span><b>${esc(fmtDate(end))}</b></div>
+        <p class="sub">جولة رسمية يومياً: 4 أسئلة × 15 ثانية. يتأهل 8 للتصفيات.</p></div>` : '');
+  }
+  const nav = `<div class="row w-nav">${s > 1 ? `<button class="btn soft" data-act="w-prev">رجوع</button>` : ''}<button class="btn" data-act="${s === 5 ? 'w-finish' : 'w-next'}" ${ok ? '' : 'disabled'}>${s === 5 ? 'إنشاء' : 'التالي'}</button></div>`;
+  view('إعداد سريع', `<div class="card w-card">${prog}<div class="col">${body}</div></div>${nav}`, 'home');
+}
+ACTS['w-stage'] = t => { W.stage = t.dataset.v; renderWizard(); };
+ACTS['w-qtype'] = t => { wSave(); const k = t.dataset.v; W.qtypes = W.qtypes.includes(k) ? W.qtypes.filter(x => x !== k) : W.qtypes.concat(k); renderWizard(); };
+ACTS['w-method'] = t => { W.method = t.dataset.v; renderWizard(); };
+ACTS['w-comp'] = t => { wSave(); W.compNow = t.dataset.v === '1'; renderWizard(); };
+ACTS['w-start'] = () => { wSave(); renderWizard(); };
+ACTS['w-prev'] = () => { wSave(); W.step--; renderWizard(); };
+ACTS['w-next'] = () => {
+  wSave();
+  if (W.step === 4 && W.method === 'manual' && !W.cname) return toast('اكتب اسم الصف');
+  if (W.step === 4 && W.method === 'self' && !W.self.trim()) return toast('اكتب اسم صف واحد على الأقل');
+  W.step++; renderWizard();
+};
+ACTS['w-file'] = () => document.getElementById('wxl').click();
+ACTS['w-file-chosen'] = async t => {
+  const file = t.files && t.files[0]; if (!file) return;
+  try {
+    const list = parseMulti(await readRows(file)); t.value = '';
+    if (!list.length) return toast('لم أجد بيانات. تأكد من الأعمدة: الاسم، رقم الطالب، الصف');
+    const g = {}; list.forEach(x => (g[x.cls] = g[x.cls] || []).push({ name: x.name, student_no: x.student_no }));
+    W.multi = g; renderWizard();
+  } catch(e){ toast('تعذّرت قراءة الملف'); }
+};
+ACTS['w-finish'] = async t => {
+  wSave();
+  t.disabled = true; t.textContent = 'جارٍ الإنشاء...';
+  const st = STAGES.find(x => x[0] === W.stage);
+  const base = { teacher_id: T.user.id, stage: W.stage, style: st ? st[3] : 'mid', qtypes: W.qtypes, subject: W.qtypes.includes('curriculum') ? W.subject : null };
+  const plan = [];
+  if (W.method === 'manual') plan.push({ name: W.cname, rows: W.names.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const p = l.split(/[،,\t]/); return { name: p[0].trim(), student_no: (p[1] || '').trim() }; }) });
+  else if (W.method === 'file') Object.keys(W.multi).forEach(k => plan.push({ name: k, rows: W.multi[k] }));
+  else W.self.split('\n').map(x => x.trim()).filter(Boolean).forEach(k => plan.push({ name: k, rows: [], self: true }));
+  const made = []; let added = 0; const gid = crypto.randomUUID();
+  try {
+    for (const p of plan) {
+      const r = await sb.from('classes').insert(Object.assign({ name: p.name }, base)).select().single();
+      if (r.error) throw r.error;
+      const c = r.data;
+      for (let i = 0; i < p.rows.length; i += 150) { const x = await rpc('add_students', { p_class: c.id, p_rows: p.rows.slice(i, i + 150) }); added += x.added.length; }
+      if (p.self) c.join_code = await rpc('set_self_join', { p_class: c.id, p_on: true });
+      if (W.compNow) {
+        const pe = addDays(W.start, 4);
+        const k = await sb.from('competitions').insert({ class_id: c.id, group_id: gid, title: 'مسابقة تحدّي الدقيقة', start_date: W.start, points_end_date: pe, end_date: addDays(pe, 3), group_size: 6, qualifiers: 8, round_window_hours: 24 });
+        if (k.error) throw k.error;
+      }
+      made.push(c);
+    }
+  } catch(e){ toast(errMsg(e)); t.disabled = false; t.textContent = 'إنشاء'; return; }
+  const links = made.filter(c => c.join_code);
+  view('تم الإعداد 🎉', `<div class="card col center"><div class="medal" style="width:96px;height:96px">${ic('check')}</div><b style="font-size:20px">جاهز!</b><p class="sub">أُنشئ ${made.length} صف${added ? ' وأُضيف ' + added + ' طالب/ـة' : ''}${W.compNow ? '، والمسابقة تبدأ ' + esc(fmtDate(W.start)) : ''}.</p></div>` +
+    (links.length ? `<div class="card col"><b>روابط التسجيل الذاتي</b>${links.map(c => `<div class="col" style="gap:6px"><b>${esc(c.name)}</b><div class="join-box" dir="ltr">${esc(joinLink(c.join_code))}</div><button class="btn sm" data-act="copy" data-v="${esc(joinLink(c.join_code))}">نسخ الرابط</button></div>`).join('')}</div>` : '') +
+    `<div class="card col"><b>الخطوات التالية</b><div class="sub">1. وزّع الرموز أو الروابط على الطلبة من صفحة الصف.<br>2. راجع الأسئلة واعتمدها من صفحة الأسئلة.<br>3. تابع المشاركة من الرئيسية.</div></div>
+     <div class="row"><a class="btn" href="#/t/classes" style="text-decoration:none">الصفوف</a><button class="btn soft" data-act="w-done">لوحة التحكم</button></div>`, 'home');
+  Object.assign(W, { step: 0, stage: null, method: null, cname: '', names: '', self: '', multi: null, start: '' });
+};
+ACTS['w-done'] = () => go('#/t/home');
+
 /* ---- classes ---- */
 function styleCards(sel){
   return `<div class="style-cards">${['kids', 'mid', 'uni'].map(k => `<button type="button" class="style-card ${k === sel ? 'on' : ''}" data-act="pick-style" data-style="${k}"><div class="sw" style="background:${STYLE_SW[k]}"></div>${STYLE_AR[k]}</button>`).join('')}</div>`;
@@ -493,14 +612,111 @@ ACTS['pick-style'] = t => {
   const hid = t.closest('form') && t.closest('form').querySelector('[name=style]');
   if (hid) hid.value = t.dataset.style;
 };
+const CL = { classes: [], byId: {}, students: {}, comps: {}, open: new Set(), tab: 'classes' };
 async function tClasses(){
-  const { data, error } = await sb.from('classes').select('*, students(count)').order('created_at');
-  if (error) throw error;
-  const body = `<div class="row" style="flex-wrap:wrap"><button class="btn" data-act="t-add-class" style="flex:1">${ic('plus')} إضافة صف</button><button class="btn soft" data-act="t-multi-up" style="flex:1">${ic('upload')} رفع صفوف من Excel</button><button class="btn sm soft" data-act="t-multi-sample">نموذج</button><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"></div>` +
-    (data.map(c => `<a class="class-card" href="#/t/class/${c.id}"><div class="grow"><b style="font-size:18px">${esc(c.name)}</b><div class="sub">${(c.students && c.students[0] ? c.students[0].count : 0)} من الطلبة · نمط ${esc(STYLE_AR[c.style])}</div></div>${ic('back')}</a>`).join('') ||
-    '<div class="card center muted">لا توجد صفوف بعد.</div>');
-  view('الصفوف', body, 'classes');
+  const [c, s, k] = await Promise.all([
+    sb.from('classes').select('*').order('created_at'),
+    sb.from('students').select('*').order('created_at'),
+    sb.from('competitions').select('*').eq('status', 'active').order('created_at')
+  ]);
+  if (c.error) throw c.error; if (s.error) throw s.error; if (k.error) throw k.error;
+  CL.classes = c.data; CL.byId = {}; CL.students = {}; CL.comps = {}; CL.allComps = k.data;
+  c.data.forEach(x => { CL.byId[x.id] = x; CL.students[x.id] = []; });
+  s.data.forEach(x => { if (CL.students[x.class_id]) CL.students[x.class_id].push(x); });
+  k.data.forEach(x => { CL.comps[x.class_id] = x; });
+  renderClasses();
 }
+function renderClasses(){
+  const tabs = `<div class="tabs"><button class="${CL.tab === 'classes' ? 'on' : ''}" data-act="c-tab" data-t="classes">الصفوف (${CL.classes.length})</button><button class="${CL.tab === 'comps' ? 'on' : ''}" data-act="c-tab" data-t="comps">المسابقات</button></div>`;
+  view('الصفوف', tabs + (CL.tab === 'classes' ? classesList() : compsPanel()), 'classes');
+}
+ACTS['c-tab'] = t => { CL.tab = t.dataset.t; T.compEdit = null; renderClasses(); };
+function classesList(){
+  const top = `<div class="row" style="flex-wrap:wrap"><button class="btn sm" data-act="t-add-class">${ic('plus')} صف جديد</button><button class="btn sm soft" data-act="t-multi-up">${ic('upload')} رفع صفوف Excel</button><button class="btn sm soft" data-act="t-multi-sample">نموذج</button>
+    ${CL.classes.length ? `<button class="btn sm soft" data-act="c-all">${CL.open.size ? 'طي الكل' : 'فتح الكل'}</button>` : ''}<input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen"></div>`;
+  if (!CL.classes.length) return top + '<div class="card center muted">لا توجد صفوف بعد.</div>';
+  return top + CL.classes.map(classSection).join('') + '<p class="sub center">اسحب اسم الطالب/ـة لليسار لإظهار: واتساب، رمز جديد، حذف</p>';
+}
+function classSection(c){
+  const st = CL.students[c.id] || [], open = CL.open.has(c.id), comp = CL.comps[c.id];
+  let body = '';
+  if (open) {
+    const link = joinLink(c.join_code);
+    body = `<div class="cls-body"><div class="row" style="flex-wrap:wrap">
+      <button class="btn sm soft" data-act="t-upload">${ic('upload')} رفع أسماء</button><button class="btn sm soft" data-act="t-add-one">${ic('plus')} إضافة</button>
+      <button class="btn sm soft" data-act="t-export-codes">${ic('download')} الرموز</button><button class="btn sm soft" data-act="t-print-codes">${ic('print')} طباعة</button>
+      <button class="btn sm soft" data-act="c-menu">${ic('gear')} إعدادات الصف</button></div>` +
+      (c.self_join ? `<div class="join-row"><span class="sub">التسجيل الذاتي مفعّل</span><button class="btn sm" data-act="copy" data-v="${esc(link)}">نسخ رابط التسجيل</button></div>` : '') +
+      (st.length ? `<div class="sw-list">${st.map((s, i) => `<div class="sw-row"><div class="sw-act">
+          <button class="wa" data-act="s-wa" data-id="${s.id}">${ic('send')}<span>واتساب</span></button>
+          <button class="rg" data-act="t-regen" data-id="${s.id}">${ic('refresh')}<span>رمز جديد</span></button>
+          <button class="del" data-act="t-del-student" data-id="${s.id}">${ic('trash')}<span>حذف</span></button></div>
+        <div class="sw-main" data-act="s-card" data-id="${s.id}"><span class="sw-n">${i + 1}</span><div class="grow"><b>${esc(s.name)}</b><div class="sub">${esc(s.student_no) || '—'}</div></div>
+        <button class="code-pill eye" data-act="c-eye" data-code="${esc(s.code)}" aria-label="إظهار الرمز"><span>••••••</span>${ic('eye')}</button></div></div>`).join('')}</div>`
+        : '<p class="sub center" style="padding:12px">لا يوجد طلبة. ارفع ملفاً أو أضف يدوياً.</p>') + '</div>';
+  }
+  return `<div class="cls ${open ? 'open' : ''}" data-cid="${c.id}"><button class="cls-head" data-act="c-toggle"><span class="chev">${ic('back')}</span>
+    <div class="grow"><b>${esc(c.name)}</b><div class="sub">${comp ? PHASE_AR[phaseOf(comp)] + ' · ' + esc(comp.title) : 'بدون مسابقة'}</div></div><span class="count">${st.length}</span></button>${body}</div>`;
+}
+function ctx(t){ const el = t.closest('[data-cid]'); if (el) { CK.cls = CL.byId[el.dataset.cid]; CK.students = CL.students[el.dataset.cid] || []; } return CK.cls; }
+ACTS['c-toggle'] = t => { const id = t.closest('[data-cid]').dataset.cid; CL.open.has(id) ? CL.open.delete(id) : CL.open.add(id); renderClasses(); };
+ACTS['c-all'] = () => { if (CL.open.size) CL.open.clear(); else CL.classes.forEach(c => CL.open.add(c.id)); renderClasses(); };
+ACTS['c-eye'] = t => {
+  const sp = t.querySelector('span'), on = t.classList.toggle('shown');
+  sp.textContent = on ? t.dataset.code : '••••••';
+};
+ACTS['s-card'] = async t => {
+  if (t.classList.contains('open')) { t.classList.remove('open'); t.style.transform = ''; return; }
+  const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return;
+  const comp = CL.comps[c.id];
+  const ini = s.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
+  modal(`<div class="st-card" data-cid="${c.id}"><div class="st-top"><div class="avatar big-av">${esc(ini)}</div><div><b>${esc(s.name)}</b><div class="sub">${esc(c.name)} · رقم ${esc(s.student_no) || '—'}</div></div></div>
+    <button class="code-pill eye big-pill" data-act="c-eye" data-code="${esc(s.code)}"><span>••••••</span>${ic('eye')}</button>
+    <div class="stats" id="st-stats"><div class="stat"><b>…</b><span>النقاط</span></div><div class="stat"><b>…</b><span>الترتيب</span></div><div class="stat"><b>…</b><span>الجولات</span></div><div class="stat"><b>…</b><span>الدقة</span></div></div>
+    <div class="sub center" id="st-today">${comp ? esc(comp.title) + ' · ' + PHASE_AR[phaseOf(comp)] : 'لا توجد مسابقة نشطة'}</div>
+    <div class="st-acts"><button class="btn" data-act="s-wa" data-id="${s.id}" style="background:linear-gradient(180deg,#4FD394,#1FA971);box-shadow:0 5px 0 #0E6A45">${ic('send')} إرسال الرمز واتساب</button>
+    <div class="row"><button class="btn soft" data-act="copy" data-v="${esc(s.code)}">نسخ الرمز</button><button class="btn soft" data-act="t-regen" data-id="${s.id}">${ic('refresh')} رمز جديد</button></div>
+    <button class="btn soft" data-act="t-del-student" data-id="${s.id}" style="color:#B3122A">${ic('trash')} حذف</button></div></div>`);
+  try {
+    const rs = await rpc('teacher_class_results', { p_class: c.id });
+    const sorted = rs.slice().sort((x, y) => y.pts - x.pts);
+    const idx = sorted.findIndex(r => (r.id && r.id === s.id) || (r.name === s.name && String(r.student_no) === String(s.student_no)));
+    const r = sorted[idx]; const box = document.getElementById('st-stats'); if (!box || !r) return;
+    const acc = r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) + '%' : '—';
+    box.innerHTML = `<div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? idx + 1 : '—'}</b><span>الترتيب من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>الدقة</span></div>`;
+    if (comp) document.getElementById('st-today').innerHTML += r.played_today ? ' · <b style="color:#168A5B">لعب اليوم ✓</b>' : ' · <b style="color:#8a5a00">لم يلعب اليوم</b>';
+  } catch(e){}
+};
+ACTS['s-wa'] = t => {
+  const s = Object.values(CL.students).flat().find(x => x.id === t.dataset.id); if (!s) return;
+  const url = location.origin + location.pathname;
+  const msg = `مرحباً ${s.name}\nرمز دخولك إلى «تحدّي الدقيقة»: ${s.code}\nادخل من الرابط: ${url}`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+};
+ACTS['c-menu'] = t => {
+  const c = ctx(t);
+  modal(`<h3>إعدادات ${esc(c.name)}</h3><form class="col" data-form="c-rename" data-cid="${c.id}"><div class="field"><label for="cr-n">اسم الصف</label><input class="input" id="cr-n" name="name" value="${esc(c.name)}" required></div><button class="btn sm" type="submit">حفظ الاسم</button></form>
+    <div class="col" style="margin-top:14px" data-cid="${c.id}"><b>نمط واجهة الطلبة</b><div class="style-cards">${['kids', 'mid', 'uni'].map(k => `<button type="button" class="style-card ${k === c.style ? 'on' : ''}" data-act="c-style" data-style="${k}"><div class="sw" style="background:${STYLE_SW[k]}"></div>${STYLE_AR[k]}</button>`).join('')}</div>
+    <div class="row between card" style="margin-top:8px"><div><b>التسجيل الذاتي</b><div class="sub">رابط يسجل به الطلبة بأنفسهم</div></div><button class="btn sm ${c.self_join ? 'soft' : ''}" data-act="t-self" data-on="${c.self_join ? 0 : 1}">${c.self_join ? 'إيقاف' : 'تفعيل'}</button></div>
+    ${c.self_join ? `<div class="join-box" dir="ltr">${esc(joinLink(c.join_code))}</div><button class="btn sm" data-act="copy" data-v="${esc(joinLink(c.join_code))}">نسخ الرابط</button>` : ''}
+    <button class="btn danger" data-act="c-del" style="margin-top:10px">${ic('trash')} حذف الصف</button></div>`);
+};
+ACTS['c-rename'] = async f => {
+  const { error } = await sb.from('classes').update({ name: f.name.value.trim() }).eq('id', f.dataset.cid);
+  if (error) return toast(errMsg(error)); closeModals(); toast('تم الحفظ'); await tClasses();
+};
+ACTS['c-style'] = async t => {
+  const c = ctx(t);
+  const { error } = await sb.from('classes').update({ style: t.dataset.style }).eq('id', c.id);
+  if (error) return toast(errMsg(error));
+  c.style = t.dataset.style; t.parentElement.querySelectorAll('.style-card').forEach(b => b.classList.toggle('on', b === t)); toast('تم تغيير النمط');
+};
+ACTS['c-del'] = async t => {
+  const c = ctx(t);
+  if (!confirm(`حذف «${c.name}» وكل طلبته ونتائجهم نهائياً؟`)) return;
+  const { error } = await sb.from('classes').delete().eq('id', c.id);
+  if (error) return toast(errMsg(error)); closeModals(); CL.open.delete(c.id); await tClasses();
+};
 ACTS['t-add-class'] = () => {
   modal(`<h3>إضافة صف</h3><form class="col" data-form="t-save-class">
     <div class="field"><label for="c-name">اسم الصف</label><input class="input" id="c-name" name="name" required maxlength="60" placeholder="مثال: السادس / ب"></div>
@@ -510,8 +726,7 @@ ACTS['t-add-class'] = () => {
 ACTS['t-save-class'] = async f => {
   const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name: f.name.value.trim(), style: f.style.value }).select().single();
   if (error) return toast(errMsg(error));
-  closeModals();
-  go('#/t/class/' + data.id);
+  closeModals(); CL.open.add(data.id); CL.tab = 'classes'; await tClasses();
 };
 
 /* ---- multi-class upload ---- */
@@ -568,41 +783,21 @@ ACTS['t-multi-confirm'] = async t => {
   } catch(e){ closeModals(); toast(errMsg(e)); }
 };
 
-/* ---- class page ---- */
-async function tClass(id){
-  if (!id) return go('#/t/classes');
-  const [c, s, cp] = await Promise.all([
-    sb.from('classes').select('*').eq('id', id).single(),
-    sb.from('students').select('*').eq('class_id', id).order('created_at'),
-    sb.from('competitions').select('*').eq('class_id', id).eq('status', 'active').order('created_at', { ascending: false }).limit(1)
-  ]);
-  if (c.error) throw c.error;
-  if (s.error) throw s.error;
-  CK.cls = c.data; CK.students = s.data; CK.comp = (cp.data && cp.data[0]) || null;
-  renderClass();
-}
-function renderClass(){
-  const c = CK.cls;
-  const tabs = `<div class="tabs"><button class="${T.classTab === 'students' ? 'on' : ''}" data-act="t-ctab" data-tab="students">الطلبة (${CK.students.length})</button><button class="${T.classTab === 'comp' ? 'on' : ''}" data-act="t-ctab" data-tab="comp">إعدادات المسابقة</button></div>`;
-  const top = `<a class="icon-btn" href="#/t/classes" aria-label="رجوع">${ic('back')}</a>`;
-  view(c.name, tabs + (T.classTab === 'students' ? studentsTab() : compTab()), 'classes', top);
-}
-ACTS['t-ctab'] = t => { T.classTab = t.dataset.tab; renderClass(); };
-function studentsTab(){
-  const rows = CK.students.map((s, i) => `<tr><td>${i + 1}</td><td>${esc(s.name)}</td><td>${esc(s.student_no)}</td><td class="code">${esc(s.code)}</td>
-    <td><button class="icon-btn" style="width:36px;height:36px" data-act="t-regen" data-id="${s.id}" aria-label="رمز جديد">${ic('refresh')}</button>
-    <button class="icon-btn" style="width:36px;height:36px" data-act="t-del-student" data-id="${s.id}" aria-label="حذف">${ic('trash')}</button></td></tr>`).join('');
-  return `<div class="row" style="flex-wrap:wrap">
-    <button class="btn sm" data-act="t-upload">${ic('upload')} رفع من Excel</button>
-    <button class="btn sm soft" data-act="t-add-one">${ic('plus')} إضافة طالب/ـة</button>
-    <button class="btn sm soft" data-act="t-export-codes">${ic('download')} تصدير الرموز</button>
-    <button class="btn sm soft" data-act="t-print-codes">${ic('print')} طباعة الرموز</button>
-    <button class="btn sm soft" data-act="t-sample-students">نموذج Excel</button>
-    <input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen"></div>
-    ${CK.students.length ? `<div class="tbl-wrap"><table><thead><tr><th>#</th><th>الاسم</th><th>رقم الطالب</th><th>الرمز</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` :
-    '<div class="card center muted">لا يوجد طلبة بعد. ارفع ملف Excel بعمودين: الاسم، ورقم الطالب.</div>'}`;
-}
-ACTS['t-upload'] = () => document.getElementById('xl').click();
+/* ---- class helpers ---- */
+async function tClass(id){ if (id) CL.open.add(id); CL.tab = 'classes'; location.replace('#/t/classes'); }
+ACTS['t-upload'] = t => { ctx(t); document.getElementById('xl').click(); };
+function joinLink(code){ return code ? location.origin + location.pathname + '#/j/' + code : ''; }
+ACTS['copy'] = async t => {
+  try { await navigator.clipboard.writeText(t.dataset.v); toast('تم النسخ'); }
+  catch(e){ prompt('انسخ الرابط:', t.dataset.v); }
+};
+ACTS['t-self'] = async t => {
+  ctx(t);
+  try {
+    const code = await rpc('set_self_join', { p_class: CK.cls.id, p_on: t.dataset.on === '1' });
+    closeModals(); await tClasses(); if (t.dataset.on === '1') toast('تم التفعيل، الرابط في صفحة الصف');
+  } catch(e){ toast(errMsg(e)); }
+};
 ACTS['t-sample-students'] = () => {
   const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب'], ['سارة العتيبي', '1001'], ['ليان الزامل', '1002']]);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'الطلبة'); XLSX.writeFile(wb, 'نموذج-الطلبة.xlsx');
@@ -647,10 +842,10 @@ ACTS['t-confirm-upload'] = async t => {
     }
     closeModals();
     toast(`أُضيف ${added}` + (skipped ? ` وتم تخطي ${skipped} مكرر/فارغ` : ''));
-    await tClass(CK.cls.id);
+    await tClasses();
   } catch(e){ closeModals(); toast(errMsg(e)); }
 };
-ACTS['t-add-one'] = () => {
+ACTS['t-add-one'] = t => { ctx(t);
   modal(`<h3>إضافة طالب/ـة</h3><form class="col" data-form="t-save-one"><div class="field"><label for="o-n">الاسم</label><input class="input" id="o-n" name="name" required></div>
     <div class="field"><label for="o-no">رقم الطالب</label><input class="input" id="o-no" name="no" dir="ltr"></div><button class="btn" type="submit">إضافة</button></form>`);
 };
@@ -659,77 +854,130 @@ ACTS['t-save-one'] = async f => {
     const r = await rpc('add_students', { p_class: CK.cls.id, p_rows: [{ name: f.name.value, student_no: f.no.value }] });
     closeModals();
     toast(r.added.length ? 'تمت الإضافة' : 'الرقم موجود مسبقاً في الصف');
-    await tClass(CK.cls.id);
+    await tClasses();
   } catch(e){ toast(errMsg(e)); }
 };
-ACTS['t-regen'] = async t => {
+ACTS['t-regen'] = async t => { ctx(t); closeModals();
   if (!confirm('إنشاء رمز جديد؟ سيتوقف الرمز القديم عن العمل.')) return;
-  try { await rpc('regenerate_code', { p_student: t.dataset.id }); await tClass(CK.cls.id); toast('تم إنشاء رمز جديد'); } catch(e){ toast(errMsg(e)); }
+  try { await rpc('regenerate_code', { p_student: t.dataset.id }); await tClasses(); toast('تم إنشاء رمز جديد'); } catch(e){ toast(errMsg(e)); }
 };
-ACTS['t-del-student'] = async t => {
+ACTS['t-del-student'] = async t => { ctx(t); closeModals();
   if (!confirm('حذف هذا الطالب/ـة ونتائجه نهائياً؟')) return;
   const { error } = await sb.from('students').delete().eq('id', t.dataset.id);
   if (error) return toast(errMsg(error));
-  await tClass(CK.cls.id);
+  await tClasses();
 };
-ACTS['t-export-codes'] = () => {
+ACTS['t-export-codes'] = t => { ctx(t);
   const rows = [['الاسم', 'رقم الطالب', 'الرمز']].concat(CK.students.map(s => [s.name, s.student_no, s.code]));
   const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'الرموز');
   XLSX.writeFile(wb, 'رموز-' + CK.cls.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };
-ACTS['t-print-codes'] = () => {
+ACTS['t-print-codes'] = t => { ctx(t);
   const url = location.origin + location.pathname;
   document.getElementById('print-area').innerHTML = `<h2 style="text-align:center;margin:0 0 10px">${esc(CK.cls.name)} — رموز الدخول إلى تحدّي الدقيقة</h2><p style="text-align:center;direction:ltr;margin:0 0 12px">${esc(url)}</p>` +
     `<div class="pcards">${CK.students.map(s => `<div class="pcard"><b>${esc(s.name)}</b><div class="pc">${esc(s.code)}</div><small>${esc(s.student_no)}</small></div>`).join('')}</div>`;
   window.print();
 };
 
-/* ---- competition tab ---- */
-function compTab(){
-  const t = todayKW();
-  const v = CK.comp || { title: 'مسابقة تحدّي الدقيقة', start_date: t, points_end_date: addDays(t, 4), end_date: addDays(t, 10), group_size: 6, qualifiers: 8, round_window_hours: 24 };
-  const opt = (val, lab) => `<option value="${val}" ${Number(v.round_window_hours) === val ? 'selected' : ''}>${lab}</option>`;
-  return `<form class="card col" data-form="t-save-comp">
-    <div class="field"><label for="k-title">عنوان المسابقة</label><input class="input" id="k-title" name="title" value="${esc(v.title)}" required></div>
-    <div class="grid2"><div class="field"><label for="k-s">بداية جمع النقاط</label><input class="input" type="date" id="k-s" name="start_date" value="${v.start_date}" required></div>
-    <div class="field"><label for="k-p">نهاية جمع النقاط</label><input class="input" type="date" id="k-p" name="points_end_date" value="${v.points_end_date}" required></div></div>
-    <div class="field"><label for="k-e">نهاية المسابقة (بعد التصفيات)</label><input class="input" type="date" id="k-e" name="end_date" value="${v.end_date}" required></div>
-    <div class="grid2"><div class="field"><label for="k-g">حجم المجموعة</label><input class="input" type="number" min="2" max="40" id="k-g" name="group_size" value="${v.group_size}"></div>
-    <div class="field"><label for="k-q">عدد المتأهلين للتصفيات</label><input class="input" type="number" min="2" max="64" id="k-q" name="qualifiers" value="${v.qualifiers}"></div></div>
-    <div class="field"><label for="k-w">مدة نافذة كل دور في التصفيات</label><select class="input" id="k-w" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم (24 ساعة)')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></div>
-    <p class="sub">الجولة الرسمية: 4 أسئلة × 15 ثانية، محاولة واحدة يومياً. أما التدريب فمفتوح بلا نقاط.</p>
-    <div class="row"><button type="button" class="btn soft" data-act="t-suggest">اقتراح التواريخ</button><button class="btn" type="submit">${CK.comp ? 'حفظ التعديلات' : 'إنشاء المسابقة'}</button></div></form>
-    <div class="card col"><b>نمط واجهة الطلبة</b>${styleCards(CK.cls.style)}<p class="sub">يظهر النمط المختار لجميع طلبة هذا الصف.</p></div>`;
+/* ---- competitions (one place, many classes) ---- */
+const CC = { sel: new Set(), qtypes: [], subject: 'عام' };
+function compGroups(){
+  const g = {};
+  (CL.allComps || []).forEach(c => { (g[c.group_id] = g[c.group_id] || []).push(c); });
+  return Object.values(g);
 }
+function compsPanel(){
+  if (T.compEdit) return compForm();
+  const groups = compGroups();
+  const free = CL.classes.filter(c => !CL.comps[c.id]);
+  return `<button class="btn" data-act="cp-new">${ic('plus')} مسابقة جديدة</button>` +
+    (groups.length ? groups.map(g => { const c = g[0], ph = phaseOf(c); return `<div class="card col"><div class="row between"><b style="font-size:18px">${esc(c.title)}</b><span class="chip ${ph === 'points' ? 'good' : ph === 'knockout' ? 'warn' : ''}">${PHASE_AR[ph]}</span></div>
+      <div class="sub">النقاط: ${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.points_end_date))} · النهاية: ${esc(fmtDate(c.end_date))}</div>
+      <div class="row" style="flex-wrap:wrap;gap:6px">${g.map(x => `<span class="chip">${esc((CL.byId[x.class_id] || {}).name || '')}</span>`).join('')}</div>
+      <div class="row"><button class="btn sm" data-act="cp-edit" data-g="${c.group_id}">${ic('edit')} الإعدادات</button><button class="btn sm soft" data-act="cp-end" data-g="${c.group_id}">إنهاء المسابقة</button></div></div>`; }).join('')
+      : '<div class="card center muted">لا توجد مسابقات نشطة.</div>') +
+    (groups.length && free.length ? `<p class="sub">صفوف بلا مسابقة: ${free.map(c => esc(c.name)).join('، ')}</p>` : '');
+}
+ACTS['cp-new'] = () => {
+  if (!CL.classes.length) return toast('أضف صفاً أولاً');
+  T.compEdit = 'new'; CC.sel = new Set(CL.classes.filter(c => !CL.comps[c.id]).map(c => c.id));
+  const first = CL.classes[0]; CC.qtypes = (first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.subject = first.subject || 'عام';
+  renderClasses();
+};
+ACTS['cp-edit'] = t => {
+  T.compEdit = t.dataset.g;
+  const g = CL.allComps.filter(c => c.group_id === T.compEdit);
+  CC.sel = new Set(g.map(c => c.class_id));
+  const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.subject = first.subject || 'عام';
+  renderClasses();
+};
+ACTS['cp-cancel'] = () => { T.compEdit = null; renderClasses(); };
+ACTS['cp-end'] = async t => {
+  if (!confirm('إنهاء هذه المسابقة لكل صفوفها؟ تبقى النتائج محفوظة.')) return;
+  const { error } = await sb.from('competitions').update({ status: 'finished' }).eq('group_id', t.dataset.g);
+  if (error) return toast(errMsg(error)); await tClasses();
+};
+function compForm(){
+  const isNew = T.compEdit === 'new', t = todayKW();
+  const g = isNew ? null : CL.allComps.find(c => c.group_id === T.compEdit);
+  const v = g || { title: 'مسابقة تحدّي الدقيقة', start_date: t, points_end_date: addDays(t, 4), end_date: addDays(t, 7), group_size: 6, qualifiers: 8, round_window_hours: 24 };
+  const opt = (val, lab) => `<option value="${val}" ${Number(v.round_window_hours) === val ? 'selected' : ''}>${lab}</option>`;
+  return `<form class="col" data-form="cp-save">
+    <div class="card col"><b>${isNew ? 'مسابقة جديدة' : 'إعدادات المسابقة'}</b>
+      <div class="field"><label for="k-title">عنوان المسابقة</label><input class="input" id="k-title" name="title" value="${esc(v.title)}" required></div></div>
+    <div class="card col"><div class="row between"><b>الصفوف المشاركة</b><button type="button" class="link" data-act="cp-all">تحديد الكل</button></div>
+      <div class="picks picks2">${CL.classes.map(c => { const other = CL.comps[c.id] && CL.comps[c.id].group_id !== T.compEdit; return `<button type="button" class="pick ${CC.sel.has(c.id) ? 'on' : ''}" data-act="cp-cls" data-id="${c.id}"><b>${esc(c.name)}</b><small>${(CL.students[c.id] || []).length} طالب/ـة${other ? ' · في مسابقة أخرى' : ''}</small></button>`; }).join('')}</div>
+      <p class="sub">كل صف له ترتيبه وتصفياته الخاصة، والإعدادات واحدة للجميع.</p></div>
+    <div class="card col"><b>المواعيد</b>
+      <div class="grid2"><div class="field"><label for="k-s">بداية جمع النقاط</label><input class="input" type="date" id="k-s" name="start_date" value="${v.start_date}" required></div>
+      <div class="field"><label for="k-p">نهاية جمع النقاط</label><input class="input" type="date" id="k-p" name="points_end_date" value="${v.points_end_date}" required></div></div>
+      <div class="field"><label for="k-e">نهاية المسابقة (بعد التصفيات)</label><input class="input" type="date" id="k-e" name="end_date" value="${v.end_date}" required></div>
+      <button type="button" class="btn sm soft" data-act="t-suggest">اقتراح التواريخ تلقائياً</button></div>
+    <div class="card col"><b>التصفيات</b>
+      <div class="grid2"><div class="field"><label for="k-g">حجم المجموعة</label><input class="input" type="number" min="2" max="40" id="k-g" name="group_size" value="${v.group_size}"></div>
+      <div class="field"><label for="k-q">المتأهلون من كل صف</label><input class="input" type="number" min="2" max="64" id="k-q" name="qualifiers" value="${v.qualifiers}"></div></div>
+      <div class="field"><label for="k-w">مدة كل دور</label><select class="input" id="k-w" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></div></div>
+    <div class="card col"><b>الأسئلة</b><div class="picks picks2">${QTYPES.map(q => `<button type="button" class="pick ${CC.qtypes.includes(q[0]) ? 'on' : ''}" data-act="cp-qt" data-v="${q[0]}"><span class="pick-ic">${ic(q[3])}</span><b>${q[1]}</b></button>`).join('')}</div>
+      <div class="field"><label for="k-sub">المادة (لأسئلة المنهج)</label><select class="input" id="k-sub" name="subject">${SUBJECTS.map(s => `<option ${CC.subject === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+      <p class="sub">كل جولة: 4 أسئلة × 15 ثانية (1 سهل، 2 متوسط، 1 صعب). جولة رسمية يومياً، والتدريب مفتوح.</p></div>
+    <div class="row w-nav"><button type="button" class="btn soft" data-act="cp-cancel">إلغاء</button><button class="btn" type="submit">${isNew ? 'إنشاء المسابقة' : 'حفظ'}</button></div></form>`;
+}
+function cpKeep(){ const f = document.querySelector('[data-form="cp-save"]'); if (f) CC.subject = f.subject.value; }
+ACTS['cp-cls'] = t => { const id = t.dataset.id; CC.sel.has(id) ? CC.sel.delete(id) : CC.sel.add(id); t.classList.toggle('on'); };
+ACTS['cp-all'] = () => { CL.classes.forEach(c => CC.sel.add(c.id)); document.querySelectorAll('[data-act="cp-cls"]').forEach(b => b.classList.add('on')); };
+ACTS['cp-qt'] = t => { const k = t.dataset.v; if (CC.qtypes.includes(k)) { if (CC.qtypes.length === 1) return toast('اختر نوعاً واحداً على الأقل'); CC.qtypes = CC.qtypes.filter(x => x !== k); } else CC.qtypes.push(k); t.classList.toggle('on'); };
 ACTS['t-suggest'] = () => {
-  const f = document.querySelector('[data-form="t-save-comp"]');
+  const f = document.querySelector('[data-form="cp-save"]');
   const start = f.start_date.value || todayKW();
   const q = Math.max(2, Number(f.qualifiers.value) || 8), rounds = Math.ceil(Math.log2(q));
   const days = Math.ceil((Number(f.round_window_hours.value) || 24) / 24);
   const pe = addDays(start, 4);
   f.start_date.value = start; f.points_end_date.value = pe; f.end_date.value = addDays(pe, rounds * days);
-  toast('تم اقتراح التواريخ: 5 أيام نقاط ثم ' + rounds + ' أدوار');
+  toast('5 أيام لجمع النقاط ثم ' + rounds + ' أدوار تصفيات');
 };
-ACTS['t-save-comp'] = async f => {
-  const p = {
-    title: f.title.value.trim() || 'مسابقة تحدّي الدقيقة', start_date: f.start_date.value, points_end_date: f.points_end_date.value, end_date: f.end_date.value,
-    group_size: Number(f.group_size.value), qualifiers: Number(f.qualifiers.value), round_window_hours: Number(f.round_window_hours.value)
-  };
+ACTS['cp-save'] = async f => {
+  cpKeep();
+  const ids = [...CC.sel];
+  if (!ids.length) return toast('اختر صفاً واحداً على الأقل');
+  const p = { title: f.title.value.trim() || 'مسابقة تحدّي الدقيقة', start_date: f.start_date.value, points_end_date: f.points_end_date.value, end_date: f.end_date.value,
+    group_size: Number(f.group_size.value), qualifiers: Number(f.qualifiers.value), round_window_hours: Number(f.round_window_hours.value) };
   if (!(p.start_date <= p.points_end_date && p.points_end_date <= p.end_date)) return toast('تحقق من ترتيب التواريخ');
-  const r = CK.comp ? await sb.from('competitions').update(p).eq('id', CK.comp.id) : await sb.from('competitions').insert(Object.assign({ class_id: CK.cls.id }, p));
-  if (r.error) return toast(errMsg(r.error));
-  toast('تم الحفظ');
-  await tClass(CK.cls.id);
-};
-// style picker on class page saves immediately
-const _pick = ACTS['pick-style'];
-ACTS['pick-style'] = async t => {
-  _pick(t);
-  if (t.closest('[data-form="t-save-class"]') || !CK.cls || !t.closest('.card') || document.querySelector('[data-form="t-save-class"]')) return;
-  const { error } = await sb.from('classes').update({ style: t.dataset.style }).eq('id', CK.cls.id);
-  if (error) return toast(errMsg(error));
-  CK.cls.style = t.dataset.style; toast('تم تغيير النمط');
+  const isNew = T.compEdit === 'new', gid = isNew ? crypto.randomUUID() : T.compEdit;
+  const inGroup = isNew ? [] : CL.allComps.filter(c => c.group_id === gid);
+  const moving = ids.filter(id => CL.comps[id] && CL.comps[id].group_id !== gid);
+  if (moving.length && !confirm(`${moving.length} صف مشترك في مسابقة أخرى، سيتم إنهاؤها لهذه الصفوف. متابعة؟`)) return;
+  try {
+    const chk = r => { if (r.error) throw r.error; };
+    if (moving.length) chk(await sb.from('competitions').update({ status: 'finished' }).in('id', moving.map(id => CL.comps[id].id)));
+    const keep = inGroup.filter(c => ids.includes(c.class_id)), drop = inGroup.filter(c => !ids.includes(c.class_id));
+    if (keep.length) chk(await sb.from('competitions').update(p).in('id', keep.map(c => c.id)));
+    if (drop.length) chk(await sb.from('competitions').update({ status: 'finished' }).in('id', drop.map(c => c.id)));
+    const add = ids.filter(id => !keep.some(c => c.class_id === id));
+    if (add.length) chk(await sb.from('competitions').insert(add.map(id => Object.assign({ class_id: id, group_id: gid }, p))));
+    chk(await sb.from('classes').update({ qtypes: CC.qtypes, subject: CC.qtypes.includes('curriculum') ? CC.subject : null }).in('id', ids));
+    T.compEdit = null; toast('تم الحفظ'); await tClasses();
+  } catch(e){ toast(errMsg(e)); }
 };
 
 /* ---- questions ---- */
@@ -743,29 +991,32 @@ async function tQuestions(){
   renderQuestions();
 }
 function renderQuestions(){
-  const f = T.qf;
-  const list = QS.list.filter(q => (f.status === 'all' || q.status === f.status) && (f.level === 'all' || q.level === f.level) && (f.type === 'all' || q.qtype === f.type));
-  const drafts = QS.list.filter(q => q.status === 'draft').length;
-  const sel = (name, opts) => `<select data-change="t-qf" data-k="${name}" aria-label="${name}">${opts.map(o => `<option value="${o[0]}" ${f[name] === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>`;
-  const items = list.map(q => `<div class="q-item"><div class="row between" style="align-items:flex-start"><b>${esc(q.body)}</b></div>
-    <div class="opts-s">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${LETTERS[i]}. ${esc(o)}${i === q.correct_index ? ' ✓' : ''}</span>`).join('')}</div>
-    <div class="row" style="flex-wrap:wrap"><span class="chip">${TYPE_AR[q.qtype] || q.qtype}</span><span class="chip">${LEVEL_AR[q.level]}</span><span class="chip ${q.status === 'approved' ? 'good' : q.status === 'draft' ? 'warn' : 'bad'}">${STATUS_AR[q.status]}</span><span class="grow"></span>
-    ${q.status !== 'approved' ? `<button class="btn sm" data-act="t-q-status" data-id="${q.id}" data-s="approved">اعتماد</button>` : ''}
-    ${q.status !== 'rejected' ? `<button class="btn sm soft" data-act="t-q-status" data-id="${q.id}" data-s="rejected">رفض</button>` : ''}
-    <button class="icon-btn" style="width:36px;height:36px" data-act="t-q-edit" data-id="${q.id}" aria-label="تعديل">${ic('edit')}</button>
-    <button class="icon-btn" style="width:36px;height:36px" data-act="t-q-del" data-id="${q.id}" aria-label="حذف">${ic('trash')}</button></div></div>`).join('');
-  const body = `<div class="card"><b>بنك الأسئلة</b><div class="sub">أسئلتي: ${QS.list.length} (${drafts} بانتظار المراجعة) · البنك العام المعتمد: ${QS.globalCount}</div></div>
-    <div class="row" style="flex-wrap:wrap"><button class="btn sm" data-act="t-q-add">${ic('plus')} إضافة سؤال</button>
-    <button class="btn sm soft" data-act="t-q-import">${ic('upload')} استيراد Excel</button>
-    <button class="btn sm soft" data-act="t-q-template">نموذج Excel</button>
-    <button class="btn sm soft" data-act="t-q-export">${ic('download')} تنزيل أسئلتي</button>
-    ${drafts ? `<button class="btn sm accent" data-act="t-q-approve-all">اعتماد كل المسودات (${drafts})</button>` : ''}
-    <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen"></div>
-    <div class="filters">${sel('status', [['all', 'كل الحالات'], ['draft', 'مسودة'], ['approved', 'معتمد'], ['rejected', 'مرفوض']])}${sel('level', [['all', 'كل المستويات'], ['easy', 'سهل'], ['medium', 'متوسط'], ['hard', 'صعب']])}${sel('type', [['all', 'كل الأنواع'], ['curriculum', 'منهج'], ['general', 'عام'], ['quick', 'سرعة بديهة']])}</div>
-    ${items || '<div class="card center muted">لا توجد أسئلة مطابقة. أضف سؤالاً أو استورد ملف Excel.</div>'}
-    <p class="sub">الأسئلة تُستخدم في المسابقة بعد اعتمادها فقط. وتُسحب لكل طالب/ـة بعدد: 1 سهل، 2 متوسط، 1 صعب.</p>`;
-  view('الأسئلة', body, 'questions');
+  const f = T.qf; if (f.status === 'all') f.status = QS.list.some(q => q.status === 'draft') ? 'draft' : 'approved';
+  const cnt = k => QS.list.filter(q => q.status === k).length;
+  const list = QS.list.filter(q => q.status === f.status && (f.level === 'all' || q.level === f.level));
+  const lv = [['all', 'الكل'], ['easy', 'سهل'], ['medium', 'متوسط'], ['hard', 'صعب']];
+  const items = list.map(q => `<div class="q-item" data-act="t-q-edit" data-id="${q.id}"><b class="q-body">${esc(q.body)}</b>
+    <div class="opts-s">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${LETTERS[i]}. ${esc(o)}</span>`).join('')}</div>
+    <div class="row"><span class="chip lv-${q.level}">${LEVEL_AR[q.level]}</span><span class="chip">${TYPE_AR[q.qtype] || q.qtype}</span><span class="grow"></span>
+    ${q.status === 'draft' ? `<button class="q-ok" data-act="t-q-status" data-id="${q.id}" data-s="approved" aria-label="اعتماد">${ic('check')}</button><button class="q-no" data-act="t-q-status" data-id="${q.id}" data-s="rejected" aria-label="رفض">${ic('x')}</button>` : ''}
+    ${q.status === 'rejected' ? `<button class="btn sm soft" data-act="t-q-status" data-id="${q.id}" data-s="approved">استعادة</button>` : ''}</div></div>`).join('');
+  const top = `<button class="icon-btn" data-act="t-q-more" aria-label="المزيد">${ic('upload')}</button>`;
+  const body = `<div class="tabs"><button class="${f.status === 'draft' ? 'on' : ''}" data-act="t-qs" data-v="draft">للمراجعة ${cnt('draft') ? `<span class="badge">${cnt('draft')}</span>` : ''}</button><button class="${f.status === 'approved' ? 'on' : ''}" data-act="t-qs" data-v="approved">معتمدة (${cnt('approved')})</button><button class="${f.status === 'rejected' ? 'on' : ''}" data-act="t-qs" data-v="rejected">مرفوضة</button></div>
+    <div class="lv-chips">${lv.map(x => `<button class="${f.level === x[0] ? 'on' : ''}" data-act="t-ql" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
+    ${f.status === 'draft' && list.length ? `<button class="btn accent" data-act="t-q-approve-all">${ic('check')} اعتماد الكل (${cnt('draft')})</button>` : ''}
+    ${items || `<div class="card center muted">${f.status === 'draft' ? 'لا توجد أسئلة بانتظار المراجعة.' : 'لا توجد أسئلة هنا.'}</div>`}
+    <p class="sub center">اضغط على السؤال لتعديله. البنك العام المعتمد: ${QS.globalCount} سؤالاً.</p>
+    <button class="fab" data-act="t-q-add" aria-label="إضافة سؤال">${ic('plus')}</button>
+    <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen">`;
+  view('الأسئلة', body, 'questions', top);
 }
+ACTS['t-qs'] = t => { T.qf.status = t.dataset.v; renderQuestions(); };
+ACTS['t-ql'] = t => { T.qf.level = t.dataset.v; renderQuestions(); };
+ACTS['t-q-more'] = () => modal(`<h3>استيراد وتصدير</h3><div class="col">
+  <button class="btn" data-act="t-q-import">${ic('upload')} استيراد أسئلة من Excel</button>
+  <button class="btn soft" data-act="t-q-template">${ic('download')} تنزيل النموذج</button>
+  <button class="btn soft" data-act="t-q-export">${ic('download')} تنزيل أسئلتي</button>
+  <p class="sub">الأسئلة المستوردة تدخل «للمراجعة» ولا تظهر للطلبة حتى تعتمدها.</p></div>`);
 ACTS['t-qf'] = t => { T.qf[t.dataset.k] = t.value; renderQuestions(); };
 function qForm(q){
   q = q || { qtype: 'curriculum', level: 'medium', body: '', options: ['', '', '', ''], correct_index: 0 };
@@ -776,7 +1027,8 @@ function qForm(q){
     <div class="field"><label for="q-b">نص السؤال</label><textarea class="input" id="q-b" name="body" rows="2" required maxlength="300">${esc(q.body)}</textarea></div>
     ${[0, 1, 2, 3].map(i => `<div class="field"><label for="q-o${i}">الخيار ${LETTERS[i]}</label><input class="input" id="q-o${i}" name="o${i}" value="${esc(q.options[i])}" required maxlength="100"></div>`).join('')}
     <div class="field"><label for="q-c">الإجابة الصحيحة</label><select class="input" id="q-c" name="correct">${LETTERS.map((l, i) => `<option value="${i}" ${q.correct_index === i ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-    <button class="btn" type="submit">حفظ</button></form>`;
+    <button class="btn" type="submit">حفظ</button>
+    ${q.id ? `<button type="button" class="btn danger" data-act="t-q-del" data-id="${q.id}">${ic('trash')} حذف السؤال</button>` : ''}</form>`;
 }
 ACTS['t-q-add'] = () => modal(qForm());
 ACTS['t-q-edit'] = t => modal(qForm(QS.list.find(x => x.id === t.dataset.id)));
@@ -796,7 +1048,7 @@ ACTS['t-q-del'] = async t => {
   if (!confirm('حذف هذا السؤال نهائياً؟')) return;
   const { error } = await sb.from('questions').delete().eq('id', t.dataset.id);
   if (error) return toast(errMsg(error));
-  await tQuestions();
+  closeModals(); await tQuestions();
 };
 ACTS['t-q-approve-all'] = async () => {
   if (!confirm('اعتماد كل المسودات؟ تأكد أنك راجعتها.')) return;
@@ -814,7 +1066,7 @@ ACTS['t-q-export'] = () => {
   const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'الأسئلة'); XLSX.writeFile(wb, 'أسئلتي.xlsx');
 };
-ACTS['t-q-import'] = () => document.getElementById('qxl').click();
+ACTS['t-q-import'] = () => { closeModals(); document.getElementById('qxl').click(); };
 function parseQuestions(rows){
   const out = []; let bad = 0;
   const first = String((rows[0] || [])[0] || '');
@@ -893,15 +1145,95 @@ ACTS['t-save-name'] = async f => {
 /* ======================================================
    ROUTER
    ====================================================== */
+async function studentJoin(code){
+  document.body.classList.remove('wide');
+  $app.innerHTML = '<div class="spin"></div>';
+  try {
+    const info = await rpc('class_join_info', { p_join: code });
+    setTheme(info.style || 'mid');
+    $app.innerHTML = `<div class="hero">${LOGO}<h1>تحدّي الدقيقة</h1><p>التسجيل في صف <b>${esc(info.class)}</b>${info.teacher ? ' · ' + esc(info.teacher) : ''}</p></div>
+      <div class="pad"><form class="card col" data-form="j-submit" data-code="${esc(code)}">
+      <div class="field"><label for="j-n">الاسم الثلاثي</label><input class="input" id="j-n" name="name" required minlength="3" maxlength="60"></div>
+      <div class="field"><label for="j-no">رقم الطالب</label><input class="input" id="j-no" name="no" required inputmode="numeric" dir="ltr"></div>
+      <div id="jerr"></div><button class="btn" type="submit">تسجيل</button></form></div>`;
+  } catch(e){
+    $app.innerHTML = `<div class="hero">${LOGO}<h1>تحدّي الدقيقة</h1></div><div class="pad"><div class="err">${esc(errMsg(e))}</div><button class="btn" data-act="go-student" style="margin-top:14px">دخول بالرمز</button></div>`;
+  }
+}
+ACTS['j-submit'] = async f => {
+  const box = document.getElementById('jerr'); box.innerHTML = '';
+  const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
+  try {
+    const r = await rpc('student_self_register', { p_join: f.dataset.code, p_name: f.name.value, p_no: f.no.value });
+    const l = await rpc('student_login', { p_code: r.code });
+    S.token = l.token; LS.set('mc_token', l.token);
+    $app.innerHTML = `<div class="hero">${LOGO}<h1>تم التسجيل!</h1><p>هذا رمزك للدخول، احفظه أو صوّره</p></div>
+      <div class="pad col"><div class="card center"><div class="big-code" dir="ltr">${esc(r.code)}</div></div>
+      <button class="btn" data-act="j-go">ابدأ</button></div>`;
+  } catch(e){ box.innerHTML = '<div class="err">' + esc(errMsg(e)) + '</div>'; btn.disabled = false; }
+};
+ACTS['j-go'] = () => { location.hash = '#/s'; };
+
 function studentRoute(){
   document.body.classList.remove('wide');
   if (S.token) loadHome(); else studentLogin();
 }
 function route(){
   const h = location.hash || '#/s';
-  if (h.indexOf('#/t') === 0) teacherRoute(); else studentRoute();
+  if (h.indexOf('#/t') === 0) teacherRoute();
+  else if (h.indexOf('#/j/') === 0) studentJoin(decodeURIComponent(h.slice(4)));
+  else studentRoute();
 }
 window.addEventListener('hashchange', route);
+/* app feel: block pinch / double-tap zoom */
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+let lastTap = 0;
+document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTap < 300 && !e.target.closest('input,textarea,select')) e.preventDefault(); lastTap = n; }, { passive: false });
+/* swipe from the right edge to go back; swipe rows to reveal delete */
+function goBack(){
+  if (document.querySelector('.modal-back')) return closeModals();
+  const b = document.querySelector('.back-btn'); if (b) return b.click();
+  if (document.querySelector('[data-act="w-prev"]')) return ACTS['w-prev']();
+  if (document.querySelector('[data-act="s-quit"]')) return;
+  if (location.hash.indexOf('#/t/') === 0 && !/^#\/t\/(home)?$/.test(location.hash)) return history.back();
+}
+let G = null;
+document.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) { G = null; return; }
+  const t = e.touches[0], row = e.target.closest('.sw-main');
+  G = { x: t.clientX, y: t.clientY, row, edge: t.clientX > innerWidth - 28, dx: 0, lock: null, open: row && row.classList.contains('open'), w: row ? row.parentElement.querySelector('.sw-act').scrollWidth : 0 };
+  if (!row) document.querySelectorAll('.sw-main.open').forEach(r => { if (!e.target.closest('.sw-act')) { r.classList.remove('open'); r.style.transform = ''; } });
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (!G) return;
+  const t = e.touches[0], dx = t.clientX - G.x, dy = t.clientY - G.y;
+  if (G.lock === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) G.lock = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+  if (G.lock !== 'x') return;
+  G.dx = dx;
+  if (G.row) {
+    e.preventDefault();
+    const base = G.open ? -G.w : 0, v = Math.max(-G.w - 24, Math.min(0, base + dx));
+    G.row.style.transition = 'none'; G.row.style.transform = `translateX(${v}px)`;
+  } else if (G.edge) {
+    e.preventDefault();
+    document.body.style.transform = `translateX(${Math.min(0, dx) * 0.35}px)`;
+  }
+}, { passive: false });
+document.addEventListener('touchend', () => {
+  if (!G) return;
+  if (G.row) {
+    const r = G.row; r.style.transition = '';
+    const open = (G.open ? -G.w : 0) + G.dx < -50;
+    document.querySelectorAll('.sw-main.open').forEach(x => { if (x !== r) { x.classList.remove('open'); x.style.transform = ''; } });
+    r.classList.toggle('open', open); r.style.transform = open ? `translateX(${-G.w}px)` : '';
+  } else if (G.edge) {
+    document.body.style.transition = 'transform .2s'; document.body.style.transform = '';
+    setTimeout(() => { document.body.style.transition = ''; }, 220);
+    if (G.dx < -70) goBack();
+  }
+  G = null;
+});
 sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT' && location.hash.indexOf('#/t') === 0) teacherAuth(); });
 route();
 if ('serviceWorker' in navigator) {
