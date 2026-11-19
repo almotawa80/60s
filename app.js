@@ -779,7 +779,8 @@ ACTS['s-card'] = async t => {
     <button class="code-pill eye big-pill" data-act="c-eye" data-code="${esc(s.code)}"><span>••••••</span>${ic('eye')}</button>
     <div class="stats" id="st-stats"><div class="stat"><b>…</b><span>النقاط</span></div><div class="stat"><b>…</b><span>الترتيب</span></div><div class="stat"><b>…</b><span>الجولات</span></div><div class="stat"><b>…</b><span>الدقة</span></div></div>
     <div class="sub center" id="st-today">${comp ? esc(comp.title) + ' · ' + PHASE_AR[phaseOf(comp)] : 'لا توجد مسابقة نشطة'}</div>
-    <div class="st-acts"><button class="btn" data-act="s-wa" data-id="${s.id}" style="background:linear-gradient(180deg,#4FD394,#1FA971);box-shadow:0 5px 0 #0E6A45">${ic('send')} إرسال الرمز واتساب</button>
+    <div class="st-acts"><button class="btn soft" data-act="s-edit" data-id="${s.id}">${ic('edit')} تعديل البيانات</button>
+    <button class="btn" data-act="s-wa" data-id="${s.id}" style="background:linear-gradient(180deg,#4FD394,#1FA971);box-shadow:0 5px 0 #0E6A45">${ic('send')} إرسال الرمز واتساب</button>
     <div class="row"><button class="btn soft" data-act="copy" data-v="${esc(s.code)}">نسخ الرمز</button><button class="btn soft" data-act="t-regen" data-id="${s.id}">${ic('refresh')} رمز جديد</button></div>
     <button class="btn soft" data-act="t-del-student" data-id="${s.id}" style="color:#B3122A">${ic('trash')} حذف</button></div></div>`);
   try {
@@ -791,6 +792,26 @@ ACTS['s-card'] = async t => {
     box.innerHTML = `<div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? idx + 1 : '—'}</b><span>الترتيب من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>الدقة</span></div>`;
     if (comp) document.getElementById('st-today').innerHTML += r.played_today ? ' · <b style="color:#168A5B">لعب اليوم ✓</b>' : ' · <b style="color:#8a5a00">لم يلعب اليوم</b>';
   } catch(e){}
+};
+ACTS['s-edit'] = t => {
+  const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return;
+  closeModals();
+  modal(`<h3>تعديل بيانات الطالب/ـة</h3><form class="col" data-form="s-edit-save" data-id="${s.id}" data-cid="${c.id}">
+    <div class="field"><label for="se-n">الاسم</label><input class="input" id="se-n" name="name" value="${esc(s.name)}" required maxlength="60"></div>
+    <div class="field"><label for="se-no">رقم الطالب</label><input class="input" id="se-no" name="no" value="${esc(s.student_no || '')}" dir="ltr" inputmode="numeric" maxlength="20"></div>
+    <div class="field"><label for="se-c">الصف</label><select class="input" id="se-c" name="cls">${CL.classes.map(x => `<option value="${x.id}" ${x.id === c.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+    <p class="sub">يبقى رمز الدخول كما هو، والنقل لصف آخر يحتفظ بالرمز.</p>
+    <div class="row"><button type="button" class="btn soft" data-act="close-modal">إلغاء</button><button class="btn" type="submit">حفظ</button></div></form>`);
+};
+ACTS['s-edit-save'] = async f => {
+  const row = { name: f.name.value.trim(), student_no: f.no.value.trim(), class_id: f.cls.value };
+  if (row.name.length < 2) return toast('اكتب الاسم');
+  const dup = (CL.students[row.class_id] || []).some(x => x.id !== f.dataset.id && row.student_no && x.student_no === row.student_no);
+  if (dup) return toast('رقم الطالب موجود في هذا الصف');
+  const { error } = await sb.from('students').update(row).eq('id', f.dataset.id);
+  if (error) return toast(/duplicate|unique/i.test(error.message) ? 'رقم الطالب موجود في هذا الصف' : errMsg(error));
+  if (row.class_id !== f.dataset.cid) CL.open.add(row.class_id);
+  closeModals(); toast('تم الحفظ'); await tClasses();
 };
 ACTS['s-wa'] = t => {
   const s = Object.values(CL.students).flat().find(x => x.id === t.dataset.id); if (!s) return;
