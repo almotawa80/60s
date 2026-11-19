@@ -453,15 +453,17 @@ async function teacherRoute(){
   view('', '<div class="spin"></div>', page);
   try {
     if (!T.name) {
-      const r = await sb.from('teachers').select('display_name,avatar_url').eq('id', T.user.id).maybeSingle();
+      const r = await sb.from('teachers').select('display_name,avatar_url,settings').eq('id', T.user.id).maybeSingle();
       T.name = (r.data && r.data.display_name) || (T.user.email || '').split('@')[0];
       T.avatar = (r.data && r.data.avatar_url) || '';
+      T.settings = (r.data && r.data.settings) || {};
     }
     if (page === 'classes') await tClasses();
     else if (page === 'class') await tClass(parts[1]);
     else if (page === 'questions') await tQuestions();
     else if (page === 'results') await tResults(parts[1]);
     else if (page === 'settings') await tSettings();
+    else if (page === 'qset') await tQSet();
     else await tHome();
   } catch(e){
     view('', `<div class="err">${esc(errMsg(e))}</div><button class="btn" data-act="t-retry">إعادة المحاولة</button>`, page);
@@ -639,7 +641,7 @@ ACTS['w-finish'] = async t => {
       if (p.self) c.join_code = await rpc('set_self_join', { p_class: c.id, p_on: true });
       if (W.compNow) {
         const pe = addDays(W.start, 4);
-        const k = await sb.from('competitions').insert({ class_id: c.id, group_id: gid, title: 'مسابقة تحدّي الدقيقة', start_date: W.start, points_end_date: pe, end_date: addDays(pe, 3), group_size: 6, qualifiers: 8, round_window_hours: 24 });
+        const k = await sb.from('competitions').insert({ class_id: c.id, group_id: gid, qtypes: W.qtypes, difficulty: (T.settings || {}).difficulty || 'normal', title: 'مسابقة تحدّي الدقيقة', start_date: W.start, points_end_date: pe, end_date: addDays(pe, 3), group_size: 6, qualifiers: 8, round_window_hours: 24 });
         if (k.error) throw k.error;
       }
       made.push(c);
@@ -676,6 +678,7 @@ async function tClasses(){
   c.data.forEach(x => { CL.byId[x.id] = x; CL.students[x.id] = []; });
   s.data.forEach(x => { if (CL.students[x.class_id]) CL.students[x.class_id].push(x); });
   k.data.forEach(x => { CL.comps[x.class_id] = x; });
+  await loadCurricula().catch(() => {});
   renderClasses();
 }
 function renderClasses(){
@@ -1034,22 +1037,25 @@ function compsPanel(){
   return `<button class="btn" data-act="cp-new">${ic('plus')} مسابقة جديدة</button>` +
     (groups.length ? groups.map(g => { const c = g[0], ph = phaseOf(c); return `<div class="card col"><div class="row between"><b style="font-size:18px">${esc(c.title)}</b><span class="chip ${ph === 'points' ? 'good' : ph === 'knockout' ? 'warn' : ''}">${PHASE_AR[ph]}</span></div>
       <div class="sub">النقاط: ${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.points_end_date))} · النهاية: ${esc(fmtDate(c.end_date))}</div>
+      <div class="sub">الصعوبة: ${(DIFF.find(d => d[0] === (c.difficulty || 'normal')) || DIFF[1])[1]}${c.curriculum_id && CU.list.length ? ' · ' + esc(cuName(CU.list.find(x => x.id === c.curriculum_id))) : ''}</div>
       <div class="row" style="flex-wrap:wrap;gap:6px">${g.map(x => `<span class="chip">${esc((CL.byId[x.class_id] || {}).name || '')}</span>`).join('')}</div>
       <div class="row"><button class="btn sm" data-act="cp-edit" data-g="${c.group_id}">${ic('edit')} الإعدادات</button><button class="btn sm soft" data-act="cp-end" data-g="${c.group_id}">إنهاء المسابقة</button></div></div>`; }).join('')
       : '<div class="card center muted">لا توجد مسابقات نشطة.</div>') +
     (groups.length && free.length ? `<p class="sub">صفوف بلا مسابقة: ${free.map(c => esc(c.name)).join('، ')}</p>` : '');
 }
-ACTS['cp-new'] = () => {
+ACTS['cp-new'] = async () => {
   if (!CL.classes.length) return toast('أضف صفاً أولاً');
+  await loadCurricula().catch(() => {});
   T.compEdit = 'new'; CC.sel = new Set(CL.classes.filter(c => !CL.comps[c.id]).map(c => c.id));
-  const first = CL.classes[0]; CC.qtypes = (first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.subject = first.subject || 'عام';
+  const st = T.settings || {}; CC.qtypes = (st.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = st.difficulty || 'normal'; CC.cu = '';
   renderClasses();
 };
-ACTS['cp-edit'] = t => {
+ACTS['cp-edit'] = async t => {
+  await loadCurricula().catch(() => {});
   T.compEdit = t.dataset.g;
   const g = CL.allComps.filter(c => c.group_id === T.compEdit);
   CC.sel = new Set(g.map(c => c.class_id));
-  const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.subject = first.subject || 'عام';
+  const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (g[0].qtypes || first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = g[0].difficulty || 'normal'; CC.cu = g[0].curriculum_id || '';
   renderClasses();
 };
 ACTS['cp-cancel'] = () => { T.compEdit = null; renderClasses(); };
@@ -1079,11 +1085,15 @@ function compForm(){
       <div class="field"><label for="k-q">المتأهلون من كل صف</label><input class="input" type="number" min="2" max="64" id="k-q" name="qualifiers" value="${v.qualifiers}"></div></div>
       <div class="field"><label for="k-w">مدة كل دور</label><select class="input" id="k-w" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></div></div>
     <div class="card col"><b>الأسئلة</b><div class="picks picks2">${QTYPES.map(q => `<button type="button" class="pick ${CC.qtypes.includes(q[0]) ? 'on' : ''}" data-act="cp-qt" data-v="${q[0]}"><span class="pick-ic">${ic(q[3])}</span><b>${q[1]}</b></button>`).join('')}</div>
-      <div class="field"><label for="k-sub">المادة (لأسئلة المنهج)</label><select class="input" id="k-sub" name="subject">${SUBJECTS.map(s => `<option ${CC.subject === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
-      <p class="sub">كل جولة: 4 أسئلة × 15 ثانية (1 سهل، 2 متوسط، 1 صعب). جولة رسمية يومياً، والتدريب مفتوح.</p></div>
+      <div class="field"><label for="k-cu">المنهج</label><select class="input" id="k-cu" name="cu">${cuOptions(CC.cu, 'كل أسئلة المنهج المعتمدة')}</select>
+      <button type="button" class="link" data-act="go-qset" style="align-self:flex-start">إدارة المناهج</button></div>
+      <div class="field"><label>مستوى الصعوبة</label><div class="tabs">${DIFF.map(d => `<button type="button" class="${CC.diff === d[0] ? 'on' : ''}" data-act="cp-diff" data-v="${d[0]}">${d[1]}</button>`).join('')}</div>
+      <p class="sub" id="cp-diff-d">${(DIFF.find(d => d[0] === CC.diff) || DIFF[1])[2]}</p></div>
+      <p class="sub">كل جولة: 4 أسئلة × 15 ثانية. جولة رسمية يومياً، والتدريب مفتوح.</p></div>
     <div class="row w-nav"><button type="button" class="btn soft" data-act="cp-cancel">إلغاء</button><button class="btn" type="submit">${isNew ? 'إنشاء المسابقة' : 'حفظ'}</button></div></form>`;
 }
-function cpKeep(){ const f = document.querySelector('[data-form="cp-save"]'); if (f) CC.subject = f.subject.value; }
+function cpKeep(){ const f = document.querySelector('[data-form="cp-save"]'); if (f && f.cu) CC.cu = f.cu.value; }
+ACTS['cp-diff'] = t => { CC.diff = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const d = document.getElementById('cp-diff-d'); if (d) d.textContent = DIFF.find(x => x[0] === CC.diff)[2]; };
 ACTS['cp-cls'] = t => { const id = t.dataset.id; CC.sel.has(id) ? CC.sel.delete(id) : CC.sel.add(id); t.classList.toggle('on'); };
 ACTS['cp-all'] = () => { CL.classes.forEach(c => CC.sel.add(c.id)); document.querySelectorAll('[data-act="cp-cls"]').forEach(b => b.classList.add('on')); };
 ACTS['cp-qt'] = t => { const k = t.dataset.v; if (CC.qtypes.includes(k)) { if (CC.qtypes.length === 1) return toast('اختر نوعاً واحداً على الأقل'); CC.qtypes = CC.qtypes.filter(x => x !== k); } else CC.qtypes.push(k); t.classList.toggle('on'); };
@@ -1101,7 +1111,8 @@ ACTS['cp-save'] = async f => {
   const ids = [...CC.sel];
   if (!ids.length) return toast('اختر صفاً واحداً على الأقل');
   const p = { title: f.title.value.trim() || 'مسابقة تحدّي الدقيقة', start_date: f.start_date.value, points_end_date: f.points_end_date.value, end_date: f.end_date.value,
-    group_size: Number(f.group_size.value), qualifiers: Number(f.qualifiers.value), round_window_hours: Number(f.round_window_hours.value) };
+    group_size: Number(f.group_size.value), qualifiers: Number(f.qualifiers.value), round_window_hours: Number(f.round_window_hours.value),
+    curriculum_id: CC.cu || null, difficulty: CC.diff || 'normal', qtypes: CC.qtypes };
   if (!(p.start_date <= p.points_end_date && p.points_end_date <= p.end_date)) return toast('تحقق من ترتيب التواريخ');
   const isNew = T.compEdit === 'new', gid = isNew ? crypto.randomUUID() : T.compEdit;
   const inGroup = isNew ? [] : CL.allComps.filter(c => c.group_id === gid);
@@ -1115,7 +1126,7 @@ ACTS['cp-save'] = async f => {
     if (drop.length) chk(await sb.from('competitions').update({ status: 'finished' }).in('id', drop.map(c => c.id)));
     const add = ids.filter(id => !keep.some(c => c.class_id === id));
     if (add.length) chk(await sb.from('competitions').insert(add.map(id => Object.assign({ class_id: id, group_id: gid }, p))));
-    chk(await sb.from('classes').update({ qtypes: CC.qtypes, subject: CC.qtypes.includes('curriculum') ? CC.subject : null }).in('id', ids));
+    chk(await sb.from('classes').update({ qtypes: CC.qtypes }).in('id', ids));
     T.compEdit = null; toast('تم الحفظ'); await tClasses();
   } catch(e){ toast(errMsg(e)); }
 };
@@ -1174,16 +1185,18 @@ function qForm(q){
   return `<h3>${q.id ? 'تعديل سؤال' : 'إضافة سؤال'}</h3><form class="col" data-form="t-save-q"><input type="hidden" name="id" value="${q.id || ''}">
     <div class="grid2"><div class="field"><label for="q-t">النوع</label><select class="input" id="q-t" name="qtype">${o(0, q.qtype, TYPE_AR)}</select></div>
     <div class="field"><label for="q-l">المستوى</label><select class="input" id="q-l" name="level">${o(0, q.level, LEVEL_AR)}</select></div></div>
+    <div class="field"><label for="q-cu">المنهج (لأسئلة المنهج)</label><select class="input" id="q-cu" name="cu">${cuOptions(q.curriculum_id || QS.lastCu || '')}</select></div>
     <div class="field"><label for="q-b">نص السؤال</label><textarea class="input" id="q-b" name="body" rows="2" required maxlength="300">${esc(q.body)}</textarea></div>
     ${[0, 1, 2, 3].map(i => `<div class="field"><label for="q-o${i}">الخيار ${LETTERS[i]}</label><input class="input" id="q-o${i}" name="o${i}" value="${esc(q.options[i])}" required maxlength="100"></div>`).join('')}
     <div class="field"><label for="q-c">الإجابة الصحيحة</label><select class="input" id="q-c" name="correct">${LETTERS.map((l, i) => `<option value="${i}" ${q.correct_index === i ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <button class="btn" type="submit">حفظ</button>
     ${q.id ? `<button type="button" class="btn danger" data-act="t-q-del" data-id="${q.id}">${ic('trash')} حذف السؤال</button>` : ''}</form>`;
 }
-ACTS['t-q-add'] = () => modal(qForm());
-ACTS['t-q-edit'] = t => modal(qForm(QS.list.find(x => x.id === t.dataset.id)));
+ACTS['t-q-add'] = async () => { await loadCurricula().catch(() => {}); modal(qForm()); };
+ACTS['t-q-edit'] = async t => { await loadCurricula().catch(() => {}); modal(qForm(QS.list.find(x => x.id === t.dataset.id))); };
 ACTS['t-save-q'] = async f => {
-  const row = { qtype: f.qtype.value, level: f.level.value, body: f.body.value.trim(), options: [0, 1, 2, 3].map(i => f['o' + i].value.trim()), correct_index: Number(f.correct.value) };
+  const row = { qtype: f.qtype.value, level: f.level.value, body: f.body.value.trim(), options: [0, 1, 2, 3].map(i => f['o' + i].value.trim()), correct_index: Number(f.correct.value), curriculum_id: f.cu.value || null };
+  QS.lastCu = f.cu.value;
   if (new Set(row.options).size < 4) return toast('الخيارات يجب أن تكون مختلفة');
   const r = f.id.value ? await sb.from('questions').update(row).eq('id', f.id.value) : await sb.from('questions').insert(Object.assign({ owner_id: T.user.id, status: 'draft', source: 'teacher' }, row));
   if (r.error) return toast(errMsg(r.error));
@@ -1329,6 +1342,7 @@ async function tSettings(){
   const grp = (title, rows, foot) => `${title ? `<div class="set-h">${title}</div>` : ''}<div class="set-grp">${rows.join('')}</div>${foot ? `<div class="set-f">${foot}</div>` : ''}`;
   view('الإعدادات',
     `<button class="set-profile" data-act="st-profile">${avatarHtml('big-av')}<div class="grow"><b>${esc(T.name)}</b><div class="sub" dir="ltr" style="text-align:right">${esc(T.user.email || '')}</div></div><span class="set-chev">${ic('back')}</span></button>` +
+    grp('المسابقة', [row('go-qset', 'help', '#C8102E', 'إعدادات الأسئلة', 'المناهج والصعوبة')]) +
     grp('المظهر', [row('st-mode', 'moon', '#5856D6', 'الوضع', `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>`)]) +
     grp('الطلبة', [
       row('st-share-students', 'send', '#1FA971', 'رابط دخول الطلبة', 'مشاركة'),
@@ -1362,6 +1376,78 @@ function profileSheet(){
     <input type="file" id="av-file" accept="image/*" class="hide" data-change="av-chosen"></div>`);
 }
 ACTS['st-profile'] = () => profileSheet();
+ACTS['go-qset'] = () => go('#/t/qset');
+/* ---- question settings: curricula library + defaults ---- */
+const STAGE_AR = { primary: 'ابتدائي', middle: 'متوسط', secondary: 'ثانوي', university: 'جامعة' };
+const STAGE_GRADES = { primary: [1, 2, 3, 4, 5], middle: [6, 7, 8, 9], secondary: [10, 11, 12], university: [1, 2, 3, 4] };
+const DIFF = [['beginner', 'مبتدئ', '2 سهل · 2 متوسط'], ['normal', 'متوسط', '1 سهل · 2 متوسط · 1 صعب'], ['advanced', 'متقدم', '2 متوسط · 2 صعب']];
+const CU = { list: [], loaded: false, form: null };
+async function loadCurricula(force){
+  if (CU.loaded && !force) return CU.list;
+  const { data, error } = await sb.from('curricula').select('*').order('stage').order('grade').order('subject');
+  if (error) throw error; CU.list = data; CU.loaded = true; return data;
+}
+function cuName(c){ if (!c) return ''; const g = c.grade ? (c.stage === 'university' ? ' · السنة ' + c.grade : ' · الصف ' + c.grade) : ''; return `${c.subject} · ${STAGE_AR[c.stage]}${g}${c.title ? ' · ' + c.title : ''}`; }
+function cuOptions(sel, emptyLabel){ return `<option value="">${emptyLabel || 'بدون منهج محدد'}</option>` + CU.list.map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${esc(cuName(c))}${c.owner_id ? '' : ' (عام)'}</option>`).join(''); }
+async function tQSet(){
+  await loadCurricula(true);
+  const st = T.settings || {}, diff = st.difficulty || 'normal', qt = st.qtypes || ['curriculum', 'general', 'quick'];
+  const counts = {}; (await sb.from('questions').select('curriculum_id').not('curriculum_id', 'is', null)).data?.forEach(q => counts[q.curriculum_id] = (counts[q.curriculum_id] || 0) + 1);
+  const mine = CU.list.filter(c => c.owner_id), glob = CU.list.filter(c => !c.owner_id);
+  const cuRow = c => `<button class="set-row" data-act="cu-open" data-id="${c.id}"><span class="set-ic" style="background:${SUBJ_COLOR(c.subject)}">${esc(c.subject.slice(0, 1))}</span><span class="grow rl-txt"><b>${esc(c.subject)}${c.title ? ' · ' + esc(c.title) : ''}</b><small>${STAGE_AR[c.stage]}${c.grade ? ' · ' + (c.stage === 'university' ? 'السنة ' : 'الصف ') + c.grade : ''} · ${counts[c.id] || 0} سؤال</small></span><span class="set-chev">${ic('back')}</span></button>`;
+  view('إعدادات الأسئلة',
+    `<div class="set-h">مناهجي</div><div class="set-grp">${mine.map(cuRow).join('')}<button class="set-row" data-act="cu-add"><span class="set-ic" style="background:#34C759">${ic('plus')}</span><span class="grow" style="color:var(--primary)">إضافة منهج</span></button></div>
+     <div class="set-f">المنهج = مادة + مرحلة + صف. اربط أسئلة المنهج به ثم اختره عند إنشاء المسابقة.</div>` +
+    (glob.length ? `<div class="set-h">المناهج العامة</div><div class="set-grp">${glob.map(cuRow).join('')}</div>` : '') +
+    `<div class="set-h">مستوى الصعوبة الافتراضي</div><div class="picks">${DIFF.map(d => `<button class="pick wide ${diff === d[0] ? 'on' : ''}" data-act="qs-diff" data-v="${d[0]}"><span class="pick-ic">${ic(d[0] === 'beginner' ? 'star' : d[0] === 'normal' ? 'chart' : 'trophy')}</span><div><b>${d[1]}</b><small>${d[2]}</small></div></button>`).join('')}</div>
+     <div class="set-h">أنواع الأسئلة الافتراضية</div><div class="picks picks2">${QTYPES.map(q => `<button class="pick ${qt.includes(q[0]) ? 'on' : ''}" data-act="qs-type" data-v="${q[0]}"><span class="pick-ic">${ic(q[3])}</span><b>${q[1]}</b></button>`).join('')}</div>
+     <div class="set-grp"><div class="set-row"><span class="set-ic" style="background:#FF9500">${ic('clock')}</span><span class="grow">وقت السؤال</span><span class="set-val">15 ثانية</span></div><div class="set-row"><span class="set-ic" style="background:#5856D6">${ic('help')}</span><span class="grow">أسئلة الجولة</span><span class="set-val">4 أسئلة</span></div></div>
+     <div class="set-f">تُطبَّق هذه القيم تلقائياً على المسابقات الجديدة، ويمكن تغييرها لكل مسابقة.</div>`, 'settings', '', '#/t/settings');
+}
+function SUBJ_COLOR(s){ const m = { 'اللغة العربية': '#C8102E', 'الرياضيات': '#2F80ED', 'العلوم': '#14A89B', 'التربية الإسلامية': '#1FA971', 'اللغة الإنجليزية': '#9B51E0', 'الاجتماعيات': '#F2994A', 'الحاسوب': '#5856D6' }; return m[s] || '#8E8E93'; }
+async function saveSettings(patch){
+  T.settings = Object.assign({}, T.settings || {}, patch);
+  const { error } = await sb.from('teachers').update({ settings: T.settings }).eq('id', T.user.id);
+  if (error) toast(errMsg(error));
+}
+ACTS['qs-diff'] = async t => { await saveSettings({ difficulty: t.dataset.v }); t.parentElement.querySelectorAll('.pick').forEach(b => b.classList.toggle('on', b === t)); };
+ACTS['qs-type'] = async t => {
+  let v = ((T.settings || {}).qtypes || ['curriculum', 'general', 'quick']).slice(); const k = t.dataset.v;
+  if (v.includes(k)) { if (v.length === 1) return toast('اختر نوعاً واحداً على الأقل'); v = v.filter(x => x !== k); } else v.push(k);
+  await saveSettings({ qtypes: v }); t.classList.toggle('on');
+};
+function cuForm(c){
+  c = c || { subject: '', stage: 'primary', grade: null, title: '' }; CU.form = { stage: c.stage, grade: c.grade, subject: c.subject };
+  const subjOpts = SUBJECTS.filter(s => s !== 'عام' && s !== 'أخرى');
+  const custom = c.subject && !subjOpts.includes(c.subject);
+  modal(`<h3>${c.id ? 'تعديل منهج' : 'منهج جديد'}</h3><form class="col" data-form="cu-save" data-id="${c.id || ''}">
+    <div class="field"><label>المادة</label><div class="lv-chips wrap">${subjOpts.map(s => `<button type="button" class="${c.subject === s ? 'on' : ''}" data-act="cu-subj" data-v="${s}">${s}</button>`).join('')}<button type="button" class="${custom ? 'on' : ''}" data-act="cu-subj" data-v="">أخرى…</button></div>
+      <input class="input ${custom ? '' : 'hide'}" id="cu-custom" name="custom" placeholder="اسم المادة" value="${custom ? esc(c.subject) : ''}" maxlength="60"></div>
+    <div class="field"><label>المرحلة</label><div class="tabs" id="cu-stage">${Object.keys(STAGE_AR).map(k => `<button type="button" class="${c.stage === k ? 'on' : ''}" data-act="cu-stage" data-v="${k}">${STAGE_AR[k]}</button>`).join('')}</div></div>
+    <div class="field"><label>${c.stage === 'university' ? 'السنة' : 'الصف'}</label><div class="lv-chips wrap" id="cu-grade">${cuGrades(c.stage, c.grade)}</div></div>
+    <div class="field"><label for="cu-t">الوحدة أو العنوان (اختياري)</label><input class="input" id="cu-t" name="title" value="${esc(c.title || '')}" maxlength="80" placeholder="مثال: الوحدة الثالثة - الكسور"></div>
+    <button class="btn" type="submit">حفظ</button>
+    ${c.id ? `<button type="button" class="btn danger" data-act="cu-del" data-id="${c.id}">${ic('trash')} حذف المنهج</button>` : ''}</form>`);
+}
+function cuGrades(stage, sel){ return `<button type="button" class="${!sel ? 'on' : ''}" data-act="cu-grade" data-v="">الكل</button>` + STAGE_GRADES[stage].map(g => `<button type="button" class="${sel === g ? 'on' : ''}" data-act="cu-grade" data-v="${g}">${g}</button>`).join(''); }
+ACTS['cu-add'] = () => cuForm();
+ACTS['cu-open'] = t => { const c = CU.list.find(x => x.id === t.dataset.id); if (!c) return; if (!c.owner_id) return toast('هذا منهج عام، يمكنك استخدامه في المسابقات'); cuForm(c); };
+ACTS['cu-subj'] = t => { CU.form.subject = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); document.getElementById('cu-custom').classList.toggle('hide', t.dataset.v !== ''); if (!t.dataset.v) document.getElementById('cu-custom').focus(); };
+ACTS['cu-stage'] = t => { CU.form.stage = t.dataset.v; CU.form.grade = null; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); document.getElementById('cu-grade').innerHTML = cuGrades(t.dataset.v, null); };
+ACTS['cu-grade'] = t => { CU.form.grade = t.dataset.v ? Number(t.dataset.v) : null; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); };
+ACTS['cu-save'] = async f => {
+  const subject = (CU.form.subject || f.custom.value || '').trim();
+  if (!subject) return toast('اختر المادة');
+  const row = { subject, stage: CU.form.stage, grade: CU.form.grade, title: f.title.value.trim() || null };
+  const r = f.dataset.id ? await sb.from('curricula').update(row).eq('id', f.dataset.id) : await sb.from('curricula').insert(Object.assign({ owner_id: T.user.id }, row));
+  if (r.error) return toast(errMsg(r.error));
+  closeModals(); toast('تم الحفظ'); await tQSet();
+};
+ACTS['cu-del'] = async t => {
+  if (!confirm('حذف المنهج؟ تبقى أسئلته موجودة لكن بدون منهج.')) return;
+  const { error } = await sb.from('curricula').delete().eq('id', t.dataset.id);
+  if (error) return toast(errMsg(error)); closeModals(); await tQSet();
+};
 ACTS['st-mode'] = () => modal(`<h3>المظهر</h3>${modeSeg()}<p class="sub" style="margin-top:10px">«تلقائي» يتبع إعداد جهازك.</p>`);
 ACTS['av-menu'] = () => {
   if (!T.avatar) return document.getElementById('av-file').click();

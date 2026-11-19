@@ -650,3 +650,4 @@ body.wide.dark .join-box,body.wide.dark .join-row{background:#2C2C2E}
 body.wide.dark table th,body.wide.dark table td{border-color:var(--line)}
 body.wide.dark .q-item .opts-s .c{color:#30D158}
 body.wide.dark #toast{background:#3A3A3C}
+.lv-chips.wrap{flex-wrap:wrap;overflow:visible}
