@@ -139,6 +139,7 @@ function studentLogin(){
     '<div class="card col"><div><b style="font-size:19px">أنا طالب/ـة</b><div class="sub">اكتب الرمز الذي أعطاك إياه المعلم/ـة</div></div>' +
     '<div class="code-wrap"><div class="code-boxes">' + '<div class="code-box"></div>'.repeat(6) + '</div>' +
     '<input class="code-input" id="code" inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="6" aria-label="رمز الدخول"></div>' +
+    '<button class="paste-btn" data-act="s-paste">' + ic('download') + ' لصق الرمز</button>' +
     '<div id="lerr"></div>' +
     '<button class="btn" data-act="s-login">ادخل/ي</button></div>' +
     '<div class="center"><button class="link" data-act="go-teacher">دخول المعلمين والمعلمات</button></div></div>';
@@ -150,8 +151,13 @@ function studentLogin(){
     if (inp.value.length === 6) ACTS['s-login']();
   });
   paint('');
-  setTimeout(() => inp.focus(), 50);
+  S.fill = v => { inp.value = String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); paint(inp.value); if (inp.value.length === 6) ACTS['s-login'](); };
+  if (S.preCode) { const c = S.preCode; S.preCode = null; setTimeout(() => S.fill(c), 50); } else setTimeout(() => inp.focus(), 50);
 }
+ACTS['s-paste'] = async () => {
+  try { const t = await navigator.clipboard.readText(); if (!t) return toast('لا يوجد رمز منسوخ'); S.fill(t); }
+  catch(e){ const v = prompt('الصق الرمز هنا:'); if (v) S.fill(v); }
+};
 ACTS['go-teacher'] = () => { location.hash = '#/t'; };
 ACTS['go-student'] = () => { location.hash = '#/s'; };
 ACTS['s-login'] = async () => {
@@ -161,7 +167,7 @@ ACTS['s-login'] = async () => {
   box.innerHTML = '';
   try {
     const r = await rpc('student_login', { p_code: inp.value });
-    S.token = r.token; LS.set('mc_token', r.token);
+    S.token = r.token; LS.set('mc_token', r.token); LS.set('mc_code', inp.value);
     loadHome();
   } catch(e){ box.innerHTML = '<div class="err">' + esc(errMsg(e)) + '</div>'; }
 };
@@ -221,6 +227,7 @@ ACTS['s-profile'] = () => {
   modal('<h3>ملفي</h3><div class="rows card">' +
     '<div class="r"><span>الاسم</span><b>' + esc(h.student.name) + '</b></div>' +
     '<div class="r"><span>الصف</span><b>' + esc(h.class.name) + '</b></div>' +
+    (LS.get('mc_code') ? '<div class="r"><span>رمز الدخول</span><button class="code-pill" data-act="copy" data-v="' + esc(LS.get('mc_code')) + '">' + esc(LS.get('mc_code')) + ' ' + ic('layers') + '</button></div>' : '') +
     '<div class="r"><span>مجموع النقاط</span><b>' + h.total_points + '</b></div>' +
     '<div class="r"><span>الترتيب في الصف</span><b>' + (h.rank || '-') + ' من ' + h.class.size + '</b></div></div>' +
     '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button>');
@@ -820,7 +827,7 @@ ACTS['s-edit-save'] = async f => {
 ACTS['s-wa'] = t => {
   const s = Object.values(CL.students).flat().find(x => x.id === t.dataset.id); if (!s) return;
   const url = location.origin + location.pathname;
-  const msg = `مرحباً ${s.name}\nرمز دخولك إلى «تحدّي الدقيقة»: ${s.code}\nادخل من الرابط: ${url}`;
+  const msg = `مرحباً ${s.name}\nرمز دخولك إلى «تحدّي الدقيقة»: ${s.code}\nللدخول مباشرة اضغط الرابط:\n${url}#/c/${s.code}`;
   let ph = (s.phone || '').replace(/[^0-9]/g, '');
   if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2);
   window.open('https://wa.me/' + (ph || '') + '?text=' + encodeURIComponent(msg), '_blank');
@@ -1591,9 +1598,9 @@ ACTS['j-submit'] = async f => {
   try {
     const r = await rpc('student_self_register', { p_join: f.dataset.code, p_name: f.name.value, p_no: f.no.value });
     const l = await rpc('student_login', { p_code: r.code });
-    S.token = l.token; LS.set('mc_token', l.token);
+    S.token = l.token; LS.set('mc_token', l.token); LS.set('mc_code', r.code);
     $app.innerHTML = `<div class="hero">${LOGO}<h1>تم التسجيل!</h1><p>هذا رمزك للدخول، احفظه أو صوّره</p></div>
-      <div class="pad col"><div class="card center"><div class="big-code" dir="ltr">${esc(r.code)}</div></div>
+      <div class="pad col"><div class="card center"><div class="big-code" dir="ltr">${esc(r.code)}</div><button class="btn sm soft" data-act="copy" data-v="${esc(r.code)}">نسخ الرمز</button></div>
       <button class="btn" data-act="j-go">ابدأ</button></div>`;
   } catch(e){ box.innerHTML = '<div class="err">' + esc(errMsg(e)) + '</div>'; btn.disabled = false; }
 };
@@ -1608,6 +1615,7 @@ function route(){
   const h = location.hash || '#/s';
   if (h.indexOf('#/t') === 0) teacherRoute();
   else if (h.indexOf('#/j/') === 0) studentJoin(decodeURIComponent(h.slice(4)));
+  else if (h.indexOf('#/c/') === 0) { S.preCode = decodeURIComponent(h.slice(4)); LS.del('mc_token'); S.token = null; history.replaceState(null, '', '#/s'); studentLogin(); }
   else studentRoute();
 }
 window.addEventListener('hashchange', () => { saveUI(); route(); });

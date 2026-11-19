@@ -651,3 +651,7 @@ body.wide.dark table th,body.wide.dark table td{border-color:var(--line)}
 body.wide.dark .q-item .opts-s .c{color:#30D158}
 body.wide.dark #toast{background:#3A3A3C}
 .lv-chips.wrap{flex-wrap:wrap;overflow:visible}
+.paste-btn{align-self:center;display:inline-flex;align-items:center;gap:6px;border:0;background:var(--soft);color:var(--primary);font-weight:700;padding:8px 16px;border-radius:999px;box-shadow:0 3px 0 var(--edge)}
+.paste-btn .ico{width:18px;height:18px}
+.paste-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
+.code-input{-webkit-user-select:text;user-select:text}
