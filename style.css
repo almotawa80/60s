@@ -559,3 +559,5 @@ body.wide .t-nav a{font-weight:500!important}
 .sw-act button i .ico{width:20px;height:20px}
 .sw-act .del i{background:#FF3B30}.sw-act .wa i{background:#25D366}.sw-act .rg i{background:#FF9500}
 .sw-main{will-change:transform}
+.sw-act{padding:0 12px!important}
+.sw-main.open{box-shadow:0 0 12px rgba(0,0,0,.08)}

@@ -1434,7 +1434,7 @@ document.addEventListener('touchstart', e => {
   const rw = row ? row.parentElement : null;
   G = { x: t.clientX, y: t.clientY, row, edge: !row && t.clientX > innerWidth - 28, dx: 0, lock: null,
     base: row ? (Number(row.dataset.off) || 0) : 0,
-    wr: rw ? rw.querySelector('.sw-r').offsetWidth : 0, wl: rw ? rw.querySelector('.sw-l').offsetWidth : 0 };
+    wr: rw ? rw.querySelector('.sw-r').offsetWidth + 22 : 0, wl: rw ? rw.querySelector('.sw-l').offsetWidth + 22 : 0 };
   if (!row) document.querySelectorAll('.sw-main.open').forEach(r => { if (!e.target.closest('.sw-act')) { r.classList.remove('open'); r.style.transform = ''; r.dataset.off = 0; } });
 }, { passive: true });
 document.addEventListener('touchmove', e => {
