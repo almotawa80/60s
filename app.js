@@ -784,7 +784,7 @@ ACTS['t-retry'] = () => teacherRoute();
 /* ---- home (dashboard) ---- */
 async function tHome(){
   const [cl, cp] = await Promise.all([
-    sb.from('classes').select('*').order('created_at'),
+    sb.from('classes').select('*').eq('archived', false).order('created_at'),
     sb.from('competitions').select('*').eq('status', 'active').order('created_at', { ascending: false })
   ]);
   if (cl.error) throw cl.error;
@@ -957,7 +957,7 @@ ACTS['pick-style'] = t => {
   const hid = t.closest('form') && t.closest('form').querySelector('[name=style]');
   if (hid) hid.value = t.dataset.style;
 };
-const CL = { classes: [], byId: {}, students: {}, comps: {}, open: new Set(), tab: 'classes' };
+const CL = { classes: [], archived: [], byId: {}, students: {}, comps: {}, stat: {}, q: {}, sort: {}, sent: new Set(), open: new Set(), tab: 'classes' };
 async function tClasses(){
   const [c, s, k] = await Promise.all([
     sb.from('classes').select('*').order('created_at'),
@@ -965,10 +965,16 @@ async function tClasses(){
     sb.from('competitions').select('*').eq('status', 'active').order('created_at')
   ]);
   if (c.error) throw c.error; if (s.error) throw s.error; if (k.error) throw k.error;
-  CL.classes = c.data; CL.byId = {}; CL.students = {}; CL.comps = {}; CL.allComps = k.data;
+  CL.classes = c.data.filter(x => !x.archived); CL.archived = c.data.filter(x => x.archived); CL.byId = {}; CL.students = {}; CL.comps = {}; CL.allComps = k.data;
   c.data.forEach(x => { CL.byId[x.id] = x; CL.students[x.id] = []; });
   s.data.forEach(x => { if (CL.students[x.class_id]) CL.students[x.class_id].push(x); });
   k.data.forEach(x => { CL.comps[x.class_id] = x; });
+  CL.stat = {};
+  if (k.data.length) {
+    const a = await sb.from('attempts').select('student_id,play_date,total_points').eq('kind', 'official').eq('status', 'finished').in('competition_id', k.data.map(x => x.id));
+    const td = todayKW();
+    (a.data || []).forEach(r => { const o = CL.stat[r.student_id] || (CL.stat[r.student_id] = { pts: 0, rounds: 0, today: false }); o.pts += r.total_points || 0; o.rounds++; if (r.play_date === td) o.today = true; });
+  }
   await loadCurricula().catch(() => {});
   renderClasses();
 }
@@ -981,29 +987,67 @@ function renderClasses(){
 ACTS['c-tab'] = t => { T.compEdit = null; go('#/t/' + t.dataset.t); };
 function classesList(){
   const top = CL.sel ? '' : `<button class="btn cl-add" data-act="t-add-class">${ic('plus')} صف جديد</button><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
-  if (!CL.classes.length) return top + '<div class="card center muted">لا توجد صفوف بعد.</div>';
-  return top + CL.classes.map(classSection).join('') + (CL.sel || !CL.open.size ? '' : '<p class="sub center cl-hint">اسحب اسم الطالب لليسار للحذف، ولليمين للواتساب والرمز الجديد</p>');
+  const arch = CL.archived && CL.archived.length && !CL.sel ? `<details class="cl-arch"><summary>${ic('layers')} الصفوف المؤرشفة (${CL.archived.length})</summary>${CL.archived.map(c => `<div class="cl-arch-r"><span class="grow">${esc(c.name)}<small>${(CL.students[c.id] || []).length} طالب</small></span><button class="btn sm soft" data-act="c-unarchive" data-id="${c.id}">استرجاع</button></div>`).join('')}</details>` : '';
+  if (!CL.classes.length) return top + `<div class="cl-empty">${ic('users')}<b>أضف صفك الأول</b><small>اكتب اسم الصف والصق أسماء الطلبة، وخلال دقيقة يصير جاهز.</small><button class="btn" data-act="t-add-class">${ic('plus')} صف جديد</button></div>` + arch;
+  return top + CL.classes.map(classSection).join('') + arch;
 }
+const CST = id => CL.stat[id] || { pts: 0, rounds: 0, today: false };
 function classSection(c){
-  const st = CL.students[c.id] || [], open = CL.open.has(c.id), comp = CL.comps[c.id];
+  const st0 = CL.students[c.id] || [], open = CL.open.has(c.id), comp = CL.comps[c.id];
+  const ph = comp ? phaseOf(comp) : null;
+  const played = st0.filter(x => CST(x.id).today).length;
+  const never = comp && ph !== 'upcoming' ? st0.filter(x => !CST(x.id).rounds) : [];
   let body = '';
   if (open) {
-    const link = joinLink(c.join_code);
-    body = `<div class="cls-body">${CL.sel ? '' : `<div class="row"><button class="btn sm soft" data-act="t-upload">${ic('upload')} رفع أسماء</button><button class="btn sm soft" data-act="t-add-one">${ic('plus')} إضافة</button><span class="grow"></span><button class="icon-btn" data-act="c-cmore" aria-label="المزيد">${ic('more')}</button></div>`}` +
-      (c.self_join ? `<div class="join-row"><span class="sub">التسجيل الذاتي مفعّل</span><button class="btn sm" data-act="copy" data-v="${esc(link)}">نسخ رابط التسجيل</button></div>` : '') +
-      (st.length ? `<div class="sw-list">${st.map((s, i) => `<div class="sw-row"><div class="sw-act">
-          <div class="sw-r"><button class="del" data-act="t-del-student" data-id="${s.id}"><i>${ic('trash')}</i><span>حذف</span></button></div>
-          <div class="sw-l"><button class="rg" data-act="t-regen" data-id="${s.id}"><i>${ic('refresh')}</i><span>رمز جديد</span></button><button class="wa" data-act="s-wa" data-id="${s.id}"><i>${ic('send')}</i><span>واتساب</span></button></div></div>
-        <div class="sw-main" data-act="s-card" data-id="${s.id}">${CL.sel && CL.sel.type === 'students' && CL.sel.cid === c.id ? `<span class="selmark">${ic(CL.sel.ids.has(s.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${i + 1}</span>`}<div class="grow"><b>${esc(s.name)}</b><div class="sub">${esc(s.student_no) || '—'}</div></div>
-        <button class="code-pill eye" data-act="c-eye" data-code="${esc(s.code)}" aria-label="إظهار الرمز"><span>••••••</span>${ic('eye')}</button></div></div>`).join('')}</div>`
-        : '<p class="sub center" style="padding:12px">لا يوجد طلبة. ارفع ملفاً أو أضف يدوياً.</p>') + '</div>';
+    const link = joinLink(c.join_code), sort = CL.sort[c.id] || 'no', q = CL.q[c.id] || '';
+    let st = st0.map((x, i) => Object.assign({ _i: i + 1 }, x));
+    if (sort === 'name') st.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+    if (sort === 'pts') st.sort((a, b) => CST(b.id).pts - CST(a.id).pts);
+    if (sort === 'idle') st.sort((a, b) => CST(a.id).today - CST(b.id).today || CST(a.id).rounds - CST(b.id).rounds);
+    const selS = CL.sel && CL.sel.type === 'students' && CL.sel.cid === c.id;
+    const fl = CL.flash && CL.flash.cid === c.id ? CL.flash : null;
+    body = `<div class="cls-body">` +
+      (fl ? `<div class="cl-flash"><button class="cl-flash-x" data-act="cl-flash-x" aria-label="إغلاق">${ic('x')}</button><b>✅ تم إنشاء الصف${fl.n ? ` ومعه ${fl.n} طالباً` : ''}</b><small>${fl.n ? 'الخطوة التالية: أرسل الرموز للطلبة، ثم أنشئ مسابقة.' : fl.link ? 'شارك رابط التسجيل أدناه مع الطلبة.' : 'أضف الطلبة، ثم أنشئ مسابقة.'}</small><div class="row">${fl.n ? `<button class="btn sm" data-act="c-send">${ic('send')} إرسال الرموز</button>` : ''}${comp ? '' : `<button class="btn sm soft" data-act="cp-new-for">${ic('trophy')} إنشاء مسابقة</button>`}</div></div>` : '') +
+      (CL.sel ? '' : `<div class="cl-acts"><button class="btn sm" data-act="t-add-students">${ic('plus')} إضافة طلبة</button>${st0.length ? `<button class="btn sm soft" data-act="c-send">${ic('send')} إرسال الرموز</button>` : ''}<button class="icon-btn" data-act="c-cmore" aria-label="المزيد">${ic('more')}</button></div>`) +
+      (c.self_join ? `<div class="join-row"><span class="sub">التسجيل الذاتي مفعّل</span><button class="btn sm soft" data-act="c-joinshow">عرض</button><button class="btn sm" data-act="copy" data-v="${esc(link)}">نسخ الرابط</button></div>` : '') +
+      (never.length && !CL.sel ? `<div class="cl-alert">${ic('user')}<span class="grow"><b>${never.length}</b> لم يدخلوا أبداً</span><button class="btn sm soft" data-act="c-send" data-only="never">أرسل لهم الرمز</button></div>` : '') +
+      (st0.length > 10 ? `<div class="cl-search">${ic('search')}<input class="cl-q" data-cid="${c.id}" placeholder="بحث بالاسم أو الرقم" value="${esc(q)}"></div>` : '') +
+      (st0.length > 1 ? `<div class="lv-chips cl-sort">${[['no', 'الترتيب'], ['name', 'الاسم']].concat(comp ? [['pts', 'النقاط'], ['idle', 'لم يلعب اليوم']] : []).map(x => `<button class="${sort === x[0] ? 'on' : ''}" data-act="c-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>` : '') +
+      (st.length ? `<div class="sw-list">${st.map(x => { const k = CST(x.id), hide = q && !(x.name + ' ' + (x.student_no || '')).includes(q); return `<div class="sw-row${hide ? ' hide' : ''}" data-n="${esc(x.name + ' ' + (x.student_no || ''))}"><div class="sw-act">
+          <div class="sw-r"><button class="del" data-act="t-del-student" data-id="${x.id}"><i>${ic('trash')}</i><span>حذف</span></button></div>
+          <div class="sw-l"><button class="rg" data-act="t-regen" data-id="${x.id}"><i>${ic('refresh')}</i><span>رمز جديد</span></button><button class="wa" data-act="s-wa" data-id="${x.id}"><i>${ic('send')}</i><span>واتساب</span></button></div></div>
+        <div class="sw-main" data-act="s-card" data-id="${x.id}">${selS ? `<span class="selmark">${ic(CL.sel.ids.has(x.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${sort === 'pts' && comp ? '' : x._i}</span>`}<div class="grow"><b>${esc(x.name)}${k.today ? '<i class="cl-dot" title="لعب اليوم"></i>' : ''}</b><div class="sub">${esc(x.student_no) || '—'}${comp ? ` · ${k.pts} نقطة` : ''}${x.gender === 'f' ? ' · طالبة' : x.gender === 'm' ? ' · طالب' : ''}</div></div>
+        ${selS ? '' : `<button class="cl-wa" data-act="s-wa" data-id="${x.id}" aria-label="إرسال الرمز واتساب">${ic('send')}</button>`}</div></div>`; }).join('')}</div>`
+        : `<div class="cl-empty sm"><b>الصف فاضي</b><small>اختر طريقة لإضافة الطلبة:</small><div class="cl-empty-acts"><button class="btn sm" data-act="t-add-students" data-m="paste">لصق أسماء</button><button class="btn sm soft" data-act="t-upload">ملف Excel</button>${c.self_join ? '' : `<button class="btn sm soft" data-act="t-self" data-on="1">رابط تسجيل</button>`}</div></div>`) + '</div>';
   }
   const selC = CL.sel && CL.sel.type === 'classes';
-  const ph = comp ? phaseOf(comp) : null;
-  const tag = comp ? `<span class="cl-tag on">${PHASE_AR[ph]}</span>` : `<span class="cl-tag">بدون مسابقة</span>`;
+  const days = comp && ph === 'points' ? cfDays(todayKW(), comp.points_end_date) : null;
+  const tag = comp ? `<span class="cl-tag on">${PHASE_AR[ph]}</span>${days != null ? `<span class="cl-days">${days > 0 ? 'باقي ' + days + ' يوم' : 'آخر يوم'}</span>` : ''}` : `<span class="cl-tag">بدون مسابقة</span>`;
+  const pct = st0.length ? Math.round(played * 100 / st0.length) : 0;
+  const ring = ph === 'points' && st0.length && !selC ? `<span class="cl-ring" style="--p:${pct}" title="لعبوا اليوم"><b>${played}/${st0.length}</b><small>اليوم</small></span>` : '';
   return `<div class="cls ${open ? 'open' : ''} ${selC && CL.sel.ids.has(c.id) ? 'picked' : ''}" data-cid="${c.id}"><button class="cls-head" data-act="c-toggle">${selC ? `<span class="selmark">${ic(CL.sel.ids.has(c.id) ? 'checkc' : 'circle')}</span>` : ''}
     <span class="cl-ic" style="--h:${clsHue(c.name)}">${esc(clsBadge(c.name))}</span>
-    <div class="grow cl-txt"><b>${esc(c.name)}</b><div class="cl-meta"><span>${st.length} طالب</span>${tag}</div></div>${selC ? '' : `<span class="chev">${ic('back')}</span>`}</button>${body}</div>`;
+    <div class="grow cl-txt"><b>${esc(c.name)}</b><div class="cl-meta"><span>${st0.length} طالب${c.gender === 'f' ? ' · بنات' : c.gender === 'm' ? ' · بنين' : ''}</span>${tag}</div></div>${ring}${selC ? '' : `<span class="chev">${ic('back')}</span>`}</button>${body}</div>`;
+}
+ACTS['c-sort'] = t => { const c = ctx(t); CL.sort[c.id] = t.dataset.v; renderClasses(); };
+ACTS['cl-flash-x'] = () => { CL.flash = null; renderClasses(); };
+ACTS['cp-new-for'] = async t => { const c = ctx(t); CL.flash = null; CL.tab = 'comps'; await ACTS['cp-new'](); CC.sel = new Set([c.id]); if (location.hash !== '#/t/comps') location.hash = '#/t/comps'; else renderClasses(); };
+document.addEventListener('input', e => {
+  const q = e.target.closest && e.target.closest('.cl-q');
+  if (q) { const v = q.value.trim(); CL.q[q.dataset.cid] = v; q.closest('.cls').querySelectorAll('.sw-row').forEach(r => r.classList.toggle('hide', !!v && !r.dataset.n.includes(v))); return; }
+  const ta = e.target.closest && e.target.closest('.paste-ta');
+  if (ta) pasteInfo(ta);
+});
+/* paste a list: one student per line, optional number after a comma or tab */
+function parsePaste(txt){
+  return String(txt || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => { const p = l.split(/\s*[،,\t]\s*/); const no = (p[1] || '').replace(/[^\d٠-٩]/g, '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)); return { name: p[0].replace(/^\d+[\.\-\)]\s*/, '').trim(), student_no: no }; }).filter(x => x.name.length > 1);
+}
+function pasteInfo(ta){
+  const box = ta.parentElement.querySelector('.paste-info'); if (!box) return;
+  const rows = parsePaste(ta.value), have = new Set(((CK.cls && ta.closest('[data-form="t-save-paste"]')) ? CK.students : []).map(x => x.name.trim()));
+  const seen = new Set(), dup = [];
+  rows.forEach(r => { if (seen.has(r.name) || have.has(r.name)) dup.push(r.name); seen.add(r.name); });
+  box.innerHTML = rows.length ? `<b>${rows.length - dup.length}</b> اسم جاهز للإضافة${dup.length ? ` · <span class="bad">${dup.length} مكرر سيتم تخطيه: ${dup.slice(0, 3).map(esc).join('، ')}${dup.length > 3 ? '…' : ''}</span>` : ''}` : '';
 }
 const ORD = [['الحادي عشر', 11], ['الثاني عشر', 12], ['الأول', 1], ['الثاني', 2], ['الثالث', 3], ['الرابع', 4], ['الخامس', 5], ['السادس', 6], ['السابع', 7], ['الثامن', 8], ['التاسع', 9], ['العاشر', 10]];
 function clsBadge(n){
@@ -1029,14 +1073,18 @@ ACTS['c-more'] = () => sheet('الصفوف', [
   { act: 'm-run', attrs: 'data-a="c-del-all"', icon: 'trash', label: 'حذف جميع الصفوف', danger: true }
 ]);
 ACTS['c-cmore'] = t => { const c = ctx(t); sheet(c.name, [
-  { act: 'm-run', attrs: `data-a="t-export-codes" data-cid="${c.id}"`, icon: 'download', label: 'تصدير الرموز Excel' },
+  { act: 'm-run', attrs: `data-a="c-send" data-cid="${c.id}"`, icon: 'send', label: 'إرسال الرموز واتساب' },
   { act: 'm-run', attrs: `data-a="t-print-codes" data-cid="${c.id}"`, icon: 'print', label: 'طباعة بطاقات الرموز' },
-  { act: 'm-run', attrs: `data-a="t-sample-students" data-cid="${c.id}"`, icon: 'download', label: 'تنزيل نموذج الطلبة' },
-  { act: 'm-run', attrs: `data-a="s-select" data-cid="${c.id}"`, icon: 'check', label: 'تحديد طلبة' },
+  { act: 'm-run', attrs: `data-a="t-export-codes" data-cid="${c.id}"`, icon: 'download', label: 'تصدير الرموز Excel' },
+  { act: 'm-run', attrs: `data-a="s-select" data-cid="${c.id}"`, icon: 'check', label: 'تحديد طلبة (نقل، تصدير، حذف)' },
   null,
   { act: 'm-run', attrs: `data-a="c-menu" data-cid="${c.id}"`, icon: 'gear', label: 'إعدادات الصف والتسجيل الذاتي' },
-  { act: 'm-run', attrs: `data-a="c-del" data-cid="${c.id}"`, icon: 'trash', label: 'حذف الصف', danger: true }
-]); };
+  c.self_join ? { act: 'm-run', attrs: `data-a="c-joinshow" data-cid="${c.id}"`, icon: 'eye', label: 'عرض رابط التسجيل بملء الشاشة' } : undefined,
+  { act: 'm-run', attrs: `data-a="c-promote" data-cid="${c.id}"`, icon: 'refresh', label: 'ترقية للصف التالي' },
+  { act: 'm-run', attrs: `data-a="c-archive" data-cid="${c.id}"`, icon: 'layers', label: 'أرشفة الصف' },
+  null,
+  { act: 'm-run', attrs: `data-a="c-del" data-cid="${c.id}"`, icon: 'trash', label: 'حذف الصف نهائياً', danger: true }
+].filter(x => x !== undefined)); };
 ACTS['m-run'] = t => { closeModals(); const a2 = t.dataset.a; const fake = document.querySelector(`[data-cid="${t.dataset.cid}"]`) || t; setTimeout(() => ACTS[a2](fake.querySelector ? (fake.querySelector('.cls-head') || fake) : fake), 30); };
 ACTS['c-select'] = () => { CL.sel = { type: 'classes', ids: new Set() }; renderClasses(); };
 ACTS['s-select'] = t => { const c = ctx(t); CL.open.add(c.id); CL.sel = { type: 'students', cid: c.id, ids: new Set() }; renderClasses(); };
@@ -1049,7 +1097,7 @@ function selBar(){
   if (!CL.sel || CL.tab !== 'classes') return '';
   const n = CL.sel.ids.size, isC = CL.sel.type === 'classes';
   return `<div class="sel-bar"><button class="link" data-act="sel-cancel">إلغاء</button><b>${n ? `تم تحديد ${n}` : isC ? 'حدد الصفوف' : 'حدد الطلبة'}</b><button class="link" data-act="sel-all">الكل</button>
-    <div class="sel-acts">${!isC ? `<button class="btn sm soft" data-act="sel-export" ${n ? '' : 'disabled'}>${ic('download')} تصدير</button>` : ''}<button class="btn sm danger" data-act="sel-del" ${n ? '' : 'disabled'}>${ic('trash')} حذف</button></div></div>`;
+    <div class="sel-acts">${!isC ? `<button class="btn sm soft" data-act="sel-move" ${n && CL.classes.length > 1 ? '' : 'disabled'}>${ic('layers')} نقل</button><button class="btn sm soft" data-act="sel-export" ${n ? '' : 'disabled'}>${ic('download')} تصدير</button>` : ''}<button class="btn sm danger" data-act="sel-del" ${n ? '' : 'disabled'}>${ic('trash')} حذف</button></div></div>`;
 }
 ACTS['sel-del'] = async () => {
   const ids = [...CL.sel.ids], isC = CL.sel.type === 'classes';
@@ -1057,6 +1105,16 @@ ACTS['sel-del'] = async () => {
   const { error } = await sb.from(isC ? 'classes' : 'students').delete().in('id', ids);
   if (error) return toast(errMsg(error));
   CL.sel = null; toast('تم الحذف'); await tClasses();
+};
+ACTS['sel-move'] = () => {
+  const others = CL.classes.filter(c => c.id !== CL.sel.cid);
+  modal(`<h3>نقل ${CL.sel.ids.size} طالب/ـة</h3><form class="col" data-form="sel-move-save"><div class="field"><label for="mv-c">إلى الصف</label><select class="input" id="mv-c" name="cls">${others.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></div><p class="sub">تبقى رموزهم ونتائجهم كما هي.</p><button class="btn" type="submit">نقل</button></form>`);
+};
+ACTS['sel-move-save'] = async f => {
+  const ids = [...CL.sel.ids], to = f.cls.value;
+  const { error } = await sb.from('students').update({ class_id: to }).in('id', ids);
+  if (error) return toast(/duplicate|unique/i.test(error.message) ? 'بعض الأرقام موجودة في الصف الآخر' : errMsg(error));
+  closeModals(); CL.sel = null; CL.open.add(to); toast('تم النقل'); await tClasses();
 };
 ACTS['sel-export'] = () => {
   const st = (CL.students[CL.sel.cid] || []).filter(s => CL.sel.ids.has(s.id));
@@ -1138,15 +1196,42 @@ ACTS['s-wa'] = t => {
   let ph = (s.phone || '').replace(/[^0-9]/g, '');
   if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2);
   window.open('https://wa.me/' + (ph || '') + '?text=' + encodeURIComponent(msg), '_blank');
+  CL.sent.add(s.id); if (t.classList.contains('send-row')) { t.classList.add('sent'); t.querySelector('.send-ic').innerHTML = ic('check'); }
+};
+ACTS['c-send'] = t => { const c = ctx(t), only = t.dataset.only;
+  const st = only === 'never' ? CK.students.filter(x => !CST(x.id).rounds) : CK.students;
+  modal(`<div class="col" data-cid="${c.id}"><h3>إرسال الرموز · ${esc(c.name)}</h3><p class="sub">اضغط على كل اسم يفتح واتساب برسالة فيها رمزه ورابط الدخول، ويتعلّم ✓ بعد الإرسال.</p>
+    <div class="send-list">${st.map(x => `<button class="send-row ${CL.sent.has(x.id) ? 'sent' : ''}" data-act="s-wa" data-id="${x.id}"><span class="grow"><b>${esc(x.name)}</b><small>${x.phone ? esc(x.phone) : 'بدون رقم: تختار المحادثة بنفسك'}</small></span><span class="send-ic">${ic(CL.sent.has(x.id) ? 'check' : 'send')}</span></button>`).join('')}</div>
+    <div class="row"><button class="btn soft" data-act="t-print-codes">${ic('print')} طباعة</button><button class="btn soft" data-act="t-export-codes">${ic('download')} Excel</button></div></div>`);
 };
 ACTS['c-menu'] = t => {
   const c = ctx(t);
-  modal(`<h3>إعدادات ${esc(c.name)}</h3><form class="col" data-form="c-rename" data-cid="${c.id}"><div class="field"><label for="cr-n">اسم الصف</label><input class="input" id="cr-n" name="name" value="${esc(c.name)}" required></div><button class="btn sm" type="submit">حفظ الاسم</button></form>
-    <div class="col" style="margin-top:14px" data-cid="${c.id}"><b>نمط واجهة الطلبة</b><div class="style-cards">${['kids', 'mid', 'uni'].map(k => `<button type="button" class="style-card ${k === c.style ? 'on' : ''}" data-act="c-style" data-style="${k}"><div class="sw" style="background:${STYLE_SW[k]}"></div>${STYLE_AR[k]}</button>`).join('')}</div>
-    <div class="row between card" style="margin-top:8px"><div><b>التسجيل الذاتي</b><div class="sub">رابط يسجل به الطلبة بأنفسهم</div></div><button class="btn sm ${c.self_join ? 'soft' : ''}" data-act="t-self" data-on="${c.self_join ? 0 : 1}">${c.self_join ? 'إيقاف' : 'تفعيل'}</button></div>
-    ${c.self_join ? `<div class="join-box" dir="ltr">${esc(joinLink(c.join_code))}</div><button class="btn sm" data-act="copy" data-v="${esc(joinLink(c.join_code))}">نسخ الرابط</button>` : ''}
-    <button class="btn danger" data-act="c-del" style="margin-top:10px">${ic('trash')} حذف الصف</button></div>`);
+  modal(`<div class="col" data-cid="${c.id}"><h3>إعدادات ${esc(c.name)}</h3><form class="col" data-form="c-rename" data-cid="${c.id}"><div class="field"><label for="cr-n">اسم الصف</label><input class="input" id="cr-n" name="name" value="${esc(c.name)}" required></div><button class="btn sm" type="submit">حفظ الاسم</button></form>
+    <div class="field"><label>الطلبة</label><div class="cg">${genderSeg('cg', c.gender || '', [['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']])}</div><p class="sub">يُستخدم في صياغة التقارير للطلبة اللي ما حُدد جنسهم.</p></div>
+    <div class="row between card"><div><b>التسجيل الذاتي</b><div class="sub">رابط يسجل به الطلبة بأنفسهم</div></div><button class="btn sm ${c.self_join ? 'soft' : ''}" data-act="t-self" data-on="${c.self_join ? 0 : 1}">${c.self_join ? 'إيقاف' : 'تفعيل'}</button></div>
+    ${c.self_join ? `<div class="join-box" dir="ltr">${esc(joinLink(c.join_code))}</div><div class="row"><button class="btn sm" data-act="copy" data-v="${esc(joinLink(c.join_code))}">نسخ الرابط</button><button class="btn sm soft" data-act="c-joinshow">عرض بملء الشاشة</button></div>` : ''}
+    <div class="row" style="margin-top:6px"><button class="btn soft" data-act="c-archive">${ic('layers')} أرشفة</button><button class="btn danger" data-act="c-del">${ic('trash')} حذف الصف</button></div></div>`);
 };
+document.addEventListener('change', e => { const r = e.target.closest && e.target.closest('.cg input'); if (!r) return; const c = ctx(r);
+  sb.from('classes').update({ gender: r.value || null }).eq('id', c.id).then(({ error }) => { if (error) return toast(errMsg(error)); c.gender = r.value; r.closest('.seg-g').querySelectorAll('label').forEach(l => l.classList.toggle('on', l.contains(r))); toast('تم الحفظ'); renderClasses(); }); });
+ACTS['c-archive'] = async t => { const c = ctx(t);
+  if (!await ask(`أرشفة «${c.name}»؟ يختفي من القوائم وتبقى نتائجه، وتقدر تسترجعه من أسفل صفحة الصفوف.`, { ok: 'أرشفة' })) return;
+  const { error } = await sb.from('classes').update({ archived: true }).eq('id', c.id); if (error) return toast(errMsg(error));
+  closeModals(); CL.open.delete(c.id); toast('تمت الأرشفة'); await tClasses(); };
+ACTS['c-unarchive'] = async t => { const { error } = await sb.from('classes').update({ archived: false }).eq('id', t.dataset.id); if (error) return toast(errMsg(error)); toast('تم الاسترجاع'); await tClasses(); };
+function nextGradeName(n){
+  const o = ORD.find(x => n.includes(x[0])); if (!o || o[1] >= 12) return null;
+  return n.replace(o[0], GRADES[o[1]]);
+}
+ACTS['c-promote'] = async t => { const c = ctx(t), nn = nextGradeName(c.name);
+  if (!nn) return toast('ما قدرت أحدد الصف التالي، عدّل الاسم من إعدادات الصف');
+  if (!await ask(`ترقية «${c.name}» إلى «${nn}»؟ يبقى الطلبة ورموزهم كما هي.`, { ok: 'ترقية' })) return;
+  const { error } = await sb.from('classes').update({ name: nn }).eq('id', c.id); if (error) return toast(errMsg(error));
+  toast('تمت الترقية'); await tClasses(); };
+ACTS['c-joinshow'] = async t => { const c = ctx(t); if (!c || !c.self_join) return; const link = joinLink(c.join_code);
+  let qr = ''; try { await loadJs(QRJS, 'qrcode'); qr = qrSvg(link); } catch(e){}
+  const w = document.createElement('div'); w.className = 'joinshow'; w.innerHTML = `<button class="joinshow-x" aria-label="إغلاق">${ic('x')}</button><b>${esc(c.name)}</b><span>امسح الرمز بكاميرا الجوال للتسجيل</span>${qr ? `<div class="joinshow-qr">${qr}</div>` : ''}<code dir="ltr">${esc(link)}</code>`;
+  w.querySelector('.joinshow-x').onclick = () => w.remove(); closeModals(); document.body.appendChild(w); };
 ACTS['c-del-all'] = async () => {
   const n = CL.classes.length, st = Object.values(CL.students).reduce((x, s) => x + s.length, 0);
   const v = await ask(`سيتم حذف ${n} صف و${st} طالب/ـة وكل النتائج والمسابقات نهائياً.\nللتأكيد اكتب كلمة: حذف`, { title: 'حذف جميع الصفوف', input: '', placeholder: 'حذف', require: 'حذف', ok: 'حذف الكل' });
@@ -1171,15 +1256,40 @@ ACTS['c-del'] = async t => {
   const { error } = await sb.from('classes').delete().eq('id', c.id);
   if (error) return toast(errMsg(error)); closeModals(); CL.open.delete(c.id); await tClasses();
 };
+const GRADES = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر', 'الحادي عشر', 'الثاني عشر'];
+const genderSeg = (name, cur, opts) => `<div class="tabs seg-g">${opts.map(x => `<label class="${(cur || '') === x[0] ? 'on' : ''}"><input type="radio" name="${name}" value="${x[0]}" ${(cur || '') === x[0] ? 'checked' : ''}>${x[1]}</label>`).join('')}</div>`;
 ACTS['t-add-class'] = () => {
-  modal(`<h3>إضافة صف</h3><form class="col" data-form="t-save-class">
+  modal(`<h3>صف جديد</h3><form class="col nc" data-form="t-save-class"><input type="hidden" name="m" value="paste">
+    <div class="row nc-row"><div class="field grow"><label for="nc-g">الصف</label><select class="input" id="nc-g" name="g" data-change="nc-name"><option value="">اختر…</option>${GRADES.map(g => `<option>${g}</option>`).join('')}</select></div>
+    <div class="field"><label>الشعبة</label><div class="nc-secs">${['أ', 'ب', 'ج', 'د', 'هـ'].map(x => `<button type="button" data-act="nc-sec" data-v="${x}">${x}</button>`).join('')}</div></div></div>
     <div class="field"><label for="c-name">اسم الصف</label><input class="input" id="c-name" name="name" required maxlength="60" placeholder="مثال: السادس / ب"></div>
-    <button class="btn" type="submit">حفظ</button></form>`);
+    <div class="field"><label>الطلبة</label>${genderSeg('gender', '', [['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']])}</div>
+    <div class="field"><label>كيف تضيف الأسماء؟</label><div class="nc-m">${[['paste', 'لصق أسماء', 'edit'], ['file', 'ملف Excel', 'upload'], ['link', 'رابط تسجيل', 'send'], ['later', 'لاحقاً', 'clock']].map((x, i) => `<button type="button" class="${i ? '' : 'on'}" data-act="nc-m" data-v="${x[0]}">${ic(x[2])}<span>${x[1]}</span></button>`).join('')}</div></div>
+    <div class="nc-p" data-m="paste"><textarea class="input paste-ta" name="names" rows="6" placeholder="اسم الطالب في كل سطر&#10;ويمكن إضافة الرقم بعد فاصلة:&#10;سارة العتيبي، 1001"></textarea><div class="paste-info"></div><p class="sub">تقدر تنسخ عمودَي الاسم والرقم من Excel وتلصقهم هنا مباشرة.</p></div>
+    <div class="nc-p hide" data-m="file"><input class="input" type="file" name="file" accept=".xlsx,.xls,.csv"><p class="sub">العمود الأول الاسم، والثاني رقم الطالب. <button type="button" class="link" data-act="t-sample-students">تنزيل نموذج</button></p></div>
+    <div class="nc-p hide" data-m="link"><p class="sub">ننشئ رابطاً يسجّل به الطلبة بأنفسهم. شاركه في مجموعة الصف أو اعرضه على السبورة.</p></div>
+    <div class="nc-p hide" data-m="later"><p class="sub">تقدر تضيف الطلبة بعدين من صفحة الصف.</p></div>
+    <button class="btn" type="submit">إنشاء الصف</button></form>`);
 };
+ACTS['nc-name'] = t => { const f = t.closest('form'); const sec = (f.querySelector('.nc-secs .on') || {}).dataset; f.name.value = f.g.value ? f.g.value + (sec && sec.v ? ' / ' + sec.v : '') : f.name.value; };
+ACTS['nc-sec'] = t => { const on = t.classList.contains('on'); t.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('on')); if (!on) t.classList.add('on'); const f = t.closest('form'); if (f.g.value) ACTS['nc-name'](f.g); else if (!on) f.name.value = (f.name.value.split('/')[0].trim() ? f.name.value.split('/')[0].trim() + ' / ' : '') + t.dataset.v; };
+ACTS['nc-m'] = t => { const f = t.closest('form'); f.m.value = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); f.querySelectorAll('.nc-p').forEach(p => p.classList.toggle('hide', p.dataset.m !== t.dataset.v)); };
 ACTS['t-save-class'] = async f => {
-  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name: f.name.value.trim(), style: 'mid' }).select().single();
-  if (error) return toast(errMsg(error));
-  closeModals(); CL.open.add(data.id); CL.tab = 'classes'; await tClasses();
+  const name = f.name.value.trim(); if (name.length < 2) return toast('اكتب اسم الصف');
+  if (CL.classes.some(c => c.name.trim() === name)) return toast('يوجد صف بنفس الاسم');
+  const g = (f.querySelector('[name=gender]:checked') || {}).value || null, m = f.m.value;
+  let rows = [];
+  if (m === 'paste') rows = parsePaste(f.names.value);
+  if (m === 'file') { const file = f.file.files[0]; if (!file) return toast('اختر ملف الأسماء'); try { rows = parseStudents(await readRows(file)); } catch(e){ return toast('تعذّرت قراءة الملف'); } }
+  if (g === 'm' || g === 'f') rows.forEach(r => { if (!r.gender) r.gender = g; });
+  const btn = f.querySelector('[type=submit]'); btn.disabled = true; btn.textContent = 'جارٍ الإنشاء…';
+  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, style: 'mid', gender: g }).select().single();
+  if (error) { btn.disabled = false; btn.textContent = 'إنشاء الصف'; return toast(errMsg(error)); }
+  let added = 0;
+  try { for (let i = 0; i < rows.length; i += 150) { const r = await rpc('add_students', { p_class: data.id, p_rows: rows.slice(i, i + 150) }); added += r.added.length; } } catch(e){ toast(errMsg(e)); }
+  if (m === 'link') { try { await rpc('set_self_join', { p_class: data.id, p_on: true }); } catch(e){} }
+  closeModals(); CL.open.add(data.id); CL.flash = { cid: data.id, n: added, link: m === 'link' }; CL.tab = 'classes';
+  if (location.hash !== '#/t/classes') location.hash = '#/t/classes'; else await tClasses();
 };
 
 /* ---- multi-class upload ---- */
@@ -1281,10 +1391,12 @@ ACTS['t-xl-chosen'] = async t => {
     CK.pending = parseStudents(await readRows(file));
     t.value = '';
     if (!CK.pending.length) return toast('لم أجد أسماء في الملف');
-    modal(`<h3>معاينة الملف</h3><p class="muted" style="margin-bottom:10px">تمت قراءة <b>${CK.pending.length}</b> سجلاً. تأكد من الأسماء والأرقام ثم أكّد الإضافة.</p>
-      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>الاسم</th><th>رقم الطالب</th></tr></thead><tbody>${CK.pending.slice(0, 8).map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.name)}</td><td>${esc(r.student_no)}</td></tr>`).join('')}</tbody></table></div>
-      ${CK.pending.length > 8 ? `<p class="sub" style="margin-top:6px">… و${CK.pending.length - 8} آخرون</p>` : ''}
-      <div class="row" style="margin-top:14px"><button class="btn" data-act="t-confirm-upload">تأكيد الإضافة</button><button class="btn soft" data-act="close-modal" style="width:auto">إلغاء</button></div>`);
+    const haveN = new Set(CK.students.map(x => x.name.trim())), haveNo = new Set(CK.students.map(x => String(x.student_no || '')).filter(Boolean)), seenN = new Set(), seenNo = new Set();
+    let dups = 0, noNo = 0;
+    const flags = CK.pending.map(r => { let f = ''; if (haveN.has(r.name) || seenN.has(r.name) || (r.student_no && (haveNo.has(r.student_no) || seenNo.has(r.student_no)))) { f = 'dup'; dups++; } else if (!r.student_no) { f = 'nono'; noNo++; } seenN.add(r.name); if (r.student_no) seenNo.add(r.student_no); return f; });
+    modal(`<h3>معاينة الملف</h3><div class="pv-sum"><span class="ok">${CK.pending.length - dups} جديد</span>${dups ? `<span class="dup">${dups} مكرر سيتم تخطيه</span>` : ''}${noNo ? `<span class="nono">${noNo} بدون رقم</span>` : ''}</div>
+      <div class="tbl-wrap pv-tbl"><table><thead><tr><th>#</th><th>الاسم</th><th>رقم الطالب</th></tr></thead><tbody>${CK.pending.map((r, i) => `<tr class="${flags[i]}"><td>${i + 1}</td><td>${esc(r.name)}${flags[i] === 'dup' ? ' <small>مكرر</small>' : ''}</td><td>${esc(r.student_no) || '—'}</td></tr>`).join('')}</tbody></table></div>
+      <div class="row" style="margin-top:14px"><button class="btn" data-act="t-confirm-upload" ${CK.pending.length - dups ? '' : 'disabled'}>إضافة ${CK.pending.length - dups} طالب</button><button class="btn soft" data-act="close-modal" style="width:auto">إلغاء</button></div>`);
   } catch(e){ toast('تعذّرت قراءة الملف'); }
 };
 ACTS['t-confirm-upload'] = async t => {
@@ -1297,31 +1409,57 @@ ACTS['t-confirm-upload'] = async t => {
     }
     closeModals();
     toast(`أُضيف ${added}` + (skipped ? ` وتم تخطي ${skipped} مكرر/فارغ` : ''));
-    await tClasses();
+    CL.open.add(CK.cls.id); await tClasses();
   } catch(e){ closeModals(); toast(errMsg(e)); }
 };
-ACTS['t-add-one'] = t => { ctx(t);
-  modal(`<h3>إضافة طالب/ـة</h3><form class="col" data-form="t-save-one"><div class="field"><label for="o-n">الاسم</label><input class="input" id="o-n" name="name" required></div>
-    <div class="field"><label for="o-no">رقم الطالب</label><input class="input" id="o-no" name="no" dir="ltr"></div>
-    <div class="field"><label for="o-ph">رقم الهاتف (اختياري)</label><input class="input" id="o-ph" name="ph" type="tel" dir="ltr" placeholder="مثال: 99999999"></div><button class="btn" type="submit">إضافة</button></form>`);
+ACTS['t-add-one'] = t => ACTS['t-add-students'](t);
+ACTS['t-add-students'] = t => { const c = ctx(t); const m = t.dataset.m || 'paste';
+  modal(`<div class="col as" data-cid="${c.id}"><h3>إضافة طلبة · ${esc(c.name)}</h3><div class="tabs as-tabs">${[['paste', 'لصق قائمة'], ['one', 'طالب واحد'], ['file', 'ملف Excel']].map(x => `<button type="button" class="${x[0] === m ? 'on' : ''}" data-act="as-tab" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
+    <form class="col as-p ${m === 'paste' ? '' : 'hide'}" data-m="paste" data-form="t-save-paste"><textarea class="input paste-ta" name="names" rows="8" placeholder="اسم الطالب في كل سطر&#10;ويمكن إضافة الرقم بعد فاصلة:&#10;سارة العتيبي، 1001"></textarea><div class="paste-info"></div><button class="btn" type="submit">إضافة</button></form>
+    <form class="col as-p ${m === 'one' ? '' : 'hide'}" data-m="one" data-form="t-save-one"><div class="field"><label for="o-n">الاسم</label><input class="input" id="o-n" name="name"></div>
+      <div class="row"><div class="field grow"><label for="o-no">رقم الطالب</label><input class="input" id="o-no" name="no" dir="ltr" inputmode="numeric"></div><div class="field grow"><label for="o-ph">الهاتف (اختياري)</label><input class="input" id="o-ph" name="ph" type="tel" dir="ltr" placeholder="99999999"></div></div>
+      <div class="field"><label>الجنس</label>${genderSeg('g', c.gender === 'm' || c.gender === 'f' ? c.gender : '', [['m', 'طالب'], ['f', 'طالبة'], ['', 'غير محدد']])}</div><button class="btn" type="submit">إضافة</button></form>
+    <div class="col as-p ${m === 'file' ? '' : 'hide'}" data-m="file"><p class="sub">العمود الأول الاسم، والثاني رقم الطالب، ويمكن إضافة الهاتف والجنس. تشوف معاينة قبل الحفظ.</p><button class="btn" data-act="t-upload">${ic('upload')} اختيار الملف</button><button class="btn soft" data-act="t-sample-students">${ic('download')} تنزيل نموذج</button></div></div>`);
+};
+ACTS['as-tab'] = t => { const w = t.closest('.as'); t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); w.querySelectorAll('.as-p').forEach(p => p.classList.toggle('hide', p.dataset.m !== t.dataset.v)); };
+async function addRows(rows){
+  const g = CK.cls.gender; if (g === 'm' || g === 'f') rows.forEach(r => { if (!r.gender) r.gender = g; });
+  let added = 0, skipped = 0;
+  for (let i = 0; i < rows.length; i += 150) { const r = await rpc('add_students', { p_class: CK.cls.id, p_rows: rows.slice(i, i + 150) }); added += r.added.length; skipped += r.skipped; }
+  return { added, skipped };
+}
+ACTS['t-save-paste'] = async f => {
+  const have = new Set(CK.students.map(x => x.name.trim())), rows = parsePaste(f.names.value).filter(r => !have.has(r.name));
+  if (!rows.length) return toast('الصق أسماء جديدة أولاً');
+  const btn = f.querySelector('[type=submit]'); btn.disabled = true; btn.textContent = 'جارٍ الإضافة…';
+  try { const r = await addRows(rows); closeModals(); toast(`أُضيف ${r.added}` + (r.skipped ? ` وتم تخطي ${r.skipped} مكرر` : '')); CL.open.add(CK.cls.id); await tClasses(); }
+  catch(e){ btn.disabled = false; btn.textContent = 'إضافة'; toast(errMsg(e)); }
 };
 ACTS['t-save-one'] = async f => {
+  if (f.name.value.trim().length < 2) return toast('اكتب الاسم');
   try {
-    const r = await rpc('add_students', { p_class: CK.cls.id, p_rows: [{ name: f.name.value, student_no: f.no.value, phone: f.ph.value }] });
-    closeModals();
-    toast(r.added.length ? 'تمت الإضافة' : 'الرقم موجود مسبقاً في الصف');
-    await tClasses();
+    const r = await rpc('add_students', { p_class: CK.cls.id, p_rows: [{ name: f.name.value, student_no: f.no.value, phone: f.ph.value, gender: (f.querySelector('[name=g]:checked') || {}).value || '' }] });
+    if (!r.added.length) return toast('الرقم موجود مسبقاً في الصف');
+    toast('تمت الإضافة، أضف التالي'); f.reset(); f.name.focus(); CL.open.add(CK.cls.id); tClasses();
   } catch(e){ toast(errMsg(e)); }
 };
 ACTS['t-regen'] = async t => { ctx(t); closeModals();
   if (!await ask('إنشاء رمز جديد؟ سيتوقف الرمز القديم عن العمل.')) return;
   try { await rpc('regenerate_code', { p_student: t.dataset.id }); await tClasses(); toast('تم إنشاء رمز جديد'); } catch(e){ toast(errMsg(e)); }
 };
-ACTS['t-del-student'] = async t => { ctx(t); closeModals();
-  if (!await ask('حذف هذا الطالب/ـة ونتائجه نهائياً؟')) return;
-  const { error } = await sb.from('students').delete().eq('id', t.dataset.id);
-  if (error) return toast(errMsg(error));
-  await tClasses();
+function snack(msg, onUndo, onCommit){
+  const old = document.getElementById('snack'); if (old && old._commit) old._commit();
+  const el = document.createElement('div'); el.id = 'snack'; el.className = 'snack'; el.innerHTML = `<span>${esc(msg)}</span><button type="button">تراجع</button>`;
+  let done = false; const commit = () => { if (done) return; done = true; el.remove(); onCommit(); };
+  el._commit = commit;
+  el.querySelector('button').onclick = () => { if (done) return; done = true; el.remove(); onUndo(); };
+  document.body.appendChild(el); setTimeout(commit, 5000);
+}
+window.addEventListener('pagehide', () => { const s2 = document.getElementById('snack'); if (s2 && s2._commit) s2._commit(); });
+ACTS['t-del-student'] = t => { const c = ctx(t); closeModals();
+  const arr = CL.students[c.id] || [], i = arr.findIndex(x => x.id === t.dataset.id); if (i < 0) return;
+  const [st] = arr.splice(i, 1); renderClasses();
+  snack(`تم حذف ${st.name}`, () => { arr.splice(i, 0, st); renderClasses(); }, async () => { const { error } = await sb.from('students').delete().eq('id', st.id); if (error) { toast(errMsg(error)); await tClasses(); } });
 };
 ACTS['t-export-codes'] = t => { ctx(t);
   const rows = [['الاسم', 'رقم الطالب', 'الهاتف', 'الرمز']].concat(CK.students.map(s => [s.name, s.student_no, s.phone || '', s.code]));
@@ -1766,9 +1904,9 @@ function buildReport(name, d, g){
 ACTS['r-report'] = async t => {
   const { id, name } = t.dataset; toast('جاري إعداد التقرير…');
   try {
-    const [d, gq] = await Promise.all([rpc('teacher_student_report', { p_student: id }), sb.from('students').select('gender').eq('id', id).maybeSingle()]);
+    const [d, gq] = await Promise.all([rpc('teacher_student_report', { p_student: id }), sb.from('students').select('gender,classes(gender)').eq('id', id).maybeSingle()]);
     if (!d || !d.total) { toast('لا توجد جولات رسمية منتهية لهذا الطالب بعد'); return; }
-    const r = buildReport(name, d, gq.data && gq.data.gender); RS.lastText = r.text; RS.lastName = name; RS.lastCls = t.dataset.cls || ''; closeModals(); modal(r.html);
+    const gd = gq.data || {}, r = buildReport(name, d, gd.gender || (gd.classes && gd.classes.gender)); RS.lastText = r.text; RS.lastName = name; RS.lastCls = t.dataset.cls || ''; closeModals(); modal(r.html);
   } catch (e) { toast('تعذّر تحميل التقرير'); }
 };
 /* student report → PDF (rendered by the browser so Arabic shapes correctly) */
