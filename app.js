@@ -1293,6 +1293,7 @@ function renderResults(){
   const byPts = rows.slice().sort((x, y) => y.pts - x.pts);
   const rank = new Map(); let rk = 0, prev = null;
   byPts.forEach((r, i) => { if (r.pts !== prev) { rk = i + 1; prev = r.pts; } rank.set(r, rk); });
+  if (!RS.all) { rows.forEach(r => { if (r.r) rank.set(r, r.r); }); byPts.sort((x, y) => (x.r || 0) - (y.r || 0)); }
   const sorters = { pts: (x, y) => y.pts - x.pts, acc: (x, y) => acc(y) - acc(x), rounds: (x, y) => y.rounds - x.rounds, idle: (x, y) => (x.played_today - y.played_today) || (x.rounds - y.rounds) };
   let list = rows.slice().sort(sorters[RS.sort]);
   if (RS.q) list = list.filter(r => (r.name + ' ' + r.student_no).includes(RS.q));
