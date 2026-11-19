@@ -70,6 +70,8 @@ const ICON = {
   circle:'<circle cx="12" cy="12" r="9"/>',
   checkc:'<circle cx="12" cy="12" r="9" fill="currentColor" stroke="none"/><path d="M8 12.5l2.8 2.8L16.5 9.5" stroke="#fff"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  sound:'<path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
+  mute:'<path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M22 9l-6 6M16 9l6 6"/>',
   star:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3z"/>'
 };
 const ic = n => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + ICON[n] + '</svg>';
@@ -244,8 +246,101 @@ ACTS['s-leaders'] = async () => {
   } catch(e){ m.remove(); toast(errMsg(e)); }
 };
 
+/* ---- game effects: sound, haptics, particles ---- */
+const FX = (() => {
+  let ac = null;
+  const reduce = () => (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const on = () => LS.get('mc_sound') !== '0';
+  const ctx = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+  document.addEventListener('touchstart', () => ctx(), { once: true, passive: true });
+  document.addEventListener('click', () => ctx(), { once: true });
+  function tone(f, d, type, vol, at, slide){
+    const c = ctx(); if (!c || !on()) return;
+    const t = c.currentTime + (at || 0), o = c.createOscillator(), g = c.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || .2, t + .01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .05);
+  }
+  function noise(d, vol){
+    const c = ctx(); if (!c || !on()) return;
+    const b = c.createBuffer(1, c.sampleRate * d, c.sampleRate), x = b.getChannelData(0);
+    for (let i = 0; i < x.length; i++) x[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / x.length, 2);
+    const s = c.createBufferSource(), g = c.createGain(), f = c.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 900; g.gain.value = vol || .5; s.buffer = b; s.connect(f).connect(g).connect(c.destination); s.start();
+  }
+  const vib = p => { try { navigator.vibrate && navigator.vibrate(p); } catch(e){} };
+  const layer = () => { let l = document.getElementById('fx'); if (!l) { l = document.createElement('div'); l.id = 'fx'; document.body.appendChild(l); } return l; };
+  function burst(x, y, colors, n, spread){
+    if (reduce()) return;
+    const L = layer();
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('i'); p.className = 'fx-p' + (i % 3 === 0 ? ' star' : '');
+      const ang = Math.random() * Math.PI * 2, dist = (spread || 90) * (.5 + Math.random());
+      p.style.cssText = `left:${x}px;top:${y}px;background:${colors[i % colors.length]};--dx:${Math.cos(ang) * dist}px;--dy:${Math.sin(ang) * dist - 30}px;--r:${Math.random() * 720 - 360}deg;--s:${.6 + Math.random() * .9}`;
+      L.appendChild(p); setTimeout(() => p.remove(), 1000);
+    }
+  }
+  function flash(cls, ms){ const L = layer(), f = document.createElement('div'); f.className = 'fx-flash ' + cls; L.appendChild(f); setTimeout(() => f.remove(), ms || 600); }
+  function floatText(x, y, txt, cls){ const L = layer(), d = document.createElement('div'); d.className = 'fx-float ' + (cls || ''); d.textContent = txt; d.style.left = x + 'px'; d.style.top = y + 'px'; L.appendChild(d); setTimeout(() => d.remove(), 1300); }
+  function confetti(ms){
+    if (reduce()) return;
+    const cv = document.createElement('canvas'); cv.className = 'fx-confetti'; layer().appendChild(cv);
+    const W = cv.width = innerWidth * devicePixelRatio, H = cv.height = innerHeight * devicePixelRatio, g = cv.getContext('2d');
+    const cols = ['#F5B72B', '#FFE48A', '#C8102E', '#FF5A66', '#3B6BF0', '#1FA971', '#9B51E0'];
+    const ps = Array.from({ length: 140 }, () => ({ x: Math.random() * W, y: -Math.random() * H * .6, w: (6 + Math.random() * 8) * devicePixelRatio, h: (8 + Math.random() * 10) * devicePixelRatio, vy: (2 + Math.random() * 3) * devicePixelRatio, vx: (Math.random() - .5) * 2 * devicePixelRatio, r: Math.random() * 6, vr: (Math.random() - .5) * .3, c: cols[Math.random() * cols.length | 0] }));
+    const t0 = performance.now();
+    (function f(t){
+      g.clearRect(0, 0, W, H);
+      const fade = Math.min(1, Math.max(0, (ms - (t - t0)) / 600));
+      ps.forEach(p => { p.y += p.vy; p.x += p.vx + Math.sin((t + p.r * 100) / 300) * .8; p.r += p.vr; g.save(); g.globalAlpha = fade; g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c; g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); g.restore(); });
+      if (t - t0 < ms) requestAnimationFrame(f); else cv.remove();
+    })(t0);
+  }
+  return {
+    on, toggle(){ LS.set('mc_sound', on() ? '0' : '1'); return on(); },
+    tick(final){ tone(final ? 1100 : 880, .06, 'square', .06); },
+    heart(){ tone(70, .14, 'sine', .55); tone(60, .16, 'sine', .45, .18); vib([30, 80, 30]); },
+    correct(btn, pts){
+      tone(660, .12, 'triangle', .22); tone(990, .2, 'triangle', .22, .1); tone(1320, .25, 'sine', .15, .2); vib(25);
+      if (!btn) return; const r = btn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+      burst(x, y, ['#F5B72B', '#FFE48A', '#4FD394', '#fff'], 26, 120);
+      if (pts) floatText(x, r.top, '+' + pts, 'good');
+      flash('good', 500);
+    },
+    wrong(btn, timeout){
+      tone(180, .25, 'sawtooth', .16, 0, 90); tone(140, .3, 'square', .08, .05, 70); vib([60, 40, 60]);
+      flash('bad', 650);
+      const q = document.querySelector('.qbox'); if (q) { q.classList.remove('shake'); void q.offsetWidth; q.classList.add('shake'); }
+      if (timeout) { const t = document.querySelector('.timer'); if (t) { const r = t.getBoundingClientRect(); floatText(r.left + r.width / 2, r.top + r.height / 2, 'انتهى الوقت!', 'bad'); } }
+    },
+    explode(){
+      return new Promise(res => {
+        const L = layer(), w = document.createElement('div'); w.className = 'fx-bomb';
+        w.innerHTML = '<div class="fx-clock"><img src="icon-512.png" alt=""></div>'; L.appendChild(w);
+        tone(200, 1.1, 'sawtooth', .07, 0, 900);
+        let k = 0; const iv = setInterval(() => { tone(900 + k * 120, .05, 'square', .08); k++; }, 150);
+        setTimeout(() => {
+          clearInterval(iv); noise(1.2, .9); tone(60, .8, 'sine', .7, 0, 30); vib([120, 50, 200]);
+          w.classList.add('boom'); flash('boom', 900);
+          burst(innerWidth / 2, innerHeight / 2, ['#F5B72B', '#FF5A66', '#C8102E', '#FFE48A', '#555'], 70, Math.min(innerWidth, 420) * .7);
+          document.body.classList.add('quake'); setTimeout(() => document.body.classList.remove('quake'), 600);
+          setTimeout(() => { w.remove(); res(); }, 750);
+        }, 1300);
+      });
+    },
+    win(perfect){
+      [523, 659, 784, 1047].forEach((f, i) => tone(f, .28, 'triangle', .2, i * .12));
+      tone(1319, .6, 'sine', .14, .5); if (perfect) [1047, 1319, 1568].forEach((f, i) => tone(f, .35, 'triangle', .14, .9 + i * .1));
+      vib([30, 40, 30, 40, 80]);
+      confetti(perfect ? 4200 : 3000);
+    },
+    meh(){ tone(523, .2, 'triangle', .15); tone(659, .3, 'triangle', .15, .15); }
+  };
+})();
+ACTS['s-sound'] = t => { const on = FX.toggle(); t.innerHTML = ic(on ? 'sound' : 'mute'); toast(on ? 'الصوت مفعّل' : 'الصوت مكتوم'); };
+
 /* ---- play ---- */
-function stopTimer(){ if (S.timer) { cancelAnimationFrame(S.timer.raf); S.timer = null; } }
+function stopTimer(){ document.body.classList.remove('danger'); if (S.timer) { cancelAnimationFrame(S.timer.raf); S.timer = null; } }
 ACTS['s-start'] = async (t) => {
   try {
     const st = await rpc('start_attempt', { p_token: S.token, p_kind: t.dataset.kind });
@@ -266,9 +361,9 @@ function showQuestion(st){
   $app.innerHTML =
     '<div class="play"><div class="play-top"><span class="chip">' + (st.kind === 'practice' ? 'تدريب' : 'جولة رسمية') + '</span>' +
     '<b>السؤال ' + st.position + ' من ' + st.total + '</b>' +
-    '<button class="icon-btn" data-act="s-quit" aria-label="خروج">' + ic('x') + '</button></div>' +
+    '<div class="row" style="gap:8px"><button class="icon-btn" data-act="s-sound" aria-label="الصوت">' + ic(FX.on() ? 'sound' : 'mute') + '</button><button class="icon-btn" data-act="s-quit" aria-label="خروج">' + ic('x') + '</button></div></div>' +
     '<div class="dots">' + dots + '</div>' +
-    '<div class="timer"><svg viewBox="0 0 116 116" aria-hidden="true"><circle class="bg" cx="58" cy="58" r="48"/><circle class="fg" id="tfg" cx="58" cy="58" r="48" stroke-dasharray="301.6" stroke-dashoffset="0"/></svg>' +
+    '<div class="timer' + (st.position === st.total ? ' last' : '') + '" id="timer"><div class="tfill" id="tfill"></div><svg viewBox="0 0 116 116" aria-hidden="true"><circle class="bg" cx="58" cy="58" r="48"/><circle class="fg" id="tfg" cx="58" cy="58" r="48" stroke-dasharray="301.6" stroke-dashoffset="0"/></svg>' +
     '<div class="num"><span id="tnum">' + Math.ceil(st.seconds_left) + '</span><small>ثانية</small></div></div>' +
     '<div class="qbox">' + esc(q.body) + '</div><div class="pts-pop" id="pop"></div>' +
     '<div class="opts">' + q.options.map((o, i) => '<button class="opt" data-act="s-answer" data-idx="' + i + '"><span class="letter">' + LETTERS[i] + '</span><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div>';
@@ -279,13 +374,23 @@ function runTimer(secs){
   const num = document.getElementById('tnum'), fg = document.getElementById('tfg');
   const state = { raf: 0 };
   S.timer = state;
+  const box = document.getElementById('timer'), fill = document.getElementById('tfill'), last = box.classList.contains('last');
+  let shown = -1;
   const tick = () => {
     if (S.timer !== state) return;
-    const left = Math.max(0, (end - performance.now()) / 1000);
-    num.textContent = Math.ceil(left);
+    const left = Math.max(0, (end - performance.now()) / 1000), sec = Math.ceil(left);
+    num.textContent = sec;
+    if (sec !== shown) {
+      shown = sec;
+      if (sec <= 5 && sec > 0) {
+        box.classList.add('hurry'); box.classList.remove('beat'); void box.offsetWidth; box.classList.add('beat');
+        if (last) { FX.heart(); document.body.classList.add('danger'); } else FX.tick();
+      }
+    }
+    if (last && left <= 5) fill.style.transform = `scale(${Math.min(1, (5 - left) / 5)})`;
     fg.style.strokeDashoffset = String(301.6 * (1 - left / total));
     fg.style.stroke = left <= 5 ? '#E5484D' : '';
-    if (left <= 0) { stopTimer(); if (!S.locked) { S.locked = true; submit(null); } return; }
+    if (left <= 0) { stopTimer(); document.body.classList.remove('danger'); if (!S.locked) { S.locked = true; submit(null); } return; }
     state.raf = requestAnimationFrame(tick);
   };
   tick();
@@ -307,6 +412,7 @@ async function submit(idx){
       else if (i === idx) b.classList.add('bad');
       else b.classList.add('dim');
     });
+    if (r.correct) FX.correct(btns[r.correct_index], r.points); else FX.wrong(idx != null ? btns[idx] : null, idx == null || r.timeout);
     const pop = document.getElementById('pop');
     if (pop) {
       pop.className = 'pts-pop ' + (r.correct ? 'good' : 'bad');
@@ -325,8 +431,14 @@ async function submit(idx){
     } catch(e2){ loadHome(); }
   }
 }
-function showResult(sm){
+async function showResult(sm){
   stopTimer();
+  const cc = sm ? sm.correct_count : 0, lose = cc <= 1, win = cc >= 3, perfect = cc === 4;
+  if (lose) await FX.explode();
+  setTimeout(() => { if (win) FX.win(perfect); else if (!lose) FX.meh(); }, 250);
+  const head = perfect ? 'مثالي! 🏆' : win ? 'فوز رائع!' : lose ? 'انفجر الوقت! 💥' : 'أحسنت';
+  const sub = perfect ? '4 من 4 — لا يُهزم!' : win ? 'أداء ممتاز، استمر!' : lose ? 'لا بأس، جرّب التدريب وعد أقوى' : 'قريب من القمة، حاول غداً';
+  const stars = [0, 1, 2, 3].map(i => '<span class="star-s' + (i < cc ? ' on' : '') + '" style="animation-delay:' + (0.5 + i * 0.25) + 's">' + ic('star') + '</span>').join('');
   let rankRow = '';
   if (sm && sm.kind === 'official' && sm.rank_after) {
     const d = sm.rank_before - sm.rank_after;
@@ -334,12 +446,15 @@ function showResult(sm){
     rankRow = '<div class="r"><span>ترتيبي الجديد</span><b>' + sm.rank_after + ' ' + delta + '</b></div>';
   }
   $app.innerHTML =
-    '<div class="result"><div class="medal">' + ic('trophy') + '</div>' +
-    '<h2 class="center" style="font-size:26px">' + (sm && sm.kind === 'practice' ? 'نتيجة التدريب' : 'نتيجة الجولة') + '</h2>' +
-    '<div class="center"><div class="big">' + (sm ? sm.total_points : 0) + '</div><div class="muted">مجموع النقاط</div></div>' +
+    '<div class="result ' + (win ? 'is-win' : lose ? 'is-lose' : '') + '"><div class="medal-wrap">' + (win ? '<div class="rays"></div>' : '') + '<div class="medal">' + ic(lose ? 'clock' : 'trophy') + '</div></div>' +
+    '<h2 class="center res-h">' + head + '</h2><p class="center muted" style="margin-top:-8px">' + sub + (sm && sm.kind === 'practice' ? ' · تدريب' : '') + '</p>' +
+    '<div class="stars-row">' + stars + '</div>' +
+    '<div class="center"><div class="big" id="bigpts">0</div><div class="muted">مجموع النقاط</div></div>' +
     '<div class="rows card"><div class="r"><span>الإجابات الصحيحة</span><b>' + (sm ? sm.correct_count : 0) + ' من 4</b></div>' + rankRow + '</div>' +
     (sm && sm.kind === 'official' ? '<button class="btn accent" data-act="s-leaders">' + ic('trophy') + ' عرض الترتيب</button>' : '') +
     '<button class="btn" data-act="s-reload">العودة للرئيسية</button></div>';
+  const target = sm ? sm.total_points : 0, el = document.getElementById('bigpts'), t0 = performance.now();
+  (function roll(t){ const k = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - k, 3); if (el) el.textContent = Math.round(target * e); if (k < 1) requestAnimationFrame(roll); })(t0);
 }
 
 /* ======================================================
