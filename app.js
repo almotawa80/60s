@@ -1252,6 +1252,8 @@ function loadUI(){
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveUI(); });
 window.addEventListener('pagehide', saveUI);
+let _sc = false;
+window.addEventListener('scroll', () => { const s = scrollY > 24; if (s !== _sc) { _sc = s; document.body.classList.toggle('scrolled', s); } }, { passive: true });
 const _ui = loadUI();
 if (!location.hash || location.hash === '#' || location.hash === '#/s') {
   const last = LS.get('mc_last');

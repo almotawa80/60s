@@ -416,3 +416,86 @@ input[type=date].input::-webkit-calendar-picker-indicator{margin:0}
 .t-nav{bottom:max(6px, calc(env(safe-area-inset-bottom) - 20px))!important}
 .fab{bottom:calc(max(6px, calc(env(safe-area-inset-bottom) - 20px)) + 84px)!important}
 #toast{bottom:calc(max(6px, calc(env(safe-area-inset-bottom) - 20px)) + 84px)}
+
+/* ================= APPLE-STYLE TEACHER UI (body.wide) ================= */
+body.wide{--bg:#F5F2EF;--card:#fff;--line:rgba(60,40,30,.12);--muted:#857873;--ink:#1C1412;--radius:16px;
+  font-family:-apple-system,"SF Arabic","SF Pro Text",system-ui,'Cairo',sans-serif;background:var(--bg)!important;letter-spacing:-.01em}
+body.wide .t-top{position:sticky;top:0;z-index:30;padding:calc(10px + env(safe-area-inset-top)) 18px 10px;transition:background .2s,box-shadow .2s}
+body.wide.scrolled .t-top{background:rgba(245,242,239,.78);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);box-shadow:0 .5px 0 var(--line)}
+body.wide .t-title{font-size:32px;font-weight:800;letter-spacing:-.02em;transition:font-size .2s}
+body.wide.scrolled .t-title{font-size:19px}
+body.wide .brand .logo{display:none}
+body.wide .t-body{gap:16px;padding-top:4px}
+/* cards: flat inset-grouped */
+body.wide .card,body.wide .cls,body.wide .q-item,body.wide .res-row,body.wide .kpi,body.wide .class-card,body.wide .comp{border:0!important;border-radius:var(--radius);box-shadow:0 1px 2px rgba(40,20,10,.05),0 4px 14px rgba(40,20,10,.04)!important}
+body.wide .card{padding:16px}
+body.wide .card>b:first-child,body.wide .card .row.between>b:first-child{font-size:17px;font-weight:700}
+body.wide .sub{color:var(--muted)}
+/* buttons: Apple filled / tinted */
+body.wide .btn{background:var(--primary);box-shadow:none!important;text-shadow:none;border-radius:14px;font-weight:600;font-size:17px;min-height:50px;margin-bottom:0}
+body.wide .btn::after{display:none}
+body.wide .btn:active{transform:none;opacity:.7}
+body.wide .btn.soft,body.wide .btn.ghost{background:rgba(200,16,46,.09);color:var(--primary);border:0}
+body.wide .btn.accent{background:var(--gold-2);color:#3A1A00}
+body.wide .btn.danger{background:rgba(200,16,46,.09);color:#C8102E}
+body.wide .btn.sm{min-height:36px;font-size:15px;border-radius:999px;padding:0 14px}
+body.wide .icon-btn{background:rgba(120,100,90,.12);box-shadow:none!important;color:var(--primary);width:38px;height:38px}
+body.wide .icon-btn:active{transform:none;opacity:.6}
+/* segmented control */
+body.wide .tabs{background:rgba(118,98,90,.12);padding:2px;border-radius:10px;gap:0}
+body.wide .tabs button{border-radius:8px;font-size:14px;font-weight:600;min-height:32px;color:var(--ink);background:transparent}
+body.wide .tabs button.on{background:#fff!important;color:var(--ink)!important;box-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04)!important}
+body.wide .tabs button.on .badge{background:var(--primary);color:#fff}
+/* chips */
+body.wide .lv-chips button{box-shadow:none;background:rgba(118,98,90,.12);font-weight:600;font-size:14px;padding:6px 14px}
+body.wide .lv-chips button.on{background:var(--primary);color:#fff;box-shadow:none}
+body.wide .chip{font-weight:600}
+/* inputs: iOS filled fields */
+body.wide .input,body.wide select.input,body.wide textarea.input{background:rgba(118,98,90,.08);border:0;border-radius:12px;min-height:46px}
+body.wide .input:focus{background:#fff;box-shadow:0 0 0 2px var(--primary)}
+body.wide .field label{font-size:13px;font-weight:500;color:var(--muted);text-transform:none}
+/* KPIs */
+body.wide .kpi{background:#fff;padding:14px 8px}
+body.wide .kpi b{font-size:26px;font-weight:700;color:var(--ink)}
+body.wide .kpi-ic{width:32px;height:32px;border-radius:9px;box-shadow:none!important}
+body.wide .kpi-ic .ico{width:18px;height:18px}
+/* lists */
+body.wide .dash-link,body.wide .rank-row{border-top:.5px solid var(--line)}
+body.wide .rk,body.wide .sw-n{box-shadow:none!important}
+body.wide .bar{height:6px;box-shadow:none}
+body.wide .bar i{box-shadow:none}
+/* class accordion */
+body.wide .cls-head{padding:14px 16px}
+body.wide .cls-head b{font-size:17px;font-weight:600}
+body.wide .count{background:rgba(200,16,46,.1);color:var(--primary);box-shadow:none;min-width:34px;height:28px;border-radius:999px;font-size:14px;font-weight:700}
+body.wide .cls-body{background:#FBF9F7;border-top:.5px solid var(--line)}
+body.wide .sw-list{gap:0;background:#fff;border-radius:12px;overflow:hidden}
+body.wide .sw-row{border-radius:0}
+body.wide .sw-row+.sw-row .sw-main{border-top:.5px solid var(--line)}
+body.wide .sw-main{border:0;border-radius:0;padding:11px 14px}
+body.wide .sw-main b{font-size:16px;font-weight:500}
+body.wide .code-pill{box-shadow:none;background:rgba(118,98,90,.1);font-size:14px}
+body.wide .code-pill.shown{background:rgba(245,183,43,.25);color:#7A4A00}
+/* picks */
+body.wide .pick{background:#fff;box-shadow:0 1px 2px rgba(40,20,10,.06)!important;border:1.5px solid transparent;margin:0}
+body.wide .pick.on{background:rgba(200,16,46,.06);border-color:var(--primary)}
+body.wide .pick-ic{box-shadow:none!important;border-radius:10px;width:38px;height:38px}
+/* wizard steps */
+body.wide .w-st span{box-shadow:none!important;width:26px;height:26px;font-size:13px}
+/* questions */
+body.wide .q-ok,body.wide .q-no{box-shadow:none;width:36px;height:36px}
+body.wide .q-ok{background:#1FA971}.body.wide .q-no{background:#8E8E93}
+body.wide .q-no{background:#8E8E93}
+body.wide .fab{box-shadow:0 8px 20px rgba(200,16,46,.35)!important;background:var(--primary)}
+/* results */
+body.wide .res-row{padding:12px 14px}
+body.wide .res-row:active{transform:none;background:#F7F2EE}
+body.wide .pd-step{box-shadow:none}
+/* sheets */
+body.wide .modal{background:#F5F2EF;border-radius:14px 14px 0 0;padding-top:26px;position:relative}
+body.wide .modal::before{content:"";position:absolute;top:8px;left:50%;transform:translateX(-50%);width:36px;height:5px;border-radius:3px;background:rgba(60,40,30,.25)}
+body.wide .modal-back{background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+body.wide .stat{background:#fff;box-shadow:none}
+body.wide .stat b{text-shadow:none}
+/* tab bar refinement */
+body.wide .t-nav a{font-weight:500!important}
