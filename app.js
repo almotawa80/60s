@@ -1244,17 +1244,70 @@ ACTS['t-res-export'] = () => {
 
 /* ---- settings ---- */
 async function tSettings(){
-  view('الإعدادات', `<form class="card col" data-form="t-save-name"><div class="field"><label for="s-n">الاسم</label><input class="input" id="s-n" name="name" value="${esc(T.name)}" required></div>
-    <div class="field"><label>البريد الإلكتروني</label><div dir="ltr" style="text-align:right">${esc(T.user.email || '')}</div></div><button class="btn" type="submit">حفظ الاسم</button></form>
-    <div class="card col"><b>الخصوصية</b><p class="sub">نحفظ فقط اسم الطالب ورقمه ونتائجه داخل المسابقة، ولا نجمع بريداً أو صوراً للطلبة. يمكنك حذف أي طالب أو صف في أي وقت، فتُحذف بياناته نهائياً.</p></div>
-    <div class="card col"><b>حول التطبيق</b><p class="sub">تحدّي الدقيقة — الإصدار التجريبي 0.1</p></div>
-    <button class="btn danger" data-act="t-logout">${ic('logout')} تسجيل الخروج</button>`, 'settings');
+  const url = location.origin + location.pathname;
+  const ini = (T.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
+  const row = (act, icon, color, label, val, extra) => `<button class="set-row" data-act="${act}" ${extra || ''}><span class="set-ic" style="background:${color}">${ic(icon)}</span><span class="grow">${label}</span>${val ? `<span class="set-val">${val}</span>` : ''}<span class="set-chev">${ic('back')}</span></button>`;
+  const grp = (title, rows, foot) => `${title ? `<div class="set-h">${title}</div>` : ''}<div class="set-grp">${rows.join('')}</div>${foot ? `<div class="set-f">${foot}</div>` : ''}`;
+  view('الإعدادات',
+    `<button class="set-profile" data-act="st-name"><div class="avatar big-av">${esc(ini)}</div><div class="grow"><b>${esc(T.name)}</b><div class="sub" dir="ltr" style="text-align:right">${esc(T.user.email || '')}</div></div><span class="set-chev">${ic('back')}</span></button>` +
+    grp('الحساب', [
+      row('st-name', 'user', '#C8102E', 'الاسم', esc(T.name)),
+      row('st-pass', 'gear', '#8E8E93', 'تغيير كلمة المرور')
+    ]) +
+    grp('الطلبة', [
+      row('st-share-students', 'send', '#1FA971', 'رابط دخول الطلبة', 'مشاركة'),
+      row('copy', 'layers', '#F26B1D', 'نسخ الرابط', '', `data-v="${esc(url)}"`)
+    ], 'يدخل الطلبة من هذا الرابط بالرمز المكون من 6 خانات.') +
+    grp('التطبيق', [
+      row('st-install', 'download', '#2F80ED', 'تثبيت التطبيق على الشاشة الرئيسية'),
+      row('st-invite', 'star', '#F5B72B', 'دعوة زميل/ـة لاستخدام التطبيق')
+    ]) +
+    grp('البيانات', [
+      row('st-export', 'download', '#14A89B', 'تصدير كل بياناتي Excel'),
+      row('st-privacy', 'check', '#9B51E0', 'الخصوصية')
+    ]) +
+    grp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
+    `<div class="set-f center">تحدّي الدقيقة · الإصدار 0.2</div>`, 'settings');
 }
+ACTS['st-name'] = () => modal(`<h3>الاسم</h3><form class="col" data-form="t-save-name"><div class="field"><input class="input" name="name" value="${esc(T.name)}" required maxlength="60"></div><p class="sub">يظهر هذا الاسم للطلبة في صفحة التسجيل الذاتي.</p><button class="btn" type="submit">حفظ</button></form>`);
+ACTS['st-pass'] = () => modal(`<h3>تغيير كلمة المرور</h3><form class="col" data-form="st-pass-save"><div class="field"><label for="np">كلمة المرور الجديدة</label><input class="input" id="np" name="p1" type="password" minlength="6" required dir="ltr"></div>
+  <div class="field"><label for="np2">تأكيد كلمة المرور</label><input class="input" id="np2" name="p2" type="password" minlength="6" required dir="ltr"></div><button class="btn" type="submit">حفظ</button></form>`);
+ACTS['st-pass-save'] = async f => {
+  if (f.p1.value !== f.p2.value) return toast('كلمتا المرور غير متطابقتين');
+  const { error } = await sb.auth.updateUser({ password: f.p1.value });
+  if (error) return toast(errMsg(error)); closeModals(); toast('تم تغيير كلمة المرور');
+};
+async function shareOrCopy(title, text, url){
+  if (navigator.share) { try { await navigator.share({ title, text, url }); return; } catch(e){ if (e && e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(text + '\n' + url); toast('تم نسخ الرابط'); } catch(e){ prompt('انسخ الرابط:', url); }
+}
+ACTS['st-share-students'] = () => shareOrCopy('تحدّي الدقيقة', 'ادخل إلى «تحدّي الدقيقة» برمزك:', location.origin + location.pathname);
+ACTS['st-invite'] = () => shareOrCopy('تحدّي الدقيقة', 'جرّب «تحدّي الدقيقة»: مسابقات صفية ممتعة لطلابك، 4 أسئلة في 60 ثانية. سجّل مجاناً:', location.origin + location.pathname + '#/t');
+ACTS['st-install'] = () => modal(`<h3>تثبيت التطبيق</h3><div class="col"><div class="set-grp">
+  <div class="set-row"><span class="set-ic" style="background:#2F80ED">1</span><span class="grow">افتح الرابط في Safari</span></div>
+  <div class="set-row"><span class="set-ic" style="background:#2F80ED">2</span><span class="grow">اضغط زر المشاركة ⬆︎</span></div>
+  <div class="set-row"><span class="set-ic" style="background:#2F80ED">3</span><span class="grow">اختر «إضافة إلى الشاشة الرئيسية»</span></div></div>
+  <p class="sub">في أندرويد: من قائمة Chrome ⋮ اختر «تثبيت التطبيق». يتحدّث التطبيق تلقائياً بعد التثبيت.</p></div>`);
+ACTS['st-privacy'] = () => modal(`<h3>الخصوصية</h3><div class="col"><p>نحفظ فقط اسم الطالب ورقمه ونتائجه داخل المسابقة، ولا نجمع بريداً أو صوراً أو أرقام هواتف للطلبة.</p><p>يمكنك حذف أي طالب أو صف في أي وقت، فتُحذف بياناته ونتائجه نهائياً.</p><p class="sub">بيانات كل معلم/ـة لا يراها غيره.</p></div>`);
+ACTS['st-export'] = async () => {
+  toast('جارٍ تجهيز الملف...');
+  try {
+    const [c, s] = await Promise.all([sb.from('classes').select('*').order('created_at'), sb.from('students').select('*').order('created_at')]);
+    if (c.error) throw c.error; if (s.error) throw s.error;
+    const res = await Promise.all(c.data.map(x => rpc('teacher_class_results', { p_class: x.id }).catch(() => [])));
+    const byId = {}; c.data.forEach(x => byId[x.id] = x.name);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['الصف', 'الاسم', 'رقم الطالب', 'الرمز']].concat(s.data.map(x => [byId[x.class_id], x.name, x.student_no, x.code]))), 'الطلبة');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['الصف', 'الاسم', 'رقم الطالب', 'النقاط', 'الجولات', 'الصحيحة']].concat(res.flatMap((r, i) => r.map(x => [c.data[i].name, x.name, x.student_no, x.pts, x.rounds, x.correct]))), 'النتائج'));
+    XLSX.writeFile(wb, 'بيانات-تحدي-الدقيقة.xlsx');
+  } catch(e){ toast(errMsg(e)); }
+};
+ACTS['st-logout-ask'] = () => { if (confirm('تسجيل الخروج من الحساب؟')) ACTS['t-logout'](); };
 ACTS['t-save-name'] = async f => {
   const name = f.name.value.trim();
   const { error } = await sb.from('teachers').update({ display_name: name }).eq('id', T.user.id);
   if (error) return toast(errMsg(error));
-  T.name = name; toast('تم الحفظ');
+  T.name = name; closeModals(); toast('تم الحفظ'); if (location.hash.indexOf('settings') > 0) tSettings();
 };
 
 /* ======================================================
