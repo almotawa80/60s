@@ -4033,13 +4033,45 @@ ACTS['st-newyear'] = async () => {
 };
 
 /* ---- account page ---- */
+const AC_TITLES = [['', 'بدون'], ['أ.', 'أ.'], ['أستاذ', 'أستاذ'], ['أستاذة', 'أستاذة'], ['د.', 'د.']];
+function accForm(){
+  const st = String(SG('prof_stage') || '').split('|'), sj = mySubjects(), t = SG('prof_title') || '', d = SG('district') || '';
+  const chip = (k, v, l, on, e) => `<button type="button" class="ac-c${on ? ' on' : ''}" data-act="ac-c" data-k="${k}" data-v="${esc(v)}">${e ? `<span>${e}</span>` : ''}${esc(l)}</button>`;
+  return `<form class="ac-f" data-form="ac-save" autocomplete="off">
+    <div class="ac-fd"><label for="ac-n">الاسم</label><input class="input" id="ac-n" name="n" value="${esc(T.name || '')}" maxlength="60" required></div>
+    <div class="ac-fd"><label>اللقب</label><div class="ac-g g5">${AC_TITLES.map(x => chip('t', x[0], x[1], t === x[0])).join('')}</div></div>
+    <div class="ac-fd"><label for="ac-s">المدرسة</label><input class="input" id="ac-s" name="s" value="${esc(SG('school') || '')}" maxlength="80" placeholder="اسم المدرسة"></div>
+    <div class="ac-fd"><label>المرحلة</label><div class="ac-g g4">${OB_STAGES.map(v => chip('st', v, v, st.includes(v))).join('')}</div></div>
+    <div class="ac-fd"><label>المواد</label><div class="ac-g g2">${SUBJECTS.filter(v => v !== 'عام' && v !== 'أخرى').map(v => chip('sj', v, v, sj.includes(v), SUBJ_EMOJI[v] || '📘')).join('')}</div></div>
+    <div class="ac-fd"><label>المنطقة التعليمية</label><div class="ac-g g3">${OB_DIST.map(v => chip('d', v, v, d === v)).join('')}</div></div>
+    <p class="ac-note">المدرسة والمادة واللقب تظهر للطلبة في ملفهم.</p>
+    <button class="p3-big ac-sv" type="submit" disabled>حفظ</button></form>`;
+}
+function accCard(){
+  const tags = [String(SG('prof_stage') || '').split('|').filter(Boolean).join('، '), mySubjects().map(v => (SUBJ_EMOJI[v] || '📘') + ' ' + v).join('  '), [SG('school'), SG('district')].filter(Boolean).join(' · ')];
+  const L = ['المرحلة', 'المواد', 'المدرسة'];
+  return `<button class="ac-card" data-act="ac-open">${tags.map((v, i) => `<div class="ac-r"><span>${L[i]}</span><b>${v ? esc(v) : '<i>إضافة</i>'}</b></div>`).join('')}<div class="ac-ed">✏️ تعديل ملفي</div></button>`;
+}
+ACTS['ac-open'] = () => modal(`<div class="ac-sh"><div class="q4-shh"><h3>ملفي</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>${accForm()}</div>`);
+const acDirty = () => { const b = document.querySelector('.ac-sv'); if (b) b.disabled = false; };
+ACTS['ac-c'] = t => { const k = t.dataset.k, g = t.parentElement;
+  if (k === 't' || k === 'd') g.querySelectorAll('.ac-c').forEach(x => x.classList.toggle('on', x === t && (k === 't' || !t.classList.contains('on'))));
+  else t.classList.toggle('on');
+  haptic(); acDirty(); };
+document.addEventListener('input', e => { if (e.target.closest && e.target.closest('.ac-f')) acDirty(); });
+ACTS['ac-save'] = async f => {
+  const on = k => [...f.querySelectorAll(`.ac-c.on[data-k="${k}"]`)].map(x => x.dataset.v);
+  const name = f.n.value.trim(); if (!name) return toast('اكتب اسمك');
+  const btn = f.querySelector('.ac-sv'); btn.setAttribute('aria-busy', 'true');
+  if (name !== T.name) { const { error } = await sb.from('teachers').update({ display_name: name }).eq('id', T.user.id); if (error) { btn.removeAttribute('aria-busy'); return toast(errMsg(error)); } T.name = name; }
+  await saveSettings({ prof_title: on('t')[0] || '', school: f.s.value.trim().slice(0, 80), prof_stage: on('st').join('|'), prof_subject: on('sj').join('|'), district: on('d')[0] || '' });
+  btn.removeAttribute('aria-busy'); toast('انحفظ ✓'); closeModals(); rerender();
+};
 async function tAccount(){
   const prov = ((T.user.app_metadata || {}).provider) || 'email';
   const PROV = { email: 'البريد الإلكتروني', google: 'Google', apple: 'Apple' };
   view('حسابي', `<div class="acc-head"><button class="prof-av" data-act="av-menu" aria-label="تغيير الصورة">${avatarHtml('prof-big')}<span class="prof-cam">${ic('edit')}</span></button><b>${esc(tName())}</b><div class="sub" id="acc-stats">…</div></div>` +
-    sGrp('', [sRow({ act: 'st-name', label: 'الاسم', val: esc(T.name) }), optRow('prof_title', 'اللقب'),
-      sRow({ act: 'st-school', label: 'المدرسة', val: esc(SG('school')) || '<span class="muted">إضافة</span>' }), optRow('prof_subject', 'المواد'), optRow('prof_stage', 'المرحلة'), optRow('district', 'المنطقة')],
-      'المدرسة والمادة واللقب تظهر للطلبة في ملفهم.') +
+    accCard() +
     sGrp('تسجيل الدخول', [`<div class="set-row"><span class="grow">طريقة الدخول</span><span class="set-val">${PROV[prov] || esc(prov)}</span></div>`,
       `<div class="set-row"><span class="grow">البريد</span><span class="set-val" dir="ltr">${esc(T.user.email || '')}</span></div>`,
       prov === 'email' ? sRow({ act: 'st-pass', label: 'تغيير كلمة المرور' }) : '']) +
