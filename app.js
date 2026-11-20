@@ -1005,7 +1005,7 @@ function renderClasses(){
   const cl = CL.tab !== 'comps';
   const more = cl ? `<button class="icon-btn" data-act="c-more" aria-label="المزيد">${ic('more')}</button>` : '';
   view(cl ? 'الصفوف' : 'المسابقات', (cl ? classesList() : compsPanel()) + selBar(), cl ? 'classes' : 'comps', more);
-  cfUpdate();
+  cfUpdate(); cfLessons();
   if (CL.addFocus) { const i = document.querySelector(`.cls[data-cid="${CL.addFocus}"] .cl-add1 input`); CL.addFocus = null; if (i) i.focus(); }
 }
 ACTS['c-tab'] = t => { T.compEdit = null; go('#/t/' + t.dataset.t); };
@@ -1561,7 +1561,7 @@ ACTS['cp-new'] = async () => {
   if (!CL.classes.length) return toast('أضف صفاً أولاً');
   await loadCurricula().catch(() => {});
   T.compEdit = 'new'; CC.sel = new Set(CL.classes.filter(c => !CL.comps[c.id]).map(c => c.id));
-  const st = T.settings || {}; CC.qtypes = (st.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = st.difficulty || 'normal'; CC.cu = ''; CC.style = (CL.classes.find(c => CC.sel.has(c.id)) || CL.classes[0]).style || 'mid';
+  const st = T.settings || {}; CC.qtypes = (st.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = st.difficulty || 'normal'; CC.cu = ''; CC.lessons = []; CC.style = (CL.classes.find(c => CC.sel.has(c.id)) || CL.classes[0]).style || 'mid';
   renderClasses();
 };
 ACTS['cp-edit'] = async t => {
@@ -1569,7 +1569,7 @@ ACTS['cp-edit'] = async t => {
   T.compEdit = t.dataset.g;
   const g = CL.allComps.filter(c => c.group_id === T.compEdit);
   CC.sel = new Set(g.map(c => c.class_id));
-  const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (g[0].qtypes || first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = g[0].difficulty || 'normal'; CC.cu = g[0].curriculum_id || ''; CC.style = first.style || 'mid';
+  const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (g[0].qtypes || first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = g[0].difficulty || 'normal'; CC.cu = g[0].curriculum_id || ''; CC.lessons = (g[0].lessons || []).slice(); CC.style = first.style || 'mid';
   renderClasses();
 };
 ACTS['cp-cancel'] = () => { T.compEdit = null; renderClasses(); };
@@ -1606,7 +1606,8 @@ function compForm(){
       <label class="set-row cf-row"><span class="grow">مدة كل دور</span><select class="cf-sel" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></label></div>
     <div class="set-h">الأسئلة</div>
     <div class="cf-qt">${QTYPES.map(q => `<button type="button" class="cf-chip ${CC.qtypes.includes(q[0]) ? 'on' : ''}" data-act="cp-qt" data-v="${q[0]}">${ic(q[3])}<span>${q[1]}</span></button>`).join('')}</div>
-    <div class="set-grp"><label class="set-row cf-row"><span class="grow">المنهج</span><select class="cf-sel" name="cu">${cuOptions(CC.cu, 'كل المعتمد')}</select></label>
+    <div class="set-grp"><label class="set-row cf-row"><span class="grow">المنهج</span><select class="cf-sel" name="cu" data-change="cp-cu">${cuOptions(CC.cu, 'كل المعتمد')}</select></label>
+      <div class="cf-les" id="cf-les"></div>
       <div class="set-row cf-row cf-col"><span>مستوى الصعوبة</span><div class="tabs">${DIFF.map(d => `<button type="button" class="${CC.diff === d[0] ? 'on' : ''}" data-act="cp-diff" data-v="${d[0]}">${d[1]}</button>`).join('')}</div><small class="cf-hint" id="cp-diff-d">${(DIFF.find(d => d[0] === CC.diff) || DIFF[1])[2]}</small></div>
       <button type="button" class="set-row cf-link" data-act="go-qset"><span class="set-ic" style="background:#C8102E">${ic('layers')}</span><span class="grow">إدارة المناهج</span><span class="set-chev">${ic('back')}</span></button></div>
     <div class="set-f">كل جولة: 4 أسئلة × 15 ثانية. جولة رسمية يومياً، والتدريب مفتوح.</div>
@@ -1631,8 +1632,9 @@ function cfUpdate(){
 const POOL = {};
 async function cfPool(pd){
   const el = document.getElementById('cf-pool'); if (!el) return;
-  const key = (CC.qtypes || []).join(',') + '|' + (CC.cu || '');
-  if (POOL[key] == null) { el.textContent = ''; try { POOL[key] = await rpc('question_pool', { p_types: CC.qtypes || [], p_cu: CC.cu || null }); } catch(e){ return; } }
+  const les = CC.cu && CC.lessons && CC.lessons.length ? CC.lessons : null;
+  const key = (CC.qtypes || []).join(',') + '|' + (CC.cu || '') + '|' + (les || []).join('§');
+  if (POOL[key] == null) { el.textContent = ''; try { POOL[key] = await rpc('question_pool', { p_types: CC.qtypes || [], p_cu: CC.cu || null, p_lessons: les }); } catch(e){ return; } }
   const n = POOL[key], days = Math.floor(n / 4), ok = days >= pd;
   const x = document.getElementById('cf-pool'); if (!x) return;
   x.className = 'cf-pool ' + (ok ? 'ok' : 'low');
@@ -1655,6 +1657,26 @@ function themePreview(th){
 }
 ACTS['cf-step'] = t => { const i = t.parentElement.querySelector('input'); const v = Math.min(Number(i.max), Math.max(Number(i.min), (Number(i.value) || 0) + Number(t.dataset.d))); i.value = v; };
 document.addEventListener('input', e => { if (e.target.closest && e.target.closest('[data-form="cp-save"]')) cfUpdate(); });
+/* lessons of the chosen curriculum: all by default, teacher can narrow (e.g. final-exam review) */
+const CFL = {};
+async function cfLessons(){
+  const el = document.getElementById('cf-les'); if (!el) return;
+  const cu = CC.cu; if (!cu) { el.innerHTML = ''; return; }
+  if (!CFL[cu]) { const r = await sb.from('questions').select('lesson').eq('curriculum_id', cu).eq('status', 'approved').not('lesson', 'is', null).limit(5000);
+    const cnt = {}, order = []; (r.data || []).forEach(q => { if (!cnt[q.lesson]) order.push(q.lesson); cnt[q.lesson] = (cnt[q.lesson] || 0) + 1; }); CFL[cu] = order.map(l => [l, cnt[l]]); }
+  const x = document.getElementById('cf-les'); if (!x || CC.cu !== cu) return;
+  const ls = CFL[cu]; CC.lessons = (CC.lessons || []).filter(l => ls.some(y => y[0] === l));
+  if (!ls.length) { x.innerHTML = ''; return; }
+  const all = !CC.lessons.length;
+  x.innerHTML = `<div class="cf-les-h"><span>الدروس</span><small>${all ? 'كل الدروس' : CC.lessons.length + ' من ' + ls.length}</small></div><div class="cf-les-l">
+    <button type="button" class="cf-chip sm ${all ? 'on' : ''}" data-act="cp-les" data-l="">${ic('check')}<span>كل الدروس</span></button>
+    ${ls.map(([l, n]) => `<button type="button" class="cf-chip sm ${!all && CC.lessons.includes(l) ? 'on' : ''}" data-act="cp-les" data-l="${esc(l)}">${ic('check')}<span>${esc(l)}</span><em>${n}</em></button>`).join('')}</div>`;
+}
+ACTS['cp-cu'] = t => { CC.cu = t.value; CC.lessons = []; cfLessons(); cfUpdate(); };
+ACTS['cp-les'] = t => { const l = t.dataset.l;
+  if (!l) CC.lessons = []; else if (CC.lessons.includes(l)) CC.lessons = CC.lessons.filter(x => x !== l); else CC.lessons.push(l);
+  if (CFL[CC.cu] && CC.lessons.length === CFL[CC.cu].length) CC.lessons = [];
+  cfLessons(); cfUpdate(); };
 function cpKeep(){ const f = document.querySelector('[data-form="cp-save"]'); if (f && f.cu) CC.cu = f.cu.value; }
 ACTS['cp-style'] = t => { CC.style = t.dataset.v; t.parentElement.querySelectorAll('.cf-th').forEach(b => b.classList.toggle('on', b === t)); };
 ACTS['cp-diff'] = t => { CC.diff = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const d = document.getElementById('cp-diff-d'); if (d) d.textContent = DIFF.find(x => x[0] === CC.diff)[2]; };
@@ -1676,7 +1698,7 @@ ACTS['cp-save'] = async f => {
   if (!ids.length) return toast('اختر صفاً واحداً على الأقل');
   const p = { title: f.title.value.trim() || 'مسابقة تحدّي الدقيقة', start_date: f.start_date.value, points_end_date: f.points_end_date.value, end_date: f.end_date.value,
     group_size: Number(f.group_size.value), qualifiers: Number(f.qualifiers.value), round_window_hours: Number(f.round_window_hours.value),
-    curriculum_id: CC.cu || null, difficulty: CC.diff || 'normal', qtypes: CC.qtypes };
+    curriculum_id: CC.cu || null, difficulty: CC.diff || 'normal', qtypes: CC.qtypes, lessons: CC.cu && CC.lessons && CC.lessons.length ? CC.lessons : null };
   if (!(p.start_date <= p.points_end_date && p.points_end_date <= p.end_date)) return toast('تحقق من ترتيب التواريخ');
   const isNew = T.compEdit === 'new', gid = isNew ? crypto.randomUUID() : T.compEdit;
   const inGroup = isNew ? [] : CL.allComps.filter(c => c.group_id === gid);
@@ -1701,7 +1723,7 @@ const qNorm = s => String(s || '').replace(/[ً-ْـ]/g, '').replace(/[إأآ]/g
 async function tQuestions(){
   const [own, glob, st] = await Promise.all([
     sb.from('questions').select('*').eq('owner_id', T.user.id).order('created_at', { ascending: false }),
-    sb.from('questions').select('id,body,options,correct_index,level,qtype').is('owner_id', null).eq('status', 'approved').limit(2000),
+    sb.from('questions').select('id,body,options,correct_index,level,qtype,curriculum_id,lesson,image').is('owner_id', null).eq('status', 'approved').limit(2000),
     rpc('question_stats', {}).catch(() => [])
   ]);
   if (own.error) throw own.error;
@@ -1761,19 +1783,48 @@ function qOk(){
   return `<button class="qok${low ? ' low' : ''}" data-act="t-q-bankinfo"><span class="qok-d"></span><span class="grow"><b>عند طلبتك ${n} سؤالاً</b><small>${low ? `أضف ${14 * QPD - n} سؤالاً لتكفي أسبوعين` : `تكفيهم ${daysAr(days)}`}</small></span><i class="qok-c">‹</i></button>`;
 }
 ACTS['t-q-bankinfo'] = () => modal(`<h3>الأسئلة المتاحة لطلبتك</h3>${qBank()}<p class="sub">كل طالب يلعب ${QPD} أسئلة في اليوم تقريباً، فكل ${QPD} أسئلة تكفي يوماً.</p><button class="btn soft" data-act="close-modal">تمام</button>`);
-/* ready-made (public) questions grouped by kind */
+/* ready-made (public) questions: subject → stage/grade → lesson → questions */
 const QG = [['general', '🌍', 'معلومات عامة'], ['quick', '⚡', 'سرعة بديهة'], ['curriculum', '📚', 'أسئلة منهج']];
+const NO_LESSON = '__none';
+const qGlobCu = q => q.qtype === 'curriculum' && q.curriculum_id && CU.list.find(c => c.id === q.curriculum_id);
+const qGlobSubj = q => { const c = qGlobCu(q); return c ? c.subject : 'مناهج أخرى'; };
 function qGroups(){
-  const cnt = k => QS.glob.filter(q => q.qtype === k).length;
-  const gs = QG.filter(g => cnt(g[0]));
-  if (!gs.length) return '<div class="card center muted">لا توجد أسئلة جاهزة حالياً.</div>';
-  return `<p class="sub q-ro">أسئلة جاهزة تدخل في مسابقاتك تلقائياً، فما تحتاج تضيفها.</p>${gs.map(g => `<button class="qgrp" data-act="q-grp" data-g="${g[0]}"><span class="qgrp-e">${g[1]}</span><span class="grow"><b>${g[2]}</b><small>${cnt(g[0])} سؤالاً</small></span><i>‹</i></button>`).join('')}`;
+  if (!QS.glob.length) return '<div class="card center muted">لا توجد أسئلة جاهزة حالياً.</div>';
+  const cnt = {}; QS.glob.filter(q => q.qtype === 'curriculum').forEach(q => { const s = qGlobSubj(q); cnt[s] = (cnt[s] || 0) + 1; });
+  const subs = [...new Set(SUBJ_MAIN.concat(Object.keys(cnt)))].filter(s => cnt[s]);
+  const kinds = QG.filter(g => g[0] !== 'curriculum').map(g => [g, QS.glob.filter(q => q.qtype === g[0]).length]).filter(x => x[1]);
+  const stages = s => [...new Set(QS.glob.filter(q => qGlobSubj(q) === s).map(q => { const c = qGlobCu(q); return c ? STAGE_AR[c.stage] : ''; }).filter(Boolean))].join('، ');
+  return `<p class="sub q-ro">أسئلة جاهزة تدخل في مسابقاتك تلقائياً، فما تحتاج تضيفها.</p>
+    ${subs.length ? `<div class="qr-h">أسئلة المناهج</div><div class="qf-grid">${subs.map(s => `<button class="qf-tile" data-act="q-gsubj" data-s="${esc(s)}" style="--c:${SUBJ_COLOR(s)}"><span class="qf-ic">${esc(subjMark(s))}</span><b>${esc(s)}</b><small>${stages(s) || '&nbsp;'}</small><em>${cnt[s]}</em></button>`).join('')}</div>` : ''}
+    ${kinds.length ? `<div class="qr-h">أسئلة عامة</div><div class="qf-grid">${kinds.map(([g, n]) => `<button class="qf-tile" data-act="q-grp" data-g="${g[0]}" style="--c:${g[0] === 'quick' ? '#FF9500' : '#34C759'}"><span class="qf-ic">${g[1]}</span><b>${g[2]}</b><small>بدون منهج</small><em>${n}</em></button>`).join('')}</div>` : ''}`;
 }
-ACTS['q-grp'] = t => { T.qf.g = t.dataset.g; QS.open = null; renderQuestions(); scrollTo(0, 0); };
+function qGlobGrades(subj){
+  const qs = QS.glob.filter(q => q.qtype === 'curriculum' && qGlobSubj(q) === subj), cnt = {};
+  qs.forEach(q => { const k = q.curriculum_id || '-'; cnt[k] = (cnt[k] || 0) + 1; });
+  const cus = CU.list.filter(c => c.subject === subj && cnt[c.id]);
+  const stg = STAGE_ORDER.filter(k => cus.some(c => c.stage === k) || (k !== 'university' && CU.list.some(c => c.subject === subj && c.stage === k && !c.owner_id)));
+  if (!stg.length) return '<div class="card center muted">لا توجد أسئلة جاهزة في هذه المادة بعد.</div>';
+  return `<div class="qs-stages">${stg.map(k => { const have = cus.filter(c => c.stage === k).sort((a, b) => (a.grade || 0) - (b.grade || 0));
+      const soon = k === 'university' ? [] : STAGE_GRADES[k].filter(g => !have.some(c => c.grade === g));
+      return `<div class="qs-stage"><div class="qs-sh">${STAGE_AR[k]}</div><div class="qs-gr">${have.map(c => `<button class="qs-g on" data-act="q-gcu" data-id="${c.id}"><b>${gradeAr(c)}</b><em>${cnt[c.id]}</em></button>`).join('')}
+        ${soon.map(g => `<span class="qs-g soon">${GRADES[g - 1]}<small>قريباً</small></span>`).join('')}</div></div>`; }).join('')}</div>`;
+}
+function qGlobLessons(cu){
+  const qs = QS.glob.filter(q => q.curriculum_id === cu), cnt = {}, order = [];
+  qs.forEach(q => { const k = q.lesson || NO_LESSON; if (!cnt[k]) order.push(k); cnt[k] = (cnt[k] || 0) + 1; });
+  if (!qs.length) return '<div class="card center muted">لا توجد أسئلة في هذا الصف بعد.</div>';
+  const ls = order.filter(k => k !== NO_LESSON).concat(cnt[NO_LESSON] ? [NO_LESSON] : []);
+  return `<div class="qr-h">الدروس (${ls.length})</div>${ls.map((k, i) => `<button class="qgrp" data-act="q-gles" data-l="${esc(k)}"><span class="qgrp-e qr-n">${k === NO_LESSON ? '•' : i + 1}</span><span class="grow"><b>${k === NO_LESSON ? 'بدون درس محدد' : esc(k)}</b><small>${cnt[k]} سؤالاً</small></span><i>‹</i></button>`).join('')}
+    <button class="q-flat" data-act="q-gles" data-l="">عرض كل أسئلة الصف (${qs.length})</button>`;
+}
+ACTS['q-grp'] = t => { T.qf.g = t.dataset.g; T.qf.gs = ''; T.qf.gcu = ''; T.qf.gl = null; QS.open = null; renderQuestions(); scrollTo(0, 0); };
+ACTS['q-gsubj'] = t => { T.qf.g = 'curriculum'; T.qf.gs = t.dataset.s; T.qf.gcu = ''; T.qf.gl = null; QS.open = null; renderQuestions(); scrollTo(0, 0); };
+ACTS['q-gcu'] = t => { T.qf.gcu = t.dataset.id; T.qf.gl = null; QS.open = null; renderQuestions(); scrollTo(0, 0); };
+ACTS['q-gles'] = t => { T.qf.gl = t.dataset.l; QS.open = null; renderQuestions(); scrollTo(0, 0); };
 /* curriculum tree: subject → stage/grade → questions */
 const SUBJ_MAIN = ['اللغة العربية', 'التربية الإسلامية', 'الرياضيات', 'العلوم', 'اللغة الإنجليزية', 'الاجتماعيات'];
 const STAGE_ORDER = ['primary', 'middle', 'secondary', 'university'];
-function qStatusSrc(){ const f = T.qf; return f.status === 'global' ? QS.glob.filter(q => !f.g || QS.searchOn || q.qtype === f.g) : QS.list.filter(q => q.status === f.status); }
+function qStatusSrc(){ const f = T.qf; return f.status === 'global' ? QS.glob.filter(q => QS.searchOn || ((!f.g || q.qtype === f.g) && (!f.gcu || q.curriculum_id === f.gcu) && (!f.gl || (q.lesson || NO_LESSON) === f.gl))) : QS.list.filter(q => q.status === f.status); }
 function qCuIds(subj){ return new Set(CU.list.filter(c => c.subject === subj).map(c => c.id)); }
 function qInScope(q){
   const f = T.qf;
@@ -1789,7 +1840,15 @@ function qFiltered(){
 function gradeAr(c){ if (!c.grade) return 'كل ' + (c.stage === 'university' ? 'السنوات' : 'الصفوف'); return c.stage === 'university' ? 'السنة ' + c.grade : 'الصف ' + (GRADES[c.grade - 1] || c.grade); }
 function qCrumb(){
   const f = T.qf; if (QS.searchOn) return '';
-  if (f.status === 'global') { const g = f.g && QG.find(x => x[0] === f.g); return g ? `<nav class="q-crumb"><button data-act="q-grp" data-g="">أسئلة جاهزة</button><i>‹</i><b>${g[1]} ${g[2]}</b></nav>` : ''; }
+  if (f.status === 'global') {
+    if (!f.g) return '';
+    const parts = [`<button data-act="q-grp" data-g="">أسئلة جاهزة</button>`];
+    if (f.g !== 'curriculum' || !f.gs) { const g = QG.find(x => x[0] === f.g); parts.push(`<b>${g[1]} ${g[2]}</b>`); }
+    else { const c = f.gcu && CU.list.find(x => x.id === f.gcu);
+      parts.push(c ? `<button data-act="q-gsubj" data-s="${esc(f.gs)}">${esc(f.gs)}</button>` : `<b>${esc(f.gs)}</b>`);
+      if (c) parts.push(f.gl != null ? `<button data-act="q-gcu" data-id="${c.id}">${STAGE_AR[c.stage]} · ${gradeAr(c)}</button>` : `<b>${STAGE_AR[c.stage]} · ${gradeAr(c)}</b>`);
+      if (c && f.gl) parts.push(`<b>${f.gl === NO_LESSON ? 'بدون درس' : esc(f.gl)}</b>`); }
+    return `<nav class="q-crumb">${parts.join('<i>‹</i>')}</nav>`; }
   if (f.status === 'draft') return `<nav class="q-crumb"><button data-act="t-qs" data-v="approved">أسئلتي</button><i>‹</i><b>تنتظر مراجعتك</b></nav>`;
   if (!f.subj) return '';
   const c = f.cu && CU.list.find(x => x.id === f.cu);
@@ -1824,6 +1883,8 @@ function qSubjectView(subj){
 function qListHtml(){
   const f = T.qf, ro = f.status === 'global';
   if (ro && !QS.searchOn && !f.g) return qGroups();
+  if (ro && !QS.searchOn && f.g === 'curriculum' && f.gs && !f.gcu) return qGlobGrades(f.gs);
+  if (ro && !QS.searchOn && f.gcu && f.gl == null) return qGlobLessons(f.gcu);
   if (!QS.list.length && !ro && !f.cu && !QS.searchOn) return `<p class="sub center q-start">ما عندك أسئلة بعد. اضغط «إضافة أسئلة» فوق، أو اختر مادة:</p>${qFolders()}`;
   if (f.status === 'approved' && !QS.searchOn && !f.subj) return qFolders();
   const list = qFiltered();
@@ -1886,7 +1947,7 @@ document.addEventListener('input', e => {
     const hit = k.length > 6 && (QS.norm[k] || []).some(x => x !== id);
     if (w) w.classList.toggle('hide', !hit); }
 });
-ACTS['t-qs'] = t => { T.qf.status = t.dataset.v; T.qf.g = ''; QS.open = null; if (t.dataset.v === 'global') { T.qf.subj = ''; T.qf.cu = ''; } QS.selOn = false; QS.sel.clear(); renderQuestions(); scrollTo(0, 0); };
+ACTS['t-qs'] = t => { T.qf.status = t.dataset.v; T.qf.g = ''; T.qf.gs = ''; T.qf.gcu = ''; T.qf.gl = null; QS.open = null; if (t.dataset.v === 'global') { T.qf.subj = ''; T.qf.cu = ''; } QS.selOn = false; QS.sel.clear(); renderQuestions(); scrollTo(0, 0); };
 ACTS['t-qf'] = t => { T.qf[t.dataset.k] = t.value; renderQuestions(); };
 ACTS['t-q-add-menu'] = () => {
   const here = T.qf.cu && CU.list.find(c => c.id === T.qf.cu);
@@ -1919,12 +1980,16 @@ function qForm(q){
     ${[0, 1, 2, 3].map(i => `<div class="qo${q.correct_index === i ? ' on' : ''}"><button type="button" class="qo-c" data-act="qf-c" data-i="${i}" aria-label="الإجابة الصحيحة ${LETTERS[i]}">${ic('check')}</button><input class="input" name="o${i}" value="${esc(q.options[i])}" required maxlength="100" placeholder="${i === q.correct_index ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[i]}"></div>`).join('')}</div>
     <div class="field"><label>المستوى</label>${seg('level', q.level, LEVEL_AR)}</div>
     <div class="field"><label>النوع</label>${seg('qtype', q.qtype, TYPE_AR)}</div>
-    <div class="field ${q.qtype === 'curriculum' ? '' : 'hide'}" id="q-cuf"><label for="q-cu">المنهج</label><select class="input" id="q-cu" name="cu">${cuOptions(q.curriculum_id || '')}</select></div>
+    <div class="field ${q.qtype === 'curriculum' ? '' : 'hide'}" id="q-cuf"><label for="q-cu">المنهج</label><select class="input" id="q-cu" name="cu" data-change="qf-cu">${cuOptions(q.curriculum_id || '')}</select>
+      <label for="q-ls" class="q-lsl">الدرس <small class="muted">اختر من القائمة أو اكتب درساً جديداً</small></label><input class="input" id="q-ls" name="lesson" list="q-lsd" maxlength="80" autocomplete="off" value="${esc(q.lesson || (isNew ? QS.lastLesson || '' : ''))}" placeholder="مثال: الزكاة"><datalist id="q-lsd">${qLessonOpts(q.curriculum_id || '')}</datalist></div>
     ${ocr ? `<div class="grid2"><button class="btn" type="button" data-act="t-save-q-next">حفظ والتالي</button><button class="btn soft" type="button" data-act="t-q-ocr-skip">تخطي</button></div>` : isNew ? `<div class="grid2"><button class="btn" type="submit">حفظ</button><button class="btn soft" type="button" data-act="t-save-q-next">حفظ والتالي</button></div>` : `<button class="btn" type="submit">حفظ التعديل</button>`}
     ${q.id ? `<button type="button" class="btn danger" data-act="t-q-del" data-id="${q.id}">${ic('trash')} حذف السؤال</button>` : ''}</form>`;
 }
 ACTS['qf-seg'] = t => { const s = t.parentElement, f = t.closest('form'); f[s.dataset.name].value = t.dataset.v; s.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t));
   if (s.dataset.name === 'qtype') f.querySelector('#q-cuf').classList.toggle('hide', t.dataset.v !== 'curriculum'); };
+function qLessons(cu){ if (!cu) return []; return [...new Set(QS.list.concat(QS.glob).filter(q => q.curriculum_id === cu && q.lesson).map(q => q.lesson))]; }
+function qLessonOpts(cu){ return qLessons(cu).map(l => `<option value="${esc(l)}"></option>`).join(''); }
+ACTS['qf-cu'] = t => { const d = document.getElementById('q-lsd'); if (d) d.innerHTML = qLessonOpts(t.value); };
 ACTS['qf-c'] = t => { const f = t.closest('form'), i = Number(t.dataset.i); f.correct.value = i;
   f.querySelectorAll('.qo').forEach((r, j) => { r.classList.toggle('on', j === i); r.querySelector('input').placeholder = j === i ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[j]; }); };
 function qImgField(url){ return url ? `<img src="${esc(url)}" alt=""><div class="q-imgb"><button type="button" class="btn sm soft" data-act="qf-img">تغيير الصورة</button><button type="button" class="btn sm ghost" data-act="qf-img-x">إزالة</button></div>`
@@ -1954,8 +2019,9 @@ ACTS['t-q-edit'] = async t => { await loadCurricula().catch(() => {}); modal(qFo
 ACTS['t-save-q'] = async f => {
   const next = f.next.value === '1'; f.next.value = '';
   const row = { qtype: f.qtype.value, level: f.level.value, body: f.body.value.trim(), options: [0, 1, 2, 3].map(i => f['o' + i].value.trim()), correct_index: Number(f.correct.value), curriculum_id: f.qtype.value === 'curriculum' ? (f.cu.value || null) : null, image: f.image.value || null };
+  row.lesson = row.curriculum_id ? (f.lesson.value.replace(/\s+/g, ' ').trim().slice(0, 80) || null) : null;
   if (row.correct_index < 0) return toast('اضغط الدائرة بجانب الإجابة الصحيحة');
-  QS.lastCu = f.cu.value; QS.lastType = row.qtype; QS.lastLevel = row.level;
+  QS.lastCu = f.cu.value; QS.lastType = row.qtype; QS.lastLevel = row.level; QS.lastLesson = row.lesson || '';
   if (new Set(row.options).size < 4) return toast('الخيارات يجب أن تكون مختلفة');
   const k = qNorm(row.body);
   if ((QS.norm[k] || []).some(x => x !== f.id.value)) return toast('هذا السؤال موجود في البنك، لا يمكن تكراره');
@@ -1969,6 +2035,7 @@ ACTS['t-save-q'] = async f => {
     f.body.value = ''; [0, 1, 2, 3].forEach(i => { f['o' + i].value = ''; }); ACTS['qf-c'](f.querySelector('[data-i="0"]'));
     const w = document.getElementById('q-dupw'); if (w) w.classList.add('hide');
     f.body.focus(); toast(`تم الحفظ. أسئلتك المعتمدة: ${QS.list.filter(q => q.status === 'approved').length}`);
+    const d = document.getElementById('q-lsd'); if (d) d.innerHTML = qLessonOpts(f.cu.value);
     renderQuestionsKeepModal(); return;
   }
   closeModals(); toast(f.id.value ? 'تم حفظ التعديل' : 'تمت إضافة السؤال ودخل البنك'); if (!f.id.value && T.qf.status !== 'approved') T.qf.status = 'approved'; renderQuestions();
