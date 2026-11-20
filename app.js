@@ -1301,14 +1301,39 @@ ACTS['pz-save'] = f => { const v = [0, 1, 2].map(i => f['p' + i].value.replace(/
 ACTS['pz-del'] = t => pzSet(t.dataset.w, null);
 const SUBJ_EMOJI = { 'الرياضيات': '📐', 'التربية الإسلامية': '🕌', 'اللغة العربية': '📖', 'العلوم': '🔬', 'اللغة الإنجليزية': '🔤', 'الاجتماعيات': '🗺️', 'الحاسوب': '💻' };
 function nwGrade(c){ const n = (c && c.name) || ''; for (let i = GRADES.length - 1; i >= 0; i--) if (n.indexOf(GRADES[i]) >= 0) return i + 1; const m = n.match(/\d+/); return m ? Number(m[0]) : null; }
+async function qCounts(){
+  const or = 'owner_id.is.null,owner_id.eq.' + T.user.id;
+  const [rg, r] = await Promise.all([sb.from('questions').select('qtype').or(or).eq('status', 'approved').in('qtype', ['general', 'quick', 'memory']).limit(10000),
+    sb.from('questions').select('curriculum_id').or(or).eq('status', 'approved').not('curriculum_id', 'is', null).limit(10000)]);
+  NW.gen = {}; (rg.data || []).forEach(q => { NW.gen[q.qtype] = (NW.gen[q.qtype] || 0) + 1; });
+  NW.glob = {}; (r.data || []).forEach(q => { NW.glob[q.curriculum_id] = (NW.glob[q.curriculum_id] || 0) + 1; });
+}
+/* subjects a class can use: ready subjects for its stage/grade + the teacher's own; extra = ids to keep shown (already chosen) */
+function subjList(c, extra){
+  const g = nwGrade(c), glob = NW.glob || {};
+  const mine = CU.list.filter(x => x.owner_id && x.owner_id === T.user.id && glob[x.id]);
+  let cus = CU.list.filter(x => !x.owner_id && x.stage === (c.stage || 'primary') && glob[x.id]);
+  if (g) { const exact = cus.filter(x => x.grade === g); if (exact.length) cus = exact; }
+  const bySub = {}; cus.forEach(x => { (bySub[x.subject] = bySub[x.subject] || []).push(x); });
+  const list = []; Object.keys(bySub).forEach(sb2 => { const xs = bySub[sb2]; (xs.length === 1 || g ? [xs[0]] : xs).forEach(x => list.push([x, xs.length === 1 || g ? glob[x.id] + ' سؤال' : gradeAr(x)])); });
+  mine.forEach(x => list.push([x, glob[x.id] + ' سؤال']));
+  (extra || []).forEach(id => { if (!list.some(y => y[0].id === id)) { const x = CU.list.find(y => y.id === id); if (x) list.push([x, (glob[id] || 0) + ' سؤال']); } });
+  return list;
+}
+function subjTiles(c, sel, act, extra){
+  const tile = (k, e, n, sm, off) => `<button type="button" class="nw-tile nw-mt${sel.includes(k) ? ' on' : ''}${off ? ' off' : ''}" data-act="${act}" data-k="${esc(k)}"${off ? ' disabled' : ''}><span class="nw-ck">${sel.includes(k) ? '✓' : ''}</span><span class="nw-e">${e}</span><b>${esc(n)}</b><small>${esc(sm)}</small></button>`;
+  const gen = NW.gen || {};
+  const mt = subjList(c, extra).map(([x, sm]) => tile(x.id, SUBJ_EMOJI[x.subject] || '📚', String(x.subject).replace(/^(اللغة|التربية) /, ''), sm)).join('');
+  const gt = NW_GEN.map(o => tile(o[0], o[1], o[2], gen[o[0]] ? gen[o[0]] + ' سؤال' : 'قريباً', !gen[o[0]] && !sel.includes(o[0]))).join('');
+  return (mt ? `<div class="nw-lbl">موادي</div><div class="nw-tiles">${mt}</div>` : '') + `<div class="nw-lbl">أسئلة عامة</div><div class="nw-tiles">${gt}</div>`;
+}
 async function tNew(fresh){
   if (fresh !== false && !NW.keep) Object.assign(NW, { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, diff: null, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
   const [cl, cp] = await Promise.all([sb.from('classes').select('*').eq('archived', false).order('created_at'), sb.from('competitions').select('id,class_id').eq('status', 'active')]);
   if (cl.error) throw cl.error;
   NW.classes = cl.data; NW.busy = new Set((cp.data || []).map(c => c.class_id));
   await loadCurricula().catch(() => {});
-  { const rg = await sb.from('questions').select('qtype').or('owner_id.is.null,owner_id.eq.' + T.user.id).eq('status', 'approved').in('qtype', ['general', 'quick', 'memory']).limit(10000); NW.gen = {}; (rg.data || []).forEach(q => { NW.gen[q.qtype] = (NW.gen[q.qtype] || 0) + 1; }); }
-  { const r = await sb.from('questions').select('curriculum_id').or('owner_id.is.null,owner_id.eq.' + T.user.id).eq('status', 'approved').not('curriculum_id', 'is', null).limit(10000); NW.glob = {}; (r.data || []).forEach(q => { NW.glob[q.curriculum_id] = (NW.glob[q.curriculum_id] || 0) + 1; }); }
+  await qCounts();
   const free = NW.classes.filter(c => !NW.busy.has(c.id));
   if (NW.step === 1 && NW.classes.length === 1 && free.length === 1) { NW.cls = [free[0].id]; NW.step = 2; NW.skip1 = true; } else NW.skip1 = false;
   nwRender();
@@ -1325,21 +1350,10 @@ function nwRender(){
   }
   if (st === 2) {
     /* v161: pick one or more: the teacher's subjects + general categories (Khalid) */
-    const c = NW.classes.find(x => x.id === NW.cls[0]) || {}, g = nwGrade(c);
-    const mine = CU.list.filter(x => x.owner_id && x.owner_id === T.user.id && NW.glob[x.id]);
-    let cus = CU.list.filter(x => !x.owner_id && x.stage === (c.stage || 'primary') && NW.glob[x.id]);
-    if (g) { const exact = cus.filter(x => x.grade === g); if (exact.length) cus = exact; }
-    const bySub = {}; cus.forEach(x => { (bySub[x.subject] = bySub[x.subject] || []).push(x); });
-    const list = []; Object.keys(bySub).forEach(sb2 => { const xs = bySub[sb2]; (xs.length === 1 || g ? [xs[0]] : xs).forEach(x => list.push([x, xs.length === 1 || g ? NW.glob[x.id] + ' سؤال' : gradeAr(x)])); });
-    mine.forEach(x => list.push([x, NW.glob[x.id] + ' سؤال']));
-    const sel = NW.sel || (NW.sel = []);
-    const tile = (k, e, n, sm, off) => `<button class="nw-tile nw-mt${sel.includes(k) ? ' on' : ''}${off ? ' off' : ''}" data-act="nw-subj" data-k="${esc(k)}"${off ? ' disabled' : ''}><span class="nw-ck">${sel.includes(k) ? '✓' : ''}</span><span class="nw-e">${e}</span><b>${esc(n)}</b><small>${esc(sm)}</small></button>`;
-    const gen = NW.gen || {};
-    const mt = list.map(([x, sm]) => tile(x.id, SUBJ_EMOJI[x.subject] || '📚', String(x.subject).replace(/^(اللغة|التربية) /, ''), sm)).join('');
-    const gt = NW_GEN.map(o => tile(o[0], o[1], o[2], gen[o[0]] ? gen[o[0]] + ' سؤال' : 'قريباً', !gen[o[0]])).join('');
+    const c = NW.classes.find(x => x.id === NW.cls[0]) || {}, sel = NW.sel || (NW.sel = []);
     const names = sel.map(nwName).filter(Boolean);
     b = `<h2 class="nw-q">عن أي مادة؟</h2><p class="nw-note">اختر وحدة أو أكثر</p>
-      ${mt ? `<div class="nw-lbl">موادي</div><div class="nw-tiles">${mt}</div>` : ''}<div class="nw-lbl">أسئلة عامة</div><div class="nw-tiles">${gt}</div>
+      ${subjTiles(c, sel, 'nw-subj')}
       <p class="nw-note">${names.length > 1 ? 'الأسئلة تجي خليط من: ' + esc(names.join('، ')) : ''}</p><div class="nw-sp"></div>
       <button class="btn nw-go" data-act="nw-subj-next" ${sel.length ? '' : 'disabled'}>التالي${sel.length ? ' (' + sel.length + ')' : ''}</button>`;
   }
@@ -2271,7 +2285,7 @@ ACTS['cp-new'] = async () => {
   if (!CL.classes.length) return toast('أضف صفاً أولاً');
   await loadCurricula().catch(() => {});
   T.compEdit = 'new'; CC.sel = new Set(CL.classes.filter(c => !CL.comps[c.id]).map(c => c.id));
-  const st = T.settings || {}; CC.qtypes = (st.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = st.difficulty || 'normal'; CC.cu = ''; CC.lessons = []; CC.style = (CL.classes.find(c => CC.sel.has(c.id)) || CL.classes[0]).style || 'mid';
+  const st = T.settings || {}; CC.qtypes = (st.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = st.difficulty || 'normal'; CC.cu = ''; CC.lessons = []; CC.cus = null; CC.gsel = null; CC.style = (CL.classes.find(c => CC.sel.has(c.id)) || CL.classes[0]).style || 'mid';
   renderClasses();
 };
 ACTS['cp-edit'] = async t => {
@@ -2280,6 +2294,8 @@ ACTS['cp-edit'] = async t => {
   const g = CL.allComps.filter(c => c.group_id === T.compEdit);
   CC.sel = new Set(g.map(c => c.class_id));
   const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (g[0].qtypes || first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = g[0].difficulty || 'normal'; CC.cu = g[0].curriculum_id || ''; CC.lessons = (g[0].lessons || []).slice(); CC.style = first.style || 'mid'; if (CC.cu && !CC.qtypes.includes('curriculum')) CC.qtypes = ['curriculum'].concat(CC.qtypes);
+  CC.cus = g[0].curricula && g[0].curricula.length ? g[0].curricula.slice() : CC.cu ? [CC.cu] : []; CC.gsel = CC.qtypes.filter(x => x !== 'curriculum');
+  await qCounts().catch(() => {});
   renderClasses();
 };
 ACTS['cp-cancel'] = () => { T.compEdit = null; if (location.hash.indexOf('#/t/ch/') === 0) return renderClasses(); if (location.hash.indexOf('#/t/new') === 0) return go('#/t/home'); renderClasses(); };
@@ -2345,7 +2361,7 @@ function compEditForm(v){
     <button type="button" class="ce1-more" data-act="ce-open" data-p="more">المزيد ⋯</button>
     <button class="btn cf2-go ce1-save" type="submit">حفظ</button>
     <div class="ce1-sh" id="ce-les"><div class="ce1-card"><div class="ce1-h"><b>من أي مادة؟</b><button type="button" class="ce1-x" data-act="ce-close" aria-label="إغلاق">✕</button></div>
-      <select class="input cf2-sel" name="cu" data-change="cp-cu">${cuOptions(CC.cu, 'منوعة (بدون مادة)')}</select>
+      <div id="ce-subj">${ceTiles()}</div>
       <div class="cf-les" id="cf-les"></div><div class="cf-pool" id="cf-pool"></div>
       <button type="button" class="btn" data-act="ce-close">تم</button></div></div>
     <div class="ce1-sh" id="ce-more"><div class="ce1-card"><div class="ce1-h"><b>المزيد</b><button type="button" class="ce1-x" data-act="ce-close" aria-label="إغلاق">✕</button></div>
@@ -2371,9 +2387,22 @@ function compEditForm(v){
 ACTS['ce-open'] = t => { const x = document.getElementById('ce-' + t.dataset.p); if (x) x.classList.add('on'); };
 ACTS['ce-close'] = t => { const x = t.closest('.ce1-sh'); if (x) x.classList.remove('on'); };
 document.addEventListener('click', e => { if (e.target.classList && e.target.classList.contains('ce1-sh')) e.target.classList.remove('on'); });
+/* v162: edit sheet uses the same subject squares as «تحدي جديد» (several allowed) */
+function ceSel(){ return (CC.cus || []).concat(CC.gsel || []); }
+function ceTiles(){ const c = CL.byId[[...CC.sel][0]] || {}; return subjTiles(c, ceSel(), 'ce-subj', CC.cus); }
+ACTS['ce-subj'] = t => { const k = t.dataset.k, isG = NW_GEN.some(o => o[0] === k);
+  if (isG) CC.gsel = (CC.gsel || []).includes(k) ? CC.gsel.filter(x => x !== k) : (CC.gsel || []).concat(k);
+  else CC.cus = (CC.cus || []).includes(k) ? CC.cus.filter(x => x !== k) : (CC.cus || []).concat(k);
+  const cu = (CC.cus || [])[0] || ''; if (cu !== CC.cu || (CC.cus || []).length > 1) CC.lessons = [];
+  CC.cu = (CC.cus || []).length === 1 ? cu : cu;
+  CC.qtypes = ((CC.cus || []).length ? ['curriculum'] : []).concat(CC.gsel || []); if (!CC.qtypes.length) CC.qtypes = ['general', 'quick'];
+  const el = document.getElementById('ce-subj'); if (el) el.innerHTML = ceTiles();
+  if ((CC.cus || []).length === 1) cfLessons(); else { const l = document.getElementById('cf-les'); if (l) l.innerHTML = ''; }
+  cfUpdate(); ceSum(); };
 function ceSum(){
   const lb = document.getElementById('ce-lb'), ls = document.getElementById('ce-ls'); if (!lb) return;
-  const cu = CC.cu && CU.list.find(x => x.id === CC.cu); lb.textContent = !cu ? 'منوعة (ثقافة عامة وسرعة بديهة)' : `${cu.subject} · ${gradeAr(cu)} · ${!CC.lessons.length ? 'كل الدروس' : CC.lessons.length + ' دروس'}`;
+  const cu = CC.cu && CU.list.find(x => x.id === CC.cu), names = CC.cus ? ceSel().map(nwName).filter(Boolean) : [];
+  lb.textContent = names.length > 1 ? names.join('، ') : !cu ? (names[0] || 'منوعة (ثقافة عامة وسرعة بديهة)') : `${cu.subject} · ${gradeAr(cu)} · ${!CC.lessons.length ? 'كل الدروس' : CC.lessons.length + ' دروس'}`;
   ls.textContent = CC.poolN == null ? '' : `${CC.poolN} سؤال · تكفي ${CC.poolDays} يوم ${CC.poolOk ? '✓' : '⚠️'}`;
   ls.className = CC.poolOk === false ? 'low' : '';
 }
@@ -2556,6 +2585,7 @@ ACTS['cp-save'] = async f => {
   const p = { title: f.title.value.trim() || 'مسابقة تحدّي الدقيقة', start_date: f.start_date.value, points_end_date: f.points_end_date.value, end_date: f.end_date.value,
     group_size: Number(f.group_size.value), qualifiers: Number(f.qualifiers.value), round_window_hours: Number(f.round_window_hours.value),
     curriculum_id: CC.cu || null, difficulty: CC.diff || 'normal', qtypes: CC.qtypes, lessons: CC.cu && CC.lessons && CC.lessons.length ? CC.lessons : null };
+  if (CC.cus) { p.curricula = CC.cus.length > 1 ? CC.cus.slice() : null; p.curriculum_id = CC.cus[0] || null; if (CC.cus.length > 1) p.lessons = null; }
   if (CC.prizes || (CL.allComps || []).some(c => c.group_id === T.compEdit && c.prizes)) p.prizes = CC.prizes && CC.prizes.some(Boolean) ? CC.prizes : null;
   if (!(p.start_date <= p.points_end_date && p.points_end_date <= p.end_date)) return toast('تحقق من ترتيب التواريخ');
   const isNew = T.compEdit === 'new', gid = isNew ? crypto.randomUUID() : T.compEdit;
