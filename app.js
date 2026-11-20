@@ -798,7 +798,7 @@ function applyMode(){
   const dark = m === 'dark' || (m === 'auto' && MQ && MQ.matches);
   document.body.classList.toggle('dark', dark);
   applyLook();
-  const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = dark && document.body.classList.contains('wide') ? '#000000' : '#C8102E';
+  const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = dark && document.body.classList.contains('wide') ? '#161112' : '#C8102E';
 }
 if (MQ && MQ.addEventListener) MQ.addEventListener('change', applyMode);
 const MODE_AR = { light: 'فاتح', dark: 'داكن', auto: 'تلقائي' };
@@ -3641,7 +3641,6 @@ function tAppear(){
   view('المظهر',
     sGrp('الوضع', ['light', 'dark', 'auto'].map(k => `<button class="set-row radio" data-act="ap-mode" data-v="${k}"><span class="set-ic" style="background:${k === 'light' ? '#FF9500' : k === 'dark' ? '#5856D6' : '#8E8E93'}">${ic(k === 'light' ? 'sun' : k === 'dark' ? 'moon' : 'gear')}</span><span class="grow">${MODE_AR[k]}</span><span class="tick ${m === k ? 'on' : ''}">${ic('check')}</span></button>`), '«تلقائي» يتبع وضع جهازك.') +
     sGrp('حجم الخط', [`<div class="set-row"><div class="tabs fs-seg grow">${FONTS.map(f => `<button type="button" class="${fs === f[0] ? 'on' : ''}" data-act="ap-fs" data-v="${f[0]}" style="font-size:${Math.round(15 * f[2])}px">${f[1]}</button>`).join('')}</div></div>`]) +
-    sGrp('لون التطبيق', [`<div class="set-row ac-row">${ACCENTS.map(a => `<button type="button" class="ac-dot${ac === a[0] ? ' on' : ''}" data-act="ap-ac" data-v="${a[0]}" style="--c:${a[0]}" aria-label="${a[1]}"></button>`).join('')}</div>`]) +
     sGrp('الإحساس', [swRow({ act: 'ap-ls', k: 'mc_tsnd', on: LS.get('mc_tsnd') === '1', label: 'الأصوات', sub: 'صوت خفيف عند الضغط' }), swRow({ act: 'ap-ls', k: 'mc_vib', on: LS.get('mc_vib') === '1', label: 'الاهتزاز', sub: 'في الأجهزة اللي تدعمه' })], 'إعدادات المظهر تنحفظ على هذا الجهاز بس.'),
     'settings', '', '#/t/settings');
 }
@@ -3654,7 +3653,7 @@ function applyLook(){
   const f = FONTS.find(x => x[0] === (LS.get('mc_fs') || 'm')) || FONTS[1];
   document.documentElement.style.zoom = wide && f[2] !== 1 ? f[2] : '';
   const ac = LS.get('mc_accent');
-  if (wide && ac && ac !== ACCENTS[0][0]) { document.body.style.setProperty('--primary', ac); document.body.style.setProperty('--primary-dark', ac); }
+  if (false && wide && ac) { /* fixed brand colour, no picker */ document.body.style.setProperty('--primary', ac); document.body.style.setProperty('--primary-dark', ac); }
   else { document.body.style.removeProperty('--primary'); document.body.style.removeProperty('--primary-dark'); }
 }
 let _actx = null;
