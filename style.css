@@ -2223,3 +2223,10 @@ html body[data-theme] .pv .opts.kc .opt .letter.shp{width:26px;height:26px;font-
 :has(> .st1) > .modal-x,.modal:has(.st1) .modal-x{display:none!important}
 .st1-h{padding-inline-end:0!important;gap:10px}
 .st1-h .icon-btn{width:44px;height:44px;border-radius:50%;background:var(--soft);display:grid;place-items:center;flex:none}
+/* v105 first screen: one question, code, one button */
+.sl1{gap:14px;text-align:center}
+.sl1-q{font-size:24px;font-weight:900}
+.btn.sl1-go{min-height:62px;font-size:21px;font-weight:900}
+.sl1-h{color:var(--muted);font-weight:700;font-size:14px;opacity:.85}
+.sl1-t{font-size:16px;font-weight:800;opacity:.85;padding:14px}.sl1-t b{text-decoration:underline}
+.sl .sl1-q{color:#fff}.sl .sl1-h{color:rgba(255,255,255,.75);opacity:1}

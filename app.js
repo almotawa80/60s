@@ -197,15 +197,14 @@ function studentLogin(){
   document.body.classList.remove('wide');
   $app.innerHTML = '<div class="sh sl pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
     '<div class="hero">' + LOGO +
-    '<h1>تحدّي الدقيقة</h1><p>٤ أسئلة، ٦٠ ثانية، ومن يتصدّر؟</p></div>' +
+    '<h1>تحدّي الدقيقة</h1></div>' +
     '<div class="pad col">' + profPicker() +
-    '<div class="card col"><div><b style="font-size:19px">' + (profs().length ? 'لاعب جديد؟' : 'عندك رمز؟') + '</b><div class="sub">اكتب الرمز اللي عطاك إياه معلمك</div></div>' +
+    '<div class="col sl1"><b class="sl1-q">' + (profs().length ? 'لاعب جديد؟' : 'عندك رمز؟') + '</b>' +
     '<div class="code-wrap"><div class="code-boxes">' + '<div class="code-box"></div>'.repeat(6) + '</div>' +
     '<input class="code-input" id="code" inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="6" aria-label="رمز الدخول"></div>' +
-    '<button class="paste-btn" data-act="s-paste">' + ic('download') + ' لصق الرمز</button>' +
     '<div id="lerr"></div>' +
-    '<button class="btn" data-act="s-login">ادخل</button></div>' +
-    '<div class="center sl-t"><button class="link" data-act="go-teacher">أنا معلم ‹</button></div></div></div>';
+    '<button class="btn sl1-go" data-act="s-login">دخول</button><p class="sl1-h">الرمز تاخذه من معلمك</p></div>' +
+    '<div class="center sl-t"><button class="link sl1-t" data-act="go-teacher">أنا معلم؟ <b>ادخل من هنا</b></button></div></div></div>';
   const inp = document.getElementById('code');
   const paint = v => $app.querySelectorAll('.code-box').forEach((el, i) => { el.textContent = v[i] || ''; el.classList.toggle('on', i === Math.min(v.length, 5)); });
   inp.addEventListener('input', () => {
