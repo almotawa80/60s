@@ -1812,7 +1812,7 @@ function compForm(){
   const g = isNew ? null : CL.allComps.find(c => c.group_id === T.compEdit);
   const v = g || Object.assign({ title: cfAutoTitle(), start_date: t, group_size: 6, qualifiers: 8, round_window_hours: 24 }, cfSpan(t, 7, 8, 24));
   if (isNew) { CC.titleManual = false; CC.styleManual = false; } else { CC.titleManual = true; CC.styleManual = true; }
-  const opt = (val, lab) => `<option value="${val}" ${Number(v.round_window_hours) === val ? 'selected' : ''}>${lab}</option>`;
+  CC.ko = v.end_date > v.points_end_date;
   const step = (name, label, val, min, max, hint) => `<div class="set-row cf-row"><span class="grow">${label}${hint ? `<small class="cf-hint">${hint}</small>` : ''}</span><div class="cf-step"><button type="button" data-act="cf-step" data-n="${name}" data-d="-1" aria-label="إنقاص">−</button><input name="${name}" type="number" inputmode="numeric" min="${min}" max="${max}" value="${val}"><button type="button" data-act="cf-step" data-n="${name}" data-d="1" aria-label="زيادة">+</button></div></div>`;
   const date = (name, label, val) => `<label class="set-row cf-row"><span class="grow">${label}</span><input class="cf-date" type="date" name="${name}" value="${val}" required></label>`;
   return `<form class="col cf cf2" data-form="cp-save">
@@ -1826,15 +1826,22 @@ function compForm(){
     <section class="cf2-sec"><div class="cf2-q"><span>3</span>من أي أسئلة؟</div>
       <select class="input cf2-sel" name="cu" data-change="cp-cu">${cuOptions(CC.cu, 'كل الأسئلة المتاحة')}</select>
       <div class="cf-les" id="cf-les"></div><div class="cf-pool" id="cf-pool"></div></section>
-    <details class="cf2-more"><summary>إعدادات إضافية <small>التواريخ، التصفيات، الصعوبة، شكل الواجهة</small></summary>
-      <div class="cf2-box"><div class="cf2-bh">📅 التواريخ</div><div class="set-grp">${date('start_date', 'بداية جمع النقاط', v.start_date)}${date('points_end_date', 'نهاية جمع النقاط', v.points_end_date)}${date('end_date', 'نهاية المسابقة', v.end_date)}</div></div>
-      <div class="cf2-box"><div class="cf2-bh">🏆 التصفيات</div><div class="set-grp">${step('group_size', 'حجم المجموعة', v.group_size, 2, 40, 'عدد الطلبة في كل مجموعة')}${step('qualifiers', 'المتأهلون من كل صف', v.qualifiers, 2, 64, 'يدخلون مرحلة خروج المغلوب')}
-        <label class="set-row cf-row"><span class="grow">الوقت المتاح للعب كل مواجهة</span><select class="cf-sel" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></label></div></div>
-      <div class="cf2-box"><div class="cf2-bh">🎯 الصعوبة</div><div class="set-grp"><div class="set-row cf-row cf-col"><span>مستوى الصعوبة</span><div class="tabs">${DIFF.map(d => `<button type="button" class="${CC.diff === d[0] ? 'on' : ''}" data-act="cp-diff" data-v="${d[0]}">${d[1]}</button>`).join('')}</div><small class="cf-hint" id="cp-diff-d">${(DIFF.find(d => d[0] === CC.diff) || DIFF[1])[2]}</small></div></div></div>
-      <div class="cf2-box"><div class="cf2-bh">🧩 أنواع الأسئلة</div><div class="cf-qt">${QTYPES.map(q => `<button type="button" class="cf-chip ${CC.qtypes.includes(q[0]) ? 'on' : ''}" data-act="cp-qt" data-v="${q[0]}">${ic(q[3])}<span>${q[1]}</span></button>`).join('')}</div></div>
-      <div class="cf2-box"><div class="cf2-bh">🎨 شكل واجهة الطلبة <small>يتحدد تلقائياً من مرحلة الصف</small></div>
-      <div class="cf-themes">${CF_STYLES.map(x => `<button type="button" class="cf-th ${CC.style === x[0] ? 'on' : ''}" data-act="cp-style" data-v="${x[0]}"><span class="cf-ph cf-ph-${x[0]}"><i class="t"></i><i class="q"></i><i class="o"></i><i class="o"></i><i class="o"></i></span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>
-      <button type="button" class="btn sm soft cf-prev" data-act="cf-preview">${ic('play')} معاينة كما يراها الطالب</button></div>
+    <details class="cf2-more"><summary>إعدادات إضافية <small>المواعيد، التصفيات، الصعوبة</small></summary>
+      <div class="set-grp cf3">
+        <label class="cf3-r"><span class="grow">تبدأ</span><b id="cf3-sd"></b><i>‹</i><input class="cf3-date" type="date" name="start_date" value="${v.start_date}" required></label>
+        <div class="cf3-note" id="cf3-dates"></div>
+        <input type="hidden" name="points_end_date" value="${v.points_end_date}"><input type="hidden" name="end_date" value="${v.end_date}">
+        <input type="hidden" name="group_size" value="${v.group_size || 6}"><input type="hidden" name="qualifiers" value="${v.qualifiers || 8}"><input type="hidden" name="round_window_hours" value="${v.round_window_hours || 24}">
+      </div>
+      <div class="set-grp cf3">
+        <button type="button" class="cf3-r" data-act="cf3-ko"><span class="grow">تصفيات في النهاية<small>الأوائل يتنافسون وجهاً لوجه</small></span><span class="ios-sw ${CC.ko ? 'on' : ''}" id="cf3-kosw"><i></i></span></button>
+        <button type="button" class="cf3-r ${CC.ko ? '' : 'hide'}" id="cf3-qr" data-act="cf3-q"><span class="grow">عدد المتأهلين</span><b id="cf3-qv"></b><i>‹</i></button>
+      </div>
+      <div class="set-grp cf3">
+        <button type="button" class="cf3-r" data-act="cf3-diff"><span class="grow">الصعوبة</span><b id="cf3-dv"></b><i>‹</i></button>
+        <button type="button" class="cf3-r" data-act="cf3-qt"><span class="grow">أنواع الأسئلة</span><b id="cf3-tv"></b><i>‹</i></button>
+        <button type="button" class="cf3-r" data-act="cf3-style"><span class="grow">شكل شاشة الطالب</span><b id="cf3-yv"></b><i>‹</i></button>
+      </div>
       <div class="set-f">كل جولة: 4 أسئلة × 15 ثانية. جولة رسمية يومياً، والتدريب مفتوح.</div>
     </details>
     <button class="btn cf2-go" type="submit">${isNew ? (v.start_date > todayKW() ? 'جدولة المسابقة' : 'ابدأ المسابقة') : 'حفظ التعديلات'}</button>
@@ -1843,19 +1850,21 @@ function compForm(){
 /* simple setup helpers: duration presets, auto title, auto student-screen style */
 const CF_DUR = [[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']];
 function cfSpan(start, total, q, hours){
-  const ko = Math.ceil(Math.log2(Math.max(2, q || 8))) * Math.max(1, Math.ceil((hours || 24) / 24));
+  const ko = q === 0 ? 0 : Math.ceil(Math.log2(Math.max(2, q || 8))) * Math.max(1, Math.ceil((hours || 24) / 24));
   const pts = Math.max(2, total - ko), pe = addDays(start, pts - 1);
   return { points_end_date: pe, end_date: addDays(pe, ko) };
 }
 function cfAutoTitle(){ const cs = CL.classes.filter(c => CC.sel.has(c.id)); return cs.length === 1 ? 'مسابقة ' + cs[0].name : 'مسابقة تحدّي الدقيقة'; }
 const STAGE_STYLE = { primary: 'kids', middle: 'mid', secondary: 'mid', university: 'uni' };
 function cfAutoStyle(){ const c = CL.classes.find(x => CC.sel.has(x.id)); return (c && STAGE_STYLE[c.stage]) || (c && c.style) || 'mid'; }
-ACTS['cf-dur'] = t => { const f = t.closest('form'), st = f.start_date.value || todayKW(); const sp = cfSpan(st, Number(t.dataset.d), Number(f.qualifiers.value), Number(f.round_window_hours.value));
+const cfQ = f => CC.ko ? Number(f.qualifiers.value) : 0;
+ACTS['cf-dur'] = t => { const f = t.closest('form'), st = f.start_date.value || todayKW(); const sp = cfSpan(st, Number(t.dataset.d), cfQ(f), Number(f.round_window_hours.value));
   f.start_date.value = st; f.points_end_date.value = sp.points_end_date; f.end_date.value = sp.end_date; cfUpdate(); };
 function cfAuto(){
   const f = document.querySelector('[data-form="cp-save"]'); if (!f) return;
   if (!CC.titleManual) f.title.value = cfAutoTitle();
   if (!CC.styleManual) { CC.style = cfAutoStyle(); f.querySelectorAll('.cf-th').forEach(b => b.classList.toggle('on', b.dataset.v === CC.style)); }
+  cfUpdate();
 }
 document.addEventListener('input', e => { if (e.target.id === 'cf-title') CC.titleManual = true; });
 /* live summary + timeline for the competition form */
@@ -1868,8 +1877,9 @@ function cfUpdate(){
   const cnt = document.getElementById('cf-cnt'); if (cnt) cnt.textContent = `(${n} من ${CL.classes.length})`;
   const sum = document.getElementById('cf-sum'); if (sum) sum.textContent = n ? `${n === 1 ? 'صف واحد' : n + ' صفوف'} · ${st} طالب/ـة` : 'اختر صفاً واحداً على الأقل';
   const tot = s && e ? cfDays(s, e) + 1 : 0;
-  f.querySelectorAll('[data-act="cf-dur"]').forEach(b => { const sp = s && cfSpan(s, Number(b.dataset.d), Number(f.qualifiers.value), Number(f.round_window_hours.value)); b.classList.toggle('on', !!sp && sp.end_date === e && sp.points_end_date === p); });
+  f.querySelectorAll('[data-act="cf-dur"]').forEach(b => { const sp = s && cfSpan(s, Number(b.dataset.d), cfQ(f), Number(f.round_window_hours.value)); b.classList.toggle('on', !!sp && sp.end_date === e && sp.points_end_date === p); });
   const en = document.getElementById('cf-end'); if (en) en.textContent = s && e ? `${s === todayKW() ? 'تبدأ اليوم' : 'تبدأ ' + fmtDate(s)} وتنتهي ${fmtDate(e)} (${tot} يوماً)` : '';
+  cf3Fill(f, s, p, e, kd);
   const tl = document.getElementById('cf-tl'); if (!tl) return;
   if (pd <= 0 || kd < 0) { tl.innerHTML = '<span class="cf-bad">تحقق من ترتيب التواريخ</span>'; return; }
   tl.innerHTML = `<div class="cf-bar2"><i class="pts" style="flex:${pd}"><span>نقاط · ${pd} يوم</span></i>${kd > 0 ? `<i class="ko" style="flex:${kd}"><span>تصفيات · ${kd}</span></i>` : ''}</div><div class="cf-dates"><span>${esc(fmtDate(s))}</span><span>${esc(fmtDate(e))}</span></div>`;
@@ -1940,6 +1950,40 @@ ACTS['cp-les'] = t => { const l = t.dataset.l;
   if (CFL[CC.cu] && CC.lessons.length === CFL[CC.cu].length) CC.lessons = [];
   cfLessons(); cfUpdate(); };
 function cpKeep(){ const f = document.querySelector('[data-form="cp-save"]'); if (f && f.cu) CC.cu = f.cu.value; }
+/* «إعدادات إضافية»: iOS-style rows; each opens a small sheet */
+const fmtDay = d => { try { return new Date(d + 'T00:00:00').toLocaleDateString('ar-KW-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' }); } catch(e){ return d; } };
+const fmtRange = (a, b) => a === b ? fmtDate(a) : fmtDate(a).split(' ')[1] === fmtDate(b).split(' ')[1] ? fmtDate(a).split(' ')[0] + '–' + fmtDate(b) : fmtDate(a) + ' – ' + fmtDate(b);
+function cf3Fill(f, s, p, e, kd){
+  const set = (id, h) => { const x = document.getElementById(id); if (x) x.innerHTML = h; };
+  set('cf3-sd', s ? (s === todayKW() ? 'اليوم' : esc(fmtDay(s))) : '');
+  set('cf3-dates', s && p && e ? `النقاط ${esc(fmtRange(s, p))}${kd > 0 ? ` · التصفيات ${esc(fmtRange(addDays(p, 1), e))}` : ''}` : '');
+  set('cf3-qv', 'أفضل ' + f.qualifiers.value);
+  set('cf3-dv', esc((DIFF.find(d => d[0] === CC.diff) || DIFF[1])[1]));
+  set('cf3-tv', CC.qtypes.length === QTYPES.length ? 'الكل' : esc(QTYPES.filter(q => CC.qtypes.includes(q[0])).map(q => q[1]).join('، ')));
+  set('cf3-yv', esc((CF_STYLES.find(x => x[0] === CC.style) || CF_STYLES[1])[1]));
+}
+function cf3Respan(f){ // keep the chosen total length, recompute points/knockout split
+  const s = f.start_date.value || todayKW(), tot = Math.max(3, cfDays(CC.cfS || s, f.end_date.value) + 1);
+  const sp = cfSpan(s, tot, cfQ(f), Number(f.round_window_hours.value)); f.points_end_date.value = sp.points_end_date; f.end_date.value = sp.end_date; CC.cfS = s; cfUpdate();
+}
+document.addEventListener('focusin', e => { if (e.target.classList && e.target.classList.contains('cf3-date')) CC.cfS = e.target.value; });
+document.addEventListener('change', e => { if (e.target.classList && e.target.classList.contains('cf3-date')) { if (e.target.value < todayKW() && T.compEdit === 'new') e.target.value = todayKW(); cf3Respan(e.target.form); } });
+const cf3Form = () => document.querySelector('[data-form="cp-save"]');
+ACTS['cf3-ko'] = () => { const f = cf3Form(); CC.ko = !CC.ko; CC.cfS = f.start_date.value; document.getElementById('cf3-kosw').classList.toggle('on', CC.ko); document.getElementById('cf3-qr').classList.toggle('hide', !CC.ko); cf3Respan(f); };
+const cf3Opt = (act, v, on, b, sm) => `<button class="aw-opt cf3-o${on ? ' on' : ''}" data-act="${act}" data-v="${v}"><span class="grow"><b>${b}</b>${sm ? `<small>${sm}</small>` : ''}</span><span class="cf3-ck">${ic('check')}</span></button>`;
+ACTS['cf3-q'] = () => { const q = Number(cf3Form().qualifiers.value);
+  modal(`<div class="aw-sheet"><h3>عدد المتأهلين للتصفيات</h3><p class="sub">من كل صف، حسب ترتيب النقاط.</p>${[[4, 'دوران · يومان'], [8, '3 أدوار · 3 أيام'], [16, '4 أدوار · 4 أيام']].map(x => cf3Opt('cf3-qset', x[0], q === x[0], 'أفضل ' + x[0], x[1])).join('')}</div>`); };
+ACTS['cf3-qset'] = t => { const f = cf3Form(); f.qualifiers.value = t.dataset.v; CC.cfS = f.start_date.value; closeModals(); cf3Respan(f); };
+ACTS['cf3-diff'] = () => modal(`<div class="aw-sheet"><h3>الصعوبة</h3>${DIFF.slice().sort((a, b) => (b[0] === 'adaptive') - (a[0] === 'adaptive')).map(d => cf3Opt('cf3-dset', d[0], CC.diff === d[0], d[1], d[2])).join('')}</div>`);
+ACTS['cf3-dset'] = t => { CC.diff = t.dataset.v; closeModals(); cfUpdate(); };
+ACTS['cf3-qt'] = () => { modal(`<div class="aw-sheet"><h3>أنواع الأسئلة</h3><p class="sub">اختر نوعاً واحداً أو أكثر.</p><div id="cf3-qtl">${cf3QtList()}</div><button class="btn" data-act="close-modal">تم</button></div>`); };
+const cf3QtList = () => QTYPES.map(q => cf3Opt('cf3-qtset', q[0], CC.qtypes.includes(q[0]), q[1], q[2])).join('');
+ACTS['cf3-qtset'] = t => { const k = t.dataset.v; if (CC.qtypes.includes(k)) { if (CC.qtypes.length === 1) return toast('اختر نوعاً واحداً على الأقل'); CC.qtypes = CC.qtypes.filter(x => x !== k); } else CC.qtypes.push(k);
+  const l = document.getElementById('cf3-qtl'); if (l) l.innerHTML = cf3QtList(); cfUpdate(); };
+ACTS['cf3-style'] = () => modal(`<div class="aw-sheet"><h3>شكل شاشة الطالب</h3><p class="sub">يتحدد تلقائياً من مرحلة الصف، وتقدر تغيّره.</p>
+  <div class="cf-themes">${CF_STYLES.map(x => `<button type="button" class="cf-th ${CC.style === x[0] ? 'on' : ''}" data-act="cf3-yset" data-v="${x[0]}"><span class="cf-ph cf-ph-${x[0]}"><i class="t"></i><i class="q"></i><i class="o"></i><i class="o"></i><i class="o"></i></span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>
+  <button type="button" class="btn soft" data-act="cf-preview">${ic('play')} معاينة كما يراها الطالب</button></div>`);
+ACTS['cf3-yset'] = t => { CC.style = t.dataset.v; CC.styleManual = true; document.querySelectorAll('.cf-th').forEach(b => b.classList.toggle('on', b === t)); cfUpdate(); };
 ACTS['cp-style'] = t => { CC.style = t.dataset.v; CC.styleManual = true; t.parentElement.querySelectorAll('.cf-th').forEach(b => b.classList.toggle('on', b === t)); };
 ACTS['cp-diff'] = t => { CC.diff = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const d = document.getElementById('cp-diff-d'); if (d) d.textContent = DIFF.find(x => x[0] === CC.diff)[2]; };
 ACTS['cp-cls'] = t => { const id = t.dataset.id; CC.sel.has(id) ? CC.sel.delete(id) : CC.sel.add(id); t.classList.toggle('on'); cfAuto(); cfUpdate(); };
