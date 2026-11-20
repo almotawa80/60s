@@ -2811,8 +2811,15 @@ function q4SubjSheet(s){
     <div class="q4-les">${les.map((l, i) => { const on = !ed && by[l].some(q4On); return `<button class="q4-lt${on ? ' added' : ''}" data-act="${ed ? 'q4-led' : 'q4-tg'}" data-i="${i}">${ed ? '<span class="q4-pen">✏️</span>' : ''}<b>${esc(q4LN(cu.id, l))}</b><small>${by[l].length} سؤال</small>${q4Mine(cu.id, l) ? '<span class="q4-mine">درسك</span>' : ''}</button>`; }).join('')}${ed ? '<button class="q4-lt q4-add" data-act="q4-newl"><b>＋ درس جديد</b></button>' : ''}</div>
     <p class="p3-note">${ed ? 'اضغط الدرس عشان تعدّل أسئلته أو تحذفه. التعديل عندك بس.' : 'اضغط أكثر من درس، كل واحد ينضاف لأسئلتك ✓'}</p>
     ${!ed && les.some(l => !by[l].some(q4On)) ? `<button class="q4-all" data-act="q4-all">＋ أضف كل الدروس</button>` : ''}
+    ${ed && ADM.st && ADM.st.is && !ADM.st.act && cu.owner_id && cu.owner_id === T.user.id ? `<button class="q4-all" data-act="q4-pub">📢 انشرها للكل</button>` : ''}
     <button class="p3-big" data-act="q4-done">تم ✓</button></div>`);
 }
+ACTS['q4-pub'] = async t => {
+  if (!await ask('تنتقل المادة ودروسها وأسئلتها لبنك الأسئلة، ويقدر كل المعلمين يضيفونها.', { title: 'نشر المادة للكل؟', ok: 'نشر', danger: false })) return;
+  t.setAttribute('aria-busy', 'true');
+  try { const n = await rpc('admin_publish_curriculum', { p_cu: QS.subjCu }); toast(`انتشرت للكل ✓ (${n} سؤال)`); QS.ed4 = false; await tQuestions(); q4SubjSheet(QS.subj3); }
+  catch(e){ t.removeAttribute('aria-busy'); toast(/function|schema cache/i.test(e.message || '') ? 'تحتاج تشغيل ملف admin_publish.sql أول' : errMsg(e)); }
+};
 ACTS['q4-ed'] = () => { QS.ed4 = !QS.ed4; q4SubjSheet(QS.subj3); };
 async function q4SetOn(qs, on){
   const bank = qs.filter(q => !q.owner_id).map(q => q.id), own = qs.filter(q => q.owner_id).map(q => q.id);
