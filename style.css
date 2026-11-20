@@ -2688,3 +2688,6 @@ html body .sl .code-input:focus,html body .sl .code-input:focus-visible{outline:
 html body.wide .t-nav{background:rgba(255,255,255,.72)!important;-webkit-backdrop-filter:blur(28px) saturate(180%)!important;backdrop-filter:blur(28px) saturate(180%)!important;box-shadow:0 6px 24px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.5)!important}
 html body.wide.dark .t-nav{background:rgba(28,28,30,.7)!important;box-shadow:0 8px 28px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1),inset 0 1px 0 rgba(255,255,255,.12)!important}
 html body.wide .t-body{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
+/* v167: bring back the liquid-glass lens under the active tab (hidden since v88) */
+html body.wide .t-nav .lens{display:block!important;top:4px;bottom:4px}
+html body.wide.dark .t-nav .lens{background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.07))}
