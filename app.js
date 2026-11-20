@@ -2696,13 +2696,15 @@ function q3Home(){
   const bank = subs.sort((x, y) => mySub.has(y.s) - mySub.has(x.s)).map(x => `<button class="q4-st${mySub.has(x.s) ? ' mine' : ''}" data-act="q4-subj" data-s="${esc(x.s)}"><span class="e">${SUBJ_EMOJI[x.s] || '📘'}</span>${esc(x.s)}<small>${x.n} درس</small></button>`).join('');
   const ownAll = QS.list.filter(q => q.status === 'approved' || q.status === 'draft').length;
   const ownTile = ownAll ? `<button class="q4-st${own ? ' mine' : ''}" data-act="q4-own"><span class="e">✍️</span>أسئلتي الخاصة<small>${own} من ${ownAll} شغّالة</small></button>` : '';
+  /* v129: one square per subject; subjects with chosen lessons are green with ✓ and come first */
+  const st = {}; mine.forEach(g => { const sj = cuOf(g.cu).subject; (st[sj] = st[sj] || { l: 0, n: 0 }); st[sj].l++; st[sj].n += g.n; });
+  const sq = subs.sort((x, y) => (!!st[y.s]) - (!!st[x.s])).map(x => { const m = st[x.s]; return `<button class="q5-sb${m ? ' on' : ''}" data-act="q4-subj" data-s="${esc(x.s)}"><span class="e">${SUBJ_EMOJI[x.s] || '📘'}</span><b>${esc(x.s)}</b><small>${m ? `${m.l} ${m.l === 1 ? 'درس' : 'دروس'} · ${m.n} سؤال` : x.n + ' درس'}</small></button>`; });
+  if (ownAll) sq.splice(own ? Object.keys(st).length : sq.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
   return `<div class="q4">
-    <div class="q4-lbl"><b>أسئلتي</b><small>تطلع لطلابك في التحديات</small></div>
-    <div class="q4-mine">${tiles}</div>
-    ${total ? `<div class="q4-days">عندك ${total} سؤال، تكفي ${daysAr(days)} 👍</div>` : `<div class="q4-days low">اختر دروس من البنك تحت، أو أضف أسئلتك</div>`}
+    ${total ? `<div class="q4-days">عندك ${total} سؤال، تكفي ${daysAr(days)} ${days >= 7 ? '👍' : '⚠️'}</div>` : `<div class="q4-days low">اضغط مادة تحت وشغّل دروسها</div>`}
     <button class="p3-big" data-act="q3-add">＋ أضف سؤال</button>
-    <div class="q4-lbl"><b>بنك الأسئلة</b><small>اضغط المادة واختر الدروس</small></div>
-    <div class="q4-bank">${ownTile}${bank || (ownTile ? '' : '<p class="p3-note">ما فيه أسئلة جاهزة لصفوفك بعد.</p>')}</div></div>`;
+    <div class="q5-lbl">اضغط المادة وشغّل الدروس اللي تبيها</div>
+    <div class="q5-sq">${sq.join('') || '<p class="p3-note">ما فيه أسئلة جاهزة لصفوفك بعد.</p>'}</div></div>`;
 }
 const q4Gr = c => c.grade ? (c.stage === 'university' ? 'سنة ' + c.grade : (GRADES[c.grade - 1] || c.grade)).replace(/^ال/, '') : (STAGE_AR[c.stage] || '');
 // curricula that fit the teacher's classes (grade from the class name, else the whole stage)
