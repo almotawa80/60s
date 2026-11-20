@@ -2565,3 +2565,14 @@ html body[data-theme] .pv.pvx .opts.ord .opt:not(.picked):not(.good):not(.bad) .
 html body .pv.pvx .pv-head{gap:6px}
 html body .play.pv.pvx{padding-top:max(14px,env(safe-area-inset-top));padding-bottom:max(20px,env(safe-area-inset-bottom))}
 html.pvmode body .play.pv.pvx{height:calc(100dvh - 48px - env(safe-area-inset-top));padding-top:10px}
+/* v147: student screens in app theme (black + red), one look for all ages */
+html body:not(.wide)[data-theme]{--bg:#000;--card:#1C1C1E;--ink:#F5F5F7;--muted:#98989F;--line:rgba(255,255,255,.12);--soft:#2C2C2E;--primary:#C8102E;--primary-dark:#8E0A0A;--accent:#C8102E;--accent-ink:#fff;color-scheme:dark;background:#000!important;color:#F5F5F7}
+html body:not(.wide) .sh.pvx .s-hacts .av-btn{background:#1C1C1E!important;color:#F5F5F7!important;border:0!important;box-shadow:none!important;width:46px!important;height:46px!important}
+html body:not(.wide) .sh.pvx .s-hacts .av-btn svg{width:22px;height:22px}
+html body:not(.wide) .sh.pvx .comp,html body:not(.wide) .sh.pvx .rows.card,html body:not(.wide) .sh.pvx .card{background:#1C1C1E!important;color:#F5F5F7!important;border:0!important}
+html body:not(.wide) .sh.pvx .btn.ghost{background:#2C2C2E!important;color:#F5F5F7!important;border:0!important;box-shadow:none!important}
+html body:not(.wide) .sh.pvx .sp-play{background:#C8102E!important;color:#fff!important;box-shadow:0 10px 0 #7A0A1C,0 0 0 14px rgba(200,16,46,.14)!important}
+html body:not(.wide) .sh.pvx .sp-play:active{box-shadow:0 4px 0 #7A0A1C,0 0 0 14px rgba(200,16,46,.14)!important}
+html body:not(.wide) .sh.pvx .bdg{background:#1C1C1E!important;border-color:transparent!important}
+html body:not(.wide) .sh.pvx .bdg.on{background:color-mix(in srgb,#C8102E 16%,#1C1C1E)!important;border:2px solid #C8102E!important}
+html body:not(.wide) .sh.pvx .s-me-av{background:#C8102E!important;color:#fff!important}

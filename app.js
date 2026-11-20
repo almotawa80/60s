@@ -324,10 +324,10 @@ function renderHome(){
   const th = document.body.dataset.theme || 'mid';
   const steps = [['points', 'جمع النقاط'], ['knockout', 'التصفيات'], ['finished', 'النهاية']], si = steps.findIndex(x => x[0] === ph);
   const strip = si >= 0 ? '<div class="ph-strip">' + steps.map((x, i) => '<span class="' + (i < si ? 'done' : i === si ? 'cur' : '') + '">' + x[1] + '</span>').join('<i></i>') + '</div>' : '';
-  $app.innerHTML = '<div class="sh pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
+  $app.innerHTML = '<div class="sh pvx">' +
     '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋' + (h.streak ? ' <span class="streak" title="أيام متتالية">🔥 ' + h.streak + '</span>' : '') + '</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
     '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
-    '<button class="avatar av-btn" data-act="s-menu" aria-label="القائمة">' + esc((h.student.name || '?').trim().charAt(0)) + '</button></div></div>' +
+    '</div></div>' +
     '<div class="comp">' + strip + head + main + rest +
     '<div class="s-row2"><button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button>' +
     (h.wrong_count ? '<button class="btn ghost rv-btn" data-act="s-start" data-kind="review">أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div>' +
@@ -346,10 +346,10 @@ function renderHomeP(){
   else mid = (h.rank > 1 && h.gap != null ? '<div class="sp-rival" id="rival">' + (h.gap > 0 ? 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى اللي فوقك 👀' : 'أنت متعادل مع اللي فوقك، جولة وحدة تكفي! 👀') + '</div>' : h.rank === 1 && h.total_points ? '<div class="sp-rival">أنت الأول 🏆 حافظ عليها</div>' : '') +
     '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>' +
     (days ? '<p class="sp-sub">لا تطفي الشعلة 🔥</p>' : '');
-  $app.innerHTML = '<div class="sh sp pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
+  $app.innerHTML = '<div class="sh sp pvx">' +
     '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
     '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
-    '<button class="avatar av-btn" data-act="s-menu" aria-label="القائمة">' + esc((h.student.name || '?').trim().charAt(0)) + '</button></div></div>' +
+    '</div></div>' +
     pills + '<div class="sp-mid">' + mid + '</div>' +
     '<div class="sp-low"><button class="link" data-act="s-start" data-kind="practice">تدرّب بدون نقاط</button>' +
     (h.wrong_count ? '<button class="link" data-act="s-start" data-kind="review">أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div>' + sNav('home');
@@ -392,7 +392,7 @@ const BADGES = { first: ['🎯', 'أول جولة', 'أنهيت أول جولة 
 /* student bottom bar (v106): home · ranking · badges · me. Not shown during a round (the round replaces the page). */
 function sNav(cur){ return '<nav class="s-nav">' + [['home', '🏠', 'الرئيسية'], ['lb', '🏆', 'الترتيب'], ['bd', '⭐', 'شاراتي'], ['me', '👤', 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (cur === x[0] ? ' aria-current="page"' : '') + '><span class="i">' + x[1] + '</span>' + x[2] + '</button>').join('') + '</nav>'; }
 function sPage(t, body){ const th = document.body.dataset.theme || 'mid'; S.tab = t; closeModals(); stopTimer(); clearInterval(S.cdT);
-  $app.innerHTML = '<div class="sh s-tabpg pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' + body + '</div>' + sNav(t); scrollTo(0, 0); }
+  $app.innerHTML = '<div class="sh s-tabpg pvx">' + body + '</div>' + sNav(t); scrollTo(0, 0); }
 function badgesHtml(){ const b = (S.home && S.home.badges) || [], n = b.filter(x => x.on).length;
   return '<h3>شاراتي <span class="sub">(' + n + ' من ' + b.length + ')</span></h3><div class="bdg-grid">' + b.map(x => { const d = BADGES[x.k] || ['⭐', x.k, '']; return '<div class="bdg ' + (x.on ? 'on' : '') + '"><span class="bdg-i">' + d[0] + '</span><b>' + d[1] + '</b><small>' + d[2] + (x.k === 'practice10' && !x.on ? ' (' + (x.n || 0) + '/10)' : '') + '</small></div>'; }).join('') + '</div>' +
     (S.home && S.home.streak ? '<p class="center sub" style="margin-top:12px">🔥 سلسلتك الحالية: ' + S.home.streak + ' يوم متتالي</p>' : ''); }
@@ -403,7 +403,7 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
     return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><div class="s-me-av">' + esc(n.charAt(0)) + '</div><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small></div>' +
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
       '<div class="s-me-o">' + [['s-profile', '✏️', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
-      '<div class="s-me-mode"><b>🌙 المظهر</b>' + modeSeg() + '</div></div>'); }
+      '</div>'); }
   if (k === 'lb') { if (S.demo) return toast('الترتيب يظهر في المسابقة الفعلية');
     sPage('lb', '<div class="s-pgc"><div class="spin"></div></div>');
     try { const res = await rpc('class_leaderboard', { p_token: S.token }); if (S.tab !== 'lb') return;
@@ -475,7 +475,7 @@ function leadersHtml(rows, hidden, hp){
       return '<div class="lbx-pd p' + (i + 1) + (r.is_me ? ' me' : '') + '"><div class="lbx-av">' + (i === 0 ? '<span class="lbx-crown">👑</span>' : '') + ini(r.name).charAt(0) + '<span class="lbx-md">' + (i + 1) + '</span></div><b>' + ini(r.name) + '</b><span class="lbx-pts">' + P(r) + '</span><div class="lbx-step"></div></div>'; }).join('') + '</div>' : '';
   const list = (hidden ? on : rest).map(r => '<div class="lbx-r' + (r.is_me ? ' me' : '') + '"><span class="lbx-no">' + r.rank + '</span><span class="lbx-nm">' + esc(r.name) + (r.is_me ? ' <small>(أنت)</small>' : '') + (hp ? '' : '<i><u style="width:' + Math.round(r.points * 100 / max) + '%"></u></i>') + '</span><b>' + P(r) + '</b></div>').join('');
   const meZero = me && !(me.points > 0);
-  return '<div class="lbx pv-' + th + '"><div class="lbx-top"><h3>🏆 المتصدرون</h3><span>' + esc(S.home.class.name) + '</span><button class="lbx-x" data-act="close-modal" aria-label="إغلاق">' + ic('x') + '</button></div>' +
+  return '<div class="lbx pvx"><div class="lbx-top"><h3>🏆 المتصدرون</h3><span>' + esc(S.home.class.name) + '</span><button class="lbx-x" data-act="close-modal" aria-label="إغلاق">' + ic('x') + '</button></div>' +
     (hidden ? '<div class="lbx-hid">الترتيب مخفي حتى نهاية المسابقة 🤫<small>هذا ترتيبك أنت فقط</small></div>' : '') +
     (on.length ? pod + (list ? '<div class="lbx-list">' + list + '</div>' : '') : '<div class="lbx-empty"><span>🚀</span><b>لا أحد في القائمة بعد</b><small>العب جولة اليوم وكن أول المتصدرين!</small></div>') +
     (zero.length && !hidden ? '<div class="lbx-zero">' + (meZero ? '<b>أنت و' + (zero.length - 1) + ' آخرون</b>' : '<b>' + zero.length + ' طالب/ـة</b>') + ' لم يحصلوا على نقاط بعد. جولة واحدة تدخلك القائمة!</div>' : '') +
@@ -648,7 +648,7 @@ ACTS['s-start'] = async (t) => {
 /* 3-2-1 before the round */
 function countIn(gen){
   const th = document.body.dataset.theme || 'mid';
-  $app.innerHTML = '<div class="sh pv-' + th + ' cin"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div><div class="cin-n" id="cin" role="status">3</div><p class="cin-t">استعد!</p></div>';
+  $app.innerHTML = '<div class="sh pvx cin"><div class="cin-n" id="cin" role="status">3</div><p class="cin-t">استعد!</p></div>';
   return new Promise(res => { let n = 3; FX.tick && FX.tick();
     const step = () => { if (S.gen !== gen) return res(); n--; const el = document.getElementById('cin'); if (n <= 0 || !el) return res();
       el.textContent = n; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; FX.tick && FX.tick(); setTimeout(step, 800); };
@@ -808,7 +808,7 @@ async function showResult(sm){
  const L4 = (S.log || []).slice(-4), answered = L4.length ? L4.filter(x => x.x != null).length : (sm ? sm.correct_count : 0);
   const toAr = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
   const th = document.body.dataset.theme || 'mid';
-  $app.innerHTML = '<div class="sh pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
+  $app.innerHTML = '<div class="sh pvx">' +
     '<div class="result ' + (win ? 'is-win' : lose ? 'is-lose' : '') + '"><div class="medal-wrap">' + (win ? '<div class="rays"></div>' : '') + '<div class="medal">' + ic(lose ? 'clock' : 'trophy') + '</div></div>' +
     '<h2 class="center res-h">' + head + '</h2><p class="center muted" style="margin-top:-8px">' + sub + (sm && sm.kind === 'practice' ? ' · تدريب' : sm && sm.kind === 'knockout' ? ' · مواجهة التصفيات' : '') + '</p>' +
     (sm && sm.kind === 'knockout' ? '<p class="center sub">تُحسم المواجهة بعدد الإجابات الصحيحة ثم السرعة، وتظهر النتيجة في الرئيسية عندما ينهي منافسك.</p>' : '') +
