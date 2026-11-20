@@ -2161,3 +2161,10 @@ body.wide.dark .t-nav a.on,body.wide.dark .t-nav a.t-plus{color:#E5404F!importan
 .q4-q.off .grow{opacity:.45}
 .q4-q .grow{font-size:15px}
 .q4-del{background:var(--card);color:var(--primary);border:0;border-radius:16px;min-height:52px;font:inherit;font-weight:900;font-size:17px;width:100%;cursor:pointer}
+/* «انضم» icon v95: four answer rows in the round's colours */
+.join-ic{display:flex!important;flex-direction:column;justify-content:center;gap:2px;width:24px;height:24px;padding:1px 0}
+.join-ic i{display:block;height:4px;border-radius:2px;width:100%}
+.join-ic i:nth-child(1){background:#E21B3C}.join-ic i:nth-child(2){background:#1368CE}.join-ic i:nth-child(3){background:#D89E00}.join-ic i:nth-child(4){background:#26890C}
+.join-ic{width:26px;gap:2.5px}
+.join-ic i{height:5px;border-radius:2.5px;position:relative}
+.join-ic i::after{display:none}
