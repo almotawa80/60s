@@ -3754,15 +3754,55 @@ ACTS['aw-img'] = async t => {
   const st = p => { const r = document.getElementById('aw-ring'), x = document.getElementById('aw-pct'); if (r) r.style.setProperty('--p', Math.max(3, Math.round(p * 100))); if (x) x.textContent = Math.round(p * 100) + '%'; };
   try {
     await loadJs(OCRJS, 'Tesseract');
-    const w = await Tesseract.createWorker('ara+eng', 1, { logger: x => { if (x.status === 'recognizing text') st(x.progress); } });
-    const { data } = await w.recognize(await ocrPrep(file)); await w.terminate();
+    /* v164: a printed table (school list) is read cell by cell from the names column, which is far more accurate */
+    let text = '';
+    try { text = await ocrTable(file, st); } catch(e){ text = ''; }
+    if (!text) {
+      const w = await Tesseract.createWorker('ara+eng', 1, { logger: x => { if (x.status === 'recognizing text') st(x.progress); } });
+      const { data } = await w.recognize(await ocrPrep(file)); await w.terminate(); text = data.text || '';
+    }
     m.remove();
-    const { rows, cls } = namesFromOcr(data.text || '');
+    const data = { text };
+    const { rows, cls } = namesFromOcr(text);
     if (!rows.length) { ACTS['aw-paste'](); const ta = document.querySelector('.aw-ta'); if (ta) { ta.value = (data.text || '').trim(); pasteInfo(ta); } return toast('ما قدرت أميّز الأسماء، عدّلها هنا'); }
     if (cls && !AW.cid) AW.detect = cls;
     awReview(rows, 'photo');
   } catch(e){ m.remove(); toast('تعذّرت قراءة الصورة: ' + errMsg(e)); }
 };
+/* table photo/scan: find ruled lines, take the widest column (names), OCR each cell as one line; '' when no table */
+async function ocrTable(file, st){
+  const bmp = await createImageBitmap(file), k = Math.min(1, 1800 / Math.max(bmp.width, bmp.height));
+  const W = Math.round(bmp.width * k), H = Math.round(bmp.height * k);
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.drawImage(bmp, 0, 0, W, H);
+  const d = g.getImageData(0, 0, W, H).data, gray = new Uint8ClampedArray(W * H); let sum = 0;
+  for (let i = 0; i < W * H; i++) { const y = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]; gray[i] = y; sum += y; }
+  const thr = Math.min(140, sum / (W * H) * 0.6), dark = i => gray[i] < thr;
+  const rowF = new Float32Array(H), colF = new Float32Array(W);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (dark(y * W + x)) { rowF[y]++; colF[x]++; }
+  const grp = (f, n, lim) => { const out = []; let cur = null; for (let i = 0; i < n; i++) { if (f[i] / lim > 0.5) { if (cur && i - cur[1] <= 3) cur[1] = i; else { if (cur) out.push(Math.round((cur[0] + cur[1]) / 2)); cur = [i, i]; } } } if (cur) out.push(Math.round((cur[0] + cur[1]) / 2)); return out; };
+  const ys = grp(rowF, H, W);
+  if (ys.length < 4) return '';
+  const tH = ys[ys.length - 1] - ys[0];
+  const colIn = new Float32Array(W); for (let y = ys[0]; y < ys[ys.length - 1]; y++) for (let x = 0; x < W; x++) if (dark(y * W + x)) colIn[x]++;
+  const xs = grp(colIn, W, tH);
+  if (xs.length < 2) return '';
+  let best = [0, 0, 0]; for (let i = 0; i < xs.length - 1; i++) if (xs[i + 1] - xs[i] > best[0]) best = [xs[i + 1] - xs[i], xs[i], xs[i + 1]];
+  if (best[0] < W * 0.2) return '';
+  const cell = (y0, y1, sc, bin) => { const cw = best[2] - best[1] - 8, ch = y1 - y0 - 5; const o = document.createElement('canvas'); o.width = cw * sc + 40; o.height = ch * sc + 40;
+    const og = o.getContext('2d'); og.fillStyle = '#fff'; og.fillRect(0, 0, o.width, o.height); og.imageSmoothingQuality = 'high'; og.drawImage(c, best[1] + 4, y0 + 3, cw, ch, 20, 20, cw * sc, ch * sc);
+    const id = og.getImageData(0, 0, o.width, o.height), p = id.data; for (let i = 0; i < p.length; i += 4) { let v = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]; if (bin) v = v < 150 ? 0 : 255; p[i] = p[i + 1] = p[i + 2] = v; } og.putImageData(id, 0, 0); return o; };
+  const w = await Tesseract.createWorker('ara', 1); await w.setParameters({ tessedit_pageseg_mode: '7' });
+  const out = [], n = ys.length - 1;
+  try {
+    for (let i = 0; i < n; i++) { st((i + 1) / n);
+      const y0 = ys[i], y1 = ys[i + 1]; if (y1 - y0 < 12) continue;
+      let pick = { t: '', c: -1 };
+      for (const [sc, bin] of [[3, false], [2, false], [3, true]]) { const { data } = await w.recognize(cell(y0, y1, sc, bin)); const t = (data.text || '').trim(); if (t && data.confidence > pick.c) pick = { t, c: data.confidence }; if (t && data.confidence >= 80) break; }
+      if (pick.t && !/^اسم|الاسم/.test(pick.t.trim())) out.push(pick.t.replace(/\s+/g, ' '));
+    }
+  } finally { await w.terminate(); }
+  return out.length >= 3 ? out.join('\n') : '';
+}
 /* grayscale + stretch contrast, and flip dark screenshots to dark-on-light, so OCR reads cleaner */
 async function ocrPrep(file){
   const bmp = await createImageBitmap(file); const k = Math.min(1, 2200 / Math.max(bmp.width, bmp.height)), sc = Math.max(k, Math.min(2, 1400 / Math.max(bmp.width, bmp.height)));
@@ -3776,7 +3816,7 @@ async function ocrPrep(file){
   return new Promise(ok => c.toBlob(ok, 'image/png'));
 }
 /* names list from OCR text: drop headers, numbering, and trailing ids */
-const AW_HEAD = /كشف|اسماء|أسماء|الاسم|المدرسة|مدرسة|العام الدراسي|الفصل الدراسي|المعلم|الماده|المادة|التوقيع|ملاحظات|المجموع|وزارة|الإدارة|اداره|منطقة|الرقم المدني|م\s*$/;
+const AW_HEAD = /كشف|اسماء|أسماء|الاسم|المدرسة|مدرسة|العام الدراسي|الفصل الدراسي|المعلم|الماده|المادة|التوقيع|ملاحظات|المجموع|وزارة|الإدارة|اداره|منطقة|الرقم المدني|^م\s*$/;
 const AW_GR = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر', 'الحادي عشر', 'الثاني عشر'];
 function namesFromOcr(text){
   const lines = String(text).split(/\r?\n/).map(l => l.replace(/[|_—–\[\]{}()«»"'*•·]/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean);
