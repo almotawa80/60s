@@ -446,6 +446,9 @@ ACTS['s-profile'] = () => { closeModals();
   modal('<div class="s-prof"><h3>ملفي</h3><div class="sp-rows">' +
     '<div class="r"><span>الاسم</span><b>' + esc(h.student.name) + '</b></div>' +
     '<div class="r"><span>الصف</span><b>' + esc(h.class.name) + '</b></div>' +
+    (S.prefs && S.prefs.teacher && S.prefs.teacher.name ? '<div class="r"><span>المعلم</span><b>' + esc([S.prefs.teacher.title, S.prefs.teacher.name].filter(Boolean).join(' ')) + '</b></div>' : '') +
+    (S.prefs && S.prefs.teacher && S.prefs.teacher.subject ? '<div class="r"><span>المادة</span><b>' + esc(String(S.prefs.teacher.subject).split('|').join('، ')) + '</b></div>' : '') +
+    (S.prefs && S.prefs.teacher && S.prefs.teacher.school ? '<div class="r"><span>المدرسة</span><b>' + esc(S.prefs.teacher.school) + '</b></div>' : '') +
     (code ? '<div class="r"><span>رمز الدخول</span><button class="code-pill" data-act="copy" data-v="' + esc(code) + '">' + esc(code) + ' ' + ic('layers') + '</button></div>' : '') +
     '<div class="r"><span>نقاطي</span><b>' + (h.total_points || 0) + '</b></div>' +
     (h.rank && h.total_points ? '<div class="r"><span>ترتيبي</span><b>' + h.rank + ' من ' + h.class.size + '</b></div>' : '') + '</div>' +
