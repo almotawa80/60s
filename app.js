@@ -1037,6 +1037,7 @@ async function teacherRoute(){
     else if (page === 'questions') await tQuestions();
     else if (page === 'qshare') { T.qf.status = 'approved'; await tQuestions(); qSharePreview(parts[1]); }
     else if (page === 'results') await tResults(parts[1], parts[2]);
+    else if (page === 'ch') { CL.tab = 'comps'; CL.cur = null; await tClasses(); }
     else if (page === 'settings') await tSettings();
     else if (page === 'sg') tSetGroup(parts[1]);
     else if (page === 'qset') await tQSet();
@@ -1080,7 +1081,7 @@ async function tHome(){
     const mid = c.paused_at ? `<div class="hc-big">⏸</div><div class="hc-sub">متوقف مؤقتاً</div>`
       : ph === 'upcoming' ? `<div class="hc-big hc-day">${esc(fmtDate(c.start_date))}</div><div class="hc-sub">يبدأ</div>`
       : `<div class="hc-ring" style="--p:${pct}"><div><b>${played}</b><small>من ${n}</small></div></div><div class="hc-sub">لعبوا اليوم</div>`;
-    return `<a class="hc" href="#/t/results/${c.class_id}"><b class="hc-t">${esc(c.title || 'تحدي')}</b><small class="hc-c">${esc(names)}${ph === 'points' || ph === 'knockout' ? ` · باقي ${daysAr(Math.max(0, dl))}` : ''}</small>${mid}</a>`;
+    return `<a class="hc" href="#/t/ch/${c.group_id || c.id}"><b class="hc-t">${esc(c.title || 'تحدي')}</b><small class="hc-c">${esc(names)}${ph === 'points' || ph === 'knockout' ? ` · باقي ${daysAr(Math.max(0, dl))}` : ''}</small>${mid}</a>`;
   });
   const html = cards.length ? `<div class="hcs">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
   view('الرئيسية', html + `<a class="h-more" href="#/t/comps">التحديات السابقة وإدارتها ‹</a>`, 'home');
@@ -1359,6 +1360,7 @@ async function tClasses(){
   renderClasses();
 }
 function renderClasses(){
+  if (location.hash.indexOf('#/t/ch/') === 0 && !T.compEdit) return renderChallenge(decodeURIComponent(location.hash.slice(7)));
   const cl = CL.tab !== 'comps';
   const more = cl ? `<button class="icon-btn" data-act="c-more" aria-label="المزيد">${ic('more')}</button>` : '';
   const onNew = location.hash.indexOf('#/t/new') === 0;
@@ -1369,6 +1371,46 @@ function renderClasses(){
   cfAuto(); cfUpdate(); cfLessons();
   if (CL.addFocus) { const i = document.querySelector(`.cls[data-cid="${CL.addFocus}"] .cl-add1 input`); CL.addFocus = null; if (i) i.focus(); }
 }
+/* challenge page (v109): big «played today», remind the rest, ranking; everything else under ⋯ */
+function renderChallenge(gid){
+  const ks = (CL.allComps || []).filter(k => (k.group_id || k.id) === gid); if (!ks.length) return location.replace('#/t/home');
+  const c = ks[0], ph = phaseOf(c), multi = ks.length > 1;
+  const st = ks.flatMap(k => (CL.students[k.class_id] || []).filter(x => x.approved !== false).map(x => Object.assign({ _c: (CL.byId[k.class_id] || {}).name }, x)));
+  const n = st.length, played = st.filter(x => CST(x.id).today).length, left = n - played;
+  const days = ph === 'points' ? cfDays(todayKW(), c.points_end_date) : ph === 'knockout' ? cfDays(todayKW(), c.end_date) : null;
+  const meta = c.paused_at ? '⏸ متوقف مؤقتاً' : (PHASE_AR[ph] || '') + (days != null ? ' · ' + (days > 0 ? 'باقي ' + daysAr(days) : 'آخر يوم') : '');
+  const rows = st.slice().sort((a, b) => CST(b.id).pts - CST(a.id).pts || a.name.localeCompare(b.name, 'ar'));
+  const names = ks.map(k => (CL.byId[k.class_id] || {}).name).filter(Boolean).join('، ');
+  CL.chg = gid;
+  const body = `<div class="ch1"><div class="ch-sub">${esc(names)}</div>
+    <div class="ch-hero"><small>لعبوا اليوم</small><div class="ch-big"><b>${played}</b> <span>من ${n}</span></div><div class="ch-bar"><i style="width:${n ? played * 100 / n : 0}%"></i></div>
+    ${left && !c.paused_at && ph === 'points' ? `<button class="btn ch-rem" data-act="ch-remind">🔔 ذكّر الباقين (${left})</button>` : ''}</div>
+    <p class="ch-meta">${esc(meta)}</p>
+    ${rows.length ? `<div class="cp-list">${rows.map((x, i) => { const k = CST(x.id); return `<button class="cp-row${k.today ? '' : ' dim'}" data-act="ch-stu" data-id="${x.id}"><span class="cp-rk">${k.pts && i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b>${multi ? `<small class="ch-cls">${esc(x._c || '')}</small>` : ''}</span><span class="cp-pts">${k.pts}</span></button>`; }).join('')}</div>`
+      : `<div class="cl-empty sm"><b>ما فيه طلاب بعد</b><small>شارك رمز الصف من ⋯</small></div>`}</div>`;
+  view(String(c.title || 'التحدي').split('·').pop().trim(), body, 'home', `<button class="icon-btn" data-act="ch-more" aria-label="المزيد">${ic('more')}</button>`, '#/t/home');
+}
+const chComps = () => (CL.allComps || []).filter(k => (k.group_id || k.id) === CL.chg);
+const chStudents = () => chComps().flatMap(k => CL.students[k.class_id] || []);
+ACTS['ch-remind'] = () => { const ks = chComps(), c = ks[0]; if (!c) return;
+  const cls = ks.map(k => CL.byId[k.class_id]).filter(Boolean), url = location.origin + location.pathname;
+  const txt = `يا أبطال ⏱️ لا تنسون جولة اليوم في «${c.title || 'تحدّي الدقيقة'}»، دقيقة وحدة بس!\n` + cls.map(x => x.join_code ? `${ks.length > 1 ? x.name + ': ' : ''}${joinLink(x.join_code)}` : url).join('\n');
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank'); };
+ACTS['ch-stu'] = t => { const s = chStudents().find(x => x.id === t.dataset.id); if (!s) return; const k = CST(s.id), url = location.origin + location.pathname;
+  const msg = k.today ? `أحسنت يا ${s.name.split(' ')[0]} 🌟 لعبت جولة اليوم، استمر!` : `هلا ${s.name.split(' ')[0]} 👋 باقي لك جولة اليوم في تحدّي الدقيقة، دقيقة وحدة بس!\nادخل من هنا:\n${url}#/c/${s.code}`;
+  modal(`<div class="st1"><div class="st1-h"><b>${esc(s.name)}</b><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div>
+    <div class="st1-stats"><div><b>${k.pts}</b><small>نقطة</small></div><div><b>${k.rounds}</b><small>جولات</small></div></div>
+    <div class="st1-today ${k.today ? 'on' : ''}">${k.today ? 'لعب اليوم ✓' : 'ما لعب اليوم'}</div>
+    <button class="btn cp-share" data-act="ch-wa" data-ph="${esc(s.phone || '')}" data-v="${esc(msg)}">${k.today ? 'شجّعه 🌟' : 'ذكّره يلعب 🔔'}</button></div>`); };
+ACTS['ch-wa'] = t => { let ph = (t.dataset.ph || '').replace(/[^0-9]/g, ''); if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2); closeModals(); window.open('https://wa.me/' + ph + '?text=' + encodeURIComponent(t.dataset.v), '_blank'); };
+ACTS['ch-more'] = () => { const ks = chComps(), c = ks[0]; if (!c) return; const g = c.group_id || c.id;
+  const O = [['cp-try', '🎮', 'جرّب كطالب', `data-g="${g}"`], ['ch-code', '🔗', 'رمز الصف', ''], ['ch-edit', '✏️', 'تعديل', `data-g="${g}"`],
+    c.paused_at ? ['cp-resume', '▶️', 'استئناف', `data-g="${g}"`] : ['cp-pause', '⏸', 'إيقاف مؤقت', `data-g="${g}"`], ['ch-det', '📊', 'التفاصيل', ''], ['cp-end', '🏁', 'إنهاء', `data-g="${g}"`]];
+  modal(`<div class="st1"><div class="st1-h"><b>${esc(c.title || 'التحدي')}</b><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div><div class="st1-opts">${O.map(o => `<button class="st1-o" data-act="ch-run" data-a="${o[0]}" ${o[3]}><span class="e">${o[1]}</span><b>${o[2]}</b></button>`).join('')}</div></div>`); };
+ACTS['ch-run'] = t => { closeModals(); const a = t.dataset.a; setTimeout(() => ACTS[a](t), 30); };
+ACTS['ch-code'] = () => { const k = chComps()[0], cc = k && CL.byId[k.class_id]; if (!cc) return; if (!cc.self_join) return go('#/t/class/' + cc.id); CK.cls = cc; ACTS['c-joinshow']({ closest: () => null, dataset: {} }); };
+ACTS['ch-det'] = () => { const k = chComps()[0]; if (k) go('#/t/results/' + k.class_id); };
+ACTS['ch-edit'] = t => { const g = t.dataset.g; location.hash = '#/t/comps'; setTimeout(() => ACTS['cp-edit']({ dataset: { g } }), 700); };
 ACTS['c-tab'] = t => { T.compEdit = null; go('#/t/' + t.dataset.t); };
 function classesList(){
   const top = CL.sel ? '' : `<button class="btn cl-add" data-act="aw-start">${ic('plus')} إضافة طلبة</button><div class="cl-newc"><button class="link" data-act="t-add-class">＋ صف جديد</button></div><input type="file" id="awimg" accept="image/*" class="hide" data-change="aw-img"><input type="file" id="awxl" accept=".xlsx,.xls,.csv" class="hide" data-change="aw-xl"><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
@@ -3432,7 +3474,7 @@ function renderResults(){
      <div class="tabs rs-seg">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
      <div class="rl-grp" id="r-list">${items || (RS.q ? `<div class="set-row center muted">لا يوجد طالب يطابق «${esc(RS.q)}». جرّب جزءاً من الاسم أو رقم الطالب.</div>` : '<div class="set-row center muted">لا يوجد طلبة.</div>')}</div>
      <div class="set-f center">${list.length} من ${n} · النقطة الخضراء: لعب اليوم</div>` + (any ? sum + pod : '');
-  view(RS.title || 'النتائج', body, 'home', `<button class="icon-btn" data-act="r-msg-all" aria-label="رسالة للصف">${ic('mail')}</button><button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, '#/t/comps');
+  view(RS.title || 'النتائج', body, 'home', `<button class="icon-btn" data-act="r-msg-all" aria-label="رسالة للصف">${ic('mail')}</button><button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, CL.chg ? '#/t/ch/' + CL.chg : '#/t/comps');
 }
 ACTS['r-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tResults.apply(null, RS.args || [RS.id, RS.comp]).catch(() => renderResults()); };
 ACTS['r-cls'] = t => go('#/t/results/' + t.dataset.id + (RS.comp ? '/' + RS.comp : ''));
