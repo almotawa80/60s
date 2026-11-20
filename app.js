@@ -330,7 +330,7 @@ function renderHome(){
     '</div></div>' +
     '<div class="comp">' + strip + head + main + rest +
     '<div class="s-row2"><button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button>' +
-    (h.wrong_count ? '<button class="btn ghost rv-btn" data-act="s-start" data-kind="review">أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div>' +
+    '</div></div>' +
     '</div>' + sNav('home');
   startCountdown();
   if ((ph === 'knockout' || ph === 'finished') && !S.demo) loadKo();
@@ -353,7 +353,7 @@ function renderHomeP(){
     '</div></div>' +
     pills + '<div class="sp-mid">' + mid + '</div>' +
     '<div class="sp-low"><button class="link" data-act="s-start" data-kind="practice">تدرّب بدون نقاط</button>' +
-    (h.wrong_count ? '<button class="link" data-act="s-start" data-kind="review">أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div>' + sNav('home');
+    '</div></div>' + sNav('home');
   startCountdown();
   if (!h.played_today && h.rank > 1 && h.gap > 0 && !S.demo) rpc('class_leaderboard', { p_token: S.token }).then(lb => {
     const rows = Array.isArray(lb) ? lb : (lb && lb.rows) || [], me = rows.find(r => r.is_me), above = me && rows.filter(r => r.rank < me.rank).sort((a, b) => b.rank - a.rank)[0];
