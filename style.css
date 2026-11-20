@@ -2021,3 +2021,24 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
 .t-nav a.on .nav-emo{transform:scale(1.12)}
 .t-nav a.t-plus .plus-ic{width:56px;height:56px;margin-top:-28px;box-shadow:0 6px 14px color-mix(in srgb,var(--primary) 35%,transparent)!important}
 .t-nav a.t-plus .plus-ic .ico{width:30px;height:30px}
+/* phase 3: student join + «مين يلعب؟» */
+.who-pick{gap:10px}
+.who-b{display:flex;align-items:center;gap:12px;width:100%;border:1px solid var(--line);background:var(--card);border-radius:16px;padding:12px 14px;font:inherit;color:var(--ink);text-align:start;cursor:pointer}
+.who-b .av{width:44px;height:44px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;font-weight:900;font-size:20px;flex:none}
+.who-b .grow{flex:1;display:flex;flex-direction:column}.who-b b{font-size:18px}.who-b small{color:var(--muted)}
+.who-b:active{transform:scale(.98)}
+.jn-h{padding-bottom:6px}.jn-h p{font-size:18px}
+.jn-q{font-size:22px;text-align:center}
+.jn-names{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:52vh;overflow:auto}
+.jn-n{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px 8px;font:inherit;font-weight:700;font-size:16px;color:var(--ink);cursor:pointer}
+.jn-n.off{opacity:.45;cursor:default}
+.jn-name{font-size:30px;font-weight:900;color:var(--primary);margin:4px 0 8px}
+.jn-in{font-size:20px!important;text-align:center}
+.cl-new{background:color-mix(in srgb,var(--primary) 7%,var(--card));border:1px solid color-mix(in srgb,var(--primary) 25%,transparent);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.cl-new>b small{display:block;font-weight:500;color:var(--muted);font-size:12.5px}
+.cl-new-r{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:12px;padding:8px 10px}
+.cl-new-r .grow{flex:1;display:flex;flex-direction:column}.cl-new-r small{color:#B25E00;font-size:12px}
+.cn-ok,.cn-no{width:40px;height:40px;border-radius:50%;border:0;font-size:20px;font-weight:900;color:#fff;cursor:pointer}
+.cn-ok{background:#1FA971}.cn-no{background:#E5484D}
+.cn-tag{font-size:11px;font-weight:700;background:var(--primary);color:#fff;border-radius:8px;padding:1px 6px;vertical-align:middle}
+.jr-code{font-size:20px;letter-spacing:2px;color:var(--ink);margin-inline-start:4px}

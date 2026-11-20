@@ -13,6 +13,8 @@ const LS = {
   del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
 const ERR = {
+  name_taken: 'هذا الاسم مسجّل من جهاز ثاني. إذا هو اسمك قول لمعلمك.',
+  bad_name: 'اكتب اسمك الأول واسم العائلة بالعربي',
   comp_paused: 'المسابقة متوقفة مؤقتاً من المعلم، ترجع قريباً.',
   bad_code: 'رمز المشاركة غير صحيح',
   duplicate_question: 'هذا السؤال موجود في البنك، لا يمكن تكراره',
@@ -195,14 +197,14 @@ function studentLogin(){
   $app.innerHTML = '<div class="sh sl pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
     '<div class="hero">' + LOGO +
     '<h1>تحدّي الدقيقة</h1><p>٤ أسئلة، ٦٠ ثانية، ومن يتصدّر؟</p></div>' +
-    '<div class="pad col">' +
-    '<div class="card col"><div><b style="font-size:19px">أنا طالب/ـة</b><div class="sub">اكتب الرمز الذي أعطاك إياه المعلم/ـة</div></div>' +
+    '<div class="pad col">' + profPicker() +
+    '<div class="card col"><div><b style="font-size:19px">' + (profs().length ? 'لاعب جديد؟' : 'عندك رمز؟') + '</b><div class="sub">اكتب الرمز اللي عطاك إياه معلمك</div></div>' +
     '<div class="code-wrap"><div class="code-boxes">' + '<div class="code-box"></div>'.repeat(6) + '</div>' +
     '<input class="code-input" id="code" inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="6" aria-label="رمز الدخول"></div>' +
     '<button class="paste-btn" data-act="s-paste">' + ic('download') + ' لصق الرمز</button>' +
     '<div id="lerr"></div>' +
-    '<button class="btn" data-act="s-login">ادخل/ي</button></div>' +
-    '<div class="center sl-t"><button class="link" data-act="go-teacher">أنت معلم/ـة؟ ادخل من هنا</button></div></div></div>';
+    '<button class="btn" data-act="s-login">ادخل</button></div>' +
+    '<div class="center sl-t"><button class="link" data-act="go-teacher">أنا معلم ‹</button></div></div></div>';
   const inp = document.getElementById('code');
   const paint = v => $app.querySelectorAll('.code-box').forEach((el, i) => { el.textContent = v[i] || ''; el.classList.toggle('on', i === Math.min(v.length, 5)); });
   inp.addEventListener('input', () => {
@@ -212,7 +214,7 @@ function studentLogin(){
   });
   paint('');
   S.fill = v => { inp.value = String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); paint(inp.value); if (inp.value.length === 6) ACTS['s-login'](); };
-  if (S.preCode) { const c = S.preCode; S.preCode = null; setTimeout(() => S.fill(c), 50); } else setTimeout(() => inp.focus(), 50);
+  if (S.preCode) { const c = S.preCode; S.preCode = null; setTimeout(() => S.fill(c), 50); } else if (!profs().length) setTimeout(() => inp.focus(), 50);
 }
 ACTS['s-paste'] = async () => {
   try { const t = await navigator.clipboard.readText(); if (!t) return toast('لا يوجد رمز منسوخ'); S.fill(t); }
@@ -229,14 +231,29 @@ ACTS['s-login'] = async () => {
   const code = inp.value, btn = $app.querySelector('[data-act="s-login"]'), lbl = btn && btn.textContent;
   S.logging = code; if (btn) { btn.setAttribute('aria-busy', 'true'); btn.textContent = 'جارٍ التحقق…'; }
   try {
+    let info = null; try { info = await rpc('class_join_info', { p_join: code }); } catch(_){}
+    if (!document.getElementById('code')) return;
+    if (info) { location.hash = '#/j/' + code; return; }
     const r = await rpc('student_login', { p_code: code });
     if (!document.getElementById('code')) return; // left the login screen meanwhile
-    S.token = r.token; LS.set('mc_token', r.token); LS.set('mc_code', code);
+    profAdd({ token: r.token, name: r.student && r.student.name, cls: r.class && r.class.name, code });
     loadHome();
   } catch(e){ const b2 = document.getElementById('lerr'); if (b2) b2.innerHTML = '<div class="err" role="alert">' + esc(errMsg(e)) + '</div>'; }
   finally { S.logging = null; if (btn && document.contains(btn)) { btn.removeAttribute('aria-busy'); btn.textContent = lbl; } }
 };
-ACTS['s-logout'] = () => { LS.del('mc_token'); try { sessionStorage.removeItem('mc_token'); } catch(e){} S.token = null; S.home = null; studentLogin(); };
+/* several students on one device: «مين يلعب؟» */
+function profs(){ try { return JSON.parse(LS.get('mc_profiles') || '[]').filter(p => p && p.token); } catch(e){ return []; } }
+function profSave(a){ LS.set('mc_profiles', JSON.stringify(a.slice(0, 8))); }
+function profAdd(p){ const a = profs().filter(x => x.token !== p.token && !(p.code && x.code === p.code)); a.unshift(p); profSave(a); S.token = p.token; LS.set('mc_token', p.token); if (p.code) LS.set('mc_code', p.code); }
+function devId(){ let d = LS.get('mc_dev'); if (!d) { d = Math.random().toString(36).slice(2) + Date.now().toString(36); LS.set('mc_dev', d); } return d; }
+function profPicker(){
+  const a = profs(); if (!a.length) return '';
+  return '<div class="card col who-pick"><b style="font-size:20px">مين يلعب؟</b>' + a.map((p, i) =>
+    '<button class="who-b" data-act="s-pick" data-i="' + i + '"><span class="av">' + esc(String(p.name || '؟').trim().charAt(0)) + '</span><span class="grow"><b>' + esc(p.name || 'طالب') + '</b><small>' + esc(p.cls || '') + '</small></span><span aria-hidden="true">‹</span></button>').join('') + '</div>';
+}
+ACTS['s-pick'] = t => { const p = profs()[+t.dataset.i]; if (!p) return; S.token = p.token; LS.set('mc_token', p.token); if (p.code) LS.set('mc_code', p.code); loadHome(); };
+ACTS['s-switch'] = () => { closeModals(); LS.del('mc_token'); S.token = null; S.home = null; studentLogin(); };
+ACTS['s-logout'] = () => { profSave(profs().filter(p => p.token !== S.token)); LS.del('mc_token'); try { sessionStorage.removeItem('mc_token'); } catch(e){} S.token = null; S.home = null; studentLogin(); };
 
 async function loadHome(){
   stopTimer(); S.gen = (S.gen || 0) + 1; clearTimeout(S.nextT); S.cur = null;
@@ -244,11 +261,13 @@ async function loadHome(){
   $app.innerHTML = '<div class="spin"></div>';
   try { S.home = await rpc('student_home', { p_token: S.token }); }
   catch(e){
-    if (String(e.message || '').includes('invalid_session')) { LS.del('mc_token'); S.token = null; return studentLogin(); }
+    if (String(e.message || '').includes('invalid_session')) { profSave(profs().filter(p => p.token !== S.token)); LS.del('mc_token'); S.token = null; return studentLogin(); }
     $app.innerHTML = '<div class="pad col"><div class="err">' + esc(errMsg(e)) + '</div><button class="btn" data-act="s-reload">إعادة المحاولة</button></div>';
     return;
   }
   setTheme(S.home.class.style); LS.set('mc_theme', S.home.class.style || 'mid');
+  { const a = profs(), i = a.findIndex(p => p.token === S.token), me = { token: S.token, name: S.home.student.name, cls: S.home.class.name, code: (i >= 0 && a[i].code) || LS.get('mc_code') };
+    if (i >= 0) a[i] = me; else a.unshift(me); profSave(a); }
   renderHome();
   rpc('student_prefs', { p_token: S.token }).then(p => {
     S.prefs = p || {};
@@ -360,6 +379,7 @@ ACTS['s-menu'] = () => {
     '<button class="sheet-i" data-act="s-profile">' + ic('user') + '<span>ملفي</span></button>' +
     '<div class="sheet-i" style="flex-direction:column;align-items:stretch;gap:8px"><span style="display:flex;gap:12px;align-items:center">' + ic('moon') + 'المظهر</span>' + modeSeg() + '</div>' +
     '<button class="sheet-i" data-act="s-sound-row">' + ic(FX.on() ? 'sound' : 'mute') + '<span>الصوت: ' + (FX.on() ? 'مفعّل' : 'مكتوم') + '</span></button>' +
+    '<button class="sheet-i" data-act="s-switch">' + ic('users') + '<span>غيّر اللاعب</span></button>' +
     '</div><div class="sheet-list"><button class="sheet-i danger" data-act="s-logout-ask">' + ic('logout') + '<span>تسجيل الخروج</span></button></div>' +
     '<button class="sheet-i sheet-cancel" data-act="close-modal">إغلاق</button></div>');
 };
@@ -1306,14 +1326,17 @@ function classSection(c){
     body = `<div class="cls-body">` +
       (fl ? `<div class="cl-flash"><button class="cl-flash-x" data-act="cl-flash-x" aria-label="إغلاق">${ic('x')}</button>${fl.added ? `<b>الخطوة التالية: أرسل لهم طريقة الدخول</b><small>تمت إضافة ${fl.n} طالباً إلى «${esc(c.name)}»، ولكل واحد رمز دخول خاص.</small><div class="row"><button class="btn sm wa-btn" data-act="c-send">${ic('send')} واتساب</button><button class="btn sm soft" data-act="t-print-codes">${ic('print')} طباعة البطاقات</button></div>${comp ? '' : `<button class="link" data-act="cp-new-for">أو أنشئ مسابقة لهذا الصف</button>`}` : `<b>✅ تم إنشاء الصف${fl.n ? ` ومعه ${fl.n} طالباً` : ''}</b><small>${fl.n ? 'الخطوة التالية: أرسل الرموز للطلبة، ثم أنشئ مسابقة.' : fl.link ? 'شارك رابط التسجيل أدناه مع الطلبة.' : 'أضف الطلبة، ثم أنشئ مسابقة.'}</small><div class="row">${fl.n ? `<button class="btn sm" data-act="c-send">${ic('send')} مشاركة رموز الدخول</button>` : ''}${comp ? '' : `<button class="btn sm soft" data-act="cp-new-for">${ic('trophy')} إنشاء مسابقة</button>`}</div>`}</div>` : '') +
       (CL.sel ? '' : `<div class="cl-acts">${st0.length ? `<button class="btn sm soft" data-act="c-send">${ic('send')} مشاركة رموز الدخول</button>` : '<span class="grow"></span>'}<button class="icon-btn" data-act="c-cmore" aria-label="المزيد">${ic('more')}</button></div>`) +
-      (c.self_join ? `<div class="join-row"><span class="sub">يسجّل الطلبة عبر الرابط</span><button class="btn sm soft" data-act="c-joinshow">عرض</button><button class="btn sm" data-act="copy" data-v="${esc(link)}">نسخ الرابط</button></div>` : '') +
+      (c.self_join ? `<div class="join-row"><span class="sub">رمز الصف <b class="jr-code" dir="ltr">${esc(fmtCode(c.join_code || ''))}</b></span><button class="btn sm soft" data-act="c-joinshow">عرض</button><button class="btn sm" data-act="copy" data-v="${esc(link)}">نسخ الرابط</button></div>` : '') +
       (never.length && !CL.sel ? `<div class="cl-alert">${ic('user')}<span class="grow"><b>${never.length}</b> لم يدخلوا أبداً</span><button class="btn sm soft" data-act="c-send" data-only="never">أرسل لهم الرمز</button></div>` : '') +
       (st0.length > 10 ? `<div class="cl-search">${ic('search')}<input class="cl-q" data-cid="${c.id}" placeholder="بحث بالاسم أو الرقم" value="${esc(q)}"></div>` : '') +
       (st0.length > 1 ? `<div class="lv-chips cl-sort">${[['no', 'الترتيب'], ['name', 'الاسم']].concat(comp ? [['pts', 'النقاط'], ['idle', 'لم يلعب اليوم']] : []).map(x => `<button class="${sort === x[0] ? 'on' : ''}" data-act="c-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>` : '') +
+      (!CL.sel ? (() => { const nw = st0.filter(x => x.approved === false); if (!nw.length) return '';
+        const shared = x => x.device && st0.some(y => y.id !== x.id && y.device === x.device);
+        return `<div class="cl-new"><b>طلاب جدد 🆕 <small>سجّلوا بالرمز. وافق أو احذف</small></b>${nw.map(x => `<div class="cl-new-r"><span class="grow"><b>${esc(x.name)}</b>${shared(x) ? '<small>📱 نفس جهاز طالب ثاني</small>' : ''}</span><button class="cn-ok" data-act="s-approve" data-id="${x.id}" aria-label="موافقة">✓</button><button class="cn-no" data-act="s-reject" data-id="${x.id}" aria-label="حذف">✕</button></div>`).join('')}</div>`; })() : '') +
       (st.length ? `<div class="sw-list">${st.map(x => { const k = CST(x.id), hide = q && !(x.name + ' ' + (x.student_no || '')).includes(q); return `<div class="sw-row${hide ? ' hide' : ''}" data-n="${esc(x.name + ' ' + (x.student_no || ''))}"><div class="sw-act">
           <div class="sw-r"><button class="del" data-act="t-del-student" data-id="${x.id}"><i>${ic('trash')}</i><span>حذف</span></button></div>
           <div class="sw-l"><button class="rg" data-act="t-regen" data-id="${x.id}"><i>${ic('refresh')}</i><span>رمز جديد</span></button><button class="wa" data-act="s-wa" data-id="${x.id}"><i>${ic('send')}</i><span>واتساب</span></button></div></div>
-        <div class="sw-main" data-act="s-card" data-id="${x.id}" role="button" tabindex="0"${selS ? ` aria-pressed="${CL.sel.ids.has(x.id) ? 'true' : 'false'}"` : ''}>${selS ? `<span class="selmark">${ic(CL.sel.ids.has(x.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${sort === 'pts' && comp ? '' : x._i}</span>`}<div class="grow"><b>${esc(fmtStu(x.name))}${k.today ? '<i class="cl-dot" title="لعب اليوم"></i>' : ''}</b><div class="sub">${esc(x.student_no) || '—'}${comp ? ` · ${k.pts} نقطة` : ''}${x.gender === 'f' ? ' · طالبة' : x.gender === 'm' ? ' · طالب' : ''}</div></div>
+        <div class="sw-main" data-act="s-card" data-id="${x.id}" role="button" tabindex="0"${selS ? ` aria-pressed="${CL.sel.ids.has(x.id) ? 'true' : 'false'}"` : ''}>${selS ? `<span class="selmark">${ic(CL.sel.ids.has(x.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${sort === 'pts' && comp ? '' : x._i}</span>`}<div class="grow"><b>${esc(fmtStu(x.name))}${x.approved === false ? ' <span class="cn-tag">جديد</span>' : ''}${k.today ? '<i class="cl-dot" title="لعب اليوم"></i>' : ''}</b><div class="sub">${esc(x.student_no) || '—'}${comp ? ` · ${k.pts} نقطة` : ''}${x.gender === 'f' ? ' · طالبة' : x.gender === 'm' ? ' · طالب' : ''}</div></div>
         ${selS ? '' : `<button class="cl-wa" data-act="s-wa" data-id="${x.id}" aria-label="إرسال الرمز واتساب">${ic('send')}</button>`}</div></div>`; }).join('')}</div>`
         : `<div class="cl-empty sm"><b>لا يوجد طلبة في ${esc(c.name)}</b><small>صوّر كشف الأسماء أو الصقه، أو اكتب الأسماء واحداً واحداً تحت.</small><button class="btn" data-act="aw-start" data-cid="${c.id}">${ic('plus')} إضافة طلبة</button></div>`) +
       (CL.sel ? '' : `<form class="cl-add1" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="طالب" autocomplete="off" enterkeyhint="done"><button class="btn sm" type="submit">إضافة</button></form>`) + '</div>';
@@ -1432,6 +1455,18 @@ ACTS['c-all'] = () => { if (CL.open.size) CL.open.clear(); else CL.classes.forEa
 ACTS['c-eye'] = t => {
   const sp = t.querySelector('span'), on = t.classList.toggle('shown');
   sp.textContent = on ? t.dataset.code : '••••••';
+};
+ACTS['s-approve'] = async t => {
+  const id = t.dataset.id, { error } = await sb.from('students').update({ approved: true }).eq('id', id); if (error) return toast(errMsg(error));
+  for (const k in CL.students) (CL.students[k] || []).forEach(x => { if (x.id === id) x.approved = true; });
+  renderClasses(); toast('تمت الموافقة ✓');
+};
+ACTS['s-reject'] = async t => {
+  const id = t.dataset.id; let nm = ''; for (const k in CL.students) (CL.students[k] || []).forEach(x => { if (x.id === id) nm = x.name; });
+  if (!await ask('حذف «' + nm + '»؟ تنحذف نقاطه بعد.', { ok: 'حذف' })) return;
+  const { error } = await sb.from('students').delete().eq('id', id); if (error) return toast(errMsg(error));
+  for (const k in CL.students) CL.students[k] = (CL.students[k] || []).filter(x => x.id !== id);
+  renderClasses(); toast('تم الحذف');
 };
 ACTS['s-card'] = async t => {
   if (CL.sel && CL.sel.type === 'students') { const id = t.dataset.id; CL.sel.ids.has(id) ? CL.sel.ids.delete(id) : CL.sel.ids.add(id); return renderClasses(); }
@@ -3874,33 +3909,51 @@ ACTS['t-save-name'] = async f => {
 /* ======================================================
    ROUTER
    ====================================================== */
+const JN = {};
 async function studentJoin(code){
   document.body.classList.remove('wide');
   $app.innerHTML = '<div class="spin"></div>';
   try {
     const info = await rpc('class_join_info', { p_join: code });
-    setTheme(info.style || 'mid');
-    $app.innerHTML = `<div class="hero">${LOGO}<h1>تحدّي الدقيقة</h1><p>التسجيل في صف <b>${esc(info.class)}</b>${info.teacher ? ' · ' + esc(info.teacher) : ''}</p></div>
-      <div class="pad"><form class="card col" data-form="j-submit" data-code="${esc(code)}">
-      <div class="field"><label for="j-n">الاسم الثلاثي</label><input class="input" id="j-n" name="name" required minlength="3" maxlength="60"></div>
-      <div class="field"><label for="j-no">رقم الطالب</label><input class="input" id="j-no" name="no" required inputmode="numeric" dir="ltr" aria-describedby="j-no-h"><small class="sub" id="j-no-h">رقمك في كشف الصف أو الرقم الذي يعطيك إياه المعلم/ـة. إن لم تعرفه فاسأل معلمك.</small></div>
-      <div id="jerr"></div><button class="btn" type="submit">تسجيل</button></form></div>`;
+    setTheme(info.style || 'mid'); LS.set('mc_theme', info.style || 'mid');
+    Object.assign(JN, { code, info, first: '', fam: '' });
+    jnRender((info.names || []).some(n => !n.taken) ? 'list' : 'form');
   } catch(e){
-    $app.innerHTML = `<div class="hero">${LOGO}<h1>تحدّي الدقيقة</h1></div><div class="pad"><div class="err">${esc(errMsg(e))}</div><button class="btn" data-act="go-student" style="margin-top:14px">دخول بالرمز</button></div>`;
+    $app.innerHTML = `<div class="hero">${LOGO}<h1>تحدّي الدقيقة</h1></div><div class="pad"><div class="err">${esc(errMsg(e))}</div><button class="btn" data-act="go-student" style="margin-top:14px">رجوع</button></div>`;
   }
 }
-ACTS['j-submit'] = async f => {
-  const box = document.getElementById('jerr'); box.innerHTML = '';
-  const btn = f.querySelector('button[type=submit]'); if (btn.disabled) return; btn.disabled = true; btn.textContent = 'جارٍ التسجيل…';
+function jnRender(step){
+  JN.step = step;
+  const i = JN.info, head = `<div class="hero jn-h">${LOGO}<p>صف <b>${esc(i.class)}</b>${i.teacher ? ' · ' + esc(i.teacher) : ''}</p></div>`;
+  let b = '';
+  if (step === 'list') b = `<div class="card col"><b class="jn-q">اختر اسمك</b><div class="jn-names">${i.names.map(n => `<button class="jn-n${n.taken ? ' off' : ''}" ${n.taken ? 'disabled' : `data-act="jn-pick" data-id="${n.id}"`}>${esc(n.name)}${n.taken ? ' 🔒' : ''}</button>`).join('')}</div>
+    <button class="link" data-act="jn-form">اسمي مو موجود ‹</button></div>`;
+  else if (step === 'form') b = `<form class="card col" data-form="jn-next"><b class="jn-q">وش اسمك؟</b>
+    <div class="field"><label for="jn-f">اسمك الأول</label><input class="input jn-in" id="jn-f" name="first" required maxlength="25" autocomplete="off" value="${esc(JN.first)}"></div>
+    <div class="field"><label for="jn-l">اسم العائلة</label><input class="input jn-in" id="jn-l" name="fam" required maxlength="25" autocomplete="off" value="${esc(JN.fam)}"></div>
+    <div id="jerr"></div><button class="btn" type="submit">التالي</button></form>`;
+  else if (step === 'confirm') b = `<div class="card col center"><p class="sub">اسمك:</p><div class="jn-name">${esc(JN.name)}</div><b class="jn-q">صح؟</b>
+    <div id="jerr"></div><button class="btn" data-act="jn-go">نعم صح ✓</button><button class="btn soft" data-act="${JN.pick ? 'jn-list' : 'jn-form'}">لا، أعدّل</button></div>`;
+  $app.innerHTML = head + '<div class="pad col">' + b + '</div>';
+  $app.querySelectorAll('.jn-in').forEach(el => el.addEventListener('input', () => { const v = el.value.replace(/[^ء-ي ]/g, '').replace(/\s{2,}/g, ' '); if (v !== el.value) el.value = v; }));
+  const f = document.getElementById('jn-f'); if (f && !f.value) setTimeout(() => f.focus(), 60);
+}
+ACTS['jn-form'] = () => { JN.pick = null; jnRender('form'); };
+ACTS['jn-list'] = () => { JN.pick = null; jnRender('list'); };
+ACTS['jn-pick'] = t => { const n = JN.info.names.find(x => x.id === t.dataset.id); if (!n) return; JN.pick = n.id; JN.name = n.name; jnRender('confirm'); };
+ACTS['jn-next'] = f => {
+  JN.first = f.first.value.trim(); JN.fam = f.fam.value.trim();
+  const box = document.getElementById('jerr');
+  if (JN.first.length < 2 || JN.fam.length < 2) { box.innerHTML = '<div class="err" role="alert">اكتب اسمك الأول واسم العائلة</div>'; return; }
+  JN.pick = null; JN.name = JN.first + ' ' + JN.fam; jnRender('confirm');
+};
+ACTS['jn-go'] = async t => {
+  if (t.disabled) return; t.disabled = true; t.textContent = 'لحظة…';
   try {
-    const r = await rpc('student_self_register', { p_join: f.dataset.code, p_name: f.name.value, p_no: f.no.value });
-    const l = await rpc('student_login', { p_code: r.code });
-    S.token = l.token; LS.set('mc_token', l.token); LS.set('mc_code', r.code);
-    let canPlay = false; try { const hm = await rpc('student_home', { p_token: l.token }); canPlay = hm && hm.phase === 'points' && !hm.played_today; } catch(_){}
-    $app.innerHTML = `<div class="hero">${LOGO}<h1>تم التسجيل!</h1><p>هذا رمزك للدخول، احفظه أو صوّره</p></div>
-      <div class="pad col"><div class="card center"><div class="big-code" dir="ltr">${esc(r.code)}</div><button class="btn sm soft" data-act="copy" data-v="${esc(r.code)}">نسخ رمز الدخول</button></div>
-      <button class="btn" data-act="j-go">${canPlay ? 'ابدأ التحدي' : 'اذهب إلى التحدي'}</button></div>`;
-  } catch(e){ box.innerHTML = '<div class="err" role="alert">' + esc(errMsg(e)) + '</div>'; btn.disabled = false; btn.textContent = 'تسجيل'; }
+    const r = await rpc('student_join', { p_join: JN.code, p_name: JN.pick ? null : JN.name, p_student: JN.pick || null, p_device: devId() });
+    profAdd({ token: r.token, name: r.student.name, cls: r.class.name, code: r.code });
+    history.replaceState(null, '', '#/s'); loadHome();
+  } catch(e){ const box = document.getElementById('jerr'); if (box) box.innerHTML = '<div class="err" role="alert">' + esc(errMsg(e)) + '</div>'; t.disabled = false; t.textContent = 'نعم صح ✓'; }
 };
 ACTS['j-go'] = () => { location.hash = '#/s'; };
 
