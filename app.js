@@ -290,6 +290,7 @@ ACTS['s-msgs'] = async () => {
 ACTS['s-reload'] = () => S.demo ? renderHome() : loadHome();
 
 function renderHome(){
+  S.tab = 'home';
   const h = S.home, c = h.competition, ph = h.phase;
   const statsHtml = lbl => '<div class="stats"><div class="stat"><b>' + h.total_points + '</b><span>نقاطي</span></div><div class="stat"><b>' + (h.rank || '-') + '</b><span>' + lbl + '</span></div></div>';
   /* the main action (start / continue / face-off) comes first, details after */
@@ -327,9 +328,7 @@ function renderHome(){
     '<div class="comp">' + strip + head + main + rest +
     '<div class="s-row2"><button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button>' +
     (h.wrong_count ? '<button class="btn ghost rv-btn" data-act="s-start" data-kind="review">أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div>' +
-    '<div class="quick q2">' +
-    '<button data-act="s-leaders">' + ic('trophy') + '<span>الترتيب</span></button>' +
-    '<button data-act="s-badges">' + ic('star') + '<span>شاراتي</span></button></div></div>';
+    '</div>' + sNav('home');
   startCountdown();
   if ((ph === 'knockout' || ph === 'finished') && !S.demo) loadKo();
 }
@@ -349,8 +348,8 @@ function renderHomeP(){
     '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
     '<button class="avatar av-btn" data-act="s-menu" aria-label="القائمة">' + esc((h.student.name || '?').trim().charAt(0)) + '</button></div></div>' +
     pills + '<div class="sp-mid">' + mid + '</div>' +
-    '<div class="sp-low"><button class="link" data-act="s-leaders">🏆 الترتيب</button><button class="link" data-act="s-start" data-kind="practice">تدرّب ‹</button>' +
-    (h.wrong_count ? '<button class="link" data-act="s-start" data-kind="review">أخطائي (' + h.wrong_count + ')</button>' : '') + '<button class="link" data-act="s-badges">⭐ شاراتي</button></div></div>';
+    '<div class="sp-low"><button class="link" data-act="s-start" data-kind="practice">تدرّب بدون نقاط</button>' +
+    (h.wrong_count ? '<button class="link" data-act="s-start" data-kind="review">أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div>' + sNav('home');
   startCountdown();
   if (!h.played_today && h.rank > 1 && h.gap > 0 && !S.demo) rpc('class_leaderboard', { p_token: S.token }).then(lb => {
     const rows = Array.isArray(lb) ? lb : (lb && lb.rows) || [], me = rows.find(r => r.is_me), above = me && rows.filter(r => r.rank < me.rank).sort((a, b) => b.rank - a.rank)[0];
@@ -387,6 +386,29 @@ function honorHtml(b){
     (pod.length ? '<div class="honor-l">' + pod.map((x, i) => '<div><span>' + ['🥇', '🥈', '🥉'][i] + '</span><b>' + esc(x.name) + '</b><small>' + x.pts + ' نقطة</small></div>').join('') + '</div><small class="honor-f">الأعلى نقاطاً في مرحلة جمع النقاط</small>' : '') + '</div>';
 }
 const BADGES = { first: ['🎯', 'أول جولة', 'أنهيت أول جولة رسمية'], perfect: ['💯', '4 من 4', 'أجبت الأسئلة الأربعة كلها صح'], streak3: ['🔥', '3 أيام متتالية', 'لعبت 3 أيام وراء بعض'], fast: ['⚡', 'البرق', 'إجابة صحيحة في أقل من 3 ثوانٍ'], practice10: ['🏋️', 'المتدرّب', '10 جولات تدريب'] };
+/* student bottom bar (v106): home · ranking · badges · me. Not shown during a round (the round replaces the page). */
+function sNav(cur){ return '<nav class="s-nav">' + [['home', '🏠', 'الرئيسية'], ['lb', '🏆', 'الترتيب'], ['bd', '⭐', 'شاراتي'], ['me', '👤', 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (cur === x[0] ? ' aria-current="page"' : '') + '><span class="i">' + x[1] + '</span>' + x[2] + '</button>').join('') + '</nav>'; }
+function sPage(t, body){ const th = document.body.dataset.theme || 'mid'; S.tab = t; closeModals(); stopTimer(); clearInterval(S.cdT);
+  $app.innerHTML = '<div class="sh s-tabpg pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' + body + '</div>' + sNav(t); scrollTo(0, 0); }
+function badgesHtml(){ const b = (S.home && S.home.badges) || [], n = b.filter(x => x.on).length;
+  return '<h3>شاراتي <span class="sub">(' + n + ' من ' + b.length + ')</span></h3><div class="bdg-grid">' + b.map(x => { const d = BADGES[x.k] || ['⭐', x.k, '']; return '<div class="bdg ' + (x.on ? 'on' : '') + '"><span class="bdg-i">' + d[0] + '</span><b>' + d[1] + '</b><small>' + d[2] + (x.k === 'practice10' && !x.on ? ' (' + (x.n || 0) + '/10)' : '') + '</small></div>'; }).join('') + '</div>' +
+    (S.home && S.home.streak ? '<p class="center sub" style="margin-top:12px">🔥 سلسلتك الحالية: ' + S.home.streak + ' يوم متتالي</p>' : ''); }
+ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
+  if (k === 'home') return renderHome();
+  if (k === 'bd') return sPage('bd', '<div class="s-pgc">' + badgesHtml() + '</div>');
+  if (k === 'me') { const h = S.home, n = (h.student.name || '?').trim();
+    return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><div class="s-me-av">' + esc(n.charAt(0)) + '</div><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small></div>' +
+      (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
+      '<div class="s-me-o">' + [['s-profile', '✏️', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
+      '<div class="s-me-mode"><b>🌙 المظهر</b>' + modeSeg() + '</div></div>'); }
+  if (k === 'lb') { if (S.demo) return toast('الترتيب يظهر في المسابقة الفعلية');
+    sPage('lb', '<div class="s-pgc"><div class="spin"></div></div>');
+    try { const res = await rpc('class_leaderboard', { p_token: S.token }); if (S.tab !== 'lb') return;
+      const hidden = res && res.hidden, hp = !!(res && res.hide_pts), rows = res && res.rows ? res.rows : res;
+      const c = document.querySelector('.s-tabpg .s-pgc'); if (c) c.innerHTML = leadersHtml(rows, hidden, hp);
+    } catch(e){ toast(errMsg(e)); } }
+};
+ACTS['s-sound-tab'] = t => { const on = FX.toggle(); t.querySelector('i').textContent = on ? '🔊' : '🔇'; toast(on ? 'الصوت مفعّل' : 'الصوت مكتوم'); };
 ACTS['s-badges'] = () => {
   const b = (S.home && S.home.badges) || [], n = b.filter(x => x.on).length;
   modal('<h3>شاراتي <span class="sub">(' + n + ' من ' + b.length + ')</span></h3><div class="bdg-grid">' + b.map(x => { const d = BADGES[x.k] || ['⭐', x.k, '']; return '<div class="bdg ' + (x.on ? 'on' : '') + '"><span class="bdg-i">' + d[0] + '</span><b>' + d[1] + '</b><small>' + d[2] + (x.k === 'practice10' && !x.on ? ' (' + (x.n || 0) + '/10)' : '') + '</small></div>'; }).join('') + '</div>' +

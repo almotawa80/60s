@@ -2230,3 +2230,22 @@ html body[data-theme] .pv .opts.kc .opt .letter.shp{width:26px;height:26px;font-
 .sl1-h{color:var(--muted);font-weight:700;font-size:14px;opacity:.85}
 .sl1-t{font-size:16px;font-weight:800;opacity:.85;padding:14px}.sl1-t b{text-decoration:underline}
 .sl .sl1-q{color:#fff}.sl .sl1-h{color:rgba(255,255,255,.75);opacity:1}
+/* v106 student bottom bar + tab pages */
+.s-nav{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto;height:68px;background:#fff;border-radius:22px;display:flex;justify-content:space-around;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.25);z-index:50}
+.s-nav button{background:none;border:0;font:inherit;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:12.5px;font-weight:800;color:#7A6A66;min-width:66px;min-height:56px;justify-content:center;cursor:pointer}
+.s-nav .i{font-size:23px;filter:grayscale(1);opacity:.55}
+.s-nav button.on{color:#C8102E}.s-nav button.on .i{filter:none;opacity:1}
+body.dark .s-nav{background:#231C1D}
+.sh:has(~ .s-nav){padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+.s-tabpg{min-height:100vh}
+.s-pgc{position:relative;z-index:1;padding:22px 16px}
+.s-pgc>h3{font-size:24px;font-weight:900;margin-bottom:14px}
+.s-tabpg .lbx-x{display:none}
+.s-me{background:rgba(255,255,255,.1);border-radius:22px;padding:20px;text-align:center}
+.s-me-av{width:72px;height:72px;border-radius:50%;background:#F6B22E;color:#2A1A00;display:grid;place-items:center;font-size:30px;font-weight:900;margin:0 auto 8px}
+.s-me b{display:block;font-size:22px;font-weight:900}.s-me small{opacity:.75;font-weight:700}
+.btn.s-me-t{width:100%;margin-top:14px;background:#C8102E!important;background-image:none!important;color:#fff;box-shadow:0 5px 0 #8E0A1E!important}
+.s-me-o{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.s-me-o button{background:rgba(255,255,255,.1);border:0;border-radius:18px;min-height:92px;color:inherit;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
+.s-me-o button i{display:block;font-style:normal;font-size:28px}
+.s-me-mode{margin-top:14px;background:rgba(255,255,255,.1);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px}
