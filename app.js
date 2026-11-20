@@ -946,7 +946,7 @@ async function teacherRoute(){
       T.settings = (r.data && r.data.settings) || {};
     }
     if (page === 'classes' || page === 'comps') { CL.tab = page; await tClasses(); }
-    else if (page === 'new') { CL.tab = 'comps'; T.compPreset = T.compPreset || { cu: '', lessons: [] }; await tClasses(); }
+    else if (page === 'new') await tNew();
     else if (page === 'join') tJoin();
     else if (page === 'class') await tClass(parts[1]);
     else if (page === 'questions') await tQuestions();
@@ -981,7 +981,7 @@ async function tHome(){
   if (cp.error) throw cp.error;
   const classes = cl.data, compBy = {};
   cp.data.forEach(c => { if (!compBy[c.class_id]) compBy[c.class_id] = c; });
-  if (!classes.length) { if (!W.step) W.step = 1; return renderWizard(); }
+  if (!classes.length) cp.data = [];
   // one card per running challenge: big «played today X of Y»; nothing else (Khalid: no clutter)
   const groups = {}, order = [];
   cp.data.forEach(c => { if (!classes.some(k => k.id === c.class_id)) return; const g = c.group_id || c.id; if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(c); });
@@ -999,6 +999,111 @@ async function tHome(){
   const html = cards.length ? `<div class="hcs">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
   view('الرئيسية', html + `<a class="h-more" href="#/t/comps">التحديات السابقة وإدارتها ‹</a>`, 'home');
 }
+/* ---- «تحدي جديد»: who → subject → how long → ready (one question per screen) ---- */
+const NW = { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, poll: null };
+const SUBJ_EMOJI = { 'الرياضيات': '📐', 'التربية الإسلامية': '🕌', 'اللغة العربية': '📖', 'العلوم': '🔬', 'اللغة الإنجليزية': '🔤', 'الاجتماعيات': '🗺️', 'الحاسوب': '💻' };
+function nwGrade(c){ const n = (c && c.name) || ''; for (let i = GRADES.length - 1; i >= 0; i--) if (n.indexOf(GRADES[i]) >= 0) return i + 1; const m = n.match(/\d+/); return m ? Number(m[0]) : null; }
+async function tNew(fresh){
+  if (fresh !== false && !NW.keep) Object.assign(NW, { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null }); NW.keep = false;
+  const [cl, cp] = await Promise.all([sb.from('classes').select('*').eq('archived', false).order('created_at'), sb.from('competitions').select('id,class_id').eq('status', 'active')]);
+  if (cl.error) throw cl.error;
+  NW.classes = cl.data; NW.busy = new Set((cp.data || []).map(c => c.class_id));
+  await loadCurricula().catch(() => {});
+  if (!NW.glob) { const r = await sb.from('questions').select('curriculum_id').is('owner_id', null).eq('status', 'approved').not('curriculum_id', 'is', null).limit(10000); NW.glob = {}; (r.data || []).forEach(q => { NW.glob[q.curriculum_id] = (NW.glob[q.curriculum_id] || 0) + 1; }); }
+  const free = NW.classes.filter(c => !NW.busy.has(c.id));
+  if (NW.step === 1 && NW.classes.length === 1 && free.length === 1) { NW.cls = [free[0].id]; NW.step = 2; NW.skip1 = true; } else NW.skip1 = false;
+  nwRender();
+}
+function nwRender(){
+  clearInterval(NW.poll);
+  const st = NW.step, dots = st < 4 ? `<div class="nw-dots">${[1, 2, 3].map(i => `<i class="${i <= st ? 'on' : ''}"></i>`).join('')}</div>` : '';
+  let b = '';
+  if (st === 1) {
+    if (!NW.classes.length) b = `<h2 class="nw-q">وش اسم صفك؟</h2><form class="nw-col" data-form="nw-cls"><input class="nw-in" name="n" maxlength="40" placeholder="مثال: رابع أ" autocomplete="off" required>
+      <div class="nw-stg">${STAGES.map(x => `<label><input type="radio" name="st" value="${x[0]}" ${x[0] === 'primary' ? 'checked' : ''}><span>${x[1]}</span></label>`).join('')}</div><button class="btn nw-go" type="submit">التالي</button></form>`;
+    else b = `<h2 class="nw-q">لمين التحدي؟</h2><div class="nw-tiles">${NW.classes.map(c => { const busy = NW.busy.has(c.id), on = NW.cls.includes(c.id); return `<button class="nw-tile${on ? ' on' : ''}${busy ? ' busy' : ''}" data-act="nw-cls-pick" data-id="${c.id}"><span class="nw-e">👥</span><b>${esc(c.name)}</b><small>${busy ? 'عنده تحدي الحين' : STAGE_AR[c.stage] || ''}</small></button>`; }).join('')}</div>
+      ${NW.multi ? `<button class="btn nw-go" data-act="nw-next" ${NW.cls.length ? '' : 'disabled'}>التالي (${NW.cls.length})</button>` : NW.classes.length > 1 ? `<button class="link nw-link" data-act="nw-multi">أكثر من صف؟</button>` : ''}`;
+  }
+  if (st === 2) {
+    const c = NW.classes.find(x => x.id === NW.cls[0]) || {}, g = nwGrade(c);
+    let cus = CU.list.filter(x => !x.owner_id && x.stage === (c.stage || 'primary') && NW.glob[x.id]);
+    if (g) { const exact = cus.filter(x => x.grade === g); if (exact.length) cus = exact; }
+    const bySub = {}; cus.forEach(x => { (bySub[x.subject] = bySub[x.subject] || []).push(x); });
+    const tiles = Object.keys(bySub).map(sb2 => { const xs = bySub[sb2]; return xs.length === 1 || g
+      ? `<button class="nw-tile" data-act="nw-subj" data-cu="${xs[0].id}" data-s="${esc(sb2)}"><span class="nw-e">${SUBJ_EMOJI[sb2] || '📚'}</span><b>${esc(sb2.replace(/^(اللغة|التربية) /, ''))}</b><small>${NW.glob[xs[0].id]} سؤال</small></button>`
+      : xs.map(x => `<button class="nw-tile" data-act="nw-subj" data-cu="${x.id}" data-s="${esc(sb2)}"><span class="nw-e">${SUBJ_EMOJI[sb2] || '📚'}</span><b>${esc(sb2.replace(/^(اللغة|التربية) /, ''))}</b><small>${esc(gradeAr(x))}</small></button>`).join(''); }).join('');
+    b = `<h2 class="nw-q">عن أي مادة؟</h2><div class="nw-tiles">${tiles}<button class="nw-tile" data-act="nw-subj" data-cu="" data-s="منوعة"><span class="nw-e">🌍</span><b>منوعة</b><small>ثقافة وسرعة بديهة</small></button></div>`;
+  }
+  if (st === 3) {
+    const end = addDays(todayKW(), NW.days - 1);
+    b = `<h2 class="nw-q">كم يوم؟</h2><div class="nw-days">${[[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']].map(d => `<button class="${NW.days === d[0] ? 'on' : ''}" data-act="nw-days" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>
+      <p class="nw-note">يبدأ اليوم وينتهي ${esc(fmtDay(end))}</p><div class="nw-sp"></div><button class="btn nw-go" data-act="nw-start">ابدأ التحدي 🚀</button>`;
+  }
+  if (st === 4) {
+    const m = NW.made || [];
+    b = `<h2 class="nw-q">جاهز! 🎉</h2>${m.map(x => `<div class="nw-ready"><small>${m.length > 1 ? esc(x.c.name) + ' · ' : ''}الطلاب يدخلون بهذا الرمز</small><div class="nw-code" dir="ltr">${esc(fmtCode(x.code))}</div><div class="nw-qr" data-link="${esc(joinLink(x.code))}"></div></div>`).join('')}
+      <button class="btn nw-go nw-wa" data-act="nw-wa">أرسل للطلاب في واتساب</button><button class="link nw-link" data-act="nw-show">اعرض على الشاشة ‹</button>
+      <div class="nw-live" id="nw-live"></div><a class="link nw-link" href="#/t/home">تم ‹</a>`;
+  }
+  const canBack = st > 1 && st < 4 && !(st === 2 && NW.skip1);
+  view('تحدي جديد', `<div class="nw">${dots}${b}</div>`, 'new', canBack ? `<button class="icon-btn nw-bk" data-act="nw-back" aria-label="رجوع">${ic('back')}</button>` : '');
+  if (st === 4) { nwQr(); nwLive(); NW.poll = setInterval(() => { if (location.hash.indexOf('#/t/new') !== 0 || NW.step !== 4) return clearInterval(NW.poll); nwLive(); }, 5000); }
+}
+const fmtCode = c => String(c || '').replace(/^(...)(...)$/, '$1 $2');
+async function nwQr(){ try { await loadJs(QRJS, 'qrcode'); document.querySelectorAll('.nw-qr').forEach(el => { el.innerHTML = qrSvg(el.dataset.link); }); } catch(e){} }
+async function nwLive(){
+  const el = document.getElementById('nw-live'); if (!el || !NW.made) return;
+  const r = await sb.from('students').select('name,created_at,class_id').in('class_id', NW.made.map(x => x.c.id)).gte('created_at', NW.t0).order('created_at', { ascending: false }).limit(60);
+  const xs = r.data || [];
+  el.innerHTML = `<div class="nw-lh"><b>دخلوا الحين</b><em>${xs.length}</em></div>${xs.length ? xs.map(x => `<div class="nw-lr">${esc(x.name)}<span>جديد</span></div>`).join('') : '<div class="nw-lr nw-wait">ننتظر أول طالب… تتحدث القائمة لحالها</div>'}`;
+}
+ACTS['nw-back'] = () => { if (NW.step > 1 && !(NW.step === 2 && NW.skip1)) { NW.step--; nwRender(); } else go('#/t/home'); };
+ACTS['nw-cls-pick'] = t => { const id = t.dataset.id;
+  if (NW.busy.has(id) && !NW.multi) toast('هذا الصف عنده تحدي، الجديد بيحل مكانه');
+  if (NW.multi) { NW.cls = NW.cls.includes(id) ? NW.cls.filter(x => x !== id) : NW.cls.concat(id); return nwRender(); }
+  NW.cls = [id]; NW.step = 2; nwRender(); };
+ACTS['nw-multi'] = () => { NW.multi = true; NW.cls = []; nwRender(); };
+ACTS['nw-next'] = () => { if (NW.cls.length) { NW.step = 2; nwRender(); } };
+ACTS['nw-subj'] = t => { NW.cu = t.dataset.cu || null; NW.subj = t.dataset.s; NW.step = 3; nwRender(); };
+ACTS['nw-days'] = t => { NW.days = Number(t.dataset.d); nwRender(); };
+ACTS['nw-cls'] = async f => {
+  const name = f.n.value.replace(/\s+/g, ' ').trim(), stg = (f.querySelector('[name=st]:checked') || {}).value || 'primary';
+  if (name.length < 2) return toast('اكتب اسم الصف');
+  const style = stg === 'primary' ? 'kids' : stg === 'university' ? 'uni' : 'mid';
+  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: stg, style }).select().single();
+  if (error) return toast(errMsg(error));
+  NW.classes = [data]; NW.cls = [data.id]; NW.step = 2; NW.skip1 = false; nwRender();
+};
+ACTS['nw-start'] = async t => {
+  if (NW.saving) return; NW.saving = true; t.setAttribute('aria-busy', 'true'); t.textContent = 'لحظة…';
+  try {
+    const today = todayKW(), sp = cfSpan(today, NW.days, 8, 24), gid = crypto.randomUUID();
+    const cs = NW.classes.filter(c => NW.cls.includes(c.id));
+    const title = cs.length === 1 ? `تحدي ${cs[0].name} · ${NW.subj}` : `تحدي ${NW.subj}`;
+    // questions: the chosen subject's ready questions go into «أسئلتي» so the challenge can use them
+    if (NW.cu) {
+      const [all, mine] = await Promise.all([sb.from('questions').select('id').is('owner_id', null).eq('status', 'approved').eq('curriculum_id', NW.cu).limit(5000), sb.from('question_picks').select('question_id').limit(20000)]);
+      const have = new Set((mine.data || []).map(x => x.question_id)), todo = (all.data || []).map(x => x.id).filter(id => !have.has(id));
+      for (let i = 0; i < todo.length; i += 500) { const r = await sb.from('question_picks').insert(todo.slice(i, i + 500).map(id => ({ question_id: id }))); if (r.error) throw r.error; }
+      if (QS.pick) todo.forEach(id => QS.pick.add(id));
+    }
+    const busy = cs.filter(c => NW.busy.has(c.id)).map(c => c.id);
+    if (busy.length) { const r = await sb.from('competitions').update({ status: 'finished' }).in('class_id', busy).eq('status', 'active'); if (r.error) throw r.error; }
+    const qtypes = NW.cu ? ['curriculum', 'general', 'quick'] : ['general', 'quick'];
+    const r = await sb.from('competitions').insert(cs.map(c => ({ class_id: c.id, group_id: gid, title, start_date: today, points_end_date: sp.points_end_date, end_date: sp.end_date,
+      group_size: 6, qualifiers: 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: (T.settings || {}).difficulty || 'normal', qtypes, lessons: null })));
+    if (r.error) throw r.error;
+    NW.made = [];
+    for (const c of cs) { let code = c.join_code; if (!c.self_join || !code) code = await rpc('set_self_join', { p_class: c.id, p_on: true }); NW.made.push({ c, code }); }
+    NW.t0 = new Date(Date.now() - 60000).toISOString(); NW.step = 4; Object.keys(PCACHE).forEach(h => { if (h === '#/t/home' || h === '#/t/comps') delete PCACHE[h]; });
+    nwRender();
+  } catch(e){ toast(errMsg(e)); t.removeAttribute('aria-busy'); t.textContent = 'ابدأ التحدي 🚀'; }
+  NW.saving = false;
+};
+ACTS['nw-wa'] = () => { const m = NW.made || []; const txt = `يلا نلعب تحدّي الدقيقة ⏱️\n${m.map(x => `${m.length > 1 ? x.c.name + ': ' : ''}الرمز ${fmtCode(x.code)}\n${joinLink(x.code)}`).join('\n')}`; open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank'); };
+ACTS['nw-show'] = async () => { const x = (NW.made || [])[0]; if (!x) return; let qr = ''; try { await loadJs(QRJS, 'qrcode'); qr = qrSvg(joinLink(x.code)); } catch(e){}
+  const w = document.createElement('div'); w.className = 'joinshow'; w.innerHTML = `<button class="joinshow-x" aria-label="إغلاق">${ic('x')}</button><b>${esc(x.c.name)}</b><span>ادخل التطبيق واكتب الرمز</span><div class="nw-code nw-code-xl" dir="ltr">${esc(fmtCode(x.code))}</div>${qr ? `<div class="joinshow-qr">${qr}</div>` : ''}`;
+  w.querySelector('.joinshow-x').onclick = () => w.remove(); document.body.appendChild(w); };
 function tJoin(){
   view('انضم', `<form class="tj" data-form="t-join"><div class="tj-em">🎯</div><h2>عندك رمز؟</h2><input class="tj-in" name="code" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123" dir="ltr" aria-label="رمز الصف"><button class="btn tj-go" type="submit">ادخل</button><p class="sub">ادخل كطالب برمز الصف، مثلاً عشان تجرّب التحدي بعين طلابك.</p></form>`, 'join');
 }
