@@ -990,12 +990,13 @@ function renderClasses(){
   const more = cl ? `<button class="icon-btn" data-act="c-more" aria-label="المزيد">${ic('more')}</button>` : '';
   view(cl ? 'الصفوف' : 'المسابقات', (cl ? classesList() : compsPanel()) + selBar(), cl ? 'classes' : 'comps', more);
   cfUpdate();
+  if (CL.addFocus) { const i = document.querySelector(`.cls[data-cid="${CL.addFocus}"] .cl-add1 input`); CL.addFocus = null; if (i) i.focus(); }
 }
 ACTS['c-tab'] = t => { T.compEdit = null; go('#/t/' + t.dataset.t); };
 function classesList(){
-  const top = CL.sel ? '' : `<button class="btn cl-add" data-act="t-add-class">${ic('plus')} صف جديد</button><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
+  const top = CL.sel ? '' : `<button class="btn cl-add" data-act="aw-start">${ic('plus')} إضافة طلبة</button><div class="cl-newc"><button class="link" data-act="t-add-class">＋ صف جديد</button></div><input type="file" id="awimg" accept="image/*" class="hide" data-change="aw-img"><input type="file" id="awxl" accept=".xlsx,.xls,.csv" class="hide" data-change="aw-xl"><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
   const arch = CL.archived && CL.archived.length && !CL.sel ? `<details class="cl-arch"><summary>${ic('layers')} الصفوف المؤرشفة (${CL.archived.length})</summary>${CL.archived.map(c => `<div class="cl-arch-r"><span class="grow">${esc(c.name)}<small>${(CL.students[c.id] || []).length} طالب</small></span><button class="btn sm soft" data-act="c-unarchive" data-id="${c.id}">استرجاع</button></div>`).join('')}</details>` : '';
-  if (!CL.classes.length) return top + `<div class="cl-empty">${ic('users')}<b>أضف صفك الأول</b><small>اكتب اسم الصف والصق أسماء الطلبة، وخلال دقيقة يصير جاهز.</small><button class="btn" data-act="t-add-class">${ic('plus')} صف جديد</button></div>` + arch;
+  if (!CL.classes.length) return top + `<div class="cl-empty">${ic('users')}<b>لا يوجد طلبة بعد</b><small>اضغط «إضافة طلبة» فوق، وصوّر كشف الأسماء أو الصقه، وخلال دقيقة يصير الصف جاهز.</small></div>` + arch;
   return top + CL.classes.map(classSection).join('') + arch;
 }
 const CST = id => CL.stat[id] || { pts: 0, rounds: 0, today: false };
@@ -1014,8 +1015,8 @@ function classSection(c){
     const selS = CL.sel && CL.sel.type === 'students' && CL.sel.cid === c.id;
     const fl = CL.flash && CL.flash.cid === c.id ? CL.flash : null;
     body = `<div class="cls-body">` +
-      (fl ? `<div class="cl-flash"><button class="cl-flash-x" data-act="cl-flash-x" aria-label="إغلاق">${ic('x')}</button><b>✅ تم إنشاء الصف${fl.n ? ` ومعه ${fl.n} طالباً` : ''}</b><small>${fl.n ? 'الخطوة التالية: أرسل الرموز للطلبة، ثم أنشئ مسابقة.' : fl.link ? 'شارك رابط التسجيل أدناه مع الطلبة.' : 'أضف الطلبة، ثم أنشئ مسابقة.'}</small><div class="row">${fl.n ? `<button class="btn sm" data-act="c-send">${ic('send')} إرسال الرموز</button>` : ''}${comp ? '' : `<button class="btn sm soft" data-act="cp-new-for">${ic('trophy')} إنشاء مسابقة</button>`}</div></div>` : '') +
-      (CL.sel ? '' : `<div class="cl-acts"><button class="btn sm" data-act="t-add-students">${ic('plus')} إضافة طلبة</button>${st0.length ? `<button class="btn sm soft" data-act="c-send">${ic('send')} إرسال الرموز</button>` : ''}<button class="icon-btn" data-act="c-cmore" aria-label="المزيد">${ic('more')}</button></div>`) +
+      (fl ? `<div class="cl-flash"><button class="cl-flash-x" data-act="cl-flash-x" aria-label="إغلاق">${ic('x')}</button>${fl.added ? `<b>الخطوة التالية: أرسل لهم طريقة الدخول</b><small>تمت إضافة ${fl.n} طالباً إلى «${esc(c.name)}»، ولكل واحد رمز دخول خاص.</small><div class="row"><button class="btn sm wa-btn" data-act="c-send">${ic('send')} واتساب</button><button class="btn sm soft" data-act="t-print-codes">${ic('print')} طباعة البطاقات</button></div>${comp ? '' : `<button class="link" data-act="cp-new-for">أو أنشئ مسابقة لهذا الصف</button>`}` : `<b>✅ تم إنشاء الصف${fl.n ? ` ومعه ${fl.n} طالباً` : ''}</b><small>${fl.n ? 'الخطوة التالية: أرسل الرموز للطلبة، ثم أنشئ مسابقة.' : fl.link ? 'شارك رابط التسجيل أدناه مع الطلبة.' : 'أضف الطلبة، ثم أنشئ مسابقة.'}</small><div class="row">${fl.n ? `<button class="btn sm" data-act="c-send">${ic('send')} إرسال الرموز</button>` : ''}${comp ? '' : `<button class="btn sm soft" data-act="cp-new-for">${ic('trophy')} إنشاء مسابقة</button>`}</div>`}</div>` : '') +
+      (CL.sel ? '' : `<div class="cl-acts">${st0.length ? `<button class="btn sm soft" data-act="c-send">${ic('send')} إرسال الرموز</button>` : '<span class="grow"></span>'}<button class="icon-btn" data-act="c-cmore" aria-label="المزيد">${ic('more')}</button></div>`) +
       (c.self_join ? `<div class="join-row"><span class="sub">التسجيل الذاتي مفعّل</span><button class="btn sm soft" data-act="c-joinshow">عرض</button><button class="btn sm" data-act="copy" data-v="${esc(link)}">نسخ الرابط</button></div>` : '') +
       (never.length && !CL.sel ? `<div class="cl-alert">${ic('user')}<span class="grow"><b>${never.length}</b> لم يدخلوا أبداً</span><button class="btn sm soft" data-act="c-send" data-only="never">أرسل لهم الرمز</button></div>` : '') +
       (st0.length > 10 ? `<div class="cl-search">${ic('search')}<input class="cl-q" data-cid="${c.id}" placeholder="بحث بالاسم أو الرقم" value="${esc(q)}"></div>` : '') +
@@ -1025,7 +1026,8 @@ function classSection(c){
           <div class="sw-l"><button class="rg" data-act="t-regen" data-id="${x.id}"><i>${ic('refresh')}</i><span>رمز جديد</span></button><button class="wa" data-act="s-wa" data-id="${x.id}"><i>${ic('send')}</i><span>واتساب</span></button></div></div>
         <div class="sw-main" data-act="s-card" data-id="${x.id}">${selS ? `<span class="selmark">${ic(CL.sel.ids.has(x.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${sort === 'pts' && comp ? '' : x._i}</span>`}<div class="grow"><b>${esc(x.name)}${k.today ? '<i class="cl-dot" title="لعب اليوم"></i>' : ''}</b><div class="sub">${esc(x.student_no) || '—'}${comp ? ` · ${k.pts} نقطة` : ''}${x.gender === 'f' ? ' · طالبة' : x.gender === 'm' ? ' · طالب' : ''}</div></div>
         ${selS ? '' : `<button class="cl-wa" data-act="s-wa" data-id="${x.id}" aria-label="إرسال الرمز واتساب">${ic('send')}</button>`}</div></div>`; }).join('')}</div>`
-        : `<div class="cl-empty sm"><b>الصف فاضي</b><small>اختر طريقة لإضافة الطلبة:</small><div class="cl-empty-acts"><button class="btn sm" data-act="t-add-students" data-m="paste">لصق أسماء</button><button class="btn sm soft" data-act="t-upload">ملف Excel</button>${c.self_join ? '' : `<button class="btn sm soft" data-act="t-self" data-on="1">رابط تسجيل</button>`}</div></div>`) + '</div>';
+        : `<div class="cl-empty sm"><b>لا يوجد طلبة في ${esc(c.name)}</b><small>صوّر كشف الأسماء أو الصقه، أو اكتب الأسماء واحداً واحداً تحت.</small><button class="btn" data-act="aw-start" data-cid="${c.id}">${ic('plus')} إضافة طلبة</button></div>`) +
+      (CL.sel ? '' : `<form class="cl-add1" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="طالب" autocomplete="off" enterkeyhint="done"><button class="btn sm" type="submit">إضافة</button></form>`) + '</div>';
   }
   const selC = CL.sel && CL.sel.type === 'classes';
   const days = comp && ph === 'points' ? cfDays(todayKW(), comp.points_end_date) : null;
@@ -2154,6 +2156,158 @@ function ocrToQs(text){
   return out.map(q => ({ body: q.body.replace(/^[\(\[]?[\d٠-٩]+\s*[\)\]\-\.:ـ]\s*/, '').trim().slice(0, 300), options: q.options.slice(0, 4).concat(['', '', '', '']).slice(0, 4).map(x => x.slice(0, 100)) }))
     .filter(q => q.body.length > 3 && q.options.filter(Boolean).length >= 2);
 }
+
+/* ---- add students: one button → photo / paste / file / self-join → review → which class ---- */
+const AW = { rows: [], cid: null, src: '' };
+const awNorm = s => String(s || '').replace(/[ً-ْـ]/g, '').replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim();
+function awWhere(name){ const k = awNorm(name); for (const c of CL.classes) if ((CL.students[c.id] || []).some(s => awNorm(s.name) === k)) return { c, s: CL.students[c.id].find(s => awNorm(s.name) === k) }; return null; }
+function awFlag(r){
+  const w = awWhere(r.name); r.where = w; r.move = false;
+  r.warn = /[0-9٠-٩a-zA-Z]/.test(r.name) || r.name.split(' ').length < 2 || r.name.split(' ').length > 6;
+  r.on = !w;
+}
+ACTS['aw-start'] = t => {
+  AW.cid = t && t.dataset && t.dataset.cid || null;
+  modal(`<div class="aw-sheet"><h3>كيف تبي تضيف الطلبة؟</h3>
+    <button class="aw-opt main" data-act="aw-photo"><span class="aw-oi">📷</span><span class="grow"><b>تصوير كشف الأسماء</b><small>الأسرع لصف كامل</small></span></button>
+    <button class="aw-opt" data-act="aw-paste"><span class="aw-oi">✍️</span><span class="grow"><b>كتابة أو لصق الأسماء</b><small>اسم في كل سطر</small></span></button>
+    <button class="aw-opt" data-act="aw-file"><span class="aw-oi">📄</span><span class="grow"><b>ملف Excel</b><small>إذا عندك الكشف من نظام المدرسة</small></span></button>
+    <button class="aw-opt" data-act="aw-self"><span class="aw-oi">🔗</span><span class="grow"><b>الطلبة يسجّلون بأنفسهم</b><small>رابط أو QR ترسله للصف</small></span></button></div>`);
+};
+ACTS['aw-photo'] = () => { closeModals(); document.getElementById('awimg').click(); };
+ACTS['aw-file'] = () => { closeModals(); document.getElementById('awxl').click(); };
+ACTS['aw-paste'] = () => { closeModals();
+  modal(`<h3>كتابة أو لصق الأسماء</h3><p class="sub">اسم الطالب في كل سطر. تقدر تنسخ عمود الأسماء من Excel أو الواتساب وتلصقه هنا.</p>
+    <textarea class="input paste-ta aw-ta" rows="9" dir="auto" placeholder="سارة خالد العتيبي&#10;ليان عبدالله الزامل&#10;نور محمد الحربي"></textarea><div class="paste-info"></div>
+    <button class="btn" data-act="aw-paste-go">متابعة</button>`);
+  setTimeout(() => { const ta = document.querySelector('.aw-ta'); if (ta) ta.focus(); }, 60);
+};
+ACTS['aw-paste-go'] = () => { const rows = parsePaste(document.querySelector('.aw-ta').value); if (!rows.length) return toast('اكتب الأسماء أولاً'); closeModals(); awReview(rows, 'paste'); };
+ACTS['aw-xl'] = async t => { const file = t.files && t.files[0]; if (!file) return; t.value = '';
+  try { const rows = parseStudents(await readRows(file)); if (!rows.length) return toast('لم أجد أسماء في الملف'); awReview(rows, 'file'); } catch(e){ toast('تعذّرت قراءة الملف'); } };
+ACTS['aw-img'] = async t => {
+  const file = t.files && t.files[0]; if (!file) return; t.value = '';
+  const m = modal(`<div class="aw-read"><div class="aw-paper"><i style="width:70%"></i><i></i><i style="width:85%"></i><i style="width:60%"></i><i style="width:90%"></i></div>
+    <div class="aw-ring" id="aw-ring" style="--p:3"><i id="aw-pct">0%</i></div><b>جارٍ قراءة الأسماء…</b><small>أول مرة تاخذ دقيقة تقريباً، والصورة ما تطلع من جوالك.</small></div>`);
+  const st = p => { const r = document.getElementById('aw-ring'), x = document.getElementById('aw-pct'); if (r) r.style.setProperty('--p', Math.max(3, Math.round(p * 100))); if (x) x.textContent = Math.round(p * 100) + '%'; };
+  try {
+    await loadJs(OCRJS, 'Tesseract');
+    const w = await Tesseract.createWorker('ara+eng', 1, { logger: x => { if (x.status === 'recognizing text') st(x.progress); } });
+    const { data } = await w.recognize(await shrinkImg(file, 2200)); await w.terminate();
+    m.remove();
+    const { rows, cls } = namesFromOcr(data.text || '');
+    if (!rows.length) { ACTS['aw-paste'](); const ta = document.querySelector('.aw-ta'); if (ta) { ta.value = (data.text || '').trim(); pasteInfo(ta); } return toast('ما قدرت أميّز الأسماء، عدّلها هنا'); }
+    if (cls && !AW.cid) AW.detect = cls;
+    awReview(rows, 'photo');
+  } catch(e){ m.remove(); toast('تعذّرت قراءة الصورة: ' + errMsg(e)); }
+};
+/* names list from OCR text: drop headers, numbering, and trailing ids */
+const AW_HEAD = /كشف|اسماء|أسماء|الاسم|المدرسة|مدرسة|العام الدراسي|الفصل الدراسي|المعلم|الماده|المادة|التوقيع|ملاحظات|المجموع|وزارة|الإدارة|اداره|منطقة|الرقم المدني|م\s*$/;
+const AW_GR = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر', 'الحادي عشر', 'الثاني عشر'];
+function namesFromOcr(text){
+  const lines = String(text).split(/\r?\n/).map(l => l.replace(/[|_—–\[\]{}()«»"'*•·]/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean);
+  let cls = null;
+  for (const l of lines.slice(0, 8)) {
+    const n = awNorm(l);
+    const hit = CL.classes.find(c => { const k = awNorm(c.name).replace(/\s*\/\s*/g, ' '); return k.length > 2 && n.replace(/\s*[\/\-]\s*/g, ' ').includes(k); });
+    if (hit) { cls = hit.id; break; }
+  }
+  const rows = [];
+  lines.forEach(l => {
+    if (AW_HEAD.test(l) || (AW_GR.some(g => l.includes(g)) && /صف|الصف|شعبة|فصل/.test(l))) return;
+    let no = '';
+    const tail = l.match(/[\d٠-٩]{3,}\s*$/); if (tail) { no = tail[0].trim().replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)); l = l.slice(0, tail.index); }
+    l = l.replace(/^[\d٠-٩]{1,3}\s*[\.\-\)]?\s*/, '').replace(/[\d٠-٩]+/g, ' ').replace(/[^؀-ۿa-zA-Z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    const words = l.split(' ').filter(w => w.length > 1);
+    if (words.length < 2 || words.length > 6 || !/[؀-ۿ]/.test(l)) return;
+    rows.push({ name: words.join(' '), student_no: no });
+  });
+  const seen = new Set();
+  return { rows: rows.filter(r => { const k = awNorm(r.name); if (seen.has(k)) return false; seen.add(k); return true; }), cls };
+}
+function awReview(rows, src){
+  AW.rows = rows.map(r => Object.assign({}, r)); AW.src = src; AW.rows.forEach(awFlag);
+  awRenderReview();
+}
+function awRenderReview(){
+  closeModals();
+  const R = AW.rows, nNew = R.filter(r => r.on && !r.where).length, nOld = R.filter(r => r.where && !r.move).length, nWarn = R.filter(r => r.warn && r.on).length, nMove = R.filter(r => r.move).length;
+  modal(`<div class="aw-rev"><div class="aw-rh"><button class="link" data-act="close-modal">إلغاء</button><h3>راجع الأسماء</h3><span></span></div>
+    <span class="aw-from">📋 ${AW.src === 'photo' ? 'وجدنا' : 'عندك'} ${R.length} اسماً</span>
+    <div class="aw-sum"><span class="n">${nNew} جديد</span>${nOld ? `<span class="o">${nOld} موجودون</span>` : ''}${nMove ? `<span class="w">${nMove} نقل</span>` : ''}${nWarn ? `<span class="w">${nWarn} يحتاج مراجعة</span>` : ''}</div>
+    <div class="aw-list">${R.map((r, i) => r.where
+      ? `<div class="aw-nm ${r.move ? 'move' : 'old'}"><span class="grow">${esc(r.name)}</span>${r.move ? `<em>نقل من ${esc(r.where.c.name)}</em><button class="aw-x" data-act="aw-move" data-i="${i}" aria-label="إلغاء النقل">✕</button>` : `<em>في ${esc(r.where.c.name)}</em><button class="aw-mv" data-act="aw-move" data-i="${i}">نقل؟</button>`}</div>`
+      : `<div class="aw-nm${r.warn ? ' warn' : ''}${r.on ? '' : ' off'}"><input class="aw-in" data-i="${i}" value="${esc(r.name)}" aria-label="اسم الطالب">${r.warn && r.on ? '<em>تأكد من الاسم</em>' : ''}<button class="aw-x" data-act="aw-del" data-i="${i}" aria-label="${r.on ? 'حذف' : 'إرجاع'}">${r.on ? '✕' : '↺'}</button></div>`).join('')}
+      <form class="aw-addline" data-form="aw-add1"><span class="pl">＋</span><input name="n" placeholder="إضافة اسم نسيته" autocomplete="off"></form></div>
+    <button class="btn aw-go" data-act="aw-next" ${nNew + nMove ? '' : 'disabled'}>متابعة (${nNew + nMove} طالباً)</button></div>`).classList.add('aw-full');
+}
+document.addEventListener('change', e => { const i = e.target.closest && e.target.closest('.aw-in'); if (!i) return; const r = AW.rows[+i.dataset.i]; r.name = i.value.replace(/\s+/g, ' ').trim(); awFlag(r); if (r.name.length < 2) r.on = false; awRenderReview(); });
+ACTS['aw-del'] = t => { const r = AW.rows[+t.dataset.i]; r.on = !r.on; awRenderReview(); };
+ACTS['aw-move'] = t => { const r = AW.rows[+t.dataset.i]; r.move = !r.move; awRenderReview(); };
+ACTS['aw-add1'] = f => { const v = f.n.value.replace(/\s+/g, ' ').trim(); if (v.length < 2) return; const r = { name: v, student_no: '' }; awFlag(r); AW.rows.push(r); awRenderReview(); setTimeout(() => { const x = document.querySelector('.aw-addline input'); if (x) x.focus(); }, 30); };
+ACTS['aw-next'] = () => { if (AW.cid) return awSave(AW.cid); awPick(); };
+function awPick(self){
+  closeModals();
+  const pre = AW.pick || AW.detect || (CL.classes.length === 1 ? CL.classes[0].id : null); AW.pick = pre;
+  const n = AW.rows.filter(r => (r.on && !r.where) || r.move).length;
+  const target = CL.classes.find(c => c.id === pre);
+  modal(`<div class="aw-pick"><div class="aw-rh"><button class="link" data-act="${self ? 'close-modal' : 'aw-back'}">${self ? 'إلغاء' : 'رجوع'}</button><h3>لأي صف؟</h3><span></span></div>
+    ${AW.detect && !self ? `<p class="aw-hint">✓ قرأنا «${esc((CL.classes.find(c => c.id === AW.detect) || {}).name || '')}» من أعلى الكشف</p>` : ''}
+    <div class="aw-grid">${CL.classes.map(c => `<button class="aw-pk${c.id === pre ? ' on' : ''}" data-act="aw-pk" data-id="${c.id}" data-self="${self ? 1 : ''}">${esc(c.name)}</button>`).join('')}<button class="aw-pk new" data-act="aw-newcls" data-self="${self ? 1 : ''}">＋ صف جديد</button></div>
+    ${self ? '' : `<div class="aw-conf">${target ? `سيتم إضافة <b>${n}</b> طالباً إلى <b>${esc(target.name)}</b>` : 'اختر الصف'}</div>`}
+    <button class="btn" data-act="${self ? 'aw-self-go' : 'aw-save'}" ${target ? '' : 'disabled'}>${self ? 'عرض الرابط' : 'إضافة'}</button></div>`).classList.add('aw-full');
+}
+ACTS['aw-back'] = () => awRenderReview();
+ACTS['aw-pk'] = t => { AW.pick = t.dataset.id; awPick(!!t.dataset.self); };
+ACTS['aw-newcls'] = async t => {
+  const v = await ask('اكتب اسم الصف', { title: 'صف جديد', input: '', placeholder: 'مثال: السادس / أ', ok: 'إنشاء' });
+  const name = (v || '').trim(); if (name.length < 2) return;
+  if (CL.classes.some(c => c.name.trim() === name)) return toast('يوجد صف بنفس الاسم');
+  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, style: 'mid' }).select().single();
+  if (error) return toast(errMsg(error));
+  CL.classes.push(data); CL.byId[data.id] = data; CL.students[data.id] = []; AW.pick = data.id; awPick(!!t.dataset.self);
+};
+ACTS['aw-save'] = t => awSave(AW.pick, t);
+async function awSave(cid, btn){
+  const c = CL.classes.find(x => x.id === cid); if (!c) return;
+  const g = c.gender === 'm' || c.gender === 'f' ? c.gender : '';
+  const rows = AW.rows.filter(r => r.on && !r.where && r.name.length > 1).map(r => ({ name: r.name, student_no: r.student_no || '', gender: r.gender || g }));
+  const mv = AW.rows.filter(r => r.move && r.where && r.where.c.id !== cid).map(r => r.where.s.id);
+  if (btn) { btn.disabled = true; btn.textContent = 'جارٍ الإضافة…'; }
+  try {
+    let codes = [];
+    for (let i = 0; i < rows.length; i += 150) { const r = await rpc('add_students', { p_class: cid, p_rows: rows.slice(i, i + 150) }); codes = codes.concat(r.added.map(x => x.code)); }
+    if (mv.length) { const { error } = await sb.from('students').update({ class_id: cid }).in('id', mv); if (error) throw error; }
+    closeModals(); AW.pick = null; AW.detect = null; AW.cid = null;
+    CL.open.add(cid); CL.flash = { cid, n: codes.length + mv.length, added: true }; CL.tab = 'classes';
+    if (location.hash !== '#/t/classes') location.hash = '#/t/classes'; else await tClasses();
+    if (codes.length) snack(`تمت إضافة ${codes.length} طالباً`, async () => {
+      const { error } = await sb.from('students').delete().eq('class_id', cid).in('code', codes);
+      if (error) toast(errMsg(error)); CL.flash = null; await tClasses(); toast('تم التراجع');
+    }, () => {});
+  } catch(e){ if (btn) { btn.disabled = false; btn.textContent = 'إضافة'; } toast(errMsg(e)); }
+}
+ACTS['aw-self'] = () => { AW.pick = AW.cid || (CL.classes.length === 1 ? CL.classes[0].id : null); AW.detect = null; awPick(true); };
+ACTS['aw-self-go'] = async () => {
+  const c = CL.classes.find(x => x.id === AW.pick); if (!c) return;
+  try { if (!c.self_join) { const code = await rpc('set_self_join', { p_class: c.id, p_on: true }); c.self_join = true; if (typeof code === 'string') c.join_code = code; await tClasses(); }
+    const cc = CL.classes.find(x => x.id === c.id) || c; CK.cls = cc; ACTS['c-joinshow']({ closest: () => null, dataset: {}, _c: cc });
+  } catch(e){ toast(errMsg(e)); }
+};
+/* one quick name inside a class */
+ACTS['c-add1'] = async f => {
+  const c = ctx(f), v = f.n.value.replace(/\s+/g, ' ').trim(); if (v.length < 2) return toast('اكتب اسم الطالب');
+  if ((CL.students[c.id] || []).some(s => awNorm(s.name) === awNorm(v))) return toast('هذا الاسم موجود في الصف');
+  const g = c.gender === 'm' || c.gender === 'f' ? c.gender : '';
+  try { await rpc('add_students', { p_class: c.id, p_rows: [{ name: v, student_no: '', gender: g }] }); CL.addFocus = c.id; await tClasses(); toast(`تمت إضافة ${v}`); }
+  catch(e){ toast(errMsg(e)); }
+};
+document.addEventListener('paste', e => {
+  const i = e.target.closest && e.target.closest('.cl-add1 input'); if (!i) return;
+  const txt = (e.clipboardData || window.clipboardData).getData('text'); const rows = parsePaste(txt);
+  if (rows.length < 2) return;
+  e.preventDefault(); AW.cid = i.closest('[data-cid]').dataset.cid; awReview(rows, 'paste');
+});
 
 /* ---- results ---- */
 const RS = { sort: 'pts', q: '', rows: [], name: '' };
