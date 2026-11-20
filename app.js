@@ -4340,8 +4340,9 @@ ACTS['cu-del'] = async t => {
   if (error) return toast(errMsg(error)); closeModals(); await tQSet();
 };
 ACTS['st-mode'] = () => modal(`<h3>المظهر</h3>${modeSeg()}<p class="sub" style="margin-top:10px">«تلقائي» يتبع إعداد جهازك.</p>`);
+function avFile(){ let i = document.getElementById('av-file'); if (!i) { i = document.createElement('input'); i.type = 'file'; i.id = 'av-file'; i.accept = 'image/*'; i.className = 'hide'; i.dataset.change = 'av-chosen'; document.body.appendChild(i); } i.value = ''; return i; }
 ACTS['av-menu'] = () => {
-  if (!T.avatar) return document.getElementById('av-file').click();
+  if (!T.avatar) return avFile().click();
   sheet('صورة الملف', [
     { act: 'av-pick', icon: 'upload', label: 'اختيار صورة جديدة' },
     { act: 'av-recrop', icon: 'edit', label: 'قص الصورة الحالية' },
@@ -4349,7 +4350,7 @@ ACTS['av-menu'] = () => {
     { act: 'av-del', icon: 'trash', label: 'حذف الصورة', danger: true }
   ]);
 };
-ACTS['av-pick'] = () => { closeModals(); profileSheet(); setTimeout(() => document.getElementById('av-file').click(), 50); };
+ACTS['av-pick'] = () => { closeModals(); avFile().click(); };
 ACTS['av-recrop'] = () => { closeModals(); cropper(T.avatar); };
 ACTS['av-del'] = async () => {
   if (!await ask('حذف صورة الملف؟')) return;
