@@ -2684,3 +2684,7 @@ html body .sl .code-input:focus,html body .sl .code-input:focus-visible{outline:
 .nw-tile.on .nw-ck{background:var(--primary);border-color:var(--primary);color:#fff}
 .nw-tile.off{opacity:.45}
 .cp-many{display:block;width:100%;margin-top:10px;min-height:48px;border:0;border-radius:16px;background:var(--card);color:var(--ink);font:inherit;font-weight:800;font-size:15px;cursor:pointer}
+/* v165: teacher tab bar solid (was see-through in dark, list text showed behind it) */
+html body.wide .t-nav{background:var(--card,#fff)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:0 6px 24px rgba(0,0,0,.18),0 0 0 1px color-mix(in srgb,var(--ink) 8%,transparent)!important}
+html body.wide.dark .t-nav{background:#1C1C1E!important;box-shadow:0 8px 28px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.08)!important}
+html body.wide .t-body{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
