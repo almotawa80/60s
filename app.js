@@ -1267,18 +1267,42 @@ ACTS['c-del'] = async t => {
 };
 const GRADES = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر', 'الحادي عشر', 'الثاني عشر'];
 const genderSeg = (name, cur, opts) => `<div class="tabs seg-g">${opts.map(x => `<label class="${(cur || '') === x[0] ? 'on' : ''}"><input type="radio" name="${name}" value="${x[0]}" ${(cur || '') === x[0] ? 'checked' : ''}>${x[1]}</label>`).join('')}</div>`;
-ACTS['t-add-class'] = () => {
-  modal(`<h3>صف جديد</h3><form class="col nc" data-form="t-save-class"><input type="hidden" name="m" value="paste">
-    <div class="row nc-row"><div class="field grow"><label for="nc-g">الصف</label><select class="input" id="nc-g" name="g" data-change="nc-name"><option value="">اختر…</option>${GRADES.map(g => `<option>${g}</option>`).join('')}</select></div>
-    <div class="field"><label>الشعبة</label><div class="nc-secs">${['أ', 'ب', 'ج', 'د', 'هـ'].map(x => `<button type="button" data-act="nc-sec" data-v="${x}">${x}</button>`).join('')}</div></div></div>
-    <div class="field"><label for="c-name">اسم الصف</label><input class="input" id="c-name" name="name" required maxlength="60" placeholder="مثال: السادس / ب"></div>
-    <div class="field"><label>الطلبة</label>${genderSeg('gender', '', [['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']])}</div>
-    <div class="field"><label>كيف تضيف الأسماء؟</label><div class="nc-m">${[['paste', 'لصق أسماء', 'edit'], ['file', 'ملف Excel', 'upload'], ['link', 'رابط تسجيل', 'send'], ['later', 'لاحقاً', 'clock']].map((x, i) => `<button type="button" class="${i ? '' : 'on'}" data-act="nc-m" data-v="${x[0]}">${ic(x[2])}<span>${x[1]}</span></button>`).join('')}</div></div>
-    <div class="nc-p" data-m="paste"><textarea class="input paste-ta" name="names" rows="6" placeholder="اسم الطالب في كل سطر&#10;ويمكن إضافة الرقم بعد فاصلة:&#10;سارة العتيبي، 1001"></textarea><div class="paste-info"></div><p class="sub">تقدر تنسخ عمودَي الاسم والرقم من Excel وتلصقهم هنا مباشرة.</p></div>
-    <div class="nc-p hide" data-m="file"><input class="input" type="file" name="file" accept=".xlsx,.xls,.csv"><p class="sub">العمود الأول الاسم، والثاني رقم الطالب. <button type="button" class="link" data-act="t-sample-students">تنزيل نموذج</button></p></div>
-    <div class="nc-p hide" data-m="link"><p class="sub">ننشئ رابطاً يسجّل به الطلبة بأنفسهم. شاركه في مجموعة الصف أو اعرضه على السبورة.</p></div>
-    <div class="nc-p hide" data-m="later"><p class="sub">تقدر تضيف الطلبة بعدين من صفحة الصف.</p></div>
-    <button class="btn" type="submit">إنشاء الصف</button></form>`);
+/* new class: stage → grade → section → gender, name builds itself */
+const NC_ST = [['primary', 'ابتدائي', [1, 2, 3, 4, 5]], ['middle', 'متوسط', [6, 7, 8, 9]], ['secondary', 'ثانوي', [10, 11, 12]], ['university', 'جامعة', [1, 2, 3, 4]]];
+const UNI_Y = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة'];
+const NC = {};
+function ncName(){ if (NC.custom) return NC.custom; if (!NC.grade) return ''; const g = NC.stage === 'university' ? 'السنة ' + UNI_Y[NC.grade - 1] : GRADES[NC.grade - 1]; return g + (NC.sec ? ' / ' + NC.sec : ''); }
+function ncHtml(){
+  const st = NC_ST.find(x => x[0] === NC.stage), last = (T.settings || {}).lastStage;
+  const chip = (act, v, label, on, big) => `<button type="button" class="nc2-c${big ? ' big' : ''}${on ? ' on' : ''}" data-act="${act}" data-v="${v}">${label}</button>`;
+  const name = ncName();
+  return `<div class="nc2"><h3>صف جديد</h3>
+    <div class="nc2-s"><div class="nc2-l">المرحلة ${last && last === NC.stage ? '<small>✓ آخر مرحلة اخترتها</small>' : ''}</div><div class="nc2-g4">${NC_ST.map(x => chip('nc2-st', x[0], x[1], x[0] === NC.stage, 1)).join('')}</div></div>
+    ${st ? `<div class="nc2-s"><div class="nc2-l">${NC.stage === 'university' ? 'السنة' : 'الصف'}</div><div class="nc2-gr" style="--n:${st[2].length > 5 ? 5 : st[2].length}">${st[2].map((g, k) => chip('nc2-gr', g, NC.stage === 'university' ? UNI_Y[k] : GRADES[g - 1], g === NC.grade)).join('')}</div></div>` : ''}
+    <div class="nc2-s"><div class="nc2-l">الشعبة</div><div class="nc2-gr" style="--n:5">${['أ', 'ب', 'ج', 'د', 'هـ'].map(x => chip('nc2-sec', x, x, x === NC.sec)).join('')}</div></div>
+    <div class="nc2-s"><div class="nc2-l">الطلبة</div><div class="nc2-g3">${[['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']].map(x => chip('nc2-gd', x[0], x[1], x[0] === NC.g, 1)).join('')}</div></div>
+    <div class="nc2-name">${NC.editing ? `<input class="input" id="nc2-in" value="${esc(name)}" maxlength="60" placeholder="مثال: السادس / 1">` : `<div class="grow"><small>اسم الصف</small><b>${name ? esc(name) : '<span class="muted">اختر الصف</span>'}</b></div><button type="button" class="nc2-pen" data-act="nc2-edit" aria-label="تعديل الاسم">${ic('edit')}</button>`}</div>
+    <button class="btn" data-act="nc2-save" ${name || NC.editing ? '' : 'disabled'}>إنشاء الصف</button></div>`;
+}
+function ncRender(){ const m = document.querySelector('.nc2'); if (m) { m.outerHTML = ncHtml(); if (NC.editing) { const i = document.getElementById('nc2-in'); if (i) { i.focus(); i.select(); } } } }
+ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { stage: (T.settings || {}).lastStage || 'primary', grade: null, sec: '', g: '', custom: '', editing: false }); modal(ncHtml()); };
+ACTS['nc2-st'] = t => { if (NC.stage !== t.dataset.v) NC.grade = null; NC.stage = t.dataset.v; NC.custom = ''; ncRender(); };
+ACTS['nc2-gr'] = t => { NC.grade = Number(t.dataset.v); NC.custom = ''; ncRender(); };
+ACTS['nc2-sec'] = t => { NC.sec = NC.sec === t.dataset.v ? '' : t.dataset.v; NC.custom = ''; ncRender(); };
+ACTS['nc2-gd'] = t => { NC.g = NC.g === t.dataset.v ? '' : t.dataset.v; ncRender(); };
+ACTS['nc2-edit'] = () => { NC.editing = true; ncRender(); };
+ACTS['nc2-save'] = async t => {
+  const inp = document.getElementById('nc2-in'); if (inp) NC.custom = inp.value.replace(/\s+/g, ' ').trim();
+  const name = ncName(); if (name.length < 2) return toast('اختر الصف أو اكتب اسمه');
+  if (CL.classes.some(c => c.name.trim() === name)) return toast('يوجد صف بنفس الاسم');
+  t.disabled = true; t.textContent = 'جارٍ الإنشاء…';
+  const style = NC.stage === 'primary' ? 'kids' : NC.stage === 'university' ? 'uni' : 'mid';
+  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: NC.stage, style, gender: NC.g || null }).select().single();
+  if (error) { t.disabled = false; t.textContent = 'إنشاء الصف'; return toast(errMsg(error)); }
+  if ((T.settings || {}).lastStage !== NC.stage) saveSettings({ lastStage: NC.stage });
+  closeModals(); CL.open.add(data.id); CL.tab = 'classes';
+  if (location.hash !== '#/t/classes') location.hash = '#/t/classes'; else await tClasses();
+  setTimeout(() => ACTS['aw-start']({ dataset: { cid: data.id, made: data.name } }), location.hash === '#/t/classes' ? 50 : 700);
 };
 ACTS['nc-name'] = t => { const f = t.closest('form'); const sec = (f.querySelector('.nc-secs .on') || {}).dataset; f.name.value = f.g.value ? f.g.value + (sec && sec.v ? ' / ' + sec.v : '') : f.name.value; };
 ACTS['nc-sec'] = t => { const on = t.classList.contains('on'); t.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('on')); if (!on) t.classList.add('on'); const f = t.closest('form'); if (f.g.value) ACTS['nc-name'](f.g); else if (!on) f.name.value = (f.name.value.split('/')[0].trim() ? f.name.value.split('/')[0].trim() + ' / ' : '') + t.dataset.v; };
@@ -2167,12 +2191,12 @@ function awFlag(r){
   r.on = !w;
 }
 ACTS['aw-start'] = t => {
-  AW.cid = t && t.dataset && t.dataset.cid || null;
-  modal(`<div class="aw-sheet"><h3>كيف تبي تضيف الطلبة؟</h3>
+  AW.cid = t && t.dataset && t.dataset.cid || null; const made = t && t.dataset && t.dataset.made;
+  modal(`<div class="aw-sheet">${made ? `<div class="aw-made">✓ تم إنشاء «${esc(made)}»</div>` : ''}<h3>كيف تبي تضيف الطلبة؟</h3>
     <button class="aw-opt main" data-act="aw-photo"><span class="aw-oi">📷</span><span class="grow"><b>تصوير كشف الأسماء</b><small>الأسرع لصف كامل</small></span></button>
     <button class="aw-opt" data-act="aw-paste"><span class="aw-oi">✍️</span><span class="grow"><b>كتابة أو لصق الأسماء</b><small>اسم في كل سطر</small></span></button>
     <button class="aw-opt" data-act="aw-file"><span class="aw-oi">📄</span><span class="grow"><b>ملف Excel</b><small>إذا عندك الكشف من نظام المدرسة</small></span></button>
-    <button class="aw-opt" data-act="aw-self"><span class="aw-oi">🔗</span><span class="grow"><b>الطلبة يسجّلون بأنفسهم</b><small>رابط أو QR ترسله للصف</small></span></button></div>`);
+    <button class="aw-opt" data-act="aw-self"><span class="aw-oi">🔗</span><span class="grow"><b>الطلبة يسجّلون بأنفسهم</b><small>رابط أو QR ترسله للصف</small></span></button>${made ? '<button class="link aw-later" data-act="close-modal">لاحقاً</button>' : ''}</div>`);
 };
 ACTS['aw-photo'] = () => { closeModals(); document.getElementById('awimg').click(); };
 ACTS['aw-file'] = () => { closeModals(); document.getElementById('awxl').click(); };
@@ -2193,7 +2217,7 @@ ACTS['aw-img'] = async t => {
   try {
     await loadJs(OCRJS, 'Tesseract');
     const w = await Tesseract.createWorker('ara+eng', 1, { logger: x => { if (x.status === 'recognizing text') st(x.progress); } });
-    const { data } = await w.recognize(await shrinkImg(file, 2200)); await w.terminate();
+    const { data } = await w.recognize(await ocrPrep(file)); await w.terminate();
     m.remove();
     const { rows, cls } = namesFromOcr(data.text || '');
     if (!rows.length) { ACTS['aw-paste'](); const ta = document.querySelector('.aw-ta'); if (ta) { ta.value = (data.text || '').trim(); pasteInfo(ta); } return toast('ما قدرت أميّز الأسماء، عدّلها هنا'); }
@@ -2201,6 +2225,18 @@ ACTS['aw-img'] = async t => {
     awReview(rows, 'photo');
   } catch(e){ m.remove(); toast('تعذّرت قراءة الصورة: ' + errMsg(e)); }
 };
+/* grayscale + stretch contrast, and flip dark screenshots to dark-on-light, so OCR reads cleaner */
+async function ocrPrep(file){
+  const bmp = await createImageBitmap(file); const k = Math.min(1, 2200 / Math.max(bmp.width, bmp.height)), sc = Math.max(k, Math.min(2, 1400 / Math.max(bmp.width, bmp.height)));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * sc); c.height = Math.round(bmp.height * sc);
+  const g = c.getContext('2d'); g.drawImage(bmp, 0, 0, c.width, c.height);
+  const im = g.getImageData(0, 0, c.width, c.height), d = im.data; let sum = 0;
+  for (let i = 0; i < d.length; i += 4) { const y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; d[i] = y; sum += y; }
+  const inv = sum / (d.length / 4) < 110;
+  for (let i = 0; i < d.length; i += 4) { let y = d[i]; if (inv) y = 255 - y; y = Math.max(0, Math.min(255, (y - 128) * 1.6 + 128)); d[i] = d[i + 1] = d[i + 2] = y; }
+  g.putImageData(im, 0, 0);
+  return new Promise(ok => c.toBlob(ok, 'image/png'));
+}
 /* names list from OCR text: drop headers, numbering, and trailing ids */
 const AW_HEAD = /كشف|اسماء|أسماء|الاسم|المدرسة|مدرسة|العام الدراسي|الفصل الدراسي|المعلم|الماده|المادة|التوقيع|ملاحظات|المجموع|وزارة|الإدارة|اداره|منطقة|الرقم المدني|م\s*$/;
 const AW_GR = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر', 'الحادي عشر', 'الثاني عشر'];
@@ -2218,8 +2254,10 @@ function namesFromOcr(text){
     let no = '';
     const tail = l.match(/[\d٠-٩]{3,}\s*$/); if (tail) { no = tail[0].trim().replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)); l = l.slice(0, tail.index); }
     l = l.replace(/^[\d٠-٩]{1,3}\s*[\.\-\)]?\s*/, '').replace(/[\d٠-٩]+/g, ' ').replace(/[^؀-ۿa-zA-Z\s]/g, ' ').replace(/\s+/g, ' ').trim();
-    const words = l.split(' ').filter(w => w.length > 1);
-    if (words.length < 2 || words.length > 6 || !/[؀-ۿ]/.test(l)) return;
+    let words = l.replace(/[a-zA-Z]+/g, ' ').split(' ').filter(w => w.length > 1);
+    while (words.length > 2 && words[0].length <= 2 && !/^(ال|ابو|بو)$/.test(words[0])) words.shift();
+    while (words.length > 2 && words[words.length - 1].length <= 2) words.pop();
+    if (!words.length || (words.length === 1 && words[0].length < 3) || words.length > 6 || !/[؀-ۿ]/.test(l)) return;
     rows.push({ name: words.join(' '), student_no: no });
   });
   const seen = new Set();
