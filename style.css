@@ -1934,3 +1934,10 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
 .q-here{margin:8px 2px 4px;font-size:22px;font-weight:800}
 .q-clear{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:48px;margin-top:22px;border:0;border-radius:14px;background:rgba(255,59,48,.1);color:#FF3B30;font-weight:700;font-size:15px}
 .q-clear svg{width:17px;height:17px}
+/* lesson rows: add/remove toggle */
+.qgrp-w{position:relative}
+.qgrp-w .qgrp{padding-left:64px}
+.qgrp-tg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:2px solid var(--line);background:transparent;color:var(--primary);display:flex;align-items:center;justify-content:center}
+.qgrp-tg svg{width:20px;height:20px}
+.qgrp-tg.on{background:#34C759;border-color:#34C759;color:#fff}
+.qgrp-w .qgrp>i{display:none}

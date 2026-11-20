@@ -2114,6 +2114,11 @@ async function qPickSet(ids, on){
 }
 ACTS['q-pk'] = async t => { const id = t.dataset.id, on = !(QS.pick && QS.pick.has(id));
   if (await qPickSet([id], on)) { toast(on ? 'أُضيف إلى أسئلتي ✓ وسيظهر لطلبتك في المسابقات' : 'أُزيل من أسئلتك، لن يظهر لطلبتك'); renderQuestions(); } };
+// Lesson list: one tap adds/removes a whole lesson (✓ = in «أسئلتي», + = not yet).
+ACTS['q-les-tg'] = async t => { const l = t.dataset.l, on = t.dataset.on === '1', cu = T.qf.gcu;
+  const ids = QS.glob.filter(q => q.curriculum_id === cu && (q.lesson || NO_LESSON) === l).map(q => q.id);
+  t.setAttribute('aria-busy', 'true'); haptic();
+  if (await qPickSet(ids, on)) { toast(on ? `أُضيف الدرس إلى أسئلتك ✓ (${ids.length})` : 'أُزيل الدرس من أسئلتك'); renderQuestions(); } else t.removeAttribute('aria-busy'); };
 ACTS['q-pk-all'] = async t => { const ids = qFiltered().map(q => q.id), on = t.dataset.on === '1';
   if (!on && !await ask(`إزالة ${ids.length} سؤالاً من أسئلتك؟ لن تظهر لطلبتك بعد ذلك.`, { title: 'إزالة الكل؟', ok: 'إزالة', danger: true, safe: true })) return;
   t.setAttribute('aria-busy', 'true');
@@ -2199,7 +2204,7 @@ function qGlobLessons(cu){
   qs.forEach(q => { const k = q.lesson || NO_LESSON; if (!cnt[k]) order.push(k); cnt[k] = (cnt[k] || 0) + 1; if (P.has(q.id)) got[k] = (got[k] || 0) + 1; });
   if (!qs.length) return '<div class="card center muted">لا توجد أسئلة في هذا الصف بعد.</div>';
   const ls = order.filter(k => k !== NO_LESSON).concat(cnt[NO_LESSON] ? [NO_LESSON] : []);
-  return `<div class="qr-h">الدروس (${ls.length})</div>${ls.map((k, i) => `<button class="qgrp" data-act="q-gles" data-l="${esc(k)}"><span class="qgrp-e qr-n">${k === NO_LESSON ? '•' : i + 1}</span><span class="grow"><b>${k === NO_LESSON ? 'بدون درس محدد' : esc(k)}</b><small>${cnt[k]} سؤالاً${got[k] ? ` · <b class="qi2-pk" style="display:inline">✓ أضفت ${got[k] === cnt[k] ? 'الكل' : got[k]}</b>` : ''}</small></span><i>‹</i></button>`).join('')}
+  return `<div class="qr-h">الدروس (${ls.length})</div>${ls.map((k, i) => `<div class="qgrp-w"><button class="qgrp" data-act="q-gles" data-l="${esc(k)}"><span class="qgrp-e qr-n">${k === NO_LESSON ? '•' : i + 1}</span><span class="grow"><b>${k === NO_LESSON ? 'بدون درس محدد' : esc(k)}</b><small>${cnt[k]} سؤالاً${got[k] ? ` · <b class="qi2-pk" style="display:inline">✓ أضفت ${got[k] === cnt[k] ? 'الكل' : got[k]}</b>` : ''}</small></span><i>‹</i></button>${got[k] === cnt[k] ? `<button class="qgrp-tg on" data-act="q-les-tg" data-l="${esc(k)}" data-on="0" aria-label="إزالة الدرس من أسئلتي">${ic('check')}</button>` : `<button class="qgrp-tg" data-act="q-les-tg" data-l="${esc(k)}" data-on="1" aria-label="أضف الدرس إلى أسئلتي">${ic('plus')}</button>`}</div>`).join('')}
     <button class="q-flat" data-act="q-gles" data-l="">عرض كل أسئلة الصف (${qs.length})</button>`;
 }
 ACTS['q-grp'] = t => { T.qf.g = t.dataset.g; T.qf.gs = ''; T.qf.gcu = ''; T.qf.gl = null; QS.open = null; renderQuestions(); scrollTo(0, 0); };
