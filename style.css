@@ -2606,3 +2606,12 @@ html body:not(.wide) .btn:not(.ghost):not(.soft):not(.danger){background:#C8102E
 html body:not(.wide) .btn:not(.ghost):not(.soft):not(.danger):active{transform:translateY(3px);box-shadow:0 2px 0 #8E0B21!important}
 html body:not(.wide) .btn::after{display:none!important}
 html body:not(.wide) .btn.soft,html body:not(.wide) .btn.ghost{background:#2C2C2E!important;color:#F5F5F7!important;border:0!important;box-shadow:none!important;border-radius:18px!important}
+/* v152 student avatar */
+html body:not(.wide) .sh.pvx .s-me-av{position:relative;border:0;cursor:pointer;font:inherit;font-weight:900}
+html body:not(.wide) .sh.pvx .s-me-av.em{background:#2C2C2E!important;font-size:46px!important;box-shadow:0 0 0 3px #C8102E}
+.s-av-ed{position:absolute;bottom:-2px;left:-2px;width:28px;height:28px;border-radius:50%;background:#C8102E;border:3px solid #1C1C1E;display:grid;place-items:center;font-size:12px}
+.s-avs{display:flex;flex-direction:column;gap:12px}.s-avs h3{margin:0}
+.s-avg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.s-avg button{aspect-ratio:1;min-width:0;border-radius:20px;background:#2C2C2E;border:3px solid transparent;font-size:32px;display:grid;place-items:center;cursor:pointer}
+.s-avg button.on{border-color:#C8102E;background:color-mix(in srgb,#C8102E 18%,#2C2C2E)}
+.lbx-em{font-size:1.5em;line-height:1}.lbx-ea{font-size:22px;flex:none}
