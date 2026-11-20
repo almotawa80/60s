@@ -1125,12 +1125,12 @@ ACTS['sel-move-save'] = async f => {
   if (error) return toast(/duplicate|unique/i.test(error.message) ? 'بعض الأرقام موجودة في الصف الآخر' : errMsg(error));
   closeModals(); CL.sel = null; CL.open.add(to); toast('تم النقل'); await tClasses();
 };
-ACTS['sel-export'] = () => {
+ACTS['sel-export'] = async () => { await XL();
   const st = (CL.students[CL.sel.cid] || []).filter(s => CL.sel.ids.has(s.id));
   const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الرمز']].concat(st.map(s => [s.name, s.student_no, s.code]))), wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'الرموز'); XLSX.writeFile(wb, 'رموز-محددة.xlsx');
 };
-ACTS['c-export-all'] = () => {
+ACTS['c-export-all'] = async () => { await XL();
   const wb = XLSX.utils.book_new();
   CL.classes.forEach((c, i) => { const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الرمز']].concat((CL.students[c.id] || []).map(s => [s.name, s.student_no, s.code]))); XLSX.utils.book_append_sheet(wb, ws, ((i + 1) + '-' + c.name).replace(/[\\\/?*\[\]:]/g, '-').slice(0, 30)); });
   XLSX.writeFile(wb, 'رموز-كل-الصفوف.xlsx');
@@ -1327,7 +1327,7 @@ ACTS['t-save-class'] = async f => {
 
 /* ---- multi-class upload ---- */
 ACTS['t-multi-up'] = () => document.getElementById('mxl').click();
-ACTS['t-multi-sample'] = () => {
+ACTS['t-multi-sample'] = async () => { await XL();
   const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الصف', 'الهاتف', 'الجنس'], ['سارة العتيبي', '1001', 'السادس / أ', '99999999', 'طالبة'], ['ليان الزامل', '1002', 'السادس / أ', '', 'طالبة'], ['نور الحربي', '2001', 'السادس / ب', '', 'طالب']]);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'الطلبة'); XLSX.writeFile(wb, 'نموذج-الصفوف.xlsx');
 };
@@ -1395,11 +1395,11 @@ ACTS['t-self'] = async t => {
     closeModals(); await tClasses(); if (t.dataset.on === '1') toast('تم التفعيل، الرابط في صفحة الصف');
   } catch(e){ toast(errMsg(e)); }
 };
-ACTS['t-sample-students'] = () => {
+ACTS['t-sample-students'] = async () => { await XL();
   const ws = XLSX.utils.aoa_to_sheet([['الاسم', 'رقم الطالب', 'الهاتف', 'الجنس'], ['سارة العتيبي', '1001', '99999999', 'طالبة'], ['ليان الزامل', '1002', '', 'طالبة']]);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'الطلبة'); XLSX.writeFile(wb, 'نموذج-الطلبة.xlsx');
 };
-async function readRows(file){
+async function readRows(file){ await XL();
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: 'array' });
   const ws = wb.Sheets[wb.SheetNames[0]];
@@ -1494,13 +1494,15 @@ ACTS['t-del-student'] = t => { const c = ctx(t); closeModals();
   const [st] = arr.splice(i, 1); renderClasses();
   snack(`تم حذف ${st.name}`, () => { arr.splice(i, 0, st); renderClasses(); }, async () => { const { error } = await sb.from('students').delete().eq('id', st.id); if (error) { toast(errMsg(error)); await tClasses(); } });
 };
-ACTS['t-export-codes'] = t => { ctx(t);
+ACTS['t-export-codes'] = async t => { ctx(t); await XL();
   const rows = [['الاسم', 'رقم الطالب', 'الهاتف', 'الرمز']].concat(CK.students.map(s => [s.name, s.student_no, s.phone || '', s.code]));
   const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'الرموز');
   XLSX.writeFile(wb, 'رموز-' + CK.cls.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };
 const QRJS = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+const XLSXJS = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+const XL = () => loadJs(XLSXJS, 'XLSX').catch(() => { throw new Error('تعذر تحميل أداة Excel، تأكد من الاتصال'); });
 function loadJs(src, g){ return new Promise((ok, no) => { if (window[g]) return ok(); const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); }
 function qrSvg(text){ try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); } catch(e){ return ''; } }
 ACTS['t-print-codes'] = async t => { ctx(t);
@@ -2009,11 +2011,11 @@ ACTS['t-q-copy'] = async t => {
 
 /* Excel template / export */
 const QHEAD = ['السؤال', 'أ', 'ب', 'ج', 'د', 'الإجابة الصحيحة', 'المستوى', 'النوع'];
-ACTS['t-q-template'] = () => {
+ACTS['t-q-template'] = async () => { await XL();
   const ws = XLSX.utils.aoa_to_sheet([QHEAD, ['ما عاصمة دولة الكويت؟', 'مدينة الكويت', 'الجهراء', 'الفحيحيل', 'الأحمدي', 'أ', 'سهل', 'عام'], ['كم يساوي 12 × 12؟', '124', '144', '154', '164', 'ب', 'متوسط', 'سرعة بديهة']]);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'الأسئلة'); XLSX.writeFile(wb, 'نموذج-الأسئلة.xlsx');
 };
-ACTS['t-q-export'] = () => {
+ACTS['t-q-export'] = async () => { await XL();
   const rows = [QHEAD.concat(['الحالة'])].concat(QS.list.map(q => [q.body].concat(q.options, [LETTERS[q.correct_index], LEVEL_AR[q.level], TYPE_AR[q.qtype], STATUS_AR[q.status]])));
   const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'الأسئلة'); XLSX.writeFile(wb, 'أسئلتي.xlsx');
@@ -2529,7 +2531,7 @@ ACTS['r-report-pdf'] = async t => {
   } finally { wrap.remove(); t.disabled = false; t.innerHTML = lbl; }
 };
 ACTS['r-report-copy'] = () => { navigator.clipboard && navigator.clipboard.writeText(RS.lastText || ''); toast('تم النسخ'); };
-ACTS['t-res-export'] = () => {
+ACTS['t-res-export'] = async () => { await XL();
   const rows = [['الصف', 'الاسم', 'رقم الطالب', 'النقاط', 'الجولات', 'الإجابات الصحيحة', 'الدقة %', 'لعب اليوم']].concat(RS.rows.slice().sort((x, y) => y.pts - x.pts).map(r => [r.cls, r.name, r.student_no, r.pts, r.rounds, r.correct, r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) : '', r.played_today ? 'نعم' : 'لا']));
   const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'النتائج'); XLSX.writeFile(wb, 'نتائج-' + RS.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
@@ -2960,3 +2962,4 @@ if ('serviceWorker' in navigator) {
   }).catch(() => {});
 }
 })();
+addEventListener('load', () => setTimeout(() => { if (document.body.classList.contains('wide')) XL().catch(() => {}); }, 3000));
