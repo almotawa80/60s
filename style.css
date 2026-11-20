@@ -1904,3 +1904,8 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
 .cf3-note:empty{display:none}
 .cf3-o .cf3-ck{width:24px;height:24px;color:var(--primary);visibility:hidden}.cf3-o.on .cf3-ck{visibility:visible}
 .cf3-o.on{border-color:var(--primary)}.cf3-o .cf3-ck .ico{width:22px;height:22px}
+.qi2{position:relative}
+.qi2-x{position:absolute;top:8px;left:8px;width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.qi2-x svg{width:18px;height:18px}.qi2-x:active{background:var(--soft,#eee)}
+.qi2-x.add{color:#168A5B}
+.qi2.open .qi2-x{display:none}

@@ -2099,7 +2099,7 @@ function qItem(q, ro){
     <div class="qi2-m">${ro && picked ? '<small class="qi2-pk">✓ في أسئلتي</small>' : !ro && q._pk ? '<small class="qi2-pk">من الأسئلة الجاهزة</small>' : ''}<b class="q-body">${q.image && !open ? '🖼️ ' : ''}${esc(q.body)}</b>
       ${open ? `${q.image ? `<img class="qi2-img" src="${esc(q.image)}" alt="" loading="lazy">` : ''}<div class="qi2-opts">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${i === q.correct_index ? ic('check') : ''}${esc(o)}</span>`).join('')}</div>
         <div class="qi2-meta">${LEVEL_AR[q.level] || ''} · ${TYPE_AR[q.qtype] || q.qtype}${QS.dup.has(q.id) ? ' · <b class="qi-dup">مكرر</b>' : ''}</div>${qStat(q)}${acts ? `<div class="qi2-acts">${acts}</div>` : ''}`
-      : `<span class="qi2-a">${ic('check')}${esc(q.options[q.correct_index] || '')}</span>`}</div></div>`;
+      : `<span class="qi2-a">${ic('check')}${esc(q.options[q.correct_index] || '')}</span>`}</div>${!sel && ((!ro && q._pk) || (ro && picked)) ? `<button class="qi2-x" data-act="q-pk" data-id="${q.id}" aria-label="إزالة من أسئلتي">${ic('x')}</button>` : ''}${!sel && ro && !picked ? `<button class="qi2-x add" data-act="q-pk" data-id="${q.id}" aria-label="أضف إلى أسئلتي">${ic('plus')}</button>` : ''}</div>`;
 }
 async function qPickSet(ids, on){
   if (!QS.pickOk) { toast('ميزة الإضافة من الأسئلة الجاهزة تحتاج تحديث قاعدة البيانات أولاً'); return false; }
@@ -2206,7 +2206,7 @@ ACTS['q-gles'] = t => { T.qf.gl = t.dataset.l; QS.open = null; renderQuestions()
 const SUBJ_MAIN = ['اللغة العربية', 'التربية الإسلامية', 'الرياضيات', 'العلوم', 'اللغة الإنجليزية', 'الاجتماعيات'];
 const STAGE_ORDER = ['primary', 'middle', 'secondary', 'university'];
 function qPicked(){ const P = QS.pick || new Set(); return QS.glob.filter(q => P.has(q.id)).map(q => Object.assign(q, { status: 'approved', _pk: true })); }
-function qStatusSrc(){ const f = T.qf; return f.status === 'global' ? QS.glob.filter(q => QS.searchOn || ((!f.g || q.qtype === f.g) && (!f.gcu || q.curriculum_id === f.gcu) && (!f.gl || (q.lesson || NO_LESSON) === f.gl))) : QS.list.filter(q => q.status === f.status).concat(f.status === 'approved' && !QS.selOn ? qPicked() : []); }
+function qStatusSrc(){ const f = T.qf; return f.status === 'global' ? QS.glob.filter(q => QS.searchOn || ((!f.g || q.qtype === f.g) && (!f.gcu || q.curriculum_id === f.gcu) && (!f.gl || (q.lesson || NO_LESSON) === f.gl))) : QS.list.filter(q => q.status === f.status).concat(f.status === 'approved' ? qPicked() : []); }
 function qCuIds(subj){ return new Set(CU.list.filter(c => c.subject === subj).map(c => c.id)); }
 function qInScope(q){
   const f = T.qf;
@@ -2296,7 +2296,7 @@ function qSelBar(){
   if (!QS.selOn) return '';
   const n = QS.sel.size;
   return `<div class="q-selbar"><button class="btn sm ghost" data-act="t-q-selall">الكل</button><b>${n} محدد</b><span class="grow"></span>
-    <button class="btn sm" data-act="t-q-bulk" data-s="approved" ${n ? '' : 'disabled'}>${ic('check')} إتاحة</button>
+    ${[...QS.sel].some(id => QS.pick && QS.pick.has(id)) ? `<button class="btn sm" data-act="t-q-bulk-unpick">${ic('x')} إزالة</button>` : `<button class="btn sm" data-act="t-q-bulk" data-s="approved" ${n ? '' : 'disabled'}>${ic('check')} إتاحة</button>`}
     <button class="btn sm soft" data-act="t-q-bulk-more" ${n ? '' : 'disabled'}>${ic('more')}</button>
     <button class="icon-btn" data-act="t-q-selx" aria-label="إلغاء التحديد">${ic('x')}</button></div>`;
 }
@@ -2539,9 +2539,13 @@ ACTS['t-q-bulk-more'] = () => sheet(`${QS.sel.size} سؤالاً محدداً`, 
 ACTS['t-q-bulk-lv'] = async t => { const ids = [...QS.sel]; closeModals();
   const { error } = await sb.from('questions').update({ level: t.dataset.v }).in('id', ids); if (error) return toast(errMsg(error));
   ids.forEach(id => { const q = QS.list.find(x => x.id === id); if (q) q.level = t.dataset.v; }); QS.sel.clear(); toast('تم تغيير المستوى'); renderQuestions(); };
-ACTS['t-q-bulk-del'] = async () => { const ids = [...QS.sel]; closeModals();
-  if (!await ask(`حذف ${ids.length} سؤالاً نهائياً؟`)) return;
-  const { error } = await sb.from('questions').delete().in('id', ids); if (error) return toast(errMsg(error));
+ACTS['t-q-bulk-unpick'] = async () => { const P = QS.pick || new Set(), pk = [...QS.sel].filter(id => P.has(id)), own = [...QS.sel].filter(id => !P.has(id));
+  if (!await ask(`إزالة ${pk.length} سؤالاً جاهزاً من أسئلتك؟ لن تظهر لطلبتك، وتبقى في الأسئلة الجاهزة إذا احتجتها.${own.length ? `\n\n(${own.length} من أسئلتك الخاصة المحددة لن تتأثر)` : ''}`, { title: 'إزالة من أسئلتي؟', ok: 'إزالة', danger: true, safe: true })) return;
+  if (await qPickSet(pk, false)) { pk.forEach(id => QS.sel.delete(id)); if (!QS.sel.size) QS.selOn = false; toast(`أُزيل ${pk.length} سؤالاً من أسئلتك`); renderQuestions(); } };
+ACTS['t-q-bulk-del'] = async () => { const P = QS.pick || new Set(), pk = [...QS.sel].filter(id => P.has(id)), ids = [...QS.sel].filter(id => !P.has(id)); closeModals();
+  if (!await ask(`حذف ${ids.length} سؤالاً نهائياً؟${pk.length ? ` و${pk.length} سؤالاً جاهزاً ستُزال من أسئلتك فقط.` : ''}`)) return;
+  if (pk.length && !await qPickSet(pk, false)) return;
+  const { error } = ids.length ? await sb.from('questions').delete().in('id', ids) : {}; if (error) return toast(errMsg(error));
   QS.sel.clear(); QS.selOn = false; await tQuestions(); };
 
 /* public bank */
