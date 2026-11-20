@@ -685,17 +685,15 @@ function showQuestion(st){
   for (let i = 1; i <= st.total; i++) dots += '<span class="dot' + (i < st.position ? ' done' : i === st.position ? ' cur' : '') + '"></span>';
   const long = q.options.some(o => String(o).length > 22);
   $app.innerHTML =
-    '<div class="play pv pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
+    '<div class="play pv pvx">' +
     '<div class="play-top"><button class="icon-btn pv-btn" data-act="s-quit" aria-label="الخروج للرئيسية">' + ic('home') + '</button>' +
     '<div class="pv-head"><b class="pv-pill">السؤال ' + st.position + ' من ' + st.total + '</b><div class="dots">' + dots + '</div>' +
     (st.kind === 'practice' ? '<span class="pv-kind">تدريب</span>' : '') + '</div>' +
     '<button class="icon-btn pv-btn pv-snd" data-act="s-sound" aria-label="الصوت">' + ic(FX.on() ? 'sound' : 'mute') + '</button></div>' +
-    '<div class="pv-clock">' + (th === 'kids' ? PV_GLASS : '') +
-    '<div class="timer' + (st.position === st.total ? ' last' : '') + '" id="timer"><div class="tfill" id="tfill"></div><svg viewBox="0 0 116 116" aria-hidden="true"><circle class="bg" cx="58" cy="58" r="48"/><circle class="fg" id="tfg" cx="58" cy="58" r="48" stroke-dasharray="301.6" stroke-dashoffset="0"/></svg>' +
-    '<div class="num"><span id="tnum">' + Math.ceil(st.seconds_left) + '</span><small>ثانية</small></div></div></div>' +
+    '<div class="pvx-tm' + (st.position === st.total ? ' last' : '') + '" id="timer"><i id="tfill" hidden></i><div class="pvx-bar"><i id="tfg"></i></div><span><b id="tnum">' + Math.ceil(st.seconds_left) + '</b> ثانية</span></div>' +
     '<div class="pv-panel"><div class="qbox' + (q.image ? ' has-img' : '') + '">' + (q.image ? '<img class="q-img" src="' + esc(q.image) + '" alt="' + esc(q.image_alt || 'صورة مرفقة بالسؤال') + '">' : '') + '<span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
     (isOrd ? '<div class="ord-hint">اضغطها بالترتيب ١ ← ' + ['', '', '', '٣', '٤'][q.options.length] + '</div>' : '') +
-    '<div class="opts kc' + (long ? ' long' : '') + (q.options.length === 2 ? ' tf' : '') + (isOrd ? ' ord' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="' + (isOrd ? 's-ord' : 's-answer') + '" data-idx="' + i + '"><span class="letter shp" aria-hidden="true">' + (isOrd ? '' : q.options.length === 2 ? ['✓', '✗'][i] : SHAPES[i]) + '</span><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
+    '<div class="opts kc' + (long ? ' long' : '') + (q.options.length === 2 ? ' tf' : '') + (isOrd ? ' ord' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="' + (isOrd ? 's-ord' : 's-answer') + '" data-idx="' + i + '">' + (isOrd || q.options.length === 2 ? '<span class="letter shp" aria-hidden="true">' + (isOrd ? '' : ['✓', '✗'][i]) + '</span>' : '') + '<span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
   runTimer(st.seconds_left);
 }
 function runTimer(secs){
@@ -717,8 +715,8 @@ function runTimer(secs){
       }
     }
     if (last && left <= 5) fill.style.transform = `scale(${Math.min(1, (5 - left) / 5)})`;
-    fg.style.strokeDashoffset = String(301.6 * (1 - left / total));
-    fg.style.stroke = left <= 5 ? '#E5484D' : '';
+    if (fg.tagName === 'circle') { fg.style.strokeDashoffset = String(301.6 * (1 - left / total)); fg.style.stroke = left <= 5 ? '#E5484D' : ''; }
+    else { fg.style.width = Math.min(100, left / total * 100) + '%'; fg.classList.toggle('hurry', left <= 5); }
     if (left <= 0) { stopTimer(); document.body.classList.remove('danger'); if (!S.locked) { S.locked = true; submit(null); } return; }
     state.raf = requestAnimationFrame(tick);
   };
@@ -2220,7 +2218,7 @@ function compForm(){
       <div class="set-grp cf3">
         <button type="button" class="cf3-r" data-act="cf3-diff"><span class="grow">الصعوبة</span><b id="cf3-dv"></b><i>‹</i></button>
         <button type="button" class="cf3-r" data-act="cf3-qt"><span class="grow">أنواع الأسئلة</span><b id="cf3-tv"></b><i>‹</i></button>
-        <button type="button" class="cf3-r" data-act="cf3-style"><span class="grow">شكل شاشة الطالب</span><b id="cf3-yv"></b><i>‹</i></button>
+        <button type="button" class="cf3-r" data-act="cf-preview"><span class="grow">🎮 جرّب كطالب</span><i>‹</i></button>
       </div>
       <div class="set-f">كل جولة: 4 أسئلة × 15 ثانية. جولة رسمية يومياً، والتدريب مفتوح.</div>
     </details>
@@ -2257,7 +2255,7 @@ function compEditForm(v){
       <div class="set-grp cf3">
         <button type="button" class="cf3-r" data-act="cf3-diff"><span class="grow">الصعوبة</span><b id="cf3-dv"></b><i>‹</i></button>
         <button type="button" class="cf3-r" data-act="cf3-qt"><span class="grow">أنواع الأسئلة</span><b id="cf3-tv"></b><i>‹</i></button>
-        <button type="button" class="cf3-r" data-act="cf3-style"><span class="grow">شكل شاشة الطالب</span><b id="cf3-yv"></b><i>‹</i></button>
+        <button type="button" class="cf3-r" data-act="cf-preview"><span class="grow">🎮 جرّب كطالب</span><i>‹</i></button>
       </div>
       <button type="button" class="btn" data-act="ce-close">تم</button></div></div>
   </form>`;
