@@ -1976,8 +1976,9 @@ function qForm(q){
     <div class="field"><label for="q-b">نص السؤال</label><textarea class="input" id="q-b" name="body" rows="2" required maxlength="300" placeholder="اكتب السؤال هنا">${esc(q.body)}</textarea>
       <small id="q-dupw" class="q-dupw hide">هذا السؤال موجود في البنك، ولن يُحفظ مكرراً.</small></div>
     <div class="field"><input type="hidden" name="image" value="${esc(q.image || '')}"><div class="q-imgf" id="q-imgf">${qImgField(q.image)}</div><input type="file" id="qf-file" accept="image/*" class="hide" data-change="qf-img-chosen"></div>
-    <div class="field"><label>الخيارات <small class="muted">اضغط الدائرة بجانب الإجابة الصحيحة</small></label><input type="hidden" name="correct" value="${q.correct_index}">
-    ${[0, 1, 2, 3].map(i => `<div class="qo${q.correct_index === i ? ' on' : ''}"><button type="button" class="qo-c" data-act="qf-c" data-i="${i}" aria-label="الإجابة الصحيحة ${LETTERS[i]}">${ic('check')}</button><input class="input" name="o${i}" value="${esc(q.options[i])}" required maxlength="100" placeholder="${i === q.correct_index ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[i]}"></div>`).join('')}</div>
+    <div class="field"><label class="qf-ol">الخيارات <small class="muted">اكتب الصحيحة واضغط دائرتها، والباقي نقترحه لك</small></label><input type="hidden" name="correct" value="${q.correct_index}">
+    ${[0, 1, 2, 3].map(i => `<div class="qo${q.correct_index === i ? ' on' : ''}"><button type="button" class="qo-c" data-act="qf-c" data-i="${i}" aria-label="الإجابة الصحيحة ${LETTERS[i]}">${ic('check')}</button><input class="input" name="o${i}" value="${esc(q.options[i])}" required maxlength="100" placeholder="${i === q.correct_index ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[i]}"></div>`).join('')}
+    <button type="button" class="qf-sug" data-act="qf-sug">✨ اقترح إجابات خاطئة</button><small class="qf-sugn hide" id="qf-sugn">اقتراحات تلقائية، عدّلها إذا تحتاج.</small></div>
     <div class="field"><label>المستوى</label>${seg('level', q.level, LEVEL_AR)}</div>
     <div class="field"><label>النوع</label>${seg('qtype', q.qtype, TYPE_AR)}</div>
     <div class="field ${q.qtype === 'curriculum' ? '' : 'hide'}" id="q-cuf"><label for="q-cu">المنهج</label><select class="input" id="q-cu" name="cu" data-change="qf-cu">${cuOptions(q.curriculum_id || '')}</select>
@@ -1992,6 +1993,60 @@ function qLessonOpts(cu){ return qLessons(cu).map(l => `<option value="${esc(l)}
 ACTS['qf-cu'] = t => { const d = document.getElementById('q-lsd'); if (d) d.innerHTML = qLessonOpts(t.value); };
 ACTS['qf-c'] = t => { const f = t.closest('form'), i = Number(t.dataset.i); f.correct.value = i;
   f.querySelectorAll('.qo').forEach((r, j) => { r.classList.toggle('on', j === i); r.querySelector('input').placeholder = j === i ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[j]; }); };
+/* suggest wrong answers without AI: nearby numbers, true/false, or answers of similar questions in the bank */
+const QSTOP = new Set(['ما', 'من', 'هو', 'هي', 'في', 'كم', 'متى', 'اين', 'أين', 'هل', 'ماذا', 'لماذا', 'كيف', 'اي', 'أي', 'الى', 'على', 'عن', 'يسمى', 'تسمى', 'the', 'what', 'is', 'of', 'a']);
+function qSuggest(body, ans, n){
+  n = n || 3; ans = String(ans || '').trim(); if (!ans) return [];
+  const ar = /[٠-٩]/.test(ans), toW = x => x.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)), toA = x => ar ? String(x).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]) : String(x);
+  const shuf = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+  const m = toW(ans).match(/^(-?\d+(?:[.,]\d+)?)\s*(.*)$/);
+  if (m) { // number, maybe with a unit
+    const dec = (m[1].split(/[.,]/)[1] || '').length, v = Number(m[1].replace(',', '.')), u = m[2] ? ' ' + m[2] : '', st = dec ? Math.pow(10, -dec) : 1;
+    const year = !dec && v >= 1000 && v <= 2100;
+    let pool = year ? [1, -1, 2, -2, 3, -3, 5, -5, 10, -10].map(d => v + d) : [v + st, v - st, v + 2 * st, v - 2 * st, v + 10 * st, v - 10 * st, v * 2, v / 2];
+    if (!dec && v >= 10) { const r = Number(String(Math.abs(v)).split('').reverse().join('')) * Math.sign(v); pool.unshift(r); }
+    pool = [...new Set(pool.map(x => Number(x.toFixed(dec))))].filter(x => x !== v && (v < 0 || x >= 0) && (dec || Number.isInteger(x)));
+    const near = shuf(pool.slice(0, 5)), far = shuf(pool.slice(5));
+    return near.slice(0, 2).concat(far, near.slice(2)).slice(0, n).map(x => toA(dec ? x.toFixed(dec) : x) + u);
+  }
+  const tf = { 'صح': 'خطأ', 'خطأ': 'صح', 'خطا': 'صح', 'نعم': 'لا', 'لا': 'نعم', 'صحيح': 'خطأ', 'true': 'false', 'false': 'true' };
+  if (tf[ans.toLowerCase()]) return [tf[ans.toLowerCase()]];
+  // similar questions: share the opening words and other key words
+  const toks = t => qNorm(t).split(' ').filter(w => w.length > 1);
+  const qt = toks(body), key = qt.filter(w => !QSTOP.has(w)), head = qt.slice(0, 2).join(' ');
+  const an = qNorm(ans), aw = an.split(' ').length;
+  const score = new Map();
+  QS.list.concat(QS.glob).forEach(q => {
+    if (!q.options || q.options.length < 2) return;
+    const t = toks(q.body), k2 = new Set(t.filter(w => !QSTOP.has(w)));
+    let sc = key.filter(w => k2.has(w)).length * 2 + (head && t.slice(0, 2).join(' ') === head ? 3 : 0);
+    if (sc < 3) return;
+    q.options.forEach((o, i) => { const on = qNorm(o); if (!on || on === an || key.includes(on)) return;
+      const w = Math.abs(on.split(' ').length - aw) <= 1 ? 1 : 0.4, v = sc * w * (i === q.correct_index ? 1.5 : 1);
+      if ((score.get(o.trim()) || 0) < v) score.set(o.trim(), v); });
+  });
+  const ranked = [...score.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  const seen = new Set([an]); const out = [];
+  shuf(ranked.slice(0, n + 3)).concat(ranked).forEach(o => { const k = qNorm(o); if (out.length < n && !seen.has(k)) { seen.add(k); out.push(o); } });
+  return out;
+}
+function qfFillSug(f, force){
+  const ci = Number(f.correct.value), ans = f['o' + ci].value, slots = [0, 1, 2, 3].filter(i => i !== ci && (force ? (!f['o' + i].value.trim() || f['o' + i].dataset.sug) : !f['o' + i].value.trim()));
+  if (!slots.length) return force ? toast('امسح خانة لنقترح فيها') : 0;
+  const sug = qSuggest(f.body.value, ans, slots.length);
+  if (!sug.length) return force ? toast(ans.trim() ? 'ما لقيت اقتراحات مناسبة، اكتبها بنفسك' : 'اكتب الإجابة الصحيحة أولاً') : 0;
+  sug.forEach((v, k) => { const el = f['o' + slots[k]]; el.value = v; el.dataset.sug = '1'; el.classList.add('sug'); });
+  const nt = document.getElementById('qf-sugn'); if (nt) nt.classList.remove('hide');
+  return sug.length;
+}
+ACTS['qf-sug'] = t => { const f = t.closest('form'); [0, 1, 2, 3].forEach(i => { const el = f['o' + i]; if (el.dataset.sug) el.value = ''; }); qfFillSug(f, true); };
+document.addEventListener('focusin', e => { const el = e.target; if (el.dataset && el.dataset.sug && el.closest('.qf .qo')) setTimeout(() => el.select(), 0); });
+document.addEventListener('change', e => {
+  const el = e.target; if (!el.closest || !el.closest('.qf .qo')) return;
+  const f = el.form; if (!f || !f.correct) return;
+  if (el.name === 'o' + f.correct.value) { if (el.value.trim()) qfFillSug(f, false); }
+  else { delete el.dataset.sug; el.classList.remove('sug'); }
+});
 function qImgField(url){ return url ? `<img src="${esc(url)}" alt=""><div class="q-imgb"><button type="button" class="btn sm soft" data-act="qf-img">تغيير الصورة</button><button type="button" class="btn sm ghost" data-act="qf-img-x">إزالة</button></div>`
   : `<button type="button" class="q-imgadd" data-act="qf-img">${ic('image')}<span>إضافة صورة للسؤال <small>(اختياري)</small></span></button>`; }
 ACTS['qf-img'] = () => document.getElementById('qf-file').click();
@@ -2032,7 +2087,7 @@ ACTS['t-save-q'] = async f => {
   if (QS.ocrQ && QS.ocrQ.total && !f.id.value) { QS.ocrQ.saved++; return qOcrNext(); }
   if (next) {
     f.image.value = ''; document.getElementById('q-imgf').innerHTML = qImgField('');
-    f.body.value = ''; [0, 1, 2, 3].forEach(i => { f['o' + i].value = ''; }); ACTS['qf-c'](f.querySelector('[data-i="0"]'));
+    f.body.value = ''; [0, 1, 2, 3].forEach(i => { const el = f['o' + i]; el.value = ''; delete el.dataset.sug; el.classList.remove('sug'); }); const sn = document.getElementById('qf-sugn'); if (sn) sn.classList.add('hide'); ACTS['qf-c'](f.querySelector('[data-i="0"]'));
     const w = document.getElementById('q-dupw'); if (w) w.classList.add('hide');
     f.body.focus(); toast(`تم الحفظ. أسئلتك المعتمدة: ${QS.list.filter(q => q.status === 'approved').length}`);
     const d = document.getElementById('q-lsd'); if (d) d.innerHTML = qLessonOpts(f.cu.value);
