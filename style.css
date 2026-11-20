@@ -2011,3 +2011,13 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
 .nw-lr{display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--line);font-weight:700}.nw-lr:last-child{border-bottom:0}
 .nw-lr span{font-size:12px;font-weight:800;background:#F5A524;color:#3A2600;border-radius:99px;padding:1px 8px}
 .nw-wait{color:var(--muted);font-weight:600;justify-content:center}
+/* tab bar v88: like the redesign preview (solid card, colour emoji, no lens) */
+.t-nav{background:var(--card,#fff)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:0!important;border-radius:26px!important;padding:8px 6px!important;box-shadow:0 6px 24px rgba(0,0,0,.12)!important;align-items:end}
+.t-nav .lens{display:none!important}
+.t-nav a{font-size:12px!important;font-weight:700!important;color:var(--muted)!important;gap:2px!important;padding:4px 0!important}
+.t-nav a.on{color:var(--primary)!important}
+.t-nav a.on .ico,.t-nav a.hover .ico{transform:none}
+.nav-emo{font-size:22px;line-height:24px;height:24px;display:block}
+.t-nav a.on .nav-emo{transform:scale(1.12)}
+.t-nav a.t-plus .plus-ic{width:56px;height:56px;margin-top:-28px;box-shadow:0 6px 14px color-mix(in srgb,var(--primary) 35%,transparent)!important}
+.t-nav a.t-plus .plus-ic .ico{width:30px;height:30px}

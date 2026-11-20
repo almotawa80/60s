@@ -723,7 +723,8 @@ const STYLE_AR = { kids: 'مرح · ابتدائي', mid: 'مرح قليلاً �
 const STYLE_SW = { kids: 'linear-gradient(135deg,#FFD9B0,#E3262F)', mid: 'linear-gradient(135deg,#C8102E,#F5B72B)', uni: 'linear-gradient(135deg,#FAF6F3,#7A1220)' };
 const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png" alt=""></div>';
 const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['new', 'تحدي', 'plus'], ['questions', 'الأسئلة', 'help'], ['join', 'انضم', 'join']];
-const navIc = n => n[0] === 'join' ? '<span class="join-ic" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' : n[0] === 'new' ? `<span class="plus-ic">${ic('plus')}</span>` : ic(n[2]);
+const NAV_EMO = { home:'🏠', classes:'👥', questions:'❓' };
+const navIc = n => NAV_EMO[n[0]] ? `<span class="nav-emo" aria-hidden="true">${NAV_EMO[n[0]]}</span>` : n[0] === 'join' ? '<span class="join-ic" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' : n[0] === 'new' ? `<span class="plus-ic">${ic('plus')}</span>` : ic(n[2]);
 
 function shell(title, body, active, top, back){
   return `<div class="t-top"><div class="brand">${back ? `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>` : LOGO_S}<span class="t-title">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
