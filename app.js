@@ -131,11 +131,14 @@ function ask(msg, o){
     const inp = el.querySelector('.dlg-in'), ok = el.querySelector('[data-r="1"]');
     const need = o.require;
     if (need) { ok.disabled = true; inp.addEventListener('input', () => { ok.disabled = inp.value.trim() !== need; }); }
-    const done = v => { el.classList.add('out'); setTimeout(() => el.remove(), 160); res(v); };
+    let done = v => { el.classList.add('out'); setTimeout(() => el.remove(), 160); res(v); };
     el.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) done(b.dataset.r === '1' ? (inp && !o.readonly ? inp.value : true) : (inp && !o.readonly ? null : false)); else if (e.target === el && !o.alert) done(inp && !o.readonly ? null : false); });
     if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !ok.disabled) ok.click(); });
     document.body.appendChild(el);
-    setTimeout(() => { if (inp) { inp.focus(); if (o.readonly) inp.select(); } else ok.focus(); }, 60);
+    const opener = document.activeElement;
+    el.addEventListener('keydown', e => { if (e.key === 'Escape' && !o.alert) { e.stopPropagation(); done(inp && !o.readonly ? null : false); } });
+    const done0 = done; done = v => { done0(v); if (opener && opener.focus && document.contains(opener)) try { opener.focus(); } catch(_){} };
+    setTimeout(() => { if (inp) { inp.focus(); if (o.readonly) inp.select(); } else (o.safe ? el.querySelector('[data-r="0"]') || ok : ok).focus(); }, 60);
   });
 }
 const copyBox = (v, title) => ask('اضغط مطولاً على الرابط لنسخه', { title: title || 'نسخ', input: v, readonly: true, alert: true, ok: 'تم', dir: 'ltr' });
@@ -203,17 +206,22 @@ ACTS['s-login'] = async () => {
   const inp = document.getElementById('code');
   const box = document.getElementById('lerr');
   if (!inp || inp.value.length < 6) { box.innerHTML = '<div class="err">اكتب الرمز كاملاً (6 خانات)</div>'; return; }
+  if (S.logging === inp.value) return;
   box.innerHTML = '';
+  const code = inp.value, btn = $app.querySelector('[data-act="s-login"]'), lbl = btn && btn.textContent;
+  S.logging = code; if (btn) { btn.setAttribute('aria-busy', 'true'); btn.textContent = 'جارٍ التحقق…'; }
   try {
-    const r = await rpc('student_login', { p_code: inp.value });
-    S.token = r.token; LS.set('mc_token', r.token); LS.set('mc_code', inp.value);
+    const r = await rpc('student_login', { p_code: code });
+    if (!document.getElementById('code')) return; // left the login screen meanwhile
+    S.token = r.token; LS.set('mc_token', r.token); LS.set('mc_code', code);
     loadHome();
-  } catch(e){ box.innerHTML = '<div class="err">' + esc(errMsg(e)) + '</div>'; }
+  } catch(e){ const b2 = document.getElementById('lerr'); if (b2) b2.innerHTML = '<div class="err" role="alert">' + esc(errMsg(e)) + '</div>'; }
+  finally { S.logging = null; if (btn && document.contains(btn)) { btn.removeAttribute('aria-busy'); btn.textContent = lbl; } }
 };
 ACTS['s-logout'] = () => { LS.del('mc_token'); try { sessionStorage.removeItem('mc_token'); } catch(e){} S.token = null; S.home = null; studentLogin(); };
 
 async function loadHome(){
-  stopTimer();
+  stopTimer(); S.gen = (S.gen || 0) + 1; clearTimeout(S.nextT); S.cur = null;
   document.body.classList.remove('wide');
   $app.innerHTML = '<div class="spin"></div>';
   try { S.home = await rpc('student_home', { p_token: S.token }); }
@@ -286,7 +294,9 @@ function renderHome(){
 }
 /* knockout bracket (one head-to-head round per day after the points phase) + honor board */
 async function loadKo(){
-  let b; try { b = await rpc('student_bracket', { p_token: S.token }); } catch(e){ return; }
+  const el0 = document.getElementById('ko'); if (el0) el0.innerHTML = '<div class="ko-load" role="status"><div class="spin sm"></div><span>جارٍ تحميل التصفيات…</span></div>';
+  let b; try { b = await rpc('student_bracket', { p_token: S.token }); }
+  catch(e){ const e2 = document.getElementById('ko'); if (e2) e2.innerHTML = '<div class="ko-load" role="alert"><span>تعذّر تحميل التصفيات. تأكد من الاتصال.</span><button class="btn soft" data-act="s-ko-retry">إعادة المحاولة</button></div>'; return; }
   const el = document.getElementById('ko'); if (!el || !b) return;
   let top = '';
   if (b.my_match && S.home.phase === 'knockout') top = b.my_match.played
@@ -294,6 +304,7 @@ async function loadKo(){
     : '<div class="ko-me">مواجهتك اليوم ضد <b>' + esc(b.my_match.opponent || '—') + '</b></div><button class="btn accent" data-act="s-start" data-kind="knockout">' + ic('play') + ' ابدأ المواجهة</button>';
   el.innerHTML = top + bracketHtml(b, b.me) + honorHtml(b);
 }
+ACTS['s-ko-retry'] = () => loadKo();
 function bracketHtml(b, me){
   if (!b || !b.size) return '<p class="muted center ko-none">لا توجد تصفيات: تحتاج طالبين على الأقل لديهم نقاط.</p>';
   const p = (x, w, m) => { if (!x || !x.id) return '<div class="ko-p tbd">بانتظار الفائز</div>';
@@ -504,17 +515,23 @@ function demoSubmit(idx){
 /* ---- play ---- */
 function stopTimer(){ document.body.classList.remove('danger'); if (S.timer) { cancelAnimationFrame(S.timer.raf); S.timer = null; } }
 ACTS['s-start'] = async (t) => {
+  if (S.starting) return;
   S.log = [];
   if (S.demo) return demoQ(1);
+  const lbl = t.innerHTML, gen = S.gen = (S.gen || 0) + 1;
+  S.starting = true; t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحضير…';
   try {
     const st = await rpc('start_attempt', { p_token: S.token, p_kind: t.dataset.kind });
+    if (S.gen !== gen) return;
     if (st.finished) { toast('أنهيت هذه الجولة'); return loadHome(); }
     showQuestion(st);
   } catch(e){
+    if (S.gen !== gen) return;
+    if (document.contains(t)) { t.removeAttribute('aria-busy'); t.innerHTML = lbl; }
     toast(errMsg(e));
     if (String(e.message || '').includes('invalid_session')) ACTS['s-logout']();
     else if (/already_played|official_not_open/.test(String(e.message || ''))) loadHome();
-  }
+  } finally { S.starting = false; }
 };
 /* themed backdrops for the question screen (kids / mid / uni) */
 const PV_BG = {
@@ -540,6 +557,7 @@ const PV_GLASS = '<svg class="pv-glass" viewBox="0 0 140 170" aria-hidden="true"
   '<svg class="pv-star s2" viewBox="0 0 24 24"><path d="M12 2l3 6.6 7 .8-5.2 4.8 1.5 7L12 17.6 5.7 21.2l1.5-7L2 9.4l7-.8z"/></svg>';
 function showQuestion(st){
   stopTimer();
+  S.gen = (S.gen || 0) + 1; clearTimeout(S.nextT);
   S.cur = st; S.locked = false;
   const q = st.question, th = document.body.dataset.theme || 'mid';
   let dots = '';
@@ -587,14 +605,18 @@ function runTimer(secs){
 ACTS['s-answer'] = (t) => { if (S.locked) return; S.locked = true; stopTimer(); submit(Number(t.dataset.idx)); };
 ACTS['s-quit'] = async () => {
   if (S.demo) { stopTimer(); return renderHome(); }
-  if (!await ask('هل تريد الخروج؟ الأسئلة المتبقية ستُحتسب بلا نقاط عند انتهاء وقتها.')) return;
+  if (!await ask('الأسئلة المتبقية ستُحتسب بلا نقاط عند انتهاء وقتها.', { title: 'الخروج من الجولة؟', ok: 'خروج', cancel: 'أكمل الجولة', danger: true, safe: true })) return;
   stopTimer(); loadHome();
 };
 async function submit(idx){
   if (S.demo) return demoSubmit(idx);
-  const st = S.cur;
+  const st = S.cur, gen = S.gen;
+  if (!st) return;
+  const pop0 = document.getElementById('pop'); if (pop0) { pop0.className = 'pts-pop wait'; pop0.textContent = 'جارٍ تسجيل الإجابة…'; }
+  $app.querySelectorAll('.opt').forEach(b => { b.disabled = true; });
   try {
     const res = await rpc('submit_answer', { p_token: S.token, p_attempt: st.attempt_id, p_position: st.position, p_chosen: idx });
+    if (S.gen !== gen || S.cur !== st) return; // left the question meanwhile
     const r = res.result, ci = r.correct_index != null ? r.correct_index : (r.correct ? idx : null);
     (S.log = S.log || []).push({ q: st.question.body, o: st.question.options, c: ci, x: idx, ok: !!r.correct });
     const btns = $app.querySelectorAll('.opt');
@@ -610,17 +632,21 @@ async function submit(idx){
       pop.className = 'pts-pop ' + (r.correct ? 'good' : 'bad');
       pop.textContent = r.correct ? '+' + r.points + ' نقطة' : (idx == null || r.timeout ? 'انتهى الوقت' : 'إجابة غير صحيحة');
     }
-    setTimeout(() => {
+    clearTimeout(S.nextT);
+    S.nextT = setTimeout(() => {
+      if (S.gen !== gen || S.cur !== st) return;
       if (res.next && res.next.finished) showResult(res.summary);
       else showQuestion(res.next);
     }, 1500);
   } catch(e){
+    if (S.gen !== gen || S.cur !== st) return;
     S.locked = false;
-    toast(errMsg(e));
+    toast('تعذّر تسجيل الإجابة. نتحقق من جولتك…');
     try {
       const nx = await rpc('resume_attempt', { p_token: S.token, p_attempt: st.attempt_id });
+      if (S.gen !== gen) return;
       if (nx.finished) loadHome(); else showQuestion(nx);
-    } catch(e2){ loadHome(); }
+    } catch(e2){ if (S.gen === gen) loadHome(); }
   }
 }
 function reviewHtml(){
@@ -629,12 +655,12 @@ function reviewHtml(){
     (x.ok ? '<div class="rv-a good">' + esc(x.o[x.c]) + '</div>' : (x.c != null ? '<div class="rv-a good">الصحيحة: ' + esc(x.o[x.c]) + '</div>' : '') + '<div class="rv-a bad">' + (x.x == null ? 'انتهى الوقت' : 'إجابتك: ' + esc(x.o[x.x])) + '</div>') + '</div></div>').join('') + '</div>';
 }
 async function showResult(sm){
-  stopTimer();
+  stopTimer(); S.gen = (S.gen || 0) + 1; S.cur = null;
   if (sm && Array.isArray(sm.review) && S.log) { const L = S.log.slice(-sm.review.length); sm.review.forEach((v, i) => { if (L[i] && L[i].c == null) L[i].c = v.c; }); }
   const cc = sm ? sm.correct_count : 0, lose = cc <= 1, win = cc >= 3, perfect = cc === 4;
   if (lose) await FX.explode();
   setTimeout(() => { if (win) FX.win(perfect); else if (!lose) FX.meh(); }, 250);
-  const head = perfect ? 'مثالي! 🏆' : win ? 'فوز رائع!' : lose ? 'انفجر الوقت! 💥' : 'أحسنت';
+  const head = perfect ? 'مثالي! 🏆' : win ? 'فوز رائع!' : lose ? 'انتهت الجولة' : 'أحسنت';
   const sub = perfect ? '4 من 4 — لا يُهزم!' : win ? 'أداء ممتاز، استمر!' : lose ? 'لا بأس، جرّب التدريب وعد أقوى' : 'قريب من القمة، حاول غداً';
   const stars = [0, 1, 2, 3].map(i => '<span class="star-s' + (i < cc ? ' on' : '') + '" style="animation-delay:' + (0.5 + i * 0.25) + 's">' + ic('star') + '</span>').join('');
   let rankRow = '';
@@ -928,9 +954,10 @@ async function tHome(){
   const classes = cl.data, compBy = {};
   cp.data.forEach(c => { if (!compBy[c.class_id]) compBy[c.class_id] = c; });
   if (!classes.length) { if (!W.step) W.step = 1; return renderWizard(); }
-  const results = await Promise.all(classes.map(c => rpc('teacher_class_results', { p_class: c.id }).catch(() => [])));
-  const stats = classes.map((c, i) => {
-    const rs = results[i], n = rs.length, comp = compBy[c.id], ph = phaseOf(comp);
+  const failed = new Set();
+  const results = await Promise.all(classes.map(c => rpc('teacher_class_results', { p_class: c.id }).catch(() => { failed.add(c.id); return []; })));
+  const stats = classes.filter(c => !failed.has(c.id)).map(c => {
+    const rs = results[classes.indexOf(c)], n = rs.length, comp = compBy[c.id], ph = phaseOf(comp);
     const played = rs.filter(r => r.played_today).length;
     const pts = rs.reduce((a, r) => a + (r.pts || 0), 0);
     const rounds = rs.reduce((a, r) => a + (r.rounds || 0), 0);
@@ -944,13 +971,15 @@ async function tHome(){
   const activeComps = stats.filter(s => s.ph === 'points' || s.ph === 'knockout').length;
 
   const kpi = (v, l, ic2) => `<div class="kpi"><div class="kpi-ic">${ic(ic2)}</div><b>${v}</b><span>${l}</span></div>`;
-  let html = `<div class="kpis kpis4">${kpi(total, 'الطلبة', 'user')}${kpi(total ? Math.round(playedToday * 100 / total) + '%' : '—', 'لعبوا اليوم', 'clock')}${kpi(acc == null ? '—' : acc + '%', 'دقة الإجابات', 'check')}${kpi(activeComps, 'مسابقات جارية', 'trophy')}</div>`;
+  let html = failed.size ? `<div class="rs-empty rs-fail" role="alert">${ic('clock')}<div><b>تعذّر تحميل نتائج ${failed.size === classes.length ? 'الصفوف' : failed.size + ' من ' + classes.length + ' صفوف'}</b><small>${failed.size === classes.length ? 'الأرقام أدناه غير متاحة الآن.' : 'الأرقام أدناه لا تشمل: ' + esc(classes.filter(c => failed.has(c.id)).map(c => c.name).join('، '))}</small></div><button class="btn sm soft" data-act="h-retry">إعادة المحاولة</button></div>` : '';
+  if (failed.size === classes.length) { view('مرحباً، ' + (T.name || ''), html, 'home'); return; }
+  html += `<div class="kpis kpis4">${kpi(total, 'الطلبة', 'user')}${kpi(total ? Math.round(playedToday * 100 / total) + '%' : '—', 'لعبوا اليوم', 'clock')}${kpi(acc == null ? '—' : acc + '%', 'دقة الإجابات', 'check')}${kpi(activeComps, 'مسابقات جارية', 'trophy')}</div>`;
 
   // alerts
   const alerts = stats.filter(s => s.ph === 'points' && s.n - s.played > 0);
   T.homeStats = stats;
   if (alerts.length) html += `<div class="card col today-card"><div class="row between"><b>${ic('clock')} اليوم: لم يلعبوا بعد</b><span class="chip warn">${alerts.reduce((a, s) => a + s.n - s.played, 0)}</span></div>` +
-    alerts.map(s => `<div class="row between today-row"><a class="grow dash-link" href="#/t/results/${s.c.id}"><b>${esc(s.c.name)}</b><div class="sub">${s.n - s.played} من ${s.n}: ${s.rs.filter(r => !r.played_today).slice(0, 4).map(r => esc(r.name.split(' ')[0])).join('، ')}${s.n - s.played > 4 ? '…' : ''}</div></a><button class="btn sm wa-btn" data-act="t-remind" data-c="${s.c.id}">${ic('send')} تذكير</button></div>`).join('') + `</div>`;
+    alerts.map(s => `<div class="row between today-row"><a class="grow dash-link" href="#/t/results/${s.c.id}" data-act="h-res-idle" data-c="${s.c.id}"><b>${esc(s.c.name)} · لعب ${s.played} من ${s.n} اليوم</b><div class="sub">لم يلعبوا اليوم ${s.n - s.played}: ${s.rs.filter(r => !r.played_today).slice(0, 4).map(r => esc(r.name.split(' ')[0])).join('، ')}${s.n - s.played > 4 ? '…' : ''}</div></a><button class="btn sm wa-btn" data-act="t-remind" data-c="${s.c.id}">${ic('send')} تذكير</button></div>`).join('') + `</div>`;
 
   // competitions timeline
   const comps = stats.filter(s => s.comp);
@@ -959,7 +988,7 @@ async function tHome(){
       const t = todayKW(), c = s.comp;
       const dl = Math.round((new Date(c.end_date) - new Date(t)) / 864e5);
       return `<a class="row between dash-link" href="#/t/results/${s.c.id}"><div><b>${esc(s.c.name)}</b><div class="sub">${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.end_date))}</div></div><span class="chip ${s.ph === 'points' ? 'good' : s.ph === 'knockout' ? 'warn' : ''}">${PHASE_AR[s.ph]}${dl >= 0 && s.ph !== 'finished' ? ' · ' + dl + ' يوم' : ''}</span></a>`;
-    }).join('') : '<p class="sub">لا توجد مسابقات. أنشئ مسابقة من باب المسابقات.</p>') + `</div>`;
+    }).join('') : '<p class="sub">لا توجد مسابقة جارية.</p><a class="btn" href="#/t/comps">' + ic('trophy') + ' إنشاء مسابقة</a>') + `</div>`;
   // needs attention
   const never = stats.filter(s => s.comp && s.ph !== 'upcoming' && s.never > 0);
   if (never.length) html += `<div class="card col"><b>${ic('user')} يحتاجون متابعة: لم يشاركوا أبداً</b>` +
@@ -968,6 +997,8 @@ async function tHome(){
 
   view('مرحباً، ' + (T.name || ''), html, 'home');
 }
+ACTS['h-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tHome().catch(e => { toast('ما زال التحميل متعذّراً. تأكد من الاتصال'); t.removeAttribute('aria-busy'); t.textContent = 'إعادة المحاولة'; }); };
+ACTS['h-res-idle'] = t => { RS.sort = 'idle'; RS.q = ''; location.hash = '#/t/results/' + t.dataset.c; };
 
 /* ---- quick-start wizard ---- */
 const STAGES = [['primary', 'ابتدائي', 'الصفوف 1–5', 'kids', 'star'], ['middle', 'متوسط', 'الصفوف 6–9', 'mid', 'layers'], ['secondary', 'ثانوي', 'الصفوف 10–12', 'mid', 'chart'], ['university', 'جامعة', 'طلبة الجامعة', 'uni', 'trophy']];
@@ -1058,22 +1089,31 @@ ACTS['w-finish'] = async t => {
   if (W.method === 'manual') plan.push({ name: W.cname, rows: W.names.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const p = l.split(/[،,\t]/); return { name: p[0].trim(), student_no: (p[1] || '').trim() }; }) });
   else if (W.method === 'file') Object.keys(W.multi).forEach(k => plan.push({ name: k, rows: W.multi[k] }));
   else W.self.split('\n').map(x => x.trim()).filter(Boolean).forEach(k => plan.push({ name: k, rows: [], self: true }));
-  const made = []; let added = 0; const gid = crypto.randomUUID();
+  /* resumable: a retry after a partial failure continues from what was already saved (no duplicate classes / students / competitions) */
+  const P = W.prog = W.prog || { gid: crypto.randomUUID(), by: {} };
+  const made = []; let added = 0; const gid = P.gid;
   try {
     for (const p of plan) {
-      const r = await sb.from('classes').insert(Object.assign({ name: p.name }, base)).select().single();
-      if (r.error) throw r.error;
-      const c = r.data;
-      for (let i = 0; i < p.rows.length; i += 150) { const x = await rpc('add_students', { p_class: c.id, p_rows: p.rows.slice(i, i + 150) }); added += x.added.length; }
-      if (p.self) c.join_code = await rpc('set_self_join', { p_class: c.id, p_on: true });
-      if (W.compNow) {
+      const g = P.by[p.name] = P.by[p.name] || { c: null, batches: 0, added: 0, self: false, comp: false };
+      if (!g.c) { const r = await sb.from('classes').insert(Object.assign({ name: p.name }, base)).select().single(); if (r.error) throw r.error; g.c = r.data; }
+      const c = g.c;
+      for (let i = g.batches * 150; i < p.rows.length; i += 150) { const x = await rpc('add_students', { p_class: c.id, p_rows: p.rows.slice(i, i + 150) }); g.added += x.added.length; g.batches++; }
+      added += g.added;
+      if (p.self && !g.self) { c.join_code = await rpc('set_self_join', { p_class: c.id, p_on: true }); g.self = true; }
+      if (W.compNow && !g.comp) {
         const pe = addDays(W.start, 4);
         const k = await sb.from('competitions').insert({ class_id: c.id, group_id: gid, qtypes: W.qtypes, difficulty: (T.settings || {}).difficulty || 'normal', title: 'مسابقة تحدّي الدقيقة', start_date: W.start, points_end_date: pe, end_date: addDays(pe, 3), group_size: 6, qualifiers: 8, round_window_hours: 24 });
         if (k.error) throw k.error;
+        g.comp = true;
       }
       made.push(c);
     }
-  } catch(e){ toast(errMsg(e)); t.disabled = false; t.textContent = 'إنشاء'; return; }
+  } catch(e){
+    const vals = Object.values(P.by), nc = vals.filter(g => g.c).length, ns = vals.reduce((a, g) => a + g.added, 0);
+    await ask((nc || ns ? `حُفظ حتى الآن: ${nc} صف${ns ? ' و' + ns + ' طالب/ـة' : ''}. ` : 'لم يُحفظ شيء بعد. ') + 'اضغط «إنشاء» مرة أخرى لإكمال الباقي دون تكرار ما حُفظ.\n\nالسبب: ' + errMsg(e), { title: 'لم يكتمل الإعداد', alert: true, ok: 'حسناً', danger: false });
+    t.disabled = false; t.textContent = 'إكمال الإنشاء'; return;
+  }
+  W.prog = null;
   const links = made.filter(c => c.join_code);
   view('تم الإعداد 🎉', `<div class="card col center"><div class="medal" style="width:96px;height:96px">${ic('check')}</div><b style="font-size:20px">جاهز!</b><p class="sub">أُنشئ ${made.length} صف${added ? ' وأُضيف ' + added + ' طالب/ـة' : ''}${W.compNow ? '، والمسابقة تبدأ ' + esc(fmtDate(W.start)) : ''}.</p></div>` +
     (links.length ? `<div class="card col"><b>روابط التسجيل الذاتي</b>${links.map(c => `<div class="col" style="gap:6px"><b>${esc(c.name)}</b><div class="join-box" dir="ltr">${esc(joinLink(c.join_code))}</div><button class="btn sm" data-act="copy" data-v="${esc(joinLink(c.join_code))}">نسخ الرابط</button></div>`).join('')}</div>` : '') +
@@ -1617,17 +1657,20 @@ ACTS['t-regen'] = async t => { ctx(t); closeModals();
 };
 function snack(msg, onUndo, onCommit){
   const old = document.getElementById('snack'); if (old && old._commit) old._commit();
-  const el = document.createElement('div'); el.id = 'snack'; el.className = 'snack'; el.innerHTML = `<span>${esc(msg)}</span><button type="button">تراجع</button>`;
+  const el = document.createElement('div'); el.id = 'snack'; el.className = 'snack'; el.setAttribute('role', 'status'); el.innerHTML = `<span>${esc(msg)}</span><button type="button">تراجع</button><i class="snack-bar" aria-hidden="true"></i>`;
   let done = false; const commit = () => { if (done) return; done = true; el.remove(); onCommit(); };
   el._commit = commit;
   el.querySelector('button').onclick = () => { if (done) return; done = true; el.remove(); onUndo(); };
   document.body.appendChild(el); setTimeout(commit, 5000);
 }
 window.addEventListener('pagehide', () => { const s2 = document.getElementById('snack'); if (s2 && s2._commit) s2._commit(); });
-ACTS['t-del-student'] = t => { const c = ctx(t); closeModals();
-  const arr = CL.students[c.id] || [], i = arr.findIndex(x => x.id === t.dataset.id); if (i < 0) return;
-  const [st] = arr.splice(i, 1); renderClasses();
-  snack(`تم حذف ${st.name}`, () => { arr.splice(i, 0, st); renderClasses(); }, async () => { const { error } = await sb.from('students').delete().eq('id', st.id); if (error) { toast(errMsg(error)); await tClasses(); } });
+ACTS['t-del-student'] = async t => { const c = ctx(t); closeModals();
+  const arr = CL.students[c.id] || [], st0 = arr.find(x => x.id === t.dataset.id); if (!st0) return;
+  if (!await ask(`سيُحذف «${st0.name}» من الصف مع كل نقاطه ونتائجه وجولاته، ولن يعمل رمز دخوله بعد الآن. لا يمكن التراجع عن ذلك.`, { title: 'حذف الطالب؟', ok: 'حذف الطالب', cancel: 'إلغاء', danger: true, safe: true })) return;
+  const { error } = await sb.from('students').delete().eq('id', st0.id);
+  if (error) return toast('تعذّر حذف ' + st0.name + '. تأكد من الاتصال وحاول مجدداً');
+  const i = arr.findIndex(x => x.id === st0.id); if (i >= 0) arr.splice(i, 1);
+  renderClasses(); toast('تم حذف ' + st0.name);
 };
 ACTS['t-export-codes'] = async t => { ctx(t); await XL();
   const rows = [['الاسم', 'رقم الطالب', 'الهاتف', 'الرمز']].concat(CK.students.map(s => [s.name, s.student_no, s.phone || '', s.code]));
@@ -1875,17 +1918,28 @@ ACTS['cp-save'] = async f => {
   const inGroup = isNew ? [] : CL.allComps.filter(c => c.group_id === gid);
   const moving = ids.filter(id => CL.comps[id] && CL.comps[id].group_id !== gid);
   if (moving.length && !await ask(`${moving.length} صف مشترك في مسابقة أخرى، سيتم إنهاؤها لهذه الصفوف. متابعة؟`)) return;
+  if (CC.saving) return; CC.saving = true;
+  const sbtn = f.querySelector('[type=submit]'), slbl = sbtn && sbtn.textContent; if (sbtn) { sbtn.setAttribute('aria-busy', 'true'); sbtn.textContent = 'جارٍ الحفظ…'; }
+  const movedIds = moving.map(id => CL.comps[id].id); let ended = false, step = '';
   try {
     const chk = r => { if (r.error) throw r.error; };
-    if (moving.length) chk(await sb.from('competitions').update({ status: 'finished' }).in('id', moving.map(id => CL.comps[id].id)));
     const keep = inGroup.filter(c => ids.includes(c.class_id)), drop = inGroup.filter(c => !ids.includes(c.class_id));
+    const add = ids.filter(id => !keep.some(c => c.class_id === id));
+    step = 'نقل الصفوف';
+    if (movedIds.length) { chk(await sb.from('competitions').update({ status: 'finished' }).in('id', movedIds)); ended = true; }
+    /* create the replacements before anything else changes; if this fails, the moved classes get their old competition back */
+    if (add.length) chk(await sb.from('competitions').insert(add.map(id => Object.assign({ class_id: id, group_id: gid }, p))));
+    ended = false;
+    step = 'حفظ الإعدادات';
     if (keep.length) chk(await sb.from('competitions').update(p).in('id', keep.map(c => c.id)));
     if (drop.length) chk(await sb.from('competitions').update({ status: 'finished' }).in('id', drop.map(c => c.id)));
-    const add = ids.filter(id => !keep.some(c => c.class_id === id));
-    if (add.length) chk(await sb.from('competitions').insert(add.map(id => Object.assign({ class_id: id, group_id: gid }, p))));
     chk(await sb.from('classes').update({ qtypes: CC.qtypes, style: CC.style || 'mid' }).in('id', ids));
     T.compEdit = null; toast('تم الحفظ'); await tClasses();
-  } catch(e){ toast(errMsg(e)); }
+  } catch(e){
+    let back = '';
+    if (ended) { const r = await sb.from('competitions').update({ status: 'active' }).in('id', movedIds); back = r.error ? ' تنبيه: لم تُستعد المسابقة السابقة لبعض الصفوف، راجعها من المسابقات.' : ' بقيت الصفوف في مسابقتها السابقة كما كانت.'; }
+    toast('تعذّر ' + step + '.' + back + ' حاول مجدداً');
+  } finally { CC.saving = false; if (sbtn && document.contains(sbtn)) { sbtn.removeAttribute('aria-busy'); sbtn.textContent = slbl; } }
 };
 
 /* ---- questions ---- */
@@ -1986,8 +2040,8 @@ ACTS['t-q-share1'] = t => qShareIds([t.dataset.id]);
 ACTS['t-q-del2'] = t => {
   const id = t.dataset.id, i = QS.list.findIndex(x => x.id === id); if (i < 0) return;
   const [q] = QS.list.splice(i, 1); QS.open = null; qDupIndex(); renderQuestions();
-  snack('تم حذف السؤال', () => { QS.list.splice(i, 0, q); qDupIndex(); renderQuestions(); },
-    async () => { const { error } = await sb.from('questions').delete().eq('id', id); if (error) { toast(errMsg(error)); await tQuestions(); } });
+  snack('سيُحذف السؤال خلال ثوانٍ', () => { QS.list.splice(i, 0, q); qDupIndex(); renderQuestions(); },
+    async () => { const { error } = await sb.from('questions').delete().eq('id', id); if (error) { toast('تعذّر حذف السؤال، أُعيد إلى القائمة'); await tQuestions(); } });
 };
 /* one plain sentence about the bank; details on tap */
 function qOk(){
@@ -2418,9 +2472,9 @@ function parsePasteQ(txt, level, qtype){
     c.err = p.length < 5 ? 'يحتاج السؤال والإجابة الصحيحة و3 خيارات خاطئة' : qCheck(c, seen); return c;
   });
 }
-ACTS['t-q-paste'] = () => { closeModals();
+ACTS['t-q-paste'] = t => { closeModals(); const keep = t && t.dataset && t.dataset.keep ? (QS.pasteText || '') : '';
   modal(`<h3>لصق أسئلة كنص</h3><p class="sub">كل سؤال في سطر: السؤال | الإجابة الصحيحة | خطأ | خطأ | خطأ</p>
-    <textarea class="input qp-ta" rows="7" dir="auto" placeholder="ما عاصمة الكويت؟ | مدينة الكويت | الجهراء | الأحمدي | الفروانية"></textarea>
+    <textarea class="input qp-ta" rows="7" dir="auto" placeholder="ما عاصمة الكويت؟ | مدينة الكويت | الجهراء | الأحمدي | الفروانية">${esc(keep)}</textarea>
     <div class="grid2"><select class="input" id="qp-lv">${Object.keys(LEVEL_AR).map(k => `<option value="${k}" ${k === 'medium' ? 'selected' : ''}>${LEVEL_AR[k]}</option>`).join('')}</select>
     <select class="input" id="qp-ty">${['curriculum', 'general', 'quick'].map(k => `<option value="${k}">${TYPE_AR[k]}</option>`).join('')}</select></div>
     <p class="sub" id="qp-info">ترتيب الخيارات يُخلط تلقائياً.</p>
@@ -2431,7 +2485,8 @@ function qPasteInfo(){ const ta = document.querySelector('.qp-ta'), el = documen
   const c = parsePasteQ(ta.value, 'medium', 'general'), ok = c.filter(x => !x.err).length;
   el.textContent = c.length ? `${ok} سؤالاً صالحاً${c.length - ok ? `، و${c.length - ok} سطراً فيه مشكلة` : ''}` : 'ترتيب الخيارات يُخلط تلقائياً.'; }
 ACTS['t-q-paste-go'] = () => {
-  const c = parsePasteQ(document.querySelector('.qp-ta').value, document.getElementById('qp-lv').value, document.getElementById('qp-ty').value);
+  QS.pasteText = document.querySelector('.qp-ta').value;
+  const c = parsePasteQ(QS.pasteText, document.getElementById('qp-lv').value, document.getElementById('qp-ty').value);
   if (!c.length) return toast('الصق الأسئلة أولاً');
   closeModals(); qPreview(c, 'لصق');
 };
@@ -2446,25 +2501,32 @@ ACTS['t-q-chosen'] = async t => {
 /* preview before inserting: valid / duplicates / errors with reasons */
 function qPreview(c, src){
   QS.pv = c;
-  const ok = c.filter(x => !x.err), bad = c.filter(x => x.err), dup = ok.filter(x => x.dup);
+  const ok = c.filter(x => !x.err), bad = c.filter(x => x.err), dup = ok.filter(x => x.dup), nNew = ok.length - dup.length;
   modal(`<h3>معاينة الأسئلة</h3><p class="sub">${esc(src)}</p>
     <div class="pv-sum"><span class="ok">${ok.length} صالح</span>${dup.length ? `<span class="warn">${dup.length} موجود مسبقاً</span>` : ''}${bad.length ? `<span class="bad">${bad.length} فيه مشكلة</span>` : ''}</div>
     ${bad.length ? `<div class="qpv-bad"><b>لن تُضاف هذه الأسطر:</b>${bad.slice(0, 30).map(x => `<div><em>سطر ${x.line}</em> ${esc(x.err)}${x.body ? `: <span>${esc(x.body.slice(0, 40))}</span>` : ''}</div>`).join('')}${bad.length > 30 ? `<div class="muted">و${bad.length - 30} أخرى</div>` : ''}</div>` : ''}
     <div class="qpv-list">${ok.slice(0, 40).map(x => `<div class="qpv${x.dup ? ' dup' : ''}"><b>${esc(x.body)}</b><small>${esc(x.options[x.correct_index])} · ${LEVEL_AR[x.level]}${x.dup ? ' · موجود مسبقاً' : ''}</small></div>`).join('')}${ok.length > 40 ? `<p class="muted center">و${ok.length - 40} سؤالاً آخر</p>` : ''}</div>
-    <label class="chk"><input type="checkbox" id="qpv-rev"> أريد مراجعتها قبل اعتمادها</label>
-    <button class="btn" data-act="t-q-pv-save" ${ok.length ? '' : 'disabled'}>إضافة الأسئلة</button>`);
+    <label class="chk"><input type="checkbox" id="qpv-rev"> أريد مراجعتها قبل إتاحتها في المسابقات</label>
+    ${nNew ? '' : `<p class="err" role="status">لا توجد أسئلة جديدة لإضافتها: ${dup.length ? 'كل الأسئلة الصالحة موجودة مسبقاً.' : 'صحّح الأسطر التي فيها مشكلة.'}</p>`}
+    <button class="btn" data-act="t-q-pv-save" ${nNew ? '' : 'disabled'}>${nNew ? `إضافة ${nNew} سؤالاً جديداً` : 'لا جديد لإضافته'}</button>
+    ${src === 'لصق' ? `<button class="btn soft" data-act="t-q-paste" data-keep="1">رجوع لتعديل النص</button>` : ''}`);
 }
 ACTS['t-q-pv-save'] = async t => {
   const skip = document.getElementById('qpv-skip'), rev = document.getElementById('qpv-rev');
-  const rows = QS.pv.filter(x => !x.err && !x.dup).map(x => ({ owner_id: T.user.id, qtype: x.qtype, level: x.level, body: x.body, options: x.options, correct_index: x.correct_index, status: rev && rev.checked ? 'draft' : 'approved', source: 'teacher', curriculum_id: x.qtype === 'curriculum' ? (T.qf.cu || null) : null }));
+  const src = QS.pv.filter(x => !x.err && !x.dup && !x.saved);
+  const rows = src.map(x => ({ owner_id: T.user.id, qtype: x.qtype, level: x.level, body: x.body, options: x.options, correct_index: x.correct_index, status: rev && rev.checked ? 'draft' : 'approved', source: 'teacher', curriculum_id: x.qtype === 'curriculum' ? (T.qf.cu || null) : null }));
   if (!rows.length) return toast('لا توجد أسئلة جديدة لإضافتها');
-  t.disabled = true;
+  t.disabled = true; t.textContent = 'جارٍ الحفظ…';
+  const before = QS.pv.filter(x => x.saved).length; let done = before;
   try {
-    for (let i = 0; i < rows.length; i += 100) { const { error } = await sb.from('questions').insert(rows.slice(i, i + 100)); if (error) throw error; }
+    /* batches that succeed are marked saved, so a retry sends only what is left */
+    for (let i = 0; i < rows.length; i += 100) { const { error } = await sb.from('questions').insert(rows.slice(i, i + 100)); if (error) throw error; src.slice(i, i + 100).forEach(x => { x.saved = true; }); done += Math.min(100, rows.length - i); }
     closeModals(); T.qf.status = rows[0].status;
-    toast(`تمت إضافة ${rows.length} سؤالاً` + (rows[0].status === 'draft' ? ' للمراجعة' : ''));
+    toast(`تمت إضافة ${done} سؤالاً` + (rows[0].status === 'draft' ? ' للمراجعة' : ''));
     await tQuestions();
-  } catch(e){ t.disabled = false; toast(errMsg(e)); }
+  } catch(e){ t.disabled = false; const left = QS.pv.filter(x => !x.err && !x.dup && !x.saved).length;
+    t.textContent = done ? `إكمال إضافة ${left} سؤالاً` : 'إعادة المحاولة';
+    toast(done ? `حُفظ ${done} سؤالاً وتعذّر الباقي (${left}). اضغط لإكمال الإضافة` : 'تعذّر حفظ الأسئلة. تأكد من الاتصال وحاول مجدداً'); }
 };
 
 /* share questions between teachers by a short code */
@@ -2642,7 +2704,7 @@ function namesFromOcr(text){
   return { rows: rows.filter(r => { const k = awNorm(r.name); if (seen.has(k)) return false; seen.add(k); return true; }), cls };
 }
 function awReview(rows, src){
-  AW.rows = rows.map(r => Object.assign({}, r)); AW.src = src; AW.rows.forEach(awFlag);
+  AW.rows = rows.map(r => Object.assign({}, r)); AW.src = src; AW.codes = []; AW.savedTo = null; AW.rows.forEach(awFlag);
   awRenderReview();
 }
 function awRenderReview(){
@@ -2687,13 +2749,19 @@ ACTS['aw-save'] = t => awSave(AW.pick, t);
 async function awSave(cid, btn){
   const c = CL.classes.find(x => x.id === cid); if (!c) return;
   const g = c.gender === 'm' || c.gender === 'f' ? c.gender : '';
-  const rows = AW.rows.filter(r => r.on && !r.where && r.name.length > 1).map(r => ({ name: r.name, student_no: r.student_no || '', gender: r.gender || g }));
+  if (AW.savedTo && AW.savedTo !== cid) { AW.rows.forEach(r => { r.saved = false; }); AW.codes = []; }
+  const src = AW.rows.filter(r => r.on && !r.where && !r.saved && r.name.length > 1);
+  const rows = src.map(r => ({ name: r.name, student_no: r.student_no || '', gender: r.gender || g }));
   const mv = AW.rows.filter(r => r.move && r.where && r.where.c.id !== cid).map(r => r.where.s.id);
   if (btn) { btn.disabled = true; btn.textContent = 'جارٍ الإضافة…'; }
+  AW.savedTo = cid; AW.codes = AW.codes || [];
+  const total = rows.length + AW.codes.length;
   try {
-    let codes = [];
-    for (let i = 0; i < rows.length; i += 150) { const r = await rpc('add_students', { p_class: cid, p_rows: rows.slice(i, i + 150) }); codes = codes.concat(r.added.map(x => x.code)); }
+    let codes = AW.codes;
+    /* each successful batch is marked saved, so a retry after a network error only sends what is left */
+    for (let i = 0; i < rows.length; i += 150) { const r = await rpc('add_students', { p_class: cid, p_rows: rows.slice(i, i + 150) }); codes = AW.codes = codes.concat(r.added.map(x => x.code)); src.slice(i, i + 150).forEach(x => { x.saved = true; }); }
     if (mv.length) { const { error } = await sb.from('students').update({ class_id: cid }).in('id', mv); if (error) throw error; }
+    AW.codes = []; AW.savedTo = null;
     closeModals(); AW.pick = null; AW.detect = null; AW.cid = null;
     CL.open.add(cid); CL.flash = { cid, n: codes.length + mv.length, added: true }; CL.tab = 'classes';
     if (location.hash !== '#/t/classes') location.hash = '#/t/classes'; else await tClasses();
@@ -2701,7 +2769,11 @@ async function awSave(cid, btn){
       const { error } = await sb.from('students').delete().eq('class_id', cid).in('code', codes);
       if (error) toast(errMsg(error)); CL.flash = null; await tClasses(); toast('تم التراجع');
     }, () => {});
-  } catch(e){ if (btn) { btn.disabled = false; btn.textContent = 'إضافة'; } toast(errMsg(e)); }
+  } catch(e){
+    const n = (AW.codes || []).length;
+    if (btn) { btn.disabled = false; btn.textContent = n ? 'إكمال الإضافة' : 'إضافة'; }
+    toast(n ? `أُضيف ${n} من ${total} طالباً. اضغط «إكمال الإضافة» لإضافة الباقي دون تكرار` : 'تعذّرت الإضافة: ' + errMsg(e));
+  }
 }
 ACTS['aw-self'] = () => { AW.pick = AW.cid || (CL.classes.length === 1 ? CL.classes[0].id : null); AW.detect = null; awPick(true); };
 ACTS['aw-self-go'] = async () => {
@@ -2741,7 +2813,8 @@ async function tResults(classId, compId){
   if (!classes.length) return location.replace('#/t/comps');
   const id = classId, pick = classes.filter(c => c.id === id);
   RS.title = comp ? comp.title : 'النتائج';
-  const res = await Promise.all(pick.map(c => (RS.comp ? rpc('teacher_comp_results', { p_class: c.id, p_comp: RS.comp }) : rpc('teacher_class_results', { p_class: c.id })).then(r => r.map(x => Object.assign({ cls: c.name }, x))).catch(() => [])));
+  RS.err = false; RS.args = [classId, compId];
+  const res = await Promise.all(pick.map(c => (RS.comp ? rpc('teacher_comp_results', { p_class: c.id, p_comp: RS.comp }) : rpc('teacher_class_results', { p_class: c.id })).then(r => r.map(x => Object.assign({ cls: c.name }, x))).catch(() => { RS.err = true; return []; })));
   RS.rows = res.flat(); RS.all = false; RS.id = id; RS.classes = classes;
   RS.name = (classes.find(c => c.id === id) || {}).name || '';
   RS.ko = null;
@@ -2777,15 +2850,20 @@ function renderResults(){
       ${r.played_today ? `<span class="rl-dot" title="لعب اليوم"></span>` : ''}
       <span class="rl-pts ${r.pts ? '' : 'z'}">${r.pts}</span></button>`; }).join('');
   const sum = `<div class="rs-sum"><div><b>${n}</b><span>طالب/ـة</span></div><div><b>${n ? Math.round(played * 100 / n) : 0}%</b><span>لعبوا اليوم</span></div><div><b>${avg}</b><span>متوسط النقاط</span></div><div><b>${tr ? Math.round(tc * 100 / (tr * 4)) + '%' : '—'}</b><span>الدقة</span></div></div>`;
+  if (RS.err) {
+    return view(RS.title || 'النتائج', chips + `<div class="rs-empty rs-fail" role="alert">${ic('clock')}<div><b>تعذّر تحميل النتائج</b><small>تأكد من الاتصال بالإنترنت ثم أعد المحاولة. لم يتغير شيء في بيانات الطلبة.</small></div></div><button class="btn" data-act="r-retry">إعادة المحاولة</button>`, 'comps', '', '#/t/comps');
+  }
   const ko = RS.ko ? `<div class="card col ko-card"><b>${ic('trophy')} التصفيات</b>${bracketHtml(RS.ko)}${honorHtml(RS.ko)}</div>` : '';
   const body = chips + sum + pod + ko +
-    (!any ? `<div class="rs-empty">${ic('clock')}<div><b>لم تبدأ الجولات بعد</b><small>تظهر النقاط والترتيب هنا بعد أول جولة رسمية.</small></div></div>` : '') +
+    (!n ? `<div class="rs-empty">${ic('users')}<div><b>لا يوجد طلبة في هذا الصف</b><small>أضف الطلبة من صفحة الصفوف، وستظهر نتائجهم هنا بعد أول جولة.</small></div></div><a class="btn soft" href="#/t/classes">إضافة طلبة</a>` :
+     !any ? `<div class="rs-empty">${ic('clock')}<div><b>لم يلعب أحد بعد</b><small>تظهر النقاط والترتيب هنا بعد أول جولة رسمية.</small></div></div>` : '') +
     `<div class="rs-search">${ic('search')}<input id="r-q" placeholder="بحث بالاسم أو الرقم" value="${esc(RS.q)}"></div>
      <div class="tabs rs-seg">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
-     <div class="rl-grp" id="r-list">${items || '<div class="set-row center muted">لا يوجد طلبة.</div>'}</div>
+     <div class="rl-grp" id="r-list">${items || (RS.q ? `<div class="set-row center muted">لا يوجد طالب يطابق «${esc(RS.q)}». جرّب جزءاً من الاسم أو رقم الطالب.</div>` : '<div class="set-row center muted">لا يوجد طلبة.</div>')}</div>
      <div class="set-f center">${list.length} من ${n} · النقطة الخضراء: لعب اليوم</div>`;
   view(RS.title || 'النتائج', body, 'comps', `<button class="icon-btn" data-act="r-msg-all" aria-label="رسالة للصف">${ic('mail')}</button><button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, '#/t/comps');
 }
+ACTS['r-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tResults.apply(null, RS.args || [RS.id, RS.comp]).catch(() => renderResults()); };
 ACTS['r-cls'] = t => go('#/t/results/' + t.dataset.id + (RS.comp ? '/' + RS.comp : ''));
 const rsRank = r => { const l = RS.rows.filter(x => x.cls === r.cls); return r.r || (l.slice().sort((x, y) => y.pts - x.pts).indexOf(r) + 1); };
 const rsStu = r => ({ id: r.id, name: r.name, pts: r.pts, rank: r.pts ? rsRank(r) : '—', cls: r.cls });
@@ -3260,7 +3338,11 @@ ACTS['mt-edit'] = t => {
 ACTS['mt-ins'] = t => { const ta = t.closest('form').querySelector('textarea'), p = ta.selectionStart || ta.value.length; ta.value = ta.value.slice(0, p) + t.dataset.v + ta.value.slice(p); ta.focus(); };
 async function saveTpl(k, list){ const all = Object.assign({}, (T.settings || {}).msg_tpl || {}); all[k] = list; await saveSettings({ msg_tpl: all }); }
 ACTS['mt-save'] = async f => { const k = f.dataset.k, i = Number(f.dataset.i), l = tplList(k).slice(), v = f.b.value.trim(); if (!v) return; if (i >= 0) l[i] = v; else l.push(v); await saveTpl(k, l); closeModals(); rerender(); };
-ACTS['mt-del'] = async t => { const k = t.dataset.k, l = tplList(k).slice(); l.splice(Number(t.dataset.i), 1); await saveTpl(k, l); closeModals(); rerender(); };
+ACTS['mt-del'] = async t => { const k = t.dataset.k, l = tplList(k).slice(), i = Number(t.dataset.i);
+  if (!await ask('سيُحذف هذا القالب من رسائلك الجاهزة. الرسائل المرسلة سابقاً لا تتأثر.', { title: 'حذف القالب؟', ok: 'حذف', danger: true, safe: true })) return;
+  l.splice(i, 1);
+  try { await saveTpl(k, l); } catch(e){ return toast('تعذّر حذف القالب. حاول مجدداً'); }
+  closeModals(); rerender(); toast('تم حذف القالب'); };
 const MS = { to: [], kind: 'encourage', i: 0 };
 function msgSend(students){
   if (!students.length) return toast('حدد طالب واحد على الأقل');

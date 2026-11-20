@@ -1850,3 +1850,13 @@ body.qsh-on{overflow:hidden}
 .qsh-o .w{opacity:.45}
 body.dark .qsh-o .c{background:rgba(52,199,89,.18);color:#7BE29A}
 .qsh-nav{display:flex;gap:10px;max-width:600px;width:100%;margin:0 auto}.qsh-nav .btn{flex:1;justify-content:center}
+/* ---- chatgpt-ux: undo countdown bar, busy states ---- */
+.snack{overflow:hidden}
+.snack button{min-height:44px;min-width:44px}
+.snack-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:#FFD60A;transform-origin:left;animation:snackBar 5s linear forwards}
+@keyframes snackBar{to{transform:scaleX(0)}}
+.btn[aria-busy="true"]{opacity:.75;pointer-events:none}
+.pts-pop.wait{color:var(--muted,#666)}
+.ko-load{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;text-align:center}
+.spin.sm{width:24px;height:24px;margin:0}
+.rs-fail b{color:#B3122A}
