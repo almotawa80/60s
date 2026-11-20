@@ -2361,3 +2361,8 @@ html body .sl.sl-red .sl1-t,html body .sl.sl-red .sl1-t b{color:#fff!important}
 .ch-warn{background:rgba(229,72,77,.12);border:1.5px solid rgba(229,72,77,.45);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:6px;text-align:center;margin-bottom:12px}
 .ch-warn b{font-size:17px;font-weight:900}.ch-warn small{color:var(--muted);font-weight:700}.ch-warn .btn{margin-top:6px}
 body:has(.play) #pv-x{display:none}
+/* v125 challenge page: 4 small actions under the hero */
+.ch-acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.ch-a{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--card);border:0;border-radius:16px;padding:10px 4px;color:var(--ink);font:800 13px 'Cairo',system-ui,sans-serif;cursor:pointer}
+.ch-a span{font-size:22px;line-height:1}
+.ch-a:active{transform:scale(.96)}

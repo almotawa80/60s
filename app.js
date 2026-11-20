@@ -1397,6 +1397,7 @@ function renderChallenge(gid){
   const body = `<div class="ch1"><div class="ch-sub">${esc(names)}</div>
     <div class="ch-hero"><small>لعبوا اليوم</small><div class="ch-big"><b>${played}</b> <span>من ${n}</span></div><div class="ch-bar"><i style="width:${n ? played * 100 / n : 0}%"></i></div>
     ${left && !c.paused_at && ph === 'points' ? `<button class="btn ch-rem" data-act="ch-remind">🔔 ذكّر الباقين (${left})</button>` : ''}</div>
+    <div class="ch-acts">${[['cp-try', '🎮', 'جرّب'], ['ch-code', '🔗', 'الرمز'], ['ch-edit', '✏️', 'تعديل'], ['ch-det', '📊', 'التفاصيل']].map(o => `<button class="ch-a" data-act="ch-run" data-a="${o[0]}" data-g="${esc(gid)}"><span>${o[1]}</span>${o[2]}</button>`).join('')}</div>
     <p class="ch-meta">${esc(meta)}</p><div id="ch-warn"></div>
     ${rows.length ? `<div class="cp-list">${rows.map((x, i) => { const k = CST(x.id); return `<button class="cp-row${k.today ? '' : ' dim'}" data-act="ch-stu" data-id="${x.id}"><span class="cp-rk">${k.pts && i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b>${multi ? `<small class="ch-cls">${esc(x._c || '')}</small>` : ''}</span><span class="cp-pts">${k.pts}</span></button>`; }).join('')}</div>`
       : `<div class="cl-empty sm"><b>ما فيه طلاب بعد</b><small>شارك رمز الصف من ⋯</small></div>`}</div>`;
@@ -1426,8 +1427,7 @@ ACTS['ch-stu'] = t => { const s = chStudents().find(x => x.id === t.dataset.id);
     <button class="btn cp-share" data-act="ch-wa" data-ph="${esc(s.phone || '')}" data-v="${esc(msg)}">${k.today ? 'شجّعه 🌟' : 'ذكّره يلعب 🔔'}</button></div>`); };
 ACTS['ch-wa'] = t => { let ph = (t.dataset.ph || '').replace(/[^0-9]/g, ''); if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2); closeModals(); window.open('https://wa.me/' + ph + '?text=' + encodeURIComponent(t.dataset.v), '_blank'); };
 ACTS['ch-more'] = () => { const ks = chComps(), c = ks[0]; if (!c) return; const g = c.group_id || c.id;
-  const O = [['cp-try', '🎮', 'جرّب كطالب', `data-g="${g}"`], ['ch-code', '🔗', 'رمز الصف', ''], ['ch-edit', '✏️', 'تعديل', `data-g="${g}"`],
-    c.paused_at ? ['cp-resume', '▶️', 'استئناف', `data-g="${g}"`] : ['cp-pause', '⏸', 'إيقاف مؤقت', `data-g="${g}"`], ['ch-det', '📊', 'التفاصيل', ''], ['cp-end', '🏁', 'إنهاء', `data-g="${g}"`]];
+  const O = [c.paused_at ? ['cp-resume', '▶️', 'استئناف', `data-g="${g}"`] : ['cp-pause', '⏸', 'إيقاف مؤقت', `data-g="${g}"`], ['cp-end', '🏁', 'إنهاء', `data-g="${g}"`]];
   modal(`<div class="st1"><div class="st1-h"><b>${esc(c.title || 'التحدي')}</b><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div><div class="st1-opts">${O.map(o => `<button class="st1-o" data-act="ch-run" data-a="${o[0]}" ${o[3]}><span class="e">${o[1]}</span><b>${o[2]}</b></button>`).join('')}</div></div>`); };
 ACTS['ch-run'] = t => { closeModals(); const a = t.dataset.a; setTimeout(() => ACTS[a](t), 30); };
 ACTS['ch-code'] = () => { const k = chComps()[0], cc = k && CL.byId[k.class_id]; if (!cc) return; if (!cc.self_join) return go('#/t/class/' + cc.id); CK.cls = cc; ACTS['c-joinshow']({ closest: () => null, dataset: {} }); };
