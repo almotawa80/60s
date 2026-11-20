@@ -1101,6 +1101,7 @@ async function teacherRoute(){
       T.name = (r.data && r.data.display_name) || (T.user.email || '').split('@')[0];
       T.avatar = (r.data && r.data.avatar_url) || '';
       T.settings = (r.data && r.data.settings) || {};
+      if (!T.settings.ob && !SG('prof_subject') && !(ADM.st && ADM.st.act)) setTimeout(obStart, 400);
     }
     if (page === 'classes' || page === 'comps') { CL.tab = page; CL.cur = null; await tClasses(); }
     else if (page === 'new') await tNew();
@@ -1158,9 +1159,43 @@ async function tHome(){
   });
   const hv = LS.get('mc_hv') || 'big', hvb = (k, i, l) => `<button class="${hv === k ? 'on' : ''}" data-act="h-view" data-v="${k}" aria-label="${l}">${i}</button>`;
   const html = cards.length ? `<div class="hv">${hvb('big', '<i class="hv-i1"></i>', 'مربعات كبيرة')}${hvb('two', '<i class="hv-i2"></i>', 'مربعين')}${hvb('list', '<i class="hv-i3"></i>', 'صفوف')}</div><div class="hcs hv-${hv}">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
-  view('الرئيسية', html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
+  const obCard = cards.length && T.settings && T.settings.ob === 'skip' && !T.settings.obCard ? `<div class="ob-card"><button class="grow" data-act="ob-open"><b>👋 كمّل ملفك</b><small>المرحلة، المواد، المدرسة</small></button><button class="ob-cx" data-act="ob-cardx" aria-label="إغلاق">✕</button></div>` : '';
+  view('الرئيسية', obCard + html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
 }
 ACTS['h-view'] = t => { LS.set('mc_hv', t.dataset.v); document.querySelectorAll('.hv button').forEach(b => b.classList.toggle('on', b === t)); const h = document.querySelector('.hcs'); if (h) h.className = 'hcs hv-' + t.dataset.v; haptic(); };
+/* ---- first-time profile: 3 quick skippable screens (stage, subjects, school + district) ---- */
+const OB_STAGES = ['ابتدائي', 'متوسط', 'ثانوي', 'جامعة'];
+const OB_DIST = ['العاصمة', 'حولي', 'الفروانية', 'الجهراء', 'الأحمدي', 'مبارك الكبير'];
+const OB = {};
+function obStart(){ if (document.getElementById('ob')) return; OB.school = null; OB.st = new Set(String(SG('prof_stage') || '').split('|').filter(Boolean)); OB.sj = new Set(mySubjects()); OB.d = SG('district') || ''; obStep(1); }
+function obStep(n){
+  OB.n = n; let el = document.getElementById('ob'); if (!el) { el = document.createElement('div'); el.id = 'ob'; document.body.appendChild(el); }
+  const dots = `<div class="nw-dots">${[1, 2, 3].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div>`;
+  const tile = (set, v, e) => `<button class="ob-t${set.has ? (set.has(v) ? ' on' : '') : (set === v ? ' on' : '')}" data-act="ob-pick" data-v="${esc(v)}">${e ? `<span class="e">${e}</span>` : ''}<b>${esc(v)}</b></button>`;
+  let b = '';
+  if (n === 1) b = `<h2>أي مرحلة تدرّسها؟</h2><p>تقدر تختار أكثر من وحدة</p><div class="ob-g">${OB_STAGES.map((v, i) => tile(OB.st, v, ['🎒', '📘', '🎓', '🏛️'][i])).join('')}</div><button class="p3-big" data-act="ob-next" ${OB.st.size ? '' : 'disabled'}>التالي</button>`;
+  if (n === 2) b = `<h2>أي مواد تدرّسها؟</h2><p>موادك تطلع لك أول</p><div class="ob-g">${SUBJECTS.filter(s => s !== 'عام' && s !== 'أخرى').map(v => tile(OB.sj, v, SUBJ_EMOJI[v] || '📘')).join('')}</div><button class="p3-big" data-act="ob-next" ${OB.sj.size ? '' : 'disabled'}>التالي</button>`;
+  if (n === 3) b = `<h2>مدرستك</h2><p>اختياري</p><input class="input ob-in" id="ob-school" maxlength="80" placeholder="اسم المدرسة" value="${esc(OB.school != null ? OB.school : (SG('school') || ''))}"><div class="ob-lbl">المنطقة التعليمية</div><div class="ob-g">${OB_DIST.map(v => tile(OB.d, v)).join('')}</div><button class="p3-big" data-act="ob-done">يلا نبدأ 🚀</button>`;
+  el.innerHTML = `<div class="ob-top">${n > 1 ? `<button class="q4-x" data-act="ob-back" aria-label="رجوع">→</button>` : '<span></span>'}${dots}<button class="ob-skip" data-act="ob-skip">تخطّي</button></div><div class="ob-b">${b}</div>`;
+}
+ACTS['ob-pick'] = t => { const v = t.dataset.v;
+  if (OB.n === 3) { OB.d = OB.d === v ? '' : v; OB.school = document.getElementById('ob-school').value; obStep(3); return; }
+  const set = OB.n === 1 ? OB.st : OB.sj; set.has(v) ? set.delete(v) : set.add(v); haptic(); obStep(OB.n); };
+ACTS['ob-next'] = () => obStep(OB.n + 1);
+ACTS['ob-back'] = () => { const sc = document.getElementById('ob-school'); if (sc) OB.school = sc.value; obStep(OB.n - 1); };
+async function obSave(flag){
+  const sc = document.getElementById('ob-school'), p = { ob: flag };
+  if (OB.st && OB.st.size) p.prof_stage = [...OB.st].join('|');
+  if (OB.sj && OB.sj.size) p.prof_subject = [...OB.sj].join('|');
+  if (sc && sc.value.trim()) p.school = sc.value.trim().slice(0, 80);
+  if (OB.d) p.district = OB.d;
+  const el = document.getElementById('ob'); if (el) el.remove();
+  await saveSettings(p);
+}
+ACTS['ob-skip'] = async () => { await obSave(OB.n === 3 ? 'done' : 'skip'); rerender(); };
+ACTS['ob-done'] = async () => { await obSave('done'); toast('أهلاً فيك 👋'); rerender(); };
+ACTS['ob-open'] = () => obStart();
+ACTS['ob-cardx'] = async () => { await saveSettings({ obCard: 1 }); rerender(); };
 /* ---- «تحدي جديد»: who → subject → how long → ready (one question per screen) ---- */
 const NW = { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, poll: null };
 const SUBJ_EMOJI = { 'الرياضيات': '📐', 'التربية الإسلامية': '🕌', 'اللغة العربية': '📖', 'العلوم': '🔬', 'اللغة الإنجليزية': '🔤', 'الاجتماعيات': '🗺️', 'الحاسوب': '💻' };
@@ -1242,6 +1277,7 @@ ACTS['nw-start'] = async t => {
     const today = todayKW(), sp = cfSpan(today, NW.days, 8, 24), gid = crypto.randomUUID();
     const cs = NW.classes.filter(c => NW.cls.includes(c.id));
     const title = cs.length === 1 ? `تحدي ${cs[0].name} · ${NW.subj}` : `تحدي ${NW.subj}`;
+    if (!SG('prof_subject') && NW.cu && SUBJECTS.includes(NW.subj)) saveSettings({ prof_subject: NW.subj }).catch(() => {});
     // questions: the chosen subject's ready questions go into «أسئلتي» so the challenge can use them
     {
       let qq = sb.from('questions').select('id').is('owner_id', null).eq('status', 'approved').limit(5000);
@@ -3859,7 +3895,7 @@ ACTS['t-res-export'] = async () => { await XL();
 /* ===== settings v2: Apple-style rows, switches, number wheel, choice pages ===== */
 const SDEF = { scoring: 'speed', pts_auto: true, pts_e: 15, pts_m: 30, pts_h: 45, speed_pct: 50, pen_pct: 25, lb: 'all', lb_n: 10, lb_pts: true, lb_me: true, names: 'full',
   q_src: 'all', norep: false, shuffle: false, show_ans: 'each', difficulty: 'normal', sec_style: 'letters', sec_n: 5, cname: 'slash', def_stage: '', def_gender: '',
-  stu_name: 'tri_fam', stu_sort: 'no', remember: true, rename: false, prof_title: '', school: '', prof_subject: '', msg_auto: false };
+  stu_name: 'tri_fam', stu_sort: 'no', remember: true, rename: false, prof_title: '', school: '', prof_subject: '', prof_stage: '', district: '', msg_auto: false };
 const SG = k => { const v = (T.settings || {})[k]; return v === undefined || v === null ? SDEF[k] : v; };
 const SET_EMO = { trophy: '🏆', users: '👥', moon: '🌙', sun: '☀️', gear: '⚙️', lock: '🛡️', help: '❓', chart: '📊', mail: '✉️', archive: '🗄️', download: '📥', upload: '📤', star: '⭐', send: '💬', info: 'ℹ️', refresh: '🔄', eye: '👁️', bell: '🔔', user: '👤', clock: '⏰', print: '🖨️', trash: '🗑️', edit: '✏️', image: '🖼️', camera: '📷', share: '🔗', sound: '🔊', mute: '🔇', layers: '📚', home: '🏠', month: '📅', play: '▶️', plus: '➕', check: '✅', flag: '🚩', search: '🔍', logout: '🚪', x: '✖️', circle: '⭕', checkc: '✅', print2: '🖨️' };
 const setIc = k => SET_EMO[k] ? `<span class="set-ic emo" aria-hidden="true">${SET_EMO[k]}</span>` : `<span class="set-ic" style="background:#8E8E93">${ic(k)}</span>`;
@@ -3917,6 +3953,8 @@ const OPTS = {
   lb: { t: 'لوحة المتصدرين', back: '#/t/rset', o: () => [['all', 'كاملة', 'يشوف الطالب ترتيب كل الصف'], ['top', 'أفضل عدد', 'تحدد العدد من صفحة النتائج'], ['hidden', 'مخفية حتى النهاية', 'يشوف ترتيبه بس لين تنتهي المسابقة']], get: () => SG('lb') === 'top10' ? 'top' : SG('lb') },
   names: { t: 'أسماء الطلبة في اللوحة', back: '#/t/rset', o: () => [['full', 'الاسم كاملاً', 'محمد أحمد العلي'], ['first_fam', 'الأول وحرف العائلة', 'محمد ع.'], ['first', 'الاسم الأول فقط', 'محمد']] },
   prof_title: { t: 'اللقب', back: '#/t/account', o: () => [['', 'بدون', ''], ['أ.', 'أ.', ''], ['أستاذ', 'أستاذ', ''], ['أستاذة', 'أستاذة', ''], ['د.', 'د.', '']] },
+  prof_stage: { t: 'المرحلة', back: '#/t/account', multi: true, o: () => OB_STAGES.map(s => [s, s, '']) },
+  district: { t: 'المنطقة التعليمية', back: '#/t/account', o: () => [['', 'بدون', '']].concat(OB_DIST.map(s => [s, s, ''])) },
   prof_subject: { t: 'موادي', back: '#/t/account', multi: true, o: () => SUBJECTS.filter(s => s !== 'عام' && s !== 'أخرى').map(s => [s, s, '']), foot: 'تقدر تختار أكثر من مادة. موادك تطلع أول في «بنك الأسئلة»، والباقي تحت «مواد أخرى».' },
   sec_style: { t: 'تسمية الشعب', back: '#/t/sset', o: () => [['letters', 'حروف', 'أ، ب، ج'], ['numbers', 'أرقام', '1، 2، 3']] },
   cname: { t: 'صيغة اسم الصف', back: '#/t/sset', o: () => [['slash', 'السادس / أ', ''], ['short', '6أ', ''], ['long', 'الصف السادس - أ', '']].map(x => [x[0], cnameDemo(x[0]), '']) },
@@ -4000,7 +4038,7 @@ async function tAccount(){
   const PROV = { email: 'البريد الإلكتروني', google: 'Google', apple: 'Apple' };
   view('حسابي', `<div class="acc-head"><button class="prof-av" data-act="av-menu" aria-label="تغيير الصورة">${avatarHtml('prof-big')}<span class="prof-cam">${ic('edit')}</span></button><b>${esc(tName())}</b><div class="sub" id="acc-stats">…</div></div>` +
     sGrp('', [sRow({ act: 'st-name', label: 'الاسم', val: esc(T.name) }), optRow('prof_title', 'اللقب'),
-      sRow({ act: 'st-school', label: 'المدرسة', val: esc(SG('school')) || '<span class="muted">إضافة</span>' }), optRow('prof_subject', 'المواد')],
+      sRow({ act: 'st-school', label: 'المدرسة', val: esc(SG('school')) || '<span class="muted">إضافة</span>' }), optRow('prof_subject', 'المواد'), optRow('prof_stage', 'المرحلة'), optRow('district', 'المنطقة')],
       'المدرسة والمادة واللقب تظهر للطلبة في ملفهم.') +
     sGrp('تسجيل الدخول', [`<div class="set-row"><span class="grow">طريقة الدخول</span><span class="set-val">${PROV[prov] || esc(prov)}</span></div>`,
       `<div class="set-row"><span class="grow">البريد</span><span class="set-val" dir="ltr">${esc(T.user.email || '')}</span></div>`,

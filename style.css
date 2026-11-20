@@ -2446,3 +2446,22 @@ html.admmode .t-top,html.admmode .topbar{top:calc(46px + env(safe-area-inset-top
 .q4-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .q5-imp{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;padding:16px;border-radius:18px;border:0;background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
 .q5-imp .e{font-size:34px}.q5-imp b{font-size:17px;font-weight:900}.q5-imp small{color:var(--muted);font-weight:700}
+/* first-time profile */
+#ob{position:fixed;inset:0;z-index:500;background:var(--bg);color:var(--ink);overflow:auto;padding:calc(12px + env(safe-area-inset-top)) max(18px,env(safe-area-inset-left)) calc(20px + env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-right));font-family:'Cairo',system-ui,sans-serif}
+.ob-top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px}
+.ob-top .nw-dots{margin:0}
+.ob-skip{border:0;background:none;color:var(--muted);font:800 15px 'Cairo',system-ui,sans-serif;padding:8px;cursor:pointer}
+.ob-b{max-width:520px;margin:18px auto 0;display:flex;flex-direction:column;gap:14px}
+.ob-b h2{margin:0;font-size:26px;font-weight:900}.ob-b>p{margin:-8px 0 4px;color:var(--muted);font-weight:700}
+.ob-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ob-t{position:relative;min-height:84px;border-radius:20px;border:2px solid transparent;background:var(--card);color:var(--ink);font:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:10px;cursor:pointer}
+.ob-t .e{font-size:28px}.ob-t b{font-size:15.5px;font-weight:800}
+.ob-t.on{border-color:#1F9D55;background:color-mix(in srgb,#1F9D55 12%,var(--card))}
+.ob-t.on::after{content:"✓";position:absolute;top:6px;left:8px;width:22px;height:22px;border-radius:50%;background:#1F9D55;color:#fff;font-size:13px;font-weight:900;display:grid;place-items:center}
+.ob-lbl{font-weight:800;color:var(--muted);font-size:14px}
+.ob-in{min-height:52px;font-size:16px}
+.p3-big[disabled]{opacity:.45}
+.ob-card{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:18px;padding:6px 6px 6px 14px;margin-bottom:12px;border:2px dashed var(--line)}
+.ob-card .grow{border:0;background:none;color:var(--ink);font:inherit;text-align:start;padding:8px;display:flex;flex-direction:column;cursor:pointer}
+.ob-card b{font-weight:900}.ob-card small{color:var(--muted);font-weight:700}
+.ob-cx{width:36px;height:36px;border-radius:50%;border:0;background:var(--soft);color:var(--ink);cursor:pointer;flex:none}
