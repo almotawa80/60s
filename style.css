@@ -2684,7 +2684,7 @@ html body .sl .code-input:focus,html body .sl .code-input:focus-visible{outline:
 .nw-tile.on .nw-ck{background:var(--primary);border-color:var(--primary);color:#fff}
 .nw-tile.off{opacity:.45}
 .cp-many{display:block;width:100%;margin-top:10px;min-height:48px;border:0;border-radius:16px;background:var(--card);color:var(--ink);font:inherit;font-weight:800;font-size:15px;cursor:pointer}
-/* v165: teacher tab bar solid (was see-through in dark, list text showed behind it) */
-html body.wide .t-nav{background:var(--card,#fff)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:0 6px 24px rgba(0,0,0,.18),0 0 0 1px color-mix(in srgb,var(--ink) 8%,transparent)!important}
-html body.wide.dark .t-nav{background:#1C1C1E!important;box-shadow:0 8px 28px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.08)!important}
+/* v165-166: teacher tab bar = frosted glass (strong blur so text behind is not readable) */
+html body.wide .t-nav{background:rgba(255,255,255,.72)!important;-webkit-backdrop-filter:blur(28px) saturate(180%)!important;backdrop-filter:blur(28px) saturate(180%)!important;box-shadow:0 6px 24px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.5)!important}
+html body.wide.dark .t-nav{background:rgba(28,28,30,.7)!important;box-shadow:0 8px 28px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1),inset 0 1px 0 rgba(255,255,255,.12)!important}
 html body.wide .t-body{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
