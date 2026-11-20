@@ -2838,7 +2838,7 @@ function q4Fit(){
 function q4Subjects(){
   const fit = q4Fit(), have = {}; QS.glob.forEach(q => { if (q.curriculum_id) (have[q.curriculum_id] = have[q.curriculum_id] || new Set()).add(q.lesson || NO_LESSON); });
   let list = CU.list.filter(c => have[c.id] && fit(c)); if (!list.length) list = CU.list.filter(c => have[c.id]);
-  CU.list.forEach(c => { if (c.owner_id && c.owner_id === T.user.id && !list.includes(c)) list.push(c); });
+  CU.list.forEach(c => { if (c.owner_id && c.owner_id === T.user.id && !list.includes(c) && (c.id === QS.newCu || Object.keys(q4By(c.id)).length)) list.push(c); });
   const by = {}; list.forEach(c => { (by[c.subject] = by[c.subject] || { s: c.subject, cus: [], n: 0 }); by[c.subject].cus.push(c); by[c.subject].n += Object.keys(q4By(c.id)).length; });
   return Object.values(by);
 }
@@ -4500,7 +4500,7 @@ ACTS['cu-save'] = async f => {
   const r = f.dataset.id ? await sb.from('curricula').update(row).eq('id', f.dataset.id) : await sb.from('curricula').insert(Object.assign({ owner_id: T.user.id }, row));
   if (r.error) return toast(errMsg(r.error));
   closeModals(); toast('تم الحفظ');
-  if (CU.fromQ && !f.dataset.id) { CU.fromQ = false; await tQuestions(); QS.subjCu = null; QS.ed4 = true; const x = q4Subjects().find(y => y.s === subject); if (x) { const c = x.cus.find(k => k.owner_id && k.stage === row.stage && (k.grade || null) === (row.grade || null)); QS.subjCu = c ? c.id : null; q4SubjSheet(subject); } return; }
+  if (CU.fromQ && !f.dataset.id) { CU.fromQ = false; await tQuestions(); QS.subjCu = null; QS.ed4 = true; const nc = CU.list.find(k => k.owner_id === T.user.id && k.subject === subject && k.stage === row.stage && (k.grade || null) === (row.grade || null)); QS.newCu = nc && nc.id; const x = q4Subjects().find(y => y.s === subject); if (x) { const c = x.cus.find(k => k.owner_id && k.stage === row.stage && (k.grade || null) === (row.grade || null)); QS.subjCu = c ? c.id : null; q4SubjSheet(subject); } return; }
   CU.fromQ = false; await tQSet();
 };
 ACTS['cu-del'] = async t => {
