@@ -909,7 +909,7 @@ const NAV_EMO = { home:'🏠', classes:'👥', questions:'❓', settings:'⚙️
 const navIc = n => NAV_EMO[n[0]] ? `<span class="nav-emo" aria-hidden="true">${NAV_EMO[n[0]]}</span>` : n[0] === 'join' ? '<span class="join-ic" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' : n[0] === 'new' ? `<span class="plus-ic">${ic('plus')}</span>` : ic(n[2]);
 
 function shell(title, body, active, top, back){
-  return `<div class="t-top"><div class="brand">${back ? `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>` : LOGO_S}<span class="t-title">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
+  return `<div class="t-top"><div class="brand">${back ? (back.indexOf('act:') === 0 ? `<button class="icon-btn back-btn" data-act="${back.slice(4)}" aria-label="رجوع">${ic('back')}</button>` : `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>`) : LOGO_S}<span class="t-title">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
     `<div class="t-body">${body}</div>` +
     `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}${n[0] === 'new' ? ' t-plus' : ''}">${navIc(n)}<span>${n[1]}</span></a>`).join('')}</nav>`;
 }
@@ -1344,7 +1344,7 @@ function nwRender(){
       <div class="nw-live" id="nw-live"></div><a class="link nw-link" href="#/t/home">تم ‹</a>`;
   }
   const canBack = st > 1 && st < 4 && !(st === 2 && NW.skip1);
-  view('تحدي جديد', `<div class="nw">${dots}${b}</div>`, 'new', canBack ? `<button class="icon-btn nw-bk" data-act="nw-back" aria-label="رجوع">${ic('back')}</button>` : '');
+  view('تحدي جديد', `<div class="nw">${dots}${b}</div>`, 'new', '', canBack ? 'act:nw-back' : '');
   if (st === 4) { nwQr(); nwLive(); NW.poll = setInterval(() => { if (location.hash.indexOf('#/t/new') !== 0 || NW.step !== 4) return clearInterval(NW.poll); nwLive(); }, 5000); }
 }
 const fmtCode = c => String(c || '').replace(/^(...)(...)$/, '$1 $2');
