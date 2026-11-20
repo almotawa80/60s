@@ -2486,3 +2486,26 @@ html.admmode .t-top,html.admmode .topbar{top:calc(46px + env(safe-area-inset-top
 .ac-c.on{background:color-mix(in srgb,#1F9D55 18%,var(--card))!important;border-color:#1F9D55}
 .ac-f .input:focus{border-color:var(--primary)}
 .ac-r i{color:var(--muted)}
+/* true/false */
+.p3-seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:color-mix(in srgb,var(--ink) 8%,var(--card));border-radius:14px;padding:4px}
+.p3-seg button{min-height:40px;border:0;border-radius:11px;background:none;color:var(--muted);font:800 14.5px 'Cairo',system-ui,sans-serif;cursor:pointer}
+.p3-seg button.on{background:var(--primary);color:#fff}
+.p3-add .p3-tf{display:none}.p3-add.tf .p3-tf{display:block}.p3-add.tf .p3-mc{display:none}
+.p3-tfb{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.p3-tfb button{min-height:64px;border-radius:18px;border:3px solid transparent;background:color-mix(in srgb,var(--ink) 8%,var(--card));color:var(--ink);font:900 19px 'Cairo',system-ui,sans-serif;cursor:pointer}
+.p3-tfb button.t.on{border-color:#1F9D55;background:color-mix(in srgb,#1F9D55 20%,var(--card))}
+.p3-tfb button.f.on{border-color:#E5484D;background:color-mix(in srgb,#E5484D 20%,var(--card))}
+.opts.tf{grid-template-columns:1fr 1fr!important}
+.opts.tf .opt{min-height:clamp(110px,22dvh,190px)}
+.opts.tf .opt.oc0{background:#1F9D55!important}.opts.tf .opt.oc1{background:#E5484D!important}
+.opts.tf .opt .shp{font-size:30px}.opts.tf .opt .txt{font-size:24px;font-weight:900}
+.p3-seg{grid-template-columns:repeat(3,1fr)}
+.p3-add .p3-or{display:none}.p3-add.or .p3-or{display:flex;flex-direction:column;gap:8px}.p3-add.or .p3-mc{display:none}
+.p3-orr{display:flex;align-items:center;gap:8px}.p3-orr b{width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;flex:none;font-weight:900}.p3-orr .p3-in{flex:1;min-width:0}
+/* order questions in play */
+.ord-hint{text-align:center;font-weight:900;font-size:15px;opacity:.85;margin:-2px 0 6px}
+.opts.ord .opt .shp{min-width:34px;min-height:34px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:20px;font-weight:900}
+.opts.ord .opt.picked{outline:4px solid #fff;outline-offset:-4px}
+.opts.ord .opt.picked .shp{background:#fff;color:#222}
+html body[data-theme] .pv .opts.kc.tf .opt.oc0:not(.good):not(.bad){background:#1F9D55!important;border-color:#167A41!important;box-shadow:0 5px 0 #0F5A30!important}
+html body[data-theme] .pv .opts.kc.tf .opt.oc1:not(.good):not(.bad){background:#E5484D!important;border-color:#B5132E!important;box-shadow:0 5px 0 #8F0F24!important}

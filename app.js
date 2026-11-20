@@ -603,17 +603,20 @@ function demoStart(th){
 }
 function demoQ(pos){
   if (pos === 1) { S.demo.pts = 0; S.demo.ok = 0; }
-  const q = (S.demoQ || DEMO_Q)[pos - 1];
-  showQuestion({ attempt_id: 0, kind: 'practice', position: pos, total: 4, seconds_left: 15, question: { body: q.body, options: q.options } });
+  const q = (S.demoQ || DEMO_Q)[pos - 1], ord = q.payload && q.payload.kind === 'order';
+  S.demoPerm = ord ? q.options.map((_, k) => k).sort(() => Math.random() - .5) : null;
+  showQuestion({ attempt_id: 0, kind: 'practice', position: pos, total: 4, seconds_left: 15, question: { body: q.body, options: ord ? S.demoPerm.map(k => q.options[k]) : q.options, payload: q.payload || null } });
 }
-function demoSubmit(idx){
-  const st = S.cur, q = (S.demoQ || DEMO_Q)[st.position - 1], ok = idx === q.c, d = S.demo;
+function demoSubmit(idx, seq){
+  const st = S.cur, q = (S.demoQ || DEMO_Q)[st.position - 1], ok = seq ? seq.every((x, k) => S.demoPerm[x] === k) : idx === q.c, d = S.demo;
   const left = Number((document.getElementById('tnum') || {}).textContent) || 0, pts = ok ? 50 + left * 10 : 0;
   if (ok) { S.demo.ok++; S.demo.pts += pts; }
   (S.log = S.log || []).push({ q: q.body, o: q.options, c: q.c, x: idx, ok });
   const btns = $app.querySelectorAll('.opt');
+  if (seq) ordMark(btns, seq, q.options.map((_, k) => S.demoPerm.indexOf(k)), ok); else
   btns.forEach((b, i) => { b.disabled = true; b.classList.add(i === q.c ? 'good' : i === idx ? 'bad' : 'dim'); if (i === q.c) optMark(b, '✓', 'الإجابة الصحيحة'); else if (i === idx) optMark(b, '✗', 'إجابتك، غير صحيحة'); });
-  if (ok) FX.correct(btns[q.c], pts); else FX.wrong(idx != null ? btns[idx] : null, idx == null);
+  if (seq) { if (ok) FX.correct(btns[seq[seq.length - 1]], pts); else FX.wrong(null, false); }
+  else if (ok) FX.correct(btns[q.c], pts); else FX.wrong(idx != null ? btns[idx] : null, idx == null);
   const pop = document.getElementById('pop');
   if (pop) { pop.className = 'pts-pop ' + (ok ? 'good' : 'bad'); pop.textContent = ok ? '+' + pts + ' نقطة' : (idx == null ? 'انتهى الوقت' : 'إجابة غير صحيحة'); }
   setTimeout(() => { if (S.demo !== d || S.cur !== st || !$app.querySelector('.play')) return; if (st.position >= 4) showResult({ kind: 'practice', correct_count: S.demo.ok, total_points: S.demo.pts }); else demoQ(st.position + 1); }, 1500);
@@ -676,8 +679,8 @@ const PV_GLASS = '<svg class="pv-glass" viewBox="0 0 140 170" aria-hidden="true"
 function showQuestion(st){
   stopTimer();
   S.gen = (S.gen || 0) + 1; clearTimeout(S.nextT);
-  S.cur = st; S.locked = false;
-  const q = st.question, th = document.body.dataset.theme || 'mid';
+  S.cur = st; S.locked = false; S.ord = [];
+  const q = st.question, th = document.body.dataset.theme || 'mid', isOrd = !!(q.payload && q.payload.kind === 'order');
   let dots = '';
   for (let i = 1; i <= st.total; i++) dots += '<span class="dot' + (i < st.position ? ' done' : i === st.position ? ' cur' : '') + '"></span>';
   const long = q.options.some(o => String(o).length > 22);
@@ -691,7 +694,8 @@ function showQuestion(st){
     '<div class="timer' + (st.position === st.total ? ' last' : '') + '" id="timer"><div class="tfill" id="tfill"></div><svg viewBox="0 0 116 116" aria-hidden="true"><circle class="bg" cx="58" cy="58" r="48"/><circle class="fg" id="tfg" cx="58" cy="58" r="48" stroke-dasharray="301.6" stroke-dashoffset="0"/></svg>' +
     '<div class="num"><span id="tnum">' + Math.ceil(st.seconds_left) + '</span><small>ثانية</small></div></div></div>' +
     '<div class="pv-panel"><div class="qbox' + (q.image ? ' has-img' : '') + '">' + (q.image ? '<img class="q-img" src="' + esc(q.image) + '" alt="' + esc(q.image_alt || 'صورة مرفقة بالسؤال') + '">' : '') + '<span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
-    '<div class="opts kc' + (long ? ' long' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="s-answer" data-idx="' + i + '"><span class="letter shp" aria-hidden="true">' + SHAPES[i] + '</span><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
+    (isOrd ? '<div class="ord-hint">اضغطها بالترتيب ١ ← ' + ['', '', '', '٣', '٤'][q.options.length] + '</div>' : '') +
+    '<div class="opts kc' + (long ? ' long' : '') + (q.options.length === 2 ? ' tf' : '') + (isOrd ? ' ord' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="' + (isOrd ? 's-ord' : 's-answer') + '" data-idx="' + i + '"><span class="letter shp" aria-hidden="true">' + (isOrd ? '' : q.options.length === 2 ? ['✓', '✗'][i] : SHAPES[i]) + '</span><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
   runTimer(st.seconds_left);
 }
 function runTimer(secs){
@@ -720,14 +724,21 @@ function runTimer(secs){
   };
   tick();
 }
+ACTS['s-ord'] = t => {
+  if (S.locked) return; const i = Number(t.dataset.idx), n = S.cur.question.options.length, at = S.ord.indexOf(i);
+  if (at >= 0) { S.ord.splice(at); } else S.ord.push(i);
+  $app.querySelectorAll('.opts.ord .opt').forEach(b => { const k = S.ord.indexOf(Number(b.dataset.idx)); b.classList.toggle('picked', k >= 0); b.querySelector('.shp').textContent = k >= 0 ? '١٢٣٤'[k] : ''; });
+  haptic();
+  if (S.ord.length === n) { S.locked = true; stopTimer(); let code = Math.pow(10, n); S.ord.forEach((d, k) => { code += d * Math.pow(10, n - 1 - k); }); submit(code, S.ord.slice()); }
+};
 ACTS['s-answer'] = (t) => { if (S.locked) return; S.locked = true; stopTimer(); submit(Number(t.dataset.idx)); };
 ACTS['s-quit'] = async () => {
   if (S.demo) { stopTimer(); return renderHome(); }
   if (!await ask('الأسئلة المتبقية ستُحتسب بلا نقاط عند انتهاء وقتها.', { title: 'الخروج من الجولة؟', ok: 'خروج', cancel: 'أكمل الجولة', danger: true, safe: true })) return;
   stopTimer(); loadHome();
 };
-async function submit(idx){
-  if (S.demo) return demoSubmit(idx);
+async function submit(idx, seq){
+  if (S.demo) return demoSubmit(idx, seq);
   const st = S.cur, gen = S.gen;
   if (!st) return;
   const pop0 = document.getElementById('pop'); if (pop0) { pop0.className = 'pts-pop wait'; pop0.textContent = 'جارٍ تسجيل الإجابة…'; }
@@ -736,15 +747,17 @@ async function submit(idx){
     const res = await rpc('submit_answer', { p_token: S.token, p_attempt: st.attempt_id, p_position: st.position, p_chosen: idx });
     if (S.gen !== gen || S.cur !== st) return; // left the question meanwhile
     const r = res.result, ci = r.correct_index != null ? r.correct_index : (r.correct ? idx : null);
-    (S.log = S.log || []).push({ q: st.question.body, o: st.question.options, c: ci, x: idx, ok: !!r.correct });
+    (S.log = S.log || []).push({ q: st.question.body, o: st.question.options, c: ci, x: seq ? null : idx, ok: !!r.correct });
     const btns = $app.querySelectorAll('.opt');
-    btns.forEach((b, i) => {
+    if (st.question.payload && st.question.payload.kind === 'order') ordMark(btns, seq || [], r.order, r.correct);
+    else btns.forEach((b, i) => {
       b.disabled = true;
       if (i === ci) { b.classList.add('good'); optMark(b, '✓', 'الإجابة الصحيحة'); }
       else if (i === idx) { b.classList.add('bad'); optMark(b, '✗', 'إجابتك، غير صحيحة'); }
       else b.classList.add('dim');
     });
-    if (r.correct) FX.correct(btns[ci], r.points); else FX.wrong(idx != null ? btns[idx] : null, idx == null || r.timeout);
+    if (seq) { if (r.correct) FX.correct(btns[seq[seq.length - 1]], r.points); else FX.wrong(null, r.timeout); }
+    else if (r.correct) FX.correct(btns[ci], r.points); else FX.wrong(idx != null ? btns[idx] : null, idx == null || r.timeout);
     const pop = document.getElementById('pop');
     if (pop) {
       pop.className = 'pts-pop ' + (r.correct ? 'good' : 'bad');
@@ -766,6 +779,11 @@ async function submit(idx){
       if (nx.finished) loadHome(); else showQuestion(nx);
     } catch(e2){ if (S.gen === gen) loadHome(); }
   }
+}
+function ordMark(btns, seq, order, ok){
+  btns.forEach(b => { const i = Number(b.dataset.idx), mine = seq.indexOf(i), right = order ? order.indexOf(i) : (ok ? mine : -1);
+    b.disabled = true; if (right >= 0) b.querySelector('.shp').textContent = '١٢٣٤'[right];
+    b.classList.add(ok || (right >= 0 && mine === right) ? 'good' : right >= 0 ? 'bad' : 'dim'); });
 }
 function optMark(b, sym, sr){ if (b.querySelector('.opt-mk')) return; const m = document.createElement('span'); m.className = 'opt-mk'; m.textContent = sym; m.setAttribute('aria-hidden', 'true'); b.appendChild(m); b.setAttribute('aria-label', (b.querySelector('.txt') || b).textContent + '، ' + sr); }
 function reviewHtml(){
@@ -2323,7 +2341,7 @@ ACTS['cp-try'] = async t => {
   const ks = (CL.allComps || []).filter(k => k.group_id === t.dataset.g); if (!ks.length) return;
   const k = ks[0], cls = CL.byId[k.class_id] || {}; t.setAttribute('aria-busy', 'true');
   try {
-    const sel = 'id,body,options,correct_index,curriculum_id,lesson';
+    const sel = 'id,body,options,correct_index,curriculum_id,lesson,payload';
     let q1 = sb.from('questions').select(sel + ',question_picks!inner(teacher_id)').eq('question_picks.teacher_id', T.user.id).limit(1000);
     if (k.curriculum_id) q1 = q1.eq('curriculum_id', k.curriculum_id);
     const [a, b] = await Promise.all([q1, sb.from('questions').select(sel).eq('owner_id', T.user.id).eq('status', 'approved').limit(1000)]);
@@ -2332,7 +2350,7 @@ ACTS['cp-try'] = async t => {
     const seen = new Set(); pool = pool.filter(q => !seen.has(q.id) && seen.add(q.id));
     if (pool.length < 4) { t.removeAttribute('aria-busy'); return toast('ما فيه أسئلة كافية في «أسئلتي» لهذا التحدي، أضف دروس من بنك الأسئلة'); }
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-    LS.set('mc_demoq', JSON.stringify(pool.slice(0, 4).map(q => ({ body: q.body, options: q.options, c: q.correct_index }))));
+    LS.set('mc_demoq', JSON.stringify(pool.slice(0, 4).map(q => ({ body: q.body, options: q.options, c: q.correct_index, payload: q.payload || null }))));
     t.removeAttribute('aria-busy'); themePreview(cls.style || k.style || 'mid');
   } catch(e){ t.removeAttribute('aria-busy'); toast(errMsg(e)); }
 };
@@ -3027,11 +3045,14 @@ ACTS['q3-add'] = async () => {
   await loadCurricula().catch(() => {});
   const cu = CU.list.find(c => c.id === T.qf.cu3);
   modal(`<form class="p3-add" data-form="q3-save"><h3>سؤال جديد</h3>${cu ? `<p class="p3-sub">${esc(cu.subject)} · ${gradeAr(cu)}</p>` : ''}
-    <input type="hidden" name="correct" value="0">
+    <input type="hidden" name="correct" value="0"><input type="hidden" name="tfm" value="0"><input type="hidden" name="tfa" value="">
+    <div class="p3-seg"><button type="button" class="on" data-act="q3-type" data-t="0">٤ خيارات</button><button type="button" data-act="q3-type" data-t="1">✅❌ صح أو خطأ</button><button type="button" data-act="q3-type" data-t="2">🔢 رتّب</button></div>
     <input class="p3-in" name="body" required maxlength="300" placeholder="اكتب السؤال" autocomplete="off">
-    <input class="p3-in ok" name="o0" required maxlength="100" placeholder="الجواب الصحيح" autocomplete="off">
+    <div class="p3-tf"><p class="p3-sub">الجملة هذي…</p><div class="p3-tfb"><button type="button" class="t" data-act="q3-tfa" data-v="1">✅ صح</button><button type="button" class="f" data-act="q3-tfa" data-v="0">❌ خطأ</button></div></div>
+    <div class="p3-or"><p class="p3-sub">اكتبها بالترتيب الصحيح، والتطبيق يخلطها للطالب</p>${[0, 1, 2, 3].map(i => `<div class="p3-orr"><b>${'١٢٣٤'[i]}</b><input class="p3-in" name="r${i}" maxlength="60" placeholder="${i < 3 ? 'مطلوب' : 'اختياري'}" autocomplete="off"></div>`).join('')}</div>
+    <div class="p3-mc"><input class="p3-in ok" name="o0" required maxlength="100" placeholder="الجواب الصحيح" autocomplete="off">
     <p class="p3-sub">خيارات خاطئة (تنكتب لحالها، عدّلها إذا تبي)</p>
-    <div class="p3-rows">${[1, 2, 3].map(i => `<div class="p3-row"><input class="p3-wr" name="o${i}" required maxlength="100" placeholder="خيار خاطئ" autocomplete="off"><span class="p3-spark">✨</span></div>`).join('')}</div>
+    <div class="p3-rows">${[1, 2, 3].map(i => `<div class="p3-row"><input class="p3-wr" name="o${i}" required maxlength="100" placeholder="خيار خاطئ" autocomplete="off"><span class="p3-spark">✨</span></div>`).join('')}</div></div>
     <button class="p3-big" type="submit">حفظ وأضف غيره</button>
     <button type="button" class="p3-ghost" data-act="q3-more">طرق أخرى ‹</button>
     <button type="button" class="p3-ghost muted" data-act="close-modal">خلصت</button></form>`);
@@ -3039,8 +3060,34 @@ ACTS['q3-add'] = async () => {
 };
 ACTS['q3-more'] = () => { closeModals(); ACTS['t-q-add-menu'](); };
 document.addEventListener('change', e => { const el = e.target; if (!el.closest || !el.closest('.p3-add')) return; if (el.name === 'o0' || el.name === 'body') { const f = el.form; if (f.o0.value.trim()) qfFillSug(f, false); } });
+ACTS['q3-type'] = t => { const f = t.closest('form'), m = t.dataset.t; f.tfm.value = m; f.classList.toggle('tf', m === '1'); f.classList.toggle('or', m === '2');
+  t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t));
+  [0, 1, 2, 3].forEach(i => { f['o' + i].required = m === '0'; f['r' + i].required = m === '2' && i < 3; });
+  f.body.placeholder = m === '1' ? 'اكتب جملة، مثل: الصلاة خمس مرات في اليوم' : m === '2' ? 'مثل: رتّب أركان الصلاة' : 'اكتب السؤال'; f.body.focus(); };
+ACTS['q3-tfa'] = t => { const f = t.closest('form'); f.tfa.value = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); haptic(); };
 ACTS['q3-save'] = async f => {
   const btn = f.querySelector('[type=submit]'); if (btn.disabled) return;
+  if (f.tfm.value === '2') {
+    const body = f.body.value.trim(), items = [0, 1, 2, 3].map(i => f['r' + i].value.trim()).filter(Boolean); if (!body) return;
+    if (items.length < 3) return toast('اكتب ٣ أشياء على الأقل'); if (new Set(items).size < items.length) return toast('لازم تكون مختلفة');
+    const cu = T.qf.cu3 || null; btn.disabled = true;
+    const r = await sb.from('questions').insert({ owner_id: T.user.id, status: 'approved', source: 'teacher', qtype: cu ? 'curriculum' : 'general', level: 'medium', body, options: items, correct_index: 0, payload: { kind: 'order' }, curriculum_id: cu, lesson: null }).select().single();
+    btn.disabled = false;
+    if (r.error) return toast(/options_check/.test(r.error.message || '') ? 'رتّب يحتاج تحديث قاعدة البيانات أول' : errMsg(r.error));
+    QS.list.unshift(r.data); qDupIndex(); f.body.value = ''; [0, 1, 2, 3].forEach(i => { f['r' + i].value = ''; });
+    toast('انحفظ ✓ اكتب اللي بعده'); f.body.focus(); renderQuestionsKeepModal(); return;
+  }
+  if (f.tfm.value === '1') {
+    const body = f.body.value.trim(); if (!body) return;
+    if (f.tfa.value === '') return toast('اضغط ✅ صح أو ❌ خطأ');
+    if ((QS.norm[qNorm(body)] || []).length) return toast('هذا السؤال موجود من قبل');
+    const cu = T.qf.cu3 || null; btn.disabled = true;
+    const r = await sb.from('questions').insert({ owner_id: T.user.id, status: 'approved', source: 'teacher', qtype: cu ? 'curriculum' : 'general', level: 'easy', body, options: ['صح', 'خطأ'], correct_index: f.tfa.value === '1' ? 0 : 1, curriculum_id: cu, lesson: null }).select().single();
+    btn.disabled = false;
+    if (r.error) return toast(/options_check|correct_index_check/.test(r.error.message || '') ? 'صح أو خطأ يحتاج تحديث قاعدة البيانات أول' : errMsg(r.error));
+    QS.list.unshift(r.data); qDupIndex(); f.body.value = ''; f.tfa.value = ''; f.querySelectorAll('.p3-tfb button').forEach(b => b.classList.remove('on'));
+    toast('انحفظ ✓ اكتب اللي بعده'); f.body.focus(); renderQuestionsKeepModal(); return;
+  }
   const opts = [0, 1, 2, 3].map(i => f['o' + i].value.trim()), body = f.body.value.trim();
   if (new Set(opts).size < 4) return toast('الخيارات لازم تكون مختلفة');
   if ((QS.norm[qNorm(body)] || []).length) return toast('هذا السؤال موجود من قبل');
