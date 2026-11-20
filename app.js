@@ -70,6 +70,7 @@ const ICON = {
   trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   refresh:'<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/>',
   edit:'<path d="M4 20h4L19 9l-4-4L4 16v4z"/>',
+  flag:'<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',
   eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   send:'<path d="M21 3L3 10.5l7 2.5 2.5 7L21 3z"/><path d="M10 13l5-5"/>',
   more:'<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>',
@@ -1112,6 +1113,7 @@ async function tClasses(){
     (a.data || []).forEach(r => { const o = CL.stat[r.student_id] || (CL.stat[r.student_id] = { pts: 0, rounds: 0, today: false }); o.pts += r.total_points || 0; o.rounds++; if (r.play_date === td) o.today = true; });
   }
   await loadCurricula().catch(() => {});
+  if (T.compPreset && CL.tab === 'comps') { const p = T.compPreset; T.compPreset = null; if (CL.classes.length) { T.compEdit = 'new'; await ACTS['cp-new'](); CC.cu = p.cu || ''; CC.lessons = p.lessons || []; renderClasses(); return; } }
   renderClasses();
 }
 function renderClasses(){
@@ -1893,8 +1895,9 @@ async function tQuestions(){
   const [own, glob, st] = await Promise.all([
     sb.from('questions').select('*').eq('owner_id', T.user.id).order('created_at', { ascending: false }),
     sb.from('questions').select('id,body,options,correct_index,level,qtype,curriculum_id,lesson,image').is('owner_id', null).eq('status', 'approved').limit(2000),
-    rpc('question_stats', {}).catch(() => [])
-  ]);
+    rpc('question_stats', {}).catch(() => []),
+    sb.from('question_hides').select('question_id').then(r => r, () => ({}))
+  ]).then(r => { QS.hid = new Set(((r[3] && r[3].data) || []).map(x => x.question_id)); return r; });
   if (own.error) throw own.error;
   await loadCurricula(true).catch(() => {});
   QS.list = own.data; QS.glob = glob.data || []; QS.globalCount = QS.glob.length;
@@ -1926,18 +1929,58 @@ function qStat(q){
   const tag = s.answered >= 5 && p < 35 ? '<b class="qs-hard">صعب على الطلبة</b>' : s.answered >= 5 && p > 90 ? '<b class="qs-easy">سهل جداً</b>' : '';
   return `<div class="q-stat">${ic('chart')}<span>جاوب عليه ${s.answered} ${s.answered > 10 ? 'طالباً' : s.answered > 2 ? 'طلاب' : 'طالب'} · ${p}٪ أصابوا</span>${tag}</div>`;
 }
+function qLesHead(list){
+  const f = T.qf, hid = QS.hid || new Set(), use = list.filter(q => !hid.has(q.id)), n = l => use.filter(q => q.level === l).length;
+  const title = !f.gl ? 'كل أسئلة الصف' : f.gl === NO_LESSON ? 'أسئلة بدون درس' : f.gl;
+  const out = list.length - use.length;
+  return `<div class="les-h"><h3>${esc(title)}</h3>
+    <div class="les-sum"><b>${use.length} سؤالاً</b><span><i class="lvd lv-easy"></i>${n('easy')} سهل</span><span><i class="lvd lv-medium"></i>${n('medium')} متوسط</span><span><i class="lvd lv-hard"></i>${n('hard')} صعب</span>${out ? `<span class="muted">${out} مستبعد</span>` : ''}</div>
+    <button class="btn" data-act="q-les-comp">${ic('trophy')} ابدأ مسابقة من ${f.gl ? 'هذا الدرس' : 'هذا الصف'}</button>
+    <button class="btn soft" data-act="q-show" ${use.length ? '' : 'disabled'}>${ic('eye')} اعرض في الفصل</button></div>
+    <div class="les-tip">اضغط على أي سؤال لترى خياراته</div>`;
+}
 function qItem(q, ro){
   const sel = QS.selOn && !ro, on = QS.sel.has(q.id), open = !sel && (QS.open === q.id || q.status === 'draft');
-  const acts = ro ? '' : q.status === 'draft'
+  const hidden = ro && QS.hid && QS.hid.has(q.id);
+  const acts = ro ? (T.qf.gcu ? `<button class="qi2-b" data-act="q-hide" data-id="${q.id}">${hidden ? `${ic('check')} أرجعه لمسابقاتي` : `${ic('x')} لا تستخدمه`}</button><button class="qi2-b" data-act="q-report" data-id="${q.id}">${ic('flag')} بلّغ عن خطأ</button>` : '') : q.status === 'draft'
     ? `<button class="qi2-b ok" data-act="t-q-status" data-id="${q.id}" data-s="approved">${ic('check')} اعتماد</button><button class="qi2-b" data-act="t-q-edit" data-id="${q.id}">${ic('edit')} تعديل</button><button class="qi2-b del" data-act="t-q-del2" data-id="${q.id}">${ic('trash')} حذف</button>`
     : `<button class="qi2-b" data-act="t-q-edit" data-id="${q.id}">${ic('edit')} تعديل</button><button class="qi2-b" data-act="t-q-share1" data-id="${q.id}">${ic('share')} مشاركة</button><button class="qi2-b del" data-act="t-q-del2" data-id="${q.id}">${ic('trash')} حذف</button>`;
-  return `<div class="qi2${open ? ' open' : ''}${on ? ' sel' : ''}" data-act="${sel ? 't-q-pick' : 't-q-open'}" data-id="${q.id}">
+  return `<div class="qi2${open ? ' open' : ''}${on ? ' sel' : ''}${hidden ? ' hid' : ''}" data-act="${sel ? 't-q-pick' : 't-q-open'}" data-id="${q.id}">
     ${sel ? `<span class="tick sq${on ? ' on' : ''}" aria-hidden="true">${ic('check')}</span>` : `<i class="lvd lv-${q.level}" title="${LEVEL_AR[q.level] || ''}"></i>`}
-    <div class="qi2-m"><b class="q-body">${q.image && !open ? '🖼️ ' : ''}${esc(q.body)}</b>
+    <div class="qi2-m">${hidden ? '<small class="qi2-hid">مستبعد من مسابقاتك</small>' : ''}<b class="q-body">${q.image && !open ? '🖼️ ' : ''}${esc(q.body)}</b>
       ${open ? `${q.image ? `<img class="qi2-img" src="${esc(q.image)}" alt="" loading="lazy">` : ''}<div class="qi2-opts">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${i === q.correct_index ? ic('check') : ''}${esc(o)}</span>`).join('')}</div>
         <div class="qi2-meta">${LEVEL_AR[q.level] || ''} · ${TYPE_AR[q.qtype] || q.qtype}${QS.dup.has(q.id) ? ' · <b class="qi-dup">مكرر</b>' : ''}</div>${qStat(q)}${acts ? `<div class="qi2-acts">${acts}</div>` : ''}`
       : `<span class="qi2-a">${ic('check')}${esc(q.options[q.correct_index] || '')}</span>`}</div></div>`;
 }
+ACTS['q-hide'] = async t => {
+  const id = t.dataset.id, hid = QS.hid || (QS.hid = new Set()), was = hid.has(id);
+  const { error } = was ? await sb.from('question_hides').delete().eq('question_id', id) : await sb.from('question_hides').insert({ question_id: id });
+  if (error) return toast(errMsg(error));
+  was ? hid.delete(id) : hid.add(id); POOL && Object.keys(POOL).forEach(k => delete POOL[k]);
+  toast(was ? 'رجع السؤال لمسابقاتك' : 'ما راح يطلع هذا السؤال لطلبتك'); renderQuestions();
+};
+ACTS['q-report'] = async t => {
+  const v = await ask('وش الخطأ في السؤال؟', { title: 'بلّغ عن خطأ', input: '', placeholder: 'مثال: الإجابة الصحيحة غلط', ok: 'إرسال' });
+  if (v == null) return;
+  const { error } = await sb.from('question_reports').insert({ question_id: t.dataset.id, note: String(v).trim().slice(0, 500) || null });
+  if (error) return toast(errMsg(error)); toast('وصل البلاغ، شكراً لك');
+};
+ACTS['q-les-comp'] = () => { const f = T.qf; T.compPreset = { cu: f.gcu, lessons: f.gl && f.gl !== NO_LESSON ? [f.gl] : [] }; go('#/t/comps'); };
+/* show questions one by one on a projector; answer revealed on tap */
+const QSH = { list: [], i: 0, show: false };
+ACTS['q-show'] = () => { QSH.list = qFiltered().filter(q => !(QS.hid && QS.hid.has(q.id))); QSH.i = 0; QSH.show = false; if (!QSH.list.length) return; document.body.classList.add('qsh-on'); qShowRender(); };
+function qShowRender(){
+  let el = document.getElementById('qsh'); if (!el) { el = document.createElement('div'); el.id = 'qsh'; el.className = 'qsh'; document.body.appendChild(el); }
+  const q = QSH.list[QSH.i], n = QSH.list.length;
+  el.innerHTML = `<div class="qsh-top"><button class="icon-btn" data-act="qsh-x" aria-label="إغلاق">${ic('x')}</button><b>${QSH.i + 1} / ${n}</b></div>
+    <div class="qsh-q">${q.image ? `<img src="${esc(q.image)}" alt="">` : ''}<h2>${esc(q.body)}</h2>
+      <div class="qsh-o">${q.options.map((o, i) => `<div class="${QSH.show ? (i === q.correct_index ? 'c' : 'w') : ''}"><em>${'أبجد'[i]}</em>${esc(o)}</div>`).join('')}</div></div>
+    <div class="qsh-nav"><button class="btn soft" data-act="qsh-go" data-d="-1" ${QSH.i ? '' : 'disabled'}>السابق</button>
+      ${QSH.show ? `<button class="btn" data-act="qsh-go" data-d="1" ${QSH.i < n - 1 ? '' : 'disabled'}>التالي</button>` : `<button class="btn accent" data-act="qsh-rev">اكشف الجواب</button>`}</div>`;
+}
+ACTS['qsh-rev'] = () => { QSH.show = true; qShowRender(); };
+ACTS['qsh-go'] = t => { QSH.i = Math.max(0, Math.min(QSH.list.length - 1, QSH.i + Number(t.dataset.d))); QSH.show = false; qShowRender(); };
+ACTS['qsh-x'] = () => { const el = document.getElementById('qsh'); if (el) el.remove(); document.body.classList.remove('qsh-on'); };
 ACTS['t-q-open'] = t => { const id = t.dataset.id; QS.open = QS.open === id ? null : id; const l = document.getElementById('qlist'); if (l) l.innerHTML = qListHtml(); };
 ACTS['t-q-share1'] = t => qShareIds([t.dataset.id]);
 ACTS['t-q-del2'] = t => {
@@ -2018,7 +2061,7 @@ function qCrumb(){
     else { const c = f.gcu && CU.list.find(x => x.id === f.gcu);
       parts.push(c ? `<button data-act="q-gsubj" data-s="${esc(f.gs)}">${esc(f.gs)}</button>` : `<b>${esc(f.gs)}</b>`);
       if (c) parts.push(f.gl != null ? `<button data-act="q-gcu" data-id="${c.id}">${STAGE_AR[c.stage]} · ${gradeAr(c)}</button>` : `<b>${STAGE_AR[c.stage]} · ${gradeAr(c)}</b>`);
-      if (c && f.gl) parts.push(`<b>${f.gl === NO_LESSON ? 'بدون درس' : esc(f.gl)}</b>`); }
+    }
     return `<nav class="q-crumb">${parts.join('<i>‹</i>')}</nav>`; }
   if (f.status === 'draft') return `<nav class="q-crumb"><button data-act="t-qs" data-v="approved">أسئلتي</button><i>‹</i><b>تنتظر مراجعتك</b></nav>`;
   if (!f.subj) return '';
@@ -2063,6 +2106,7 @@ function qListHtml(){
   if (!QS.list.length && !ro && !f.cu && !f.subj && !QS.searchOn) return qEmpty();
   if (f.status === 'approved' && !QS.searchOn && !f.subj) return qFolders();
   const list = qFiltered();
+  if (ro && !QS.searchOn && f.gcu && f.gl != null) return qLesHead(list) + list.map(q => qItem(q, ro)).join('');
   const head = f.status === 'approved' && !QS.searchOn && f.subj && !['none', '__list'].includes(f.subj) && !f.cu ? qSubjectView(f.subj) : '';
   const addHere = f.cu ? `<button class="q-addhere" data-act="t-q-add-menu">${ic('plus')} إضافة أسئلة لهذا المنهج</button>` : '';
   if (!list.length) return head + `<div class="card center muted">${QS.searchOn ? 'لا نتائج للبحث.' : f.cu ? 'لا توجد أسئلة في هذا المنهج بعد.' : f.status === 'draft' ? 'لا توجد أسئلة بانتظار المراجعة.' : 'لا توجد أسئلة هنا.'}</div>` + addHere;
@@ -2101,7 +2145,7 @@ function renderQuestions(){
   const top = `<button class="icon-btn${QS.searchOn ? ' on' : ''}" data-act="t-q-search" aria-label="بحث">${ic(QS.searchOn ? 'x' : 'search')}</button>`;
   const body = `${search}
     <div class="seg2 q-tabs2"><button class="${mine ? 'on' : ''}" data-act="t-qs" data-v="approved">أسئلتي</button><button class="${ro ? 'on' : ''}" data-act="t-qs" data-v="global">أسئلة جاهزة</button></div>
-    ${QS.searchOn ? '' : qOk()}
+    ${QS.searchOn || (ro ? f.g : f.subj || f.status === 'draft') ? '' : qOk()}
     ${mine && !QS.selOn && !QS.searchOn ? `<button class="btn q-addbig" data-act="t-q-add-menu">${ic('plus')} إضافة أسئلة</button>` : ''}
     ${mine && nd && f.status !== 'draft' && !QS.searchOn ? `<button class="q-ban" data-act="t-qs" data-v="draft"><span>⏳ ${nd === 1 ? 'سؤال واحد ينتظر' : nd === 2 ? 'سؤالان ينتظران' : nd + ' أسئلة تنتظر'} مراجعتك</span><u>راجعها</u></button>` : ''}
     ${f.status === 'draft' && nd > 1 && !QS.selOn ? `<button class="btn accent" data-act="t-q-approve-all">${ic('check')} اعتماد الكل (${nd})</button>` : ''}
