@@ -659,7 +659,14 @@ function modeSeg(){ const m = LS.get('mc_mode') || 'auto'; return `<div class="t
 ACTS['set-mode'] = t => { LS.set('mc_mode', t.dataset.v); applyMode(); t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const v = document.getElementById('mode-val'); if (v) v.textContent = MODE_AR[t.dataset.v]; };
 function view(title, body, active, top, back){
   applyMode();
-  if (location.hash.indexOf('#/t') === 0 && body.indexOf('<div class="spin"></div>') !== 0) PCACHE[location.hash] = { title, body, top, back };
+  // a slow page that finishes loading after the user already moved to another tab must not take over the screen
+  if (location.hash.indexOf('#/t') === 0) {
+    const hp = (location.hash.match(/^#\/t\/([a-z]+)/) || [])[1] || 'home';
+    const want = { class: 'classes', results: 'comps', qshare: 'questions', qset: 'settings', rset: 'settings' }[hp] || hp;
+    const isTab = k => NAV.some(n => n[0] === k);
+    if (isTab(want) && isTab(active) && active !== want) return;
+    if (body.indexOf('<div class="spin"></div>') !== 0) PCACHE[location.hash] = { title, body, top, back };
+  }
   const i0 = NAV.findIndex(n => n[0] === active), i = Math.max(0, i0);
   const nav = $app.querySelector(':scope > .t-nav'), oldTop = $app.querySelector(':scope > .t-top'), oldBody = $app.querySelector(':scope > .t-body');
   if (nav && oldTop && oldBody) {
@@ -1795,8 +1802,8 @@ function qGroups(){
   const kinds = QG.filter(g => g[0] !== 'curriculum').map(g => [g, QS.glob.filter(q => q.qtype === g[0]).length]).filter(x => x[1]);
   const stages = s => [...new Set(QS.glob.filter(q => qGlobSubj(q) === s).map(q => { const c = qGlobCu(q); return c ? STAGE_AR[c.stage] : ''; }).filter(Boolean))].join('، ');
   return `<p class="sub q-ro">أسئلة جاهزة تدخل في مسابقاتك تلقائياً، فما تحتاج تضيفها.</p>
-    ${subs.length ? `<div class="qr-h">أسئلة المناهج</div><div class="qf-grid">${subs.map(s => `<button class="qf-tile" data-act="q-gsubj" data-s="${esc(s)}" style="--c:${SUBJ_COLOR(s)}"><span class="qf-ic">${esc(subjMark(s))}</span><b>${esc(s)}</b><small>${stages(s) || '&nbsp;'}</small><em>${cnt[s]}</em></button>`).join('')}</div>` : ''}
-    ${kinds.length ? `<div class="qr-h">أسئلة عامة</div><div class="qf-grid">${kinds.map(([g, n]) => `<button class="qf-tile" data-act="q-grp" data-g="${g[0]}" style="--c:${g[0] === 'quick' ? '#FF9500' : '#34C759'}"><span class="qf-ic">${g[1]}</span><b>${g[2]}</b><small>بدون منهج</small><em>${n}</em></button>`).join('')}</div>` : ''}`;
+    ${subs.length ? `<div class="qr-h">أسئلة المناهج</div><div class="qsubs">${subs.map(s => `<button class="qsub" data-act="q-gsubj" data-s="${esc(s)}" style="--c:${SUBJ_COLOR(s)}"><span class="qsub-ic">${esc(subjMark(s))}</span><span class="grow"><b>${esc(s)}</b>${stages(s) ? `<small>${stages(s)}</small>` : ''}</span><em>${cnt[s]}</em><i>‹</i></button>`).join('')}</div>` : ''}
+    ${kinds.length ? `<div class="qr-h">أسئلة عامة</div><div class="qsubs">${kinds.map(([g, n]) => `<button class="qsub" data-act="q-grp" data-g="${g[0]}" style="--c:${g[0] === 'quick' ? '#FF9500' : '#34C759'}"><span class="qsub-ic">${g[1]}</span><span class="grow"><b>${g[2]}</b></span><em>${n}</em><i>‹</i></button>`).join('')}</div>` : ''}`;
 }
 function qGlobGrades(subj){
   const qs = QS.glob.filter(q => q.qtype === 'curriculum' && qGlobSubj(q) === subj), cnt = {};
@@ -1806,8 +1813,10 @@ function qGlobGrades(subj){
   if (!stg.length) return '<div class="card center muted">لا توجد أسئلة جاهزة في هذه المادة بعد.</div>';
   return `<div class="qs-stages">${stg.map(k => { const have = cus.filter(c => c.stage === k).sort((a, b) => (a.grade || 0) - (b.grade || 0));
       const soon = k === 'university' ? [] : STAGE_GRADES[k].filter(g => !have.some(c => c.grade === g));
-      return `<div class="qs-stage"><div class="qs-sh">${STAGE_AR[k]}</div><div class="qs-gr">${have.map(c => `<button class="qs-g on" data-act="q-gcu" data-id="${c.id}"><b>${gradeAr(c)}</b><em>${cnt[c.id]}</em></button>`).join('')}
-        ${soon.map(g => `<span class="qs-g soon">${GRADES[g - 1]}<small>قريباً</small></span>`).join('')}</div></div>`; }).join('')}</div>`;
+      const all = have.map(c => ({ g: c.grade || 0, c })).concat(soon.map(g => ({ g }))).sort((a, b) => a.g - b.g);
+      return `<div class="qr-h">${STAGE_AR[k]}</div><div class="qsubs">${all.map(x => x.c
+        ? `<button class="qsub" data-act="q-gcu" data-id="${x.c.id}"><span class="qsub-n">${x.g || '•'}</span><span class="grow"><b>${gradeAr(x.c)}</b><small>${cnt[x.c.id]} سؤالاً</small></span><i>‹</i></button>`
+        : `<div class="qsub soon"><span class="qsub-n">${x.g}</span><span class="grow"><b>الصف ${GRADES[x.g - 1]}</b><small>قريباً</small></span></div>`).join('')}</div>`; }).join('')}</div>`;
 }
 function qGlobLessons(cu){
   const qs = QS.glob.filter(q => q.curriculum_id === cu), cnt = {}, order = [];
