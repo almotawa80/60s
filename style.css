@@ -2441,3 +2441,4 @@ html.admmode .t-top,html.admmode .topbar{top:calc(46px + env(safe-area-inset-top
 .q4-op button{width:36px;height:36px;border-radius:50%;border:2px solid var(--muted);background:none;color:#fff;font-weight:900;flex:none;cursor:pointer}
 .q4-op button.ok{background:#1F9D55;border-color:#1F9D55}
 .q4-sh .q4-del{min-height:44px;font-size:15px;background:none}
+.set-ic.emo{background:none!important;font-size:23px;line-height:1;width:32px;height:32px}
