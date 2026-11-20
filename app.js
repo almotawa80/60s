@@ -2749,10 +2749,11 @@ function q3Cus(){
   return CU.list.filter(c => ids.has(c.id));
 }
 function q3Home(){
-  const P = QS.pick || new Set(), own = QS.list.filter(q => q.status === 'approved').length, nd = QS.list.filter(q => q.status === 'draft').length;
+  const P = QS.pick || new Set(), own = QS.list.filter(q => q.status === 'approved' && !q.lesson).length, nd = QS.list.filter(q => q.status === 'draft').length;
   const cuOf = id => CU.list.find(c => c.id === id);
   // chosen lessons = picked ready questions grouped by curriculum + lesson
   const G = {}; QS.glob.forEach(q => { if (!P.has(q.id) || !q.curriculum_id) return; const k = q.curriculum_id + '|' + (q.lesson || NO_LESSON); (G[k] = G[k] || { cu: q.curriculum_id, l: q.lesson || NO_LESSON, n: 0 }).n++; });
+  QS.list.forEach(q => { if (q.status !== 'approved' || !q.lesson || !q.curriculum_id) return; const k = q.curriculum_id + '|' + q.lesson; (G[k] = G[k] || { cu: q.curriculum_id, l: q.lesson, n: 0 }).n++; });
   const mine = Object.values(G).filter(g => cuOf(g.cu)); QS.mine3 = mine;
   if (!mine.some(g => g.cu === T.qf.cu3)) T.qf.cu3 = mine.length ? mine[0].cu : '';
   const total = own + mine.reduce((a, g) => a + g.n, 0), days = Math.floor(total / QPD);
@@ -2761,7 +2762,7 @@ function q3Home(){
   QS.new3 = null;
   const subs = q4Subjects(), mySub = new Set(mine.map(g => cuOf(g.cu).subject));
   const bank = subs.sort((x, y) => mySub.has(y.s) - mySub.has(x.s)).map(x => `<button class="q4-st${mySub.has(x.s) ? ' mine' : ''}" data-act="q4-subj" data-s="${esc(x.s)}"><span class="e">${SUBJ_EMOJI[x.s] || '📘'}</span>${esc(x.s)}<small>${x.n} درس</small></button>`).join('');
-  const ownAll = QS.list.filter(q => q.status === 'approved' || q.status === 'draft').length;
+  const ownAll = QS.list.filter(q => (q.status === 'approved' || q.status === 'draft') && !q.lesson).length;
   const ownTile = ownAll ? `<button class="q4-st${own ? ' mine' : ''}" data-act="q4-own"><span class="e">✍️</span>أسئلتي الخاصة<small>${own} من ${ownAll} شغّالة</small></button>` : '';
   /* v129: one square per subject; subjects with chosen lessons are green with ✓ and come first */
   const st = {}; mine.forEach(g => { const sj = cuOf(g.cu).subject; (st[sj] = st[sj] || { l: 0, n: 0 }); st[sj].l++; st[sj].n += g.n; });
@@ -2771,7 +2772,7 @@ function q3Home(){
     ${total ? `<div class="q4-days">عندك ${total} سؤال، تكفي ${daysAr(days)} ${days >= 7 ? '👍' : '⚠️'}</div>` : `<div class="q4-days low">اضغط مادة تحت وشغّل دروسها</div>`}
     <button class="p3-big" data-act="q3-add">＋ أضف سؤال</button>
     <div class="q5-lbl">اضغط المادة وشغّل الدروس اللي تبيها</div>
-    <div class="q5-sq">${sq.join('') || '<p class="p3-note">ما فيه أسئلة جاهزة لصفوفك بعد.</p>'}</div></div>`;
+    <div class="q5-sq">${sq.join('')}<button class="q5-sb q5-new" data-act="q5-newsubj"><span class="e">＋</span><b>مادة جديدة</b></button></div></div>`;
 }
 const q4Gr = c => c.grade ? (c.stage === 'university' ? 'سنة ' + c.grade : (GRADES[c.grade - 1] || c.grade)).replace(/^ال/, '') : (STAGE_AR[c.stage] || '');
 // curricula that fit the teacher's classes (grade from the class name, else the whole stage)
@@ -2783,7 +2784,8 @@ function q4Fit(){
 function q4Subjects(){
   const fit = q4Fit(), have = {}; QS.glob.forEach(q => { if (q.curriculum_id) (have[q.curriculum_id] = have[q.curriculum_id] || new Set()).add(q.lesson || NO_LESSON); });
   let list = CU.list.filter(c => have[c.id] && fit(c)); if (!list.length) list = CU.list.filter(c => have[c.id]);
-  const by = {}; list.forEach(c => { (by[c.subject] = by[c.subject] || { s: c.subject, cus: [], n: 0 }); by[c.subject].cus.push(c); by[c.subject].n += have[c.id].size; });
+  CU.list.forEach(c => { if (c.owner_id && c.owner_id === T.user.id && !list.includes(c)) list.push(c); });
+  const by = {}; list.forEach(c => { (by[c.subject] = by[c.subject] || { s: c.subject, cus: [], n: 0 }); by[c.subject].cus.push(c); by[c.subject].n += Object.keys(q4By(c.id)).length; });
   return Object.values(by);
 }
 const q4Key = (cu, l) => cu + '|' + l;
@@ -4306,17 +4308,18 @@ function cuForm(c){
   c = c || { subject: '', stage: 'primary', grade: null, title: '' }; CU.form = { stage: c.stage, grade: c.grade, subject: c.subject };
   const subjOpts = SUBJECTS.filter(s => s !== 'عام' && s !== 'أخرى');
   const custom = c.subject && !subjOpts.includes(c.subject);
-  modal(`<h3>${c.id ? 'تعديل منهج' : 'منهج جديد'}</h3><form class="col" data-form="cu-save" data-id="${c.id || ''}">
+  modal(`<h3>${c.id ? 'تعديل منهج' : CU.fromQ ? 'مادة جديدة' : 'منهج جديد'}</h3><form class="col" data-form="cu-save" data-id="${c.id || ''}">
     <div class="field"><label>المادة</label><div class="lv-chips wrap">${subjOpts.map(s => `<button type="button" class="${c.subject === s ? 'on' : ''}" data-act="cu-subj" data-v="${s}">${s}</button>`).join('')}<button type="button" class="${custom ? 'on' : ''}" data-act="cu-subj" data-v="">أخرى…</button></div>
       <input class="input ${custom ? '' : 'hide'}" id="cu-custom" name="custom" placeholder="اسم المادة" value="${custom ? esc(c.subject) : ''}" maxlength="60"></div>
     <div class="field"><label>المرحلة</label><div class="tabs" id="cu-stage">${Object.keys(STAGE_AR).map(k => `<button type="button" class="${c.stage === k ? 'on' : ''}" data-act="cu-stage" data-v="${k}">${STAGE_AR[k]}</button>`).join('')}</div></div>
     <div class="field"><label>${c.stage === 'university' ? 'السنة' : 'الصف'}</label><div class="lv-chips wrap" id="cu-grade">${cuGrades(c.stage, c.grade)}</div></div>
-    <div class="field"><label for="cu-t">الوحدة أو العنوان (اختياري)</label><input class="input" id="cu-t" name="title" value="${esc(c.title || '')}" maxlength="80" placeholder="مثال: الوحدة الثالثة - الكسور"></div>
+    <div class="field${CU.fromQ ? ' hide' : ''}"><label for="cu-t">الوحدة أو العنوان (اختياري)</label><input class="input" id="cu-t" name="title" value="${esc(c.title || '')}" maxlength="80" placeholder="مثال: الوحدة الثالثة - الكسور"></div>
     <button class="btn" type="submit">حفظ</button>
     ${c.id ? `<button type="button" class="btn danger" data-act="cu-del" data-id="${c.id}">${ic('trash')} حذف المنهج</button>` : ''}</form>`);
 }
 function cuGrades(stage, sel){ return `<button type="button" class="${!sel ? 'on' : ''}" data-act="cu-grade" data-v="">الكل</button>` + STAGE_GRADES[stage].map(g => `<button type="button" class="${sel === g ? 'on' : ''}" data-act="cu-grade" data-v="${g}">${g}</button>`).join(''); }
-ACTS['cu-add'] = () => cuForm();
+ACTS['cu-add'] = () => { CU.fromQ = false; cuForm(); };
+ACTS['q5-newsubj'] = () => { CU.fromQ = true; cuForm(); };
 ACTS['cu-open'] = t => { const c = CU.list.find(x => x.id === t.dataset.id); if (!c) return; if (!c.owner_id) return toast('هذا منهج عام، يمكنك استخدامه في المسابقات'); cuForm(c); };
 ACTS['cu-subj'] = t => { CU.form.subject = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); document.getElementById('cu-custom').classList.toggle('hide', t.dataset.v !== ''); if (!t.dataset.v) document.getElementById('cu-custom').focus(); };
 ACTS['cu-stage'] = t => { CU.form.stage = t.dataset.v; CU.form.grade = null; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); document.getElementById('cu-grade').innerHTML = cuGrades(t.dataset.v, null); };
@@ -4327,7 +4330,9 @@ ACTS['cu-save'] = async f => {
   const row = { subject, stage: CU.form.stage, grade: CU.form.grade, title: f.title.value.trim() || null };
   const r = f.dataset.id ? await sb.from('curricula').update(row).eq('id', f.dataset.id) : await sb.from('curricula').insert(Object.assign({ owner_id: T.user.id }, row));
   if (r.error) return toast(errMsg(r.error));
-  closeModals(); toast('تم الحفظ'); await tQSet();
+  closeModals(); toast('تم الحفظ');
+  if (CU.fromQ && !f.dataset.id) { CU.fromQ = false; await tQuestions(); QS.subjCu = null; QS.ed4 = true; const x = q4Subjects().find(y => y.s === subject); if (x) { const c = x.cus.find(k => k.owner_id && k.stage === row.stage && (k.grade || null) === (row.grade || null)); QS.subjCu = c ? c.id : null; q4SubjSheet(subject); } return; }
+  CU.fromQ = false; await tQSet();
 };
 ACTS['cu-del'] = async t => {
   if (!await ask('حذف المنهج؟ تبقى أسئلته موجودة لكن بدون منهج.')) return;
