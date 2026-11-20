@@ -1425,12 +1425,12 @@ const CST = id => CL.stat[id] || { pts: 0, rounds: 0, today: false };
 function classPage(c){
   const st0 = CL.students[c.id] || [], comp = CL.comps[c.id];
   const nw = st0.filter(x => x.approved === false), ok = st0.filter(x => x.approved !== false);
-  const st = ok.slice().sort((a, b) => comp ? CST(b.id).pts - CST(a.id).pts || a.name.localeCompare(b.name, 'ar') : a.name.localeCompare(b.name, 'ar'));
+  const st = ok.slice().sort((a, b) => a.name.localeCompare(b.name, 'ar'));
   const box = c.self_join ? `<div class="cp-code"><small>الطلاب يدخلون بهذا الرمز</small><b dir="ltr">${esc(fmtCode(c.join_code || ''))}</b><button class="btn cp-share" data-act="c-share">شارك الرمز</button></div>`
     : st0.length ? `<div class="cp-code"><small>كل طالب له رمز دخول خاص</small><button class="btn cp-share" data-act="c-send">شارك رموز الطلاب</button></div>` : '';
   return `<div class="cp1" data-cid="${c.id}">${box}<div class="cp-list">` +
     nw.map(x => `<div class="cp-row"><span class="grow"><b>${esc(x.name)}</b> <span class="cn-tag">جديد</span></span><button class="cn-ok" data-act="s-approve" data-id="${x.id}" aria-label="موافقة">✓</button><button class="cn-no" data-act="s-reject" data-id="${x.id}" aria-label="حذف">✕</button></div>`).join('') +
-    st.map((x, i) => { const k = CST(x.id), dim = comp && !k.today; return `<button class="cp-row${dim ? ' dim' : ''}" data-act="s-card" data-id="${x.id}"><span class="cp-rk">${i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b></span>${comp ? `<span class="cp-pts">${k.pts}</span>` : ''}</button>`; }).join('') +
+    st.map((x, i) => `<button class="cp-row" data-act="s-card" data-id="${x.id}"><span class="cp-rk">${i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}</b></span><span class="chev">${ic('back')}</span></button>`).join('') +
     `<form class="cl-add1 cp-add" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="اكتب اسم طالب" autocomplete="off" enterkeyhint="done"><button class="btn sm" type="submit">إضافة</button></form></div></div>`;
 }
 ACTS['c-open'] = t => go('#/t/class/' + t.dataset.id);
@@ -1610,14 +1610,12 @@ ACTS['s-card'] = async t => {
 };
 /* student sheet: same order as the class page list; ‹ › or swipe moves between names without closing */
 function st1Order(c){ const comp = CL.comps[c.id], st0 = CL.students[c.id] || [];
-  return st0.filter(x => x.approved === false).concat(st0.filter(x => x.approved !== false).sort((a, b) => comp ? CST(b.id).pts - CST(a.id).pts || a.name.localeCompare(b.name, 'ar') : a.name.localeCompare(b.name, 'ar'))); }
+  return st0.filter(x => x.approved === false).concat(st0.filter(x => x.approved !== false).sort((a, b) => a.name.localeCompare(b.name, 'ar'))); }
 function st1Html(c, s){
-  const comp = CL.comps[c.id], ord = st1Order(c), i = ord.findIndex(x => x.id === s.id);
-  const ranked = ord.filter(x => x.approved !== false), k = CST(s.id), rk = ranked.findIndex(x => x.id === s.id) + 1;
-  const pv = ord[i - 1], nx = ord[i + 1];
-  return `<div class="st1" data-cid="${c.id}" data-id="${s.id}"><div class="st1-h"><b>${esc(s.name)}</b><button class="icon-btn" data-act="s-more" data-id="${s.id}" aria-label="المزيد">${ic('more')}</button><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div>
-    ${comp ? `<div class="st1-stats"><div><b>${k.pts}</b><small>نقطة</small></div><div><b>${k.pts && rk ? rk : '—'}</b><small>المركز</small></div></div><div class="st1-today ${k.today ? 'on' : ''}">${k.today ? 'لعب اليوم ✓' : 'ما لعب اليوم'}</div>` : ''}
+  const ord = st1Order(c), i = ord.findIndex(x => x.id === s.id), pv = ord[i - 1], nx = ord[i + 1], A = `data-id="${s.id}" data-cid="${c.id}"`;
+  return `<div class="st1" data-cid="${c.id}" data-id="${s.id}"><div class="st1-h"><b>${esc(s.name)}</b><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div>
     <button class="btn cp-share" data-act="s-wa" data-id="${s.id}">أرسل له رمز الدخول</button>
+    <div class="st1-opts">${[['s-edit', '✏️', 'تعديل الاسم'], ['s-msg', '✉️', 'رسالة'], ['t-regen', '🔄', 'رمز جديد'], ['t-del-student', '🗑️', 'حذف']].map(o => `<button class="st1-o" data-act="${o[0]}" ${A}><span class="e">${o[1]}</span><b>${o[2]}</b></button>`).join('')}</div>
     <div class="st1-nav"><button class="icon-btn" data-act="s-go" data-id="${pv ? pv.id : ''}" ${pv ? '' : 'disabled'} aria-label="السابق">→</button><small>${i + 1} من ${ord.length}</small><button class="icon-btn" data-act="s-go" data-id="${nx ? nx.id : ''}" ${nx ? '' : 'disabled'} aria-label="التالي">←</button></div></div>`;
 }
 ACTS['s-go'] = t => { const c = ctx(t), id = t.dataset.id, s = id && (CL.students[c.id] || []).find(x => x.id === id); const el = document.querySelector('.st1'); if (!s || !el) return; el.outerHTML = st1Html(c, s); };

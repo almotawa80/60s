@@ -2260,3 +2260,4 @@ body.dark .s-nav{background:#231C1D}
 .ch-meta{text-align:center;color:var(--muted);font-weight:700;font-size:14px;margin:0}
 .ch-cls{display:block;color:var(--muted);font-size:12px;font-weight:700}
 .ch1,.cp1{padding-bottom:110px}
+.cp-row .chev{opacity:.4;display:flex}
