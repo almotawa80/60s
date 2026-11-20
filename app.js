@@ -402,7 +402,7 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
   if (k === 'me') { const h = S.home, n = (h.student.name || '?').trim();
     return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><div class="s-me-av">' + esc(n.charAt(0)) + '</div><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small></div>' +
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
-      '<div class="s-me-o">' + [['s-profile', '✏️', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
+      '<div class="s-me-o">' + [['s-profile', '🪪', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
       '</div>'); }
   if (k === 'lb') { if (S.demo) return toast('الترتيب يظهر في المسابقة الفعلية');
     sPage('lb', '<div class="s-pgc"><div class="spin"></div></div>');
