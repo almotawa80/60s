@@ -2838,7 +2838,8 @@ function q4Fit(){
 function q4Subjects(){
   const fit = q4Fit(), have = {}; QS.glob.forEach(q => { if (q.curriculum_id) (have[q.curriculum_id] = have[q.curriculum_id] || new Set()).add(q.lesson || NO_LESSON); });
   let list = CU.list.filter(c => have[c.id] && fit(c)); if (!list.length) list = CU.list.filter(c => have[c.id]);
-  CU.list.forEach(c => { if (c.owner_id && c.owner_id === T.user.id && !list.includes(c) && (c.id === QS.newCu || Object.keys(q4By(c.id)).length)) list.push(c); });
+  const ownHas = c => (((T.settings || {}).myLes || {})[c.id] || []).length || QS.list.some(q => q.curriculum_id === c.id);
+  CU.list.forEach(c => { if (!list.includes(c) && (c.id === QS.newCu || ((!c.owner_id || c.owner_id === T.user.id) && ownHas(c)))) list.push(c); });
   const by = {}; list.forEach(c => { (by[c.subject] = by[c.subject] || { s: c.subject, cus: [], n: 0 }); by[c.subject].cus.push(c); by[c.subject].n += Object.keys(q4By(c.id)).length; });
   return Object.values(by);
 }
@@ -4477,6 +4478,7 @@ function cuForm(c){
   c = c || { subject: '', stage: 'primary', grade: null, title: '' }; CU.form = { stage: c.stage, grade: c.grade, subject: c.subject };
   const subjOpts = SUBJECTS.filter(s => s !== 'عام' && s !== 'أخرى');
   const custom = c.subject && !subjOpts.includes(c.subject);
+  if (CU.fromQ && !c.id) return modal(cuNewQ(subjOpts));
   modal(`<h3>${c.id ? 'تعديل منهج' : CU.fromQ ? 'مادة جديدة' : 'منهج جديد'}</h3><form class="col" data-form="cu-save" data-id="${c.id || ''}">
     <div class="field"><label>المادة</label><div class="lv-chips wrap">${subjOpts.map(s => `<button type="button" class="${c.subject === s ? 'on' : ''}" data-act="cu-subj" data-v="${s}">${s}</button>`).join('')}<button type="button" class="${custom ? 'on' : ''}" data-act="cu-subj" data-v="">أخرى…</button></div>
       <input class="input ${custom ? '' : 'hide'}" id="cu-custom" name="custom" placeholder="اسم المادة" value="${custom ? esc(c.subject) : ''}" maxlength="60"></div>
@@ -4488,15 +4490,41 @@ function cuForm(c){
 }
 function cuGrades(stage, sel){ return `<button type="button" class="${!sel ? 'on' : ''}" data-act="cu-grade" data-v="">الكل</button>` + STAGE_GRADES[stage].map(g => `<button type="button" class="${sel === g ? 'on' : ''}" data-act="cu-grade" data-v="${g}">${g}</button>`).join(''); }
 ACTS['cu-add'] = () => { CU.fromQ = false; cuForm(); };
-ACTS['q5-newsubj'] = () => { CU.fromQ = true; cuForm(); };
+ACTS['q5-newsubj'] = async () => { const r = await sb.from('classes').select('name,stage,archived'); CU.cls = (r.data || []).filter(c => !c.archived); CU.fromQ = true; cuForm(); };
+// v145: «مادة جديدة» from the questions page shows only the teacher's subjects and the grades of his classes
+function cuClassGrades(){
+  const out = [], seen = new Set();
+  (CU.cls || []).forEach(c => {
+    const n = String(c.name || ''); let g = null;
+    for (let i = GRADES.length - 1; i >= 0 && g == null; i--) if (n.includes(GRADES[i].replace(/^ال/, ''))) g = i + 1;
+    if (g == null) { const d = n.replace(/[٠-٩]/g, x => '٠١٢٣٤٥٦٧٨٩'.indexOf(x)).match(/\d+/); if (d) g = +d[0]; }
+    const st = c.stage || 'primary', k = st + '|' + (g || ''); if (seen.has(k)) return; seen.add(k);
+    out.push({ st, g, lb: g && GRADES[g - 1] ? 'الصف ' + GRADES[g - 1] : c.name });
+  });
+  return out.sort((a, b) => (a.g || 0) - (b.g || 0));
+}
+function cuNewQ(subjOpts){
+  const mine = mySubjects().filter(x => subjOpts.includes(x)), gs = cuClassGrades();
+  if (gs[0]) Object.assign(CU.form, { stage: gs[0].st, grade: gs[0].g }); if (mine.length === 1) CU.form.subject = mine[0];
+  const chip = (s, on) => `<button type="button" class="${on ? 'on' : ''}" data-act="cu-subj" data-v="${s}">${s}</button>`;
+  const subj = mine.length ? mine.map(s => chip(s, CU.form.subject === s)).join('') + `<button type="button" class="cu-more" data-act="cu-more">غيرها…</button><span class="cu-rest hide">${subjOpts.filter(s => !mine.includes(s)).map(s => chip(s)).join('')}${chip('').replace('></button>', '>أخرى…</button>')}</span>` : subjOpts.map(s => chip(s)).join('') + chip('').replace('></button>', '>أخرى…</button>');
+  return `<h3>مادة جديدة</h3><form class="col" data-form="cu-save" data-id="">
+    <div class="field"><label>المادة</label><div class="lv-chips wrap">${subj}</div><input class="input hide" id="cu-custom" name="custom" placeholder="اسم المادة" maxlength="60"></div>
+    <div class="field"><label>الصف</label>${gs.length ? `<div class="lv-chips wrap">${gs.map((x, i) => `<button type="button" class="${i ? '' : 'on'}" data-act="cu-cg" data-s="${x.st}" data-g="${x.g || ''}">${esc(x.lb)}</button>`).join('')}<button type="button" data-act="t-add-class">＋ صف جديد</button></div>` : `<p class="p3-note">ما عندك صفوف للحين. ضيف صفك أول، وبعدها ارجع هني.</p><button type="button" class="btn soft" data-act="t-add-class">＋ ضيف صف</button>`}</div>
+    <input type="hidden" name="title" value="">
+    ${gs.length ? '<button class="btn" type="submit">حفظ</button>' : ''}</form>`;
+}
+ACTS['cu-more'] = t => { t.classList.add('hide'); t.parentElement.querySelector('.cu-rest').classList.remove('hide'); };
+ACTS['cu-cg'] = t => { CU.form.stage = t.dataset.s; CU.form.grade = t.dataset.g ? +t.dataset.g : null; t.parentElement.querySelectorAll('[data-act=cu-cg]').forEach(b => b.classList.toggle('on', b === t)); };
 ACTS['cu-open'] = t => { const c = CU.list.find(x => x.id === t.dataset.id); if (!c) return; if (!c.owner_id) return toast('هذا منهج عام، يمكنك استخدامه في المسابقات'); cuForm(c); };
-ACTS['cu-subj'] = t => { CU.form.subject = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); document.getElementById('cu-custom').classList.toggle('hide', t.dataset.v !== ''); if (!t.dataset.v) document.getElementById('cu-custom').focus(); };
+ACTS['cu-subj'] = t => { CU.form.subject = t.dataset.v; t.closest('.lv-chips').querySelectorAll('[data-act=cu-subj]').forEach(b => b.classList.toggle('on', b === t)); document.getElementById('cu-custom').classList.toggle('hide', t.dataset.v !== ''); if (!t.dataset.v) document.getElementById('cu-custom').focus(); };
 ACTS['cu-stage'] = t => { CU.form.stage = t.dataset.v; CU.form.grade = null; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); document.getElementById('cu-grade').innerHTML = cuGrades(t.dataset.v, null); };
 ACTS['cu-grade'] = t => { CU.form.grade = t.dataset.v ? Number(t.dataset.v) : null; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); };
 ACTS['cu-save'] = async f => {
   const subject = (CU.form.subject || f.custom.value || '').trim();
   if (!subject) return toast('اختر المادة');
   const row = { subject, stage: CU.form.stage, grade: CU.form.grade, title: f.title.value.trim() || null };
+  if (CU.fromQ && !f.dataset.id) { const ex = CU.list.find(k => k.subject === subject && k.stage === row.stage && (k.grade || null) === (row.grade || null) && (!k.owner_id || k.owner_id === T.user.id)); if (ex) { closeModals(); CU.fromQ = false; QS.newCu = ex.id; QS.subjCu = ex.id; QS.ed4 = true; await tQuestions(); QS.subjCu = ex.id; return q4SubjSheet(subject); } }
   const r = f.dataset.id ? await sb.from('curricula').update(row).eq('id', f.dataset.id) : await sb.from('curricula').insert(Object.assign({ owner_id: T.user.id }, row));
   if (r.error) return toast(errMsg(r.error));
   closeModals(); toast('تم الحفظ');

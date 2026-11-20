@@ -2521,3 +2521,4 @@ html body[data-theme] .pv .opts.kc.tf .opt.oc1:not(.good):not(.bad){background:#
 .q4-qr .grow{min-width:0}
 .q4-qr em{font-style:normal;flex:none;width:24px;height:24px;border-radius:50%;background:color-mix(in srgb,var(--ink) 12%,transparent);display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--muted)}
 .q4-qr small{flex:none}
+.cu-rest{display:contents}.cu-rest.hide{display:none}
