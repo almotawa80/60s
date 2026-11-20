@@ -2481,3 +2481,8 @@ html.admmode .t-top,html.admmode .topbar{top:calc(46px + env(safe-area-inset-top
 .ac-r span{width:64px;flex:none;color:var(--muted);font-weight:800;font-size:13.5px}.ac-r b{font-weight:700;font-size:15px;line-height:1.6}.ac-r i{font-style:normal;color:var(--primary)}
 .ac-ed{margin-top:10px;min-height:46px;border-radius:14px;background:var(--soft);display:grid;place-items:center;font-weight:900;color:var(--ink)}
 .ac-sh{display:flex;flex-direction:column;gap:12px}.ac-sh .ac-f{background:none;padding:0;margin:0}.ac-sh .q4-shh h3{flex:1}
+/* v140: one neutral fill for all account fields/chips/buttons */
+.ac-f .input,.ac-c,.ac-ed{background:color-mix(in srgb,var(--ink) 9%,var(--card))!important;border-color:transparent}
+.ac-c.on{background:color-mix(in srgb,#1F9D55 18%,var(--card))!important;border-color:#1F9D55}
+.ac-f .input:focus{border-color:var(--primary)}
+.ac-r i{color:var(--muted)}
