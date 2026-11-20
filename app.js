@@ -585,16 +585,17 @@ function demoStart(th){
   document.body.classList.remove('wide');
   setTheme(['kids', 'mid', 'uni'].includes(th) ? th : 'mid'); applyMode();
   S.demo = { pts: 0, ok: 0 };
+  try { const dq = JSON.parse(LS.get('mc_demoq') || 'null'); S.demoQ = Array.isArray(dq) && dq.length >= 4 ? dq : null; } catch(e){ S.demoQ = null; }
   S.home = { class: { name: 'صف تجريبي', size: 24, style: th }, student: { name: 'طالب تجريبي' }, competition: { days_left_points: 4 }, phase: 'points', total_points: 120, rank: 3, gap: 40, streak: 2, wrong_count: 0, badges: [{ k: 'first', on: true }, { k: 'perfect', on: false }, { k: 'streak3', on: false }, { k: 'fast', on: true }, { k: 'practice10', on: false, n: 3 }] };
   renderHome();
 }
 function demoQ(pos){
   if (pos === 1) { S.demo.pts = 0; S.demo.ok = 0; }
-  const q = DEMO_Q[pos - 1];
+  const q = (S.demoQ || DEMO_Q)[pos - 1];
   showQuestion({ attempt_id: 0, kind: 'practice', position: pos, total: 4, seconds_left: 15, question: { body: q.body, options: q.options } });
 }
 function demoSubmit(idx){
-  const st = S.cur, q = DEMO_Q[st.position - 1], ok = idx === q.c, d = S.demo;
+  const st = S.cur, q = (S.demoQ || DEMO_Q)[st.position - 1], ok = idx === q.c, d = S.demo;
   const left = Number((document.getElementById('tnum') || {}).textContent) || 0, pts = ok ? 50 + left * 10 : 0;
   if (ok) { S.demo.ok++; S.demo.pts += pts; }
   (S.log = S.log || []).push({ q: q.body, o: q.options, c: q.c, x: idx, ok });
@@ -805,8 +806,8 @@ const STATUS_AR = { draft: 'مسودة', approved: 'متاح', rejected: 'مرف
 const STYLE_AR = { kids: 'مرح · ابتدائي', mid: 'مرح قليلاً · متوسط', uni: 'هادئ · ثانوي وجامعة' };
 const STYLE_SW = { kids: 'linear-gradient(135deg,#FFD9B0,#E3262F)', mid: 'linear-gradient(135deg,#C8102E,#F5B72B)', uni: 'linear-gradient(135deg,#FAF6F3,#7A1220)' };
 const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png" alt=""></div>';
-const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['new', 'تحدي', 'plus'], ['questions', 'الأسئلة', 'help'], ['join', 'انضم', 'join']];
-const NAV_EMO = { home:'🏠', classes:'👥', questions:'❓' };
+const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['new', 'تحدي', 'plus'], ['questions', 'الأسئلة', 'help'], ['settings', 'الإعدادات', 'gear']];
+const NAV_EMO = { home:'🏠', classes:'👥', questions:'❓', settings:'⚙️' };
 const navIc = n => NAV_EMO[n[0]] ? `<span class="nav-emo" aria-hidden="true">${NAV_EMO[n[0]]}</span>` : n[0] === 'join' ? '<span class="join-ic" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' : n[0] === 'new' ? `<span class="plus-ic">${ic('plus')}</span>` : ic(n[2]);
 
 function shell(title, body, active, top, back){
@@ -1954,7 +1955,7 @@ function compsPanel(){
       <div class="sub">الصعوبة: ${(DIFF.find(d => d[0] === (c.difficulty || 'normal')) || DIFF[1])[1]}${c.curriculum_id && CU.list.length ? ' · ' + esc(cuName(CU.list.find(x => x.id === c.curriculum_id))) : ''}</div>
       <div class="row" style="flex-wrap:wrap;gap:6px">${g.map(x => `<span class="chip">${esc((CL.byId[x.class_id] || {}).name || '')}</span>`).join('')}</div>
       <a class="btn cp-res" href="#/t/results/${g[0].class_id}">${ic('chart')} النتائج والترتيب${ph === 'knockout' || ph === 'finished' ? ' والتصفيات' : ''}</a>
-      <div class="row"><button class="btn sm soft" data-act="cp-edit" data-g="${c.group_id}">${ic('edit')} الإعدادات</button>${c.paused_at ? `<button class="btn sm" data-act="cp-resume" data-g="${c.group_id}">${ic('play')} استئناف</button>` : `<button class="btn sm soft" data-act="cp-pause" data-g="${c.group_id}">⏸ إيقاف مؤقت</button>`}<button class="btn sm ghost" data-act="cp-end" data-g="${c.group_id}">إنهاء</button></div>${c.paused_at ? `<div class="cp-paused">⏸ متوقفة من ${esc(fmtDate(String(c.paused_at).slice(0, 10)))}. الطلبة ما يقدرون يلعبون الجولة الرسمية، والنقاط محفوظة.</div>` : ''}</div>`; }).join('')
+      <div class="row"><button class="btn sm soft" data-act="cp-edit" data-g="${c.group_id}">${ic('edit')} الإعدادات</button>${c.paused_at ? `<button class="btn sm" data-act="cp-resume" data-g="${c.group_id}">${ic('play')} استئناف</button>` : `<button class="btn sm soft" data-act="cp-pause" data-g="${c.group_id}">⏸ إيقاف مؤقت</button>`}<button class="btn sm ghost" data-act="cp-end" data-g="${c.group_id}">إنهاء</button></div><button class="btn sm soft cp-try" data-act="cp-try" data-g="${c.group_id}">🎮 جرّب كطالب</button>${c.paused_at ? `<div class="cp-paused">⏸ متوقفة من ${esc(fmtDate(String(c.paused_at).slice(0, 10)))}. الطلبة ما يقدرون يلعبون الجولة الرسمية، والنقاط محفوظة.</div>` : ''}</div>`; }).join('')
       : '<div class="card center muted">لا توجد مسابقات نشطة.</div>') +
     (groups.length && free.length ? `<p class="sub">صفوف بلا مسابقة: ${free.map(c => esc(c.name)).join('، ')}</p>` : '') +
     cpPast();
@@ -2125,7 +2126,25 @@ ACTS['cf-addready'] = async t => {
   if (await qPickSet(ids, true)) { toast(`أُضيف ${ids.length} سؤالاً من البنك إلى أسئلتك ✓`); cfPool(CC.lastPd || 7); }
   else t.removeAttribute('aria-busy');
 };
-ACTS['cf-preview'] = () => themePreview(CC.style || 'mid');
+/* teacher plays a practice round with this challenge's own questions (no points, not in rankings) */
+ACTS['cp-try'] = async t => {
+  const ks = (CL.allComps || []).filter(k => k.group_id === t.dataset.g); if (!ks.length) return;
+  const k = ks[0], cls = CL.byId[k.class_id] || {}; t.setAttribute('aria-busy', 'true');
+  try {
+    const sel = 'id,body,options,correct_index,curriculum_id,lesson';
+    let q1 = sb.from('questions').select(sel + ',question_picks!inner(teacher_id)').eq('question_picks.teacher_id', T.user.id).limit(1000);
+    if (k.curriculum_id) q1 = q1.eq('curriculum_id', k.curriculum_id);
+    const [a, b] = await Promise.all([q1, sb.from('questions').select(sel).eq('owner_id', T.user.id).eq('status', 'approved').limit(1000)]);
+    let pool = [...((a && a.data) || []), ...((b && b.data) || [])].filter(q => Array.isArray(q.options) && q.options.length >= 2);
+    if (k.lessons && k.lessons.length) { const L = new Set(k.lessons); const f = pool.filter(q => L.has(q.lesson)); if (f.length >= 4) pool = f; }
+    const seen = new Set(); pool = pool.filter(q => !seen.has(q.id) && seen.add(q.id));
+    if (pool.length < 4) { t.removeAttribute('aria-busy'); return toast('ما فيه أسئلة كافية في «أسئلتي» لهذا التحدي، أضف دروس من بنك الأسئلة'); }
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    LS.set('mc_demoq', JSON.stringify(pool.slice(0, 4).map(q => ({ body: q.body, options: q.options, c: q.correct_index }))));
+    t.removeAttribute('aria-busy'); themePreview(cls.style || k.style || 'mid');
+  } catch(e){ t.removeAttribute('aria-busy'); toast(errMsg(e)); }
+};
+ACTS['cf-preview'] = () => { LS.del('mc_demoq'); themePreview(CC.style || 'mid'); };
 function themePreview(th){
   const old = document.getElementById('pvw'); if (old) old.remove();
   const w = document.createElement('div'); w.id = 'pvw'; w.className = 'pvw';
