@@ -1941,3 +1941,10 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
 .qgrp-tg svg{width:20px;height:20px}
 .qgrp-tg.on{background:#34C759;border-color:#34C759;color:#fff}
 .qgrp-w .qgrp>i{display:none}
+/* questions folders: swipe left to delete */
+.q-swr{margin-bottom:0}
+.q-swr .sw-main.qsub{width:100%}
+.q-swhint{text-align:center;color:var(--muted);font-size:12.5px;margin:8px 0 0}
+.q-swr .sw-main.qsub{background:var(--card,#fff);border-radius:0}
+.qs-gr-flat{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.q-addrow .btn{white-space:nowrap}

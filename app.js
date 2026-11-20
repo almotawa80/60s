@@ -2265,9 +2265,9 @@ function qFolders(){
   src.forEach(q => { const c = q.curriculum_id && CU.list.find(x => x.id === q.curriculum_id); if (c) cnt[c.subject] = (cnt[c.subject] || 0) + 1; else none++; });
   const subs = [...new Set(SUBJ_MAIN.concat(CU.list.map(c => c.subject)))].filter(s => cnt[s]);
   const stages = s => [...new Set(CU.list.filter(c => c.subject === s).map(c => STAGE_AR[c.stage]))].join('، ');
-  const row = (act, val, color, mark, name, sub, n) => `<button class="qsub" data-act="${act}" data-s="${esc(val)}" style="--c:${color}"><span class="qsub-ic">${mark}</span><span class="grow"><b>${esc(name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><em>${n}</em><i>‹</i></button>`;
+  const row = (act, val, color, mark, name, sub, n) => `<div class="sw-row q-swr"><div class="sw-act"><div class="sw-r"><button class="del" data-act="q-clear" data-s="${esc(val)}"><i>${ic('trash')}</i><span>حذف</span></button></div><div class="sw-l"></div></div><button class="qsub sw-main" data-act="${act}" data-s="${esc(val)}" style="--c:${color}"><span class="qsub-ic">${mark}</span><span class="grow"><b>${esc(name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><em>${n}</em><i>‹</i></button></div>`;
   return `<div class="qsubs">${subs.map(s => row('q-nav', s, SUBJ_COLOR(s), esc(subjMark(s)), s, stages(s), cnt[s])).join('')}${none ? row('q-nav', 'none', '#8E8E93', ic('help'), 'عام وسرعة بديهة', '', none) : ''}</div>
-    <div class="qsub-l"><button class="link" data-act="q-subj-pick">${ic('plus')} مادة أو صف جديد</button>${src.length > 5 ? '<button class="link" data-act="q-nav" data-s="__list">كل الأسئلة</button>' : ''}</div>`;
+    <p class="q-swhint">اسحب المادة لليسار لحذفها</p><div class="qsub-l"><button class="link" data-act="q-subj-pick">${ic('plus')} مادة أو صف جديد</button>${src.length > 5 ? '<button class="link" data-act="q-nav" data-s="__list">كل الأسئلة</button>' : ''}</div>`;
 }
 ACTS['q-subj-pick'] = () => sheet('اختر المادة', [...new Set(SUBJ_MAIN.concat(CU.list.map(c => c.subject)))].map(x => ({ act: 'm-run', attrs: `data-a="q-nav" data-s="${esc(x)}"`, icon: 'layers', label: esc(x) }))
   .concat([null, { act: 'm-run', attrs: 'data-a="q-subj-add"', icon: 'plus', label: 'مادة أخرى' }]));
@@ -2275,13 +2275,12 @@ function qEmpty(){
   return `<div class="q-empty2"><div class="q-empty2-ic">📝</div><b>ما عندك أسئلة بعد</b><p>المسابقات تلعب من «أسئلتي» فقط. اكتب أسئلتك بالزر فوق، أو أضف من بنك الأسئلة (${QS.glob.length} سؤالاً) درساً كاملاً بضغطة.</p><button class="btn" data-act="t-qs" data-v="global">${ic('plus')} أضف من بنك الأسئلة</button></div>`;
 }
 function qSubjectView(subj){
+  // «أسئلتي» › subject: only the grades that actually have questions (adding is via «إضافة سؤال» / the bank).
   const src = qStatusSrc(), cnt = {}; src.forEach(q => { if (q.curriculum_id) cnt[q.curriculum_id] = (cnt[q.curriculum_id] || 0) + 1; });
-  const mine = CU.list.filter(c => c.subject === subj);
-  const stg = STAGE_ORDER.filter(k => k !== 'university' || mine.some(c => c.stage === k));
-  return `<div class="qs-stages">${stg.map(k => { const have = mine.filter(c => c.stage === k).sort((a, b) => (a.grade || 0) - (b.grade || 0));
-      const free = STAGE_GRADES[k].filter(g => !have.some(c => c.grade === g));
-      return `<div class="qs-stage"><div class="qs-sh">${STAGE_AR[k]}</div><div class="qs-gr">${have.map(c => `<button class="qs-g on" data-act="q-nav-cu" data-id="${c.id}"><b>${gradeAr(c)}${c.title ? ' · ' + esc(c.title) : ''}</b><em>${cnt[c.id] || 0}</em></button>`).join('')}
-        ${free.map(g => `<button class="qs-g add" data-act="q-cu-new" data-st="${k}" data-g="${g}">${ic('plus')}${k === 'university' ? 'السنة ' + g : GRADES[g - 1]}</button>`).join('')}</div></div>`; }).join('')}</div>`;
+  const mine = CU.list.filter(c => c.subject === subj && cnt[c.id]);
+  if (mine.length < 2) return '';
+  const ttl = c => c.title && c.owner_id ? ' · ' + esc(c.title) : '';
+  return `<div class="qs-gr qs-gr-flat">${STAGE_ORDER.flatMap(k => mine.filter(c => c.stage === k).sort((a, b) => (a.grade || 0) - (b.grade || 0))).map(c => `<button class="qs-g on" data-act="q-nav-cu" data-id="${c.id}"><b>${STAGE_AR[c.stage]} · ${gradeAr(c)}${ttl(c)}</b><em>${cnt[c.id]}</em></button>`).join('')}</div>`;
 }
 function qListHtml(){
   const f = T.qf, ro = f.status === 'global';
@@ -2304,7 +2303,7 @@ function qRoList(list){
   return (inn.length && out.length ? `<div class="qs-lh in">${ic('check')} في أسئلتي، تدخل المسابقات (${inn.length})</div>` : '') + inn.map(q => qItem(q, true)).join('')
     + (out.length && inn.length ? `<div class="qs-lh out">غير مضافة، ما تدخل المسابقات (${out.length})</div>` : '') + out.map(q => qItem(q, true)).join('');
 }
-ACTS['q-nav'] = t => { T.qf.subj = t.dataset.s; T.qf.cu = ''; QS.selOn = false; QS.sel.clear(); renderQuestions(); scrollTo(0, 0); };
+ACTS['q-nav'] = t => { if (t.classList.contains('open')) { t.classList.remove('open'); t.style.transform = ''; t.dataset.off = 0; return; } T.qf.subj = t.dataset.s; T.qf.cu = ''; QS.selOn = false; QS.sel.clear(); renderQuestions(); scrollTo(0, 0); };
 ACTS['q-nav-cu'] = t => { T.qf.cu = t.dataset.id; renderQuestions(); scrollTo(0, 0); };
 ACTS['q-cu-new'] = async t => {
   const row = { owner_id: T.user.id, subject: T.qf.subj, stage: t.dataset.st, grade: Number(t.dataset.g), title: null };
@@ -2573,7 +2572,9 @@ ACTS['t-q-bulk-del'] = async () => { const P = QS.pick || new Set(), pk = [...QS
   QS.sel.clear(); QS.selOn = false; await tQuestions(); };
 
 // One tap: remove/delete every question in the folder the teacher is looking at.
-ACTS['q-clear'] = async () => { const list = qFiltered(); if (!list.length) return;
+ACTS['q-clear'] = async t => { let list;
+  if (t && t.dataset.s != null) { const keep = [T.qf.subj, T.qf.cu]; T.qf.subj = t.dataset.s; T.qf.cu = ''; list = qFiltered(); [T.qf.subj, T.qf.cu] = keep; } else list = qFiltered();
+  if (!list.length) return;
   const pk = list.filter(q => q._pk).map(q => q.id), ids = list.filter(q => !q._pk).map(q => q.id);
   const msg = [ids.length ? `حذف ${ids.length} سؤالاً كتبتها نهائياً` : '', pk.length ? `إزالة ${pk.length} سؤالاً من البنك من أسئلتك (تبقى في البنك)` : ''].filter(Boolean).join('، و');
   if (!await ask(msg + '؟', { title: 'تفريغ المجلد', ok: ids.length ? 'حذف' : 'إزالة' })) return;
