@@ -1119,7 +1119,8 @@ html body[data-theme=mid] .pv .opts .opt:nth-child(n){min-height:84px}
 .pvw-x{width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
 .pvw-x .ico{width:20px;height:20px}
 .pvw-phone{flex:1;width:100%;max-width:420px;border-radius:30px;overflow:hidden;border:6px solid #1c1c1e;box-shadow:0 20px 50px rgba(0,0,0,.5);background:#000}
-.pvw-phone iframe{width:100%;height:100%;border:0;display:block}
+.pvw-phone{position:relative}
+.pvw-phone iframe{position:absolute;inset:0;width:1px;min-width:100%;height:1px;min-height:100%;border:0;display:block}
 .pvw-f{color:rgba(255,255,255,.75);font-size:13px}
 .cf-prev{margin-top:-4px}
 /* report PDF */

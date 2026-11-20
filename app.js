@@ -1636,14 +1636,14 @@ ACTS['s-edit'] = t => {
     <div class="st1-h"><b>تعديل الطالب</b><button type="button" class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div>
     <input class="se1-n" name="name" value="${esc(s.name)}" required maxlength="60" aria-label="الاسم" autocomplete="off">
     <div class="se1-g">${[['m', '👦 طالب'], ['f', '👧 طالبة']].map(x => `<label class="${g0 === x[0] ? 'on' : ''}"><input type="radio" name="g" value="${x[0]}" ${g0 === x[0] ? 'checked' : ''}>${x[1]}</label>`).join('')}</div>
-    <div class="se1-l">📞 رقم هاتف ولي الأمر</div><input class="input se1-ph" name="ph" type="tel" value="${esc(s.phone || '')}" dir="ltr" placeholder="99999999" maxlength="20" aria-label="رقم هاتف ولي الأمر">
+    <div class="se1-l">📞 هاتف الطالب أو ولي الأمر</div><input class="input se1-ph" name="ph" type="tel" value="${esc(s.phone || '')}" dir="ltr" placeholder="99999999" maxlength="20" aria-label="هاتف الطالب أو ولي الأمر">
     <details class="se1-more" ontoggle="if(this.open)setTimeout(()=>this.scrollIntoView({block:'end',behavior:'smooth'}),50)"><summary>المزيد</summary><div class="se1-l">رقم الطالب</div><input class="input" name="no" value="${esc(s.student_no || '')}" dir="ltr" inputmode="numeric" maxlength="20" placeholder="اختياري" aria-label="رقم الطالب">
       ${many ? `<div class="se1-l">نقله لصف ثاني</div><div class="se1-c">${CL.classes.map(x => `<label class="${x.id === c.id ? 'on' : ''}"><input type="radio" name="cls" value="${x.id}" ${x.id === c.id ? 'checked' : ''}>${esc(x.name)}</label>`).join('')}</div>` : ''}</details>
     ${many ? '' : `<input type="hidden" name="cls" value="${c.id}">`}
     <button class="btn se1-save" type="submit">حفظ</button></form>`);
 };
 ACTS['s-edit-save'] = async f => {
-  const row = { name: f.name.value.trim(), student_no: f.no.value.trim(), class_id: f.cls.value, phone: f.ph.value.replace(/[^0-9+]/g, '').slice(0, 20) || null, gender: (f.querySelector('[name=g]:checked') || {}).value || null };
+  const row = { name: f.name.value.trim(), student_no: f.no.value.trim(), class_id: f.cls.value, phone: normPhone(f.ph.value) || null, gender: (f.querySelector('[name=g]:checked') || {}).value || null };
   if (row.name.length < 2) return toast('اكتب الاسم');
   const dup = (CL.students[row.class_id] || []).some(x => x.id !== f.dataset.id && row.student_no && x.student_no === row.student_no);
   if (dup) return toast('رقم الطالب موجود في هذا الصف');
@@ -1935,7 +1935,7 @@ ACTS['t-save-paste'] = async f => {
 ACTS['t-save-one'] = async f => {
   if (f.name.value.trim().length < 2) return toast('اكتب الاسم');
   try {
-    const r = await rpc('add_students', { p_class: CK.cls.id, p_rows: [{ name: f.name.value, student_no: f.no.value, phone: f.ph.value, gender: (f.querySelector('[name=g]:checked') || {}).value || '' }] });
+    const r = await rpc('add_students', { p_class: CK.cls.id, p_rows: [{ name: f.name.value, student_no: f.no.value, phone: normPhone(f.ph.value), gender: (f.querySelector('[name=g]:checked') || {}).value || '' }] });
     if (!r.added.length) return toast('الرقم موجود مسبقاً في الصف');
     toast('تمت الإضافة، أضف التالي'); f.reset(); f.name.focus(); CL.open.add(CK.cls.id); tClasses();
   } catch(e){ toast(errMsg(e)); }
@@ -4231,6 +4231,7 @@ ACTS['t-save-name'] = async f => {
    ====================================================== */
 const JN = {};
 /* codes typed on an Arabic keyboard: Arabic-Indic digits → 0-9, drop spaces/marks */
+function normPhone(v){ let p = String(v || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^0-9+]/g, ''); if (p.startsWith('00')) p = '+' + p.slice(2); if (/^\d{8}$/.test(p)) p = '+965' + p; return p.slice(0, 20); }
 function normCode(v){ return String(v || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^A-Za-z0-9]/g, '').toUpperCase(); }
 async function studentJoin(code){
   code = normCode(code);
