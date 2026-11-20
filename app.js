@@ -2234,8 +2234,8 @@ function qCrumb(){
       parts.push(c ? `<button data-act="q-gsubj" data-s="${esc(f.gs)}">${esc(f.gs)}</button>` : `<b>${esc(f.gs)}</b>`);
       if (c) parts.push(f.gl != null ? `<button data-act="q-gcu" data-id="${c.id}">${STAGE_AR[c.stage]} · ${gradeAr(c)}</button>` : `<b>${STAGE_AR[c.stage]} · ${gradeAr(c)}</b>`);
     }
-    return `<nav class="q-crumb">${parts.join('<i>‹</i>')}</nav>`; }
-  if (f.status === 'draft') return `<nav class="q-crumb"><button data-act="t-qs" data-v="approved">أسئلتي</button><i>‹</i><b>تنتظر مراجعتك</b></nav>`;
+    return qBackBar(parts); }
+  if (f.status === 'draft') return qBackBar([`<button data-act="t-qs" data-v="approved">أسئلتي</button>`, '<b>تنتظر مراجعتك</b>']);
   if (!f.subj) return '';
   const c = f.cu && CU.list.find(x => x.id === f.cu);
   const parts = [`<button data-act="q-nav" data-s="">كل المواد</button>`];
@@ -2243,7 +2243,15 @@ function qCrumb(){
   else if (f.subj === 'none') parts.push('<b>بدون منهج</b>');
   else { parts.push(c ? `<button data-act="q-nav" data-s="${esc(f.subj)}">${esc(f.subj)}</button>` : `<b>${esc(f.subj)}</b>`);
     if (c) parts.push(`<b>${STAGE_AR[c.stage]} · ${gradeAr(c)}${c.title ? ' · ' + esc(c.title) : ''}</b>`); }
-  return `<nav class="q-crumb">${parts.join('<i>‹</i>')}</nav>`;
+  return qBackBar(parts);
+}
+// Clear back: a big «‹ parent» button (goes up one level) + the current place as a heading.
+function qBackBar(parts){
+  let i = parts.length - 1; while (i >= 0 && !parts[i].startsWith('<button')) i--;
+  if (i < 0) return '';
+  const up = parts[i].replace('<button ', `<button class="q-back-b" aria-label="رجوع" `).replace('>', `>${ic('back')}<span>`).replace('</button>', '</span></button>');
+  const here = parts.slice(i + 1).map(p => p.replace(/<\/?b>/g, '')).join(' · ');
+  return `<nav class="q-back">${up}</nav>${here ? `<h2 class="q-here">${here}</h2>` : ''}`;
 }
 const SUBJ_MARK = { 'اللغة العربية': 'ع', 'التربية الإسلامية': 'إ', 'الرياضيات': '÷', 'العلوم': '⚗', 'اللغة الإنجليزية': 'En', 'الاجتماعيات': 'ج', 'الحاسوب': '</>' };
 const subjMark = s => SUBJ_MARK[s] || s.replace(/^(اللغة|التربية)\s+/, '').replace(/^ال/, '').slice(0, 1);

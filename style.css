@@ -1925,3 +1925,10 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
 .q-mysub svg{width:16px;height:16px}
 /* avatar gradient follows the chosen app colour (no fixed pink highlight) */
 .avatar{background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--primary) 70%,#fff),var(--primary) 60%,var(--primary-dark,var(--primary)))}
+/* questions: clear back button instead of breadcrumb */
+.q-back{display:flex;margin:2px 0 4px}
+.q-back-b{display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 16px 0 12px;border:0;border-radius:999px;background:color-mix(in srgb,var(--primary) 10%,transparent);color:var(--primary);font-weight:700;font-size:15px;max-width:100%}
+.q-back-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-back-b svg{width:18px;height:18px;flex:none}
+.q-back-b:active{opacity:.6}
+.q-here{margin:8px 2px 4px;font-size:22px;font-weight:800}
