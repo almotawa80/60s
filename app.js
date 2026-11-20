@@ -1078,7 +1078,7 @@ ACTS['adm-one'] = t => {
   const row = (l, v) => `<div class="set-row"><span class="grow">${l}</span><span class="set-val">${v}</span></div>`;
   modal(`<div class="ad-sh"><h3>${esc(x.name || '')}</h3><p class="sub" dir="ltr" style="text-align:right">${esc(x.email || '')}</p>
     <div class="ad-st3"><div><b>${nf(x.classes)}</b><span>صفوف</span></div><div><b>${nf(x.students)}</b><span>طالب</span></div><div><b>${nf(x.rounds)}</b><span>جولة</span></div></div>
-    <div class="set-g">${row('التحديات الشغّالة', nf(x.live))}${row('أسئلة كتبها بنفسه', nf(x.own_q))}${row('سجّل', admAgo(x.created_at))}${row('آخر دخول', admAgo(x.last_sign_in_at))}</div>
+    <div class="set-grp">${row('التحديات الشغّالة', nf(x.live))}${row('أسئلة كتبها بنفسه', nf(x.own_q))}${row('سجّل', admAgo(x.created_at))}${row('آخر دخول', admAgo(x.last_sign_in_at))}</div>
     <button class="btn" data-act="adm-enter" data-id="${x.id}">👁 ادخل على حسابه</button>
     ${x.email ? `<a class="btn ghost" href="mailto:${esc(x.email)}">✉️ راسله</a>` : ''}</div>`);
 };
@@ -3915,8 +3915,8 @@ async function tSettings(){
     sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/sg/ch"', icon: 'trophy', color: '#C8102E', label: 'التحدي', val: 'الأسئلة · النقاط' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/st"', icon: 'users', color: '#1FA971', label: 'الطلاب', val: 'الصفوف · الرسائل' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر', val: `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>` }),
-      sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق', val: 'تثبيت · بيانات' })]) +
-    (ADM.st && ADM.st.is ? sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/admin"', icon: 'chart', color: '#C8102E', label: 'لوحة المشرف', val: 'المعلمين · الدعم' })]) : '') +
+      sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق', val: 'تثبيت · بيانات' }),
+      ADM.st && ADM.st.is ? sRow({ act: 'go', attrs: 'data-h="#/t/admin"', icon: 'lock', color: '#30B0C7', label: 'المشرف', val: 'المعلمين · الدعم' }) : '']) +
     sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
     `<div class="set-f center">تحدّي الدقيقة · الإصدار ${APP_VER}</div>`, 'settings');
 }
