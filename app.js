@@ -110,14 +110,31 @@ function phaseOf(c){
 const PHASE_AR = { none: 'لا توجد مسابقة', upcoming: 'لم تبدأ بعد', points: 'جمع النقاط', knockout: 'التصفيات', finished: 'انتهت' };
 
 /* ---------- modal + actions ---------- */
+const MODAL_OPENER = [];
 function modal(html){
   const el = document.createElement('div');
   el.className = 'modal-back';
-  el.innerHTML = '<div class="modal" role="dialog" aria-modal="true">' + html + '</div>';
+  el.innerHTML = '<div class="modal" role="dialog" aria-modal="true" tabindex="-1">' + html + '</div>';
   el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+  el._opener = document.activeElement;
   document.body.appendChild(el);
+  const mo = el.querySelector('.modal'), h = mo.querySelector('h3,.sheet-t'); if (h) { h.id = h.id || 'mh' + Date.now(); mo.setAttribute('aria-labelledby', h.id); }
+  setTimeout(() => { if (document.contains(el) && !el.contains(document.activeElement)) mo.focus({ preventScroll: true }); }, 30);
+  /* give focus back to whatever opened the modal once it is gone */
+  new MutationObserver((_, ob) => { if (!document.contains(el)) { ob.disconnect(); const o = el._opener; if (o && document.contains(o) && !document.querySelector('.modal-back')) try { o.focus({ preventScroll: true }); } catch(e){} } }).observe(document.body, { childList: true });
   return el;
 }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (document.querySelector('.dlg-back')) return; const m = [...document.querySelectorAll('.modal-back')].pop(); if (m) { e.preventDefault(); m.remove(); } return; }
+  /* non-button elements that act like buttons (cards, rows) work with Enter / Space */
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-act][role="button"]:not(button):not(a)')) { e.preventDefault(); e.target.click(); }
+  /* keep Tab inside the open dialog */
+  if (e.key === 'Tab') { const m = [...document.querySelectorAll('.dlg-back,.modal-back')].pop(); if (!m) return;
+    const f = [...m.querySelectorAll('button:not([disabled]),[href],input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])')].filter(x => x.offsetParent !== null); if (!f.length) return;
+    const a = f[0], z = f[f.length - 1];
+    if (e.shiftKey && (document.activeElement === a || !m.contains(document.activeElement))) { e.preventDefault(); z.focus(); }
+    else if (!e.shiftKey && (document.activeElement === z || !m.contains(document.activeElement))) { e.preventDefault(); a.focus(); } }
+});
 const closeModals = () => document.querySelectorAll('.modal-back').forEach(m => m.remove());
 /* in-app dialogs (replace the browser's confirm / prompt) */
 function ask(msg, o){
@@ -420,7 +437,7 @@ const FX = (() => {
       L.appendChild(p); setTimeout(() => p.remove(), 1000);
     }
   }
-  function flash(cls, ms){ const L = layer(), f = document.createElement('div'); f.className = 'fx-flash ' + cls; L.appendChild(f); setTimeout(() => f.remove(), ms || 600); }
+  function flash(cls, ms){ if (reduce()) return; const L = layer(), f = document.createElement('div'); f.className = 'fx-flash ' + cls; L.appendChild(f); setTimeout(() => f.remove(), ms || 600); }
   function floatText(x, y, txt, cls){ const L = layer(), d = document.createElement('div'); d.className = 'fx-float ' + (cls || ''); d.textContent = txt; d.style.left = x + 'px'; d.style.top = y + 'px'; L.appendChild(d); setTimeout(() => d.remove(), 1300); }
   function confetti(ms){
     if (reduce()) return;
@@ -437,7 +454,7 @@ const FX = (() => {
     })(t0);
   }
   return {
-    on, toggle(){ LS.set('mc_sound', on() ? '0' : '1'); return on(); },
+    reduce, on, toggle(){ LS.set('mc_sound', on() ? '0' : '1'); return on(); },
     tick(final){ tone(final ? 1100 : 880, .06, 'square', .06); },
     heart(){ tone(70, .14, 'sine', .55); tone(60, .16, 'sine', .45, .18); vib([30, 80, 30]); },
     correct(btn, pts){
@@ -450,10 +467,11 @@ const FX = (() => {
     wrong(btn, timeout){
       tone(180, .25, 'sawtooth', .16, 0, 90); tone(140, .3, 'square', .08, .05, 70); vib([60, 40, 60]);
       flash('bad', 650);
-      const q = document.querySelector('.qbox'); if (q) { q.classList.remove('shake'); void q.offsetWidth; q.classList.add('shake'); }
+      const q = !reduce() && document.querySelector('.qbox'); if (q) { q.classList.remove('shake'); void q.offsetWidth; q.classList.add('shake'); }
       if (timeout) { const t = document.querySelector('.timer'); if (t) { const r = t.getBoundingClientRect(); floatText(r.left + r.width / 2, r.top + r.height / 2, 'انتهى الوقت!', 'bad'); } }
     },
     explode(){
+      if (reduce()) { tone(200, .3, 'sine', .08); return Promise.resolve(); }
       return new Promise(res => {
         const L = layer(), w = document.createElement('div'); w.className = 'fx-bomb';
         w.innerHTML = '<div class="fx-clock"><img src="icon-512.png" alt=""></div>'; L.appendChild(w);
@@ -505,7 +523,7 @@ function demoSubmit(idx){
   if (ok) { S.demo.ok++; S.demo.pts += pts; }
   (S.log = S.log || []).push({ q: q.body, o: q.options, c: q.c, x: idx, ok });
   const btns = $app.querySelectorAll('.opt');
-  btns.forEach((b, i) => { b.disabled = true; b.classList.add(i === q.c ? 'good' : i === idx ? 'bad' : 'dim'); });
+  btns.forEach((b, i) => { b.disabled = true; b.classList.add(i === q.c ? 'good' : i === idx ? 'bad' : 'dim'); if (i === q.c) optMark(b, '✓', 'الإجابة الصحيحة'); else if (i === idx) optMark(b, '✗', 'إجابتك، غير صحيحة'); });
   if (ok) FX.correct(btns[q.c], pts); else FX.wrong(idx != null ? btns[idx] : null, idx == null);
   const pop = document.getElementById('pop');
   if (pop) { pop.className = 'pts-pop ' + (ok ? 'good' : 'bad'); pop.textContent = ok ? '+' + pts + ' نقطة' : (idx == null ? 'انتهى الوقت' : 'إجابة غير صحيحة'); }
@@ -572,7 +590,7 @@ function showQuestion(st){
     '<div class="pv-clock">' + (th === 'kids' ? PV_GLASS : '') +
     '<div class="timer' + (st.position === st.total ? ' last' : '') + '" id="timer"><div class="tfill" id="tfill"></div><svg viewBox="0 0 116 116" aria-hidden="true"><circle class="bg" cx="58" cy="58" r="48"/><circle class="fg" id="tfg" cx="58" cy="58" r="48" stroke-dasharray="301.6" stroke-dashoffset="0"/></svg>' +
     '<div class="num"><span id="tnum">' + Math.ceil(st.seconds_left) + '</span><small>ثانية</small></div></div></div>' +
-    '<div class="pv-panel"><div class="qbox' + (q.image ? ' has-img' : '') + '">' + (q.image ? '<img class="q-img" src="' + esc(q.image) + '" alt="">' : '') + '<span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
+    '<div class="pv-panel"><div class="qbox' + (q.image ? ' has-img' : '') + '">' + (q.image ? '<img class="q-img" src="' + esc(q.image) + '" alt="' + esc(q.image_alt || 'صورة مرفقة بالسؤال') + '">' : '') + '<span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
     '<div class="opts' + (long ? ' long' : '') + '">' + q.options.map((o, i) => '<button class="opt" data-act="s-answer" data-idx="' + i + '"><span class="letter">' + LETTERS[i] + '</span><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
   runTimer(st.seconds_left);
 }
@@ -622,8 +640,8 @@ async function submit(idx){
     const btns = $app.querySelectorAll('.opt');
     btns.forEach((b, i) => {
       b.disabled = true;
-      if (i === ci) b.classList.add('good');
-      else if (i === idx) b.classList.add('bad');
+      if (i === ci) { b.classList.add('good'); optMark(b, '✓', 'الإجابة الصحيحة'); }
+      else if (i === idx) { b.classList.add('bad'); optMark(b, '✗', 'إجابتك، غير صحيحة'); }
       else b.classList.add('dim');
     });
     if (r.correct) FX.correct(btns[ci], r.points); else FX.wrong(idx != null ? btns[idx] : null, idx == null || r.timeout);
@@ -649,6 +667,7 @@ async function submit(idx){
     } catch(e2){ if (S.gen === gen) loadHome(); }
   }
 }
+function optMark(b, sym, sr){ if (b.querySelector('.opt-mk')) return; const m = document.createElement('span'); m.className = 'opt-mk'; m.textContent = sym; m.setAttribute('aria-hidden', 'true'); b.appendChild(m); b.setAttribute('aria-label', (b.querySelector('.txt') || b).textContent + '، ' + sr); }
 function reviewHtml(){
   const L = S.log || []; if (!L.length) return '';
   return '<div class="rv"><b class="rv-h">مراجعة إجاباتك</b>' + L.map((x, i) => '<div class="rv-i ' + (x.ok ? 'ok' : 'no') + '"><span class="rv-n">' + (x.ok ? '✓' : '✗') + '</span><div><div class="rv-q">' + esc(x.q) + '</div>' +
@@ -682,7 +701,7 @@ async function showResult(sm){
     ((S.log || []).some(x => !x.ok) && !S.demo ? '<button class="btn ghost" data-act="s-start" data-kind="review">تدرّب على أخطائك</button>' : '') +
     '<button class="btn" data-act="s-reload">العودة للرئيسية</button></div></div>';
   const target = sm ? sm.total_points : 0, el = document.getElementById('bigpts'), t0 = performance.now();
-  (function roll(t){ const k = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - k, 3); if (el) el.textContent = Math.round(target * e); if (k < 1) requestAnimationFrame(roll); })(t0);
+  if (FX.reduce()) { if (el) el.textContent = target; } else (function roll(t){ const k = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - k, 3); if (el) el.textContent = Math.round(target * e); if (k < 1) requestAnimationFrame(roll); })(t0);
 }
 
 /* ======================================================
@@ -1195,7 +1214,7 @@ function classSection(c){
       (st.length ? `<div class="sw-list">${st.map(x => { const k = CST(x.id), hide = q && !(x.name + ' ' + (x.student_no || '')).includes(q); return `<div class="sw-row${hide ? ' hide' : ''}" data-n="${esc(x.name + ' ' + (x.student_no || ''))}"><div class="sw-act">
           <div class="sw-r"><button class="del" data-act="t-del-student" data-id="${x.id}"><i>${ic('trash')}</i><span>حذف</span></button></div>
           <div class="sw-l"><button class="rg" data-act="t-regen" data-id="${x.id}"><i>${ic('refresh')}</i><span>رمز جديد</span></button><button class="wa" data-act="s-wa" data-id="${x.id}"><i>${ic('send')}</i><span>واتساب</span></button></div></div>
-        <div class="sw-main" data-act="s-card" data-id="${x.id}">${selS ? `<span class="selmark">${ic(CL.sel.ids.has(x.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${sort === 'pts' && comp ? '' : x._i}</span>`}<div class="grow"><b>${esc(fmtStu(x.name))}${k.today ? '<i class="cl-dot" title="لعب اليوم"></i>' : ''}</b><div class="sub">${esc(x.student_no) || '—'}${comp ? ` · ${k.pts} نقطة` : ''}${x.gender === 'f' ? ' · طالبة' : x.gender === 'm' ? ' · طالب' : ''}</div></div>
+        <div class="sw-main" data-act="s-card" data-id="${x.id}" role="button" tabindex="0"${selS ? ` aria-pressed="${CL.sel.ids.has(x.id) ? 'true' : 'false'}"` : ''}>${selS ? `<span class="selmark">${ic(CL.sel.ids.has(x.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${sort === 'pts' && comp ? '' : x._i}</span>`}<div class="grow"><b>${esc(fmtStu(x.name))}${k.today ? '<i class="cl-dot" title="لعب اليوم"></i>' : ''}</b><div class="sub">${esc(x.student_no) || '—'}${comp ? ` · ${k.pts} نقطة` : ''}${x.gender === 'f' ? ' · طالبة' : x.gender === 'm' ? ' · طالب' : ''}</div></div>
         ${selS ? '' : `<button class="cl-wa" data-act="s-wa" data-id="${x.id}" aria-label="إرسال الرمز واتساب">${ic('send')}</button>`}</div></div>`; }).join('')}</div>`
         : `<div class="cl-empty sm"><b>لا يوجد طلبة في ${esc(c.name)}</b><small>صوّر كشف الأسماء أو الصقه، أو اكتب الأسماء واحداً واحداً تحت.</small><button class="btn" data-act="aw-start" data-cid="${c.id}">${ic('plus')} إضافة طلبة</button></div>`) +
       (CL.sel ? '' : `<form class="cl-add1" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="طالب" autocomplete="off" enterkeyhint="done"><button class="btn sm" type="submit">إضافة</button></form>`) + '</div>';
@@ -1205,7 +1224,7 @@ function classSection(c){
   const tag = comp ? `<span class="cl-tag on">${PHASE_AR[ph]}</span>${days != null ? `<span class="cl-days">${days > 0 ? 'باقي ' + days + ' يوم' : 'آخر يوم'}</span>` : ''}` : `<span class="cl-tag">بدون مسابقة</span>`;
   const pct = st0.length ? Math.round(played * 100 / st0.length) : 0;
   const ring = ph === 'points' && st0.length && !selC ? `<span class="cl-ring" style="--p:${pct}" title="لعبوا اليوم"><b>${played}/${st0.length}</b><small>اليوم</small></span>` : '';
-  return `<div class="cls ${open ? 'open' : ''} ${selC && CL.sel.ids.has(c.id) ? 'picked' : ''}" data-cid="${c.id}"><button class="cls-head" data-act="c-toggle">${selC ? `<span class="selmark">${ic(CL.sel.ids.has(c.id) ? 'checkc' : 'circle')}</span>` : ''}
+  return `<div class="cls ${open ? 'open' : ''} ${selC && CL.sel.ids.has(c.id) ? 'picked' : ''}" data-cid="${c.id}"><button class="cls-head" data-act="c-toggle" aria-expanded="${open ? 'true' : 'false'}">${selC ? `<span class="selmark">${ic(CL.sel.ids.has(c.id) ? 'checkc' : 'circle')}</span>` : ''}
     <span class="cl-ic" style="--h:${clsHue(c.name)}">${esc(clsBadge(c.name))}</span>
     <div class="grow cl-txt"><b>${esc(c.name)}</b><div class="cl-meta"><span>${st0.length} طالب${c.gender === 'f' ? ' · بنات' : c.gender === 'm' ? ' · بنين' : ''}</span>${tag}</div></div>${ring}${selC ? '' : `<span class="chev">${ic('back')}</span>`}</button>${body}</div>`;
 }
@@ -1999,7 +2018,7 @@ function qItem(q, ro){
   const acts = ro ? (T.qf.gcu ? `<button class="qi2-b" data-act="q-hide" data-id="${q.id}">${hidden ? `${ic('check')} أرجعه لمسابقاتي` : `${ic('x')} لا تستخدمه`}</button><button class="qi2-b" data-act="q-report" data-id="${q.id}">${ic('flag')} بلّغ عن خطأ</button>` : '') : q.status === 'draft'
     ? `<button class="qi2-b ok" data-act="t-q-status" data-id="${q.id}" data-s="approved">${ic('check')} اعتماد</button><button class="qi2-b" data-act="t-q-edit" data-id="${q.id}">${ic('edit')} تعديل</button><button class="qi2-b del" data-act="t-q-del2" data-id="${q.id}">${ic('trash')} حذف</button>`
     : `<button class="qi2-b" data-act="t-q-edit" data-id="${q.id}">${ic('edit')} تعديل</button><button class="qi2-b" data-act="t-q-share1" data-id="${q.id}">${ic('share')} مشاركة</button><button class="qi2-b del" data-act="t-q-del2" data-id="${q.id}">${ic('trash')} حذف</button>`;
-  return `<div class="qi2${open ? ' open' : ''}${on ? ' sel' : ''}${hidden ? ' hid' : ''}" data-act="${sel ? 't-q-pick' : 't-q-open'}" data-id="${q.id}">
+  return `<div class="qi2${open ? ' open' : ''}${on ? ' sel' : ''}${hidden ? ' hid' : ''}" data-act="${sel ? 't-q-pick' : 't-q-open'}" data-id="${q.id}" role="button" tabindex="0" ${sel ? `aria-pressed="${on ? 'true' : 'false'}"` : `aria-expanded="${open ? 'true' : 'false'}"`}>
     ${sel ? `<span class="tick sq${on ? ' on' : ''}" aria-hidden="true">${ic('check')}</span>` : `<i class="lvd lv-${q.level}" title="${LEVEL_AR[q.level] || ''}"></i>`}
     <div class="qi2-m">${hidden ? '<small class="qi2-hid">مستبعد من مسابقاتك</small>' : ''}<b class="q-body">${q.image && !open ? '🖼️ ' : ''}${esc(q.body)}</b>
       ${open ? `${q.image ? `<img class="qi2-img" src="${esc(q.image)}" alt="" loading="lazy">` : ''}<div class="qi2-opts">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${i === q.correct_index ? ic('check') : ''}${esc(o)}</span>`).join('')}</div>
@@ -2035,7 +2054,7 @@ function qShowRender(){
 ACTS['qsh-rev'] = () => { QSH.show = true; qShowRender(); };
 ACTS['qsh-go'] = t => { QSH.i = Math.max(0, Math.min(QSH.list.length - 1, QSH.i + Number(t.dataset.d))); QSH.show = false; qShowRender(); };
 ACTS['qsh-x'] = () => { const el = document.getElementById('qsh'); if (el) el.remove(); document.body.classList.remove('qsh-on'); };
-ACTS['t-q-open'] = t => { const id = t.dataset.id; QS.open = QS.open === id ? null : id; const l = document.getElementById('qlist'); if (l) l.innerHTML = qListHtml(); };
+ACTS['t-q-open'] = t => { const id = t.dataset.id, kb = document.activeElement === t; QS.open = QS.open === id ? null : id; const l = document.getElementById('qlist'); if (l) { l.innerHTML = qListHtml(); if (kb) { const n = l.querySelector('[data-id="' + id + '"][role="button"]'); if (n) n.focus({ preventScroll: true }); } } };
 ACTS['t-q-share1'] = t => qShareIds([t.dataset.id]);
 ACTS['t-q-del2'] = t => {
   const id = t.dataset.id, i = QS.list.findIndex(x => x.id === id); if (i < 0) return;
@@ -3172,9 +3191,12 @@ function tbKeys(){
 }
 function tTB(){
   const a = tbKeys();
-  view('عند تساوي النقاط', `<div class="set-grp tb-list">${a.map((k, i) => `<div class="set-row tb-row" data-k="${k}"><span class="tb-n">${i + 1}</span><span class="grow rl-txt"><b>${TBL[k][0]}</b><small>${TBL[k][1]}</small></span><span class="drag-h" aria-label="اسحب للترتيب">${ic('grip')}</span></div>`).join('')}</div>
-    <div class="set-f">اسحب من المقبض لترتيب الأولوية. لو تساوى طالبين بالنقاط نقارن بالمعيار الأول، ولو تساووا فيه نروح للثاني وهكذا.</div>`, 'settings', '', '#/t/rset');
+  view('عند تساوي النقاط', `<div class="set-grp tb-list">${a.map((k, i) => `<div class="set-row tb-row" data-k="${k}"><span class="tb-n">${i + 1}</span><span class="grow rl-txt"><b>${TBL[k][0]}</b><small>${TBL[k][1]}</small></span><span class="tb-mv">${i > 0 ? `<button type="button" class="tb-b" data-act="tb-mv" data-i="${i}" data-d="-1" aria-label="رفع ${TBL[k][0]} للأعلى">▲</button>` : ''}${i < a.length - 1 ? `<button type="button" class="tb-b" data-act="tb-mv" data-i="${i}" data-d="1" aria-label="إنزال ${TBL[k][0]} للأسفل">▼</button>` : ''}</span><span class="drag-h" aria-hidden="true">${ic('grip')}</span></div>`).join('')}</div>
+    <div class="set-f">اسحب من المقبض أو استخدم الأسهم لترتيب الأولوية. لو تساوى طالبين بالنقاط نقارن بالمعيار الأول، ولو تساووا فيه نروح للثاني وهكذا.</div>`, 'settings', '', '#/t/rset');
 }
+ACTS['tb-mv'] = async t => { const keys = tbKeys().slice(), i = Number(t.dataset.i), j = i + Number(t.dataset.d); if (j < 0 || j >= keys.length) return;
+  [keys[i], keys[j]] = [keys[j], keys[i]]; await saveSettings({ tb: keys }); tTB();
+  const b = document.querySelector(`.tb-row[data-k="${keys[j]}"] [data-d="${t.dataset.d}"]`) || document.querySelector(`.tb-row[data-k="${keys[j]}"] .tb-b`); if (b) b.focus(); };
 (function(){
   let D = null;
   document.addEventListener('pointerdown', e => {

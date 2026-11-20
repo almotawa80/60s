@@ -418,7 +418,7 @@ input[type=date].input::-webkit-calendar-picker-indicator{margin:0}
 #toast{bottom:calc(max(6px, calc(env(safe-area-inset-bottom) - 20px)) + 84px)}
 
 /* ================= APPLE-STYLE TEACHER UI (body.wide) ================= */
-body.wide{--bg:#F5F2EF;--card:#fff;--line:rgba(60,40,30,.12);--muted:#857873;--ink:#1C1412;--radius:16px;
+body.wide{--bg:#F5F2EF;--card:#fff;--line:rgba(60,40,30,.12);--muted:#6F6460;--ink:#1C1412;--radius:16px;
   font-family:'Cairo',-apple-system,system-ui,sans-serif;background:var(--bg)!important;letter-spacing:0}
 body.wide .t-top{position:sticky;top:0;z-index:30;padding:calc(10px + env(safe-area-inset-top)) 18px 10px;transition:background .2s,box-shadow .2s}
 body.wide.scrolled .t-top{background:rgba(245,242,239,.78);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);box-shadow:0 .5px 0 var(--line)}
@@ -1860,3 +1860,20 @@ body.dark .qsh-o .c{background:rgba(52,199,89,.18);color:#7BE29A}
 .ko-load{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;text-align:center}
 .spin.sm{width:24px;height:24px;margin:0}
 .rs-fail b{color:#B3122A}
+/* ---- chatgpt-ux phase 2: accessibility ---- */
+:focus-visible{outline:3px solid #1F6FEB!important;outline-offset:2px}
+body.dark :focus-visible{outline-color:#6CB6FF!important}
+[role="button"][data-act]{cursor:pointer}
+.code-input,.code-boxes{direction:ltr}
+.icon-btn,.t-av,.cl-wa,.cl-flash-x,.joinshow-x,.qi2-b,.tb-b,.sheet-i,.paste-btn,.sl-t .link{min-height:44px}
+.icon-btn,.t-av,.cl-wa,.cl-flash-x,.joinshow-x,.tb-b{min-width:44px}
+.btn.sm{min-height:44px}
+.tb-mv{display:flex;gap:4px}
+.tb-b{border:0;border-radius:10px;background:var(--soft,#eee);color:var(--ink);font-size:14px}
+.opt{position:relative}
+.opt-mk{margin-inline-start:auto;font-size:22px;font-weight:900;line-height:1;padding-inline-start:8px}
+.opt .txt{overflow-wrap:anywhere}
+@media (prefers-reduced-motion: reduce){
+  *:not(.spin),*:not(.spin)::before,*:not(.spin)::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  body.quake,.qbox.shake,.opt.bad,.opt.good{animation:none!important}
+}
