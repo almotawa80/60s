@@ -1896,7 +1896,7 @@ async function cfPool(pd){
   const n = POOL[key], days = Math.floor(n / 4), ok = days >= pd;
   const x = document.getElementById('cf-pool'); if (!x) return;
   x.className = 'cf-pool ' + (ok ? 'ok' : 'low');
-  x.innerHTML = `${ic(ok ? 'check' : 'help')} <span>من «أسئلتي»: ${n} سؤالاً يناسب هذه المسابقة، تكفي لـ ${days} يوماً دون تكرار${ok ? '' : `. تحتاج ${pd * 4 - n} سؤالاً إضافياً لتغطية ${pd} يوم`}</span>${ok ? '' : `<button type="button" class="btn sm" data-act="cf-addready">${ic('plus')} أضف الأسئلة الجاهزة المناسبة</button>`}`;
+  x.innerHTML = `${ic(ok ? 'check' : 'help')} <span>من «أسئلتي»: ${n} سؤالاً يناسب هذه المسابقة، تكفي لـ ${days} يوماً دون تكرار${ok ? '' : `. تحتاج ${pd * 4 - n} سؤالاً إضافياً لتغطية ${pd} يوم`}</span>${ok ? '' : `<button type="button" class="btn sm" data-act="cf-addready">${ic('plus')} أضف بنك الأسئلة المناسبة</button>`}`;
 }
 /* one tap for a new teacher: pick every ready question that fits this competition (types, curriculum, lessons) */
 ACTS['cf-addready'] = async t => {
@@ -1904,12 +1904,12 @@ ACTS['cf-addready'] = async t => {
   const types = CC.qtypes && CC.qtypes.length ? CC.qtypes : ['curriculum', 'general', 'quick', 'memory'];
   let q = sb.from('questions').select('id,qtype,curriculum_id,lesson').is('owner_id', null).eq('status', 'approved').in('qtype', types).limit(3000);
   const { data, error } = await q;
-  if (error) { toast('تعذّر جلب الأسئلة الجاهزة'); t.removeAttribute('aria-busy'); return; }
+  if (error) { toast('تعذّر جلب بنك الأسئلة'); t.removeAttribute('aria-busy'); return; }
   const les = CC.cu && CC.lessons && CC.lessons.length ? new Set(CC.lessons) : null;
   const ids = (data || []).filter(x => x.qtype !== 'curriculum' || (CC.cu ? x.curriculum_id === CC.cu && (!les || les.has(x.lesson)) : true)).map(x => x.id);
-  if (!ids.length) { toast('لا توجد أسئلة جاهزة تناسب هذا الاختيار. أضف أسئلتك من صفحة الأسئلة'); t.remove(); return; }
+  if (!ids.length) { toast('لا توجد أسئلة في البنك تناسب هذا الاختيار. أضف أسئلتك من صفحة الأسئلة'); t.remove(); return; }
   if (!QS.pick) { const r = await sb.from('question_picks').select('question_id'); QS.pickOk = !r.error; QS.pick = new Set((r.data || []).map(x => x.question_id)); }
-  if (await qPickSet(ids, true)) { toast(`أُضيف ${ids.length} سؤالاً جاهزاً إلى أسئلتك ✓`); cfPool(CC.lastPd || 7); }
+  if (await qPickSet(ids, true)) { toast(`أُضيف ${ids.length} سؤالاً من البنك إلى أسئلتك ✓`); cfPool(CC.lastPd || 7); }
   else t.removeAttribute('aria-busy');
 };
 ACTS['cf-preview'] = () => themePreview(CC.style || 'mid');
@@ -2067,7 +2067,7 @@ function qBank(){
   return `<div class="qb ${low ? 'low' : 'ok'}"><div class="qb-h"><b>${n}</b><span>سؤالاً متاحاً متاحاً لطلبتك</span><span class="grow"></span><em>تكفي ${daysAr(days)}</em></div>
     <div class="qb-bar">${['easy', 'medium', 'hard'].map(k => `<i class="lv-${k}" style="width:${pc(k)}%"></i>`).join('')}</div>
     <div class="qb-lg">${['easy', 'medium', 'hard'].map(k => `<span><i class="lv-${k}"></i>${LEVEL_AR[k]} ${lv[k]}</span>`).join('')}</div>
-    <p class="qb-n">منها ${mine} كتبتها و${pool.length - mine} أضفتها من الأسئلة الجاهزة.${low ? ` أضف ${14 * QPD - n} سؤالاً لتكفي أسبوعين.` : ''}${weak ? ` أسئلة مستوى «${LEVEL_AR[weak]}» قليلة.` : ''}</p></div>`;
+    <p class="qb-n">منها ${mine} كتبتها و${pool.length - mine} أضفتها من بنك الأسئلة.${low ? ` أضف ${14 * QPD - n} سؤالاً لتكفي أسبوعين.` : ''}${weak ? ` أسئلة مستوى «${LEVEL_AR[weak]}» قليلة.` : ''}</p></div>`;
 }
 function qStat(q){
   const s = QS.stats[q.id]; if (!s || !s.answered) return '';
@@ -2096,13 +2096,13 @@ function qItem(q, ro){
     : `<button class="qi2-b" data-act="t-q-edit" data-id="${q.id}">${ic('edit')} تعديل</button><button class="qi2-b" data-act="t-q-share1" data-id="${q.id}">${ic('share')} مشاركة</button><button class="qi2-b del" data-act="t-q-del2" data-id="${q.id}">${ic('trash')} حذف</button>`;
   return `<div class="qi2${ro && !picked ? ' out' : ''}${open ? ' open' : ''}${on ? ' sel' : ''}${hidden ? ' hid' : ''}" data-act="${sel ? 't-q-pick' : 't-q-open'}" data-id="${q.id}" role="button" tabindex="0" ${sel ? `aria-pressed="${on ? 'true' : 'false'}"` : `aria-expanded="${open ? 'true' : 'false'}"`}>
     ${sel ? `<span class="tick sq${on ? ' on' : ''}" aria-hidden="true">${ic('check')}</span>` : `<i class="lvd lv-${q.level}" title="${LEVEL_AR[q.level] || ''}"></i>`}
-    <div class="qi2-m">${ro && picked ? '<small class="qi2-pk">✓ في أسئلتي</small>' : ro ? '<small class="qi2-out">ما يدخل المسابقات</small>' : !ro && q._pk ? '<small class="qi2-pk">من الأسئلة الجاهزة</small>' : ''}<b class="q-body">${q.image && !open ? '🖼️ ' : ''}${esc(q.body)}</b>
+    <div class="qi2-m">${ro && picked ? '<small class="qi2-pk">✓ في أسئلتي</small>' : ro ? '<small class="qi2-out">ما يدخل المسابقات</small>' : !ro && q._pk ? '<small class="qi2-pk">من بنك الأسئلة</small>' : ''}<b class="q-body">${q.image && !open ? '🖼️ ' : ''}${esc(q.body)}</b>
       ${open ? `${q.image ? `<img class="qi2-img" src="${esc(q.image)}" alt="" loading="lazy">` : ''}<div class="qi2-opts">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${i === q.correct_index ? ic('check') : ''}${esc(o)}</span>`).join('')}</div>
         <div class="qi2-meta">${LEVEL_AR[q.level] || ''} · ${TYPE_AR[q.qtype] || q.qtype}${QS.dup.has(q.id) ? ' · <b class="qi-dup">مكرر</b>' : ''}</div>${qStat(q)}${acts ? `<div class="qi2-acts">${acts}</div>` : ''}`
       : `<span class="qi2-a">${ic('check')}${esc(q.options[q.correct_index] || '')}</span>`}</div>${!sel && ((!ro && q._pk) || (ro && picked)) ? `<button class="qi2-x" data-act="q-pk" data-id="${q.id}" aria-label="إزالة من أسئلتي">${ic('x')}</button>` : ''}${!sel && ro && !picked ? `<button class="qi2-x add" data-act="q-pk" data-id="${q.id}" aria-label="أضف إلى أسئلتي">${ic('plus')}</button>` : ''}</div>`;
 }
 async function qPickSet(ids, on){
-  if (!QS.pickOk) { toast('ميزة الإضافة من الأسئلة الجاهزة تحتاج تحديث قاعدة البيانات أولاً'); return false; }
+  if (!QS.pickOk) { toast('ميزة الإضافة من بنك الأسئلة تحتاج تحديث قاعدة البيانات أولاً'); return false; }
   const P = QS.pick || (QS.pick = new Set());
   const todo = ids.filter(id => on ? !P.has(id) : P.has(id)); if (!todo.length) return true;
   let error;
@@ -2167,15 +2167,15 @@ const NO_LESSON = '__none';
 const qGlobCu = q => q.qtype === 'curriculum' && q.curriculum_id && CU.list.find(c => c.id === q.curriculum_id);
 const qGlobSubj = q => { const c = qGlobCu(q); return c ? c.subject : 'مناهج أخرى'; };
 function qGroups(){
-  if (!QS.glob.length) return '<div class="card center muted">لا توجد أسئلة جاهزة حالياً.</div>';
+  if (!QS.glob.length) return '<div class="card center muted">بنك الأسئلة فاضي حالياً.</div>';
   const cnt = {}; QS.glob.filter(q => q.qtype === 'curriculum').forEach(q => { const s = qGlobSubj(q); cnt[s] = (cnt[s] || 0) + 1; });
   const all = [...new Set(SUBJ_MAIN.concat(Object.keys(cnt)))].filter(s => cnt[s]), my = mySubjects();
   const subs = my.length ? all.filter(s => my.includes(s)) : all, other = my.length ? all.filter(s => !my.includes(s)) : [];
   const kinds = QG.filter(g => g[0] !== 'curriculum').map(g => [g, QS.glob.filter(q => q.qtype === g[0]).length]).filter(x => x[1]);
   const stages = s => [...new Set(QS.glob.filter(q => qGlobSubj(q) === s).map(q => { const c = qGlobCu(q); return c ? STAGE_AR[c.stage] : ''; }).filter(Boolean))].join('، ');
   const subBtn = s => `<button class="qsub" data-act="q-gsubj" data-s="${esc(s)}" style="--c:${SUBJ_COLOR(s)}"><span class="qsub-ic">${esc(subjMark(s))}</span><span class="grow"><b>${esc(s)}</b>${stages(s) ? `<small>${stages(s)}</small>` : ''}</span><em>${cnt[s]}</em><i>‹</i></button>`;
-  return `<p class="sub q-ro">مكتبة أسئلة جاهزة. تصفّحها وأضف منها ما تريد إلى «أسئلتي»، وما يدخل مسابقاتك إلا ما تضيفه.</p>
-    ${subs.length ? `<div class="qr-h">${my.length ? 'موادي' : 'أسئلة المناهج'}</div><div class="qsubs">${subs.map(subBtn).join('')}</div>` : my.length ? '<div class="card center muted">ما فيه أسئلة جاهزة لموادك بعد.</div>' : ''}
+  return `<p class="sub q-ro">بنك أسئلة جاهزة. تصفّحه وأضف منه ما تريد إلى «أسئلتي»، وما يدخل مسابقاتك إلا ما تضيفه.</p>
+    ${subs.length ? `<div class="qr-h">${my.length ? 'موادي' : 'أسئلة المناهج'}</div><div class="qsubs">${subs.map(subBtn).join('')}</div>` : my.length ? '<div class="card center muted">ما فيه أسئلة في البنك لموادك بعد.</div>' : ''}
     ${other.length ? `<details class="q-other"><summary>مواد أخرى (${other.length})</summary><div class="qsubs">${other.map(subBtn).join('')}</div></details>` : ''}
     ${!my.length && subs.length ? `<button class="q-mysub" data-act="go" data-h="#/t/opt/prof_subject">${ic('edit')} اختر موادك عشان تطلع أول</button>` : ''}
     ${kinds.length ? `<div class="qr-h">أسئلة عامة</div><div class="qsubs">${kinds.map(([g, n]) => `<button class="qsub" data-act="q-grp" data-g="${g[0]}" style="--c:${g[0] === 'quick' ? '#FF9500' : '#34C759'}"><span class="qsub-ic">${g[1]}</span><span class="grow"><b>${g[2]}</b></span><em>${n}</em><i>‹</i></button>`).join('')}</div>` : ''}`;
@@ -2185,7 +2185,7 @@ function qGlobGrades(subj){
   qs.forEach(q => { const k = q.curriculum_id || '-'; cnt[k] = (cnt[k] || 0) + 1; });
   const cus = CU.list.filter(c => c.subject === subj && cnt[c.id]);
   const stg = STAGE_ORDER.filter(k => cus.some(c => c.stage === k) || (k !== 'university' && CU.list.some(c => c.subject === subj && c.stage === k && !c.owner_id)));
-  if (!stg.length) return '<div class="card center muted">لا توجد أسئلة جاهزة في هذه المادة بعد.</div>';
+  if (!stg.length) return '<div class="card center muted">لا توجد أسئلة في البنك في هذه المادة بعد.</div>';
   return `<div class="qs-stages">${stg.map(k => { const have = cus.filter(c => c.stage === k).sort((a, b) => (a.grade || 0) - (b.grade || 0));
       const soon = k === 'university' ? [] : STAGE_GRADES[k].filter(g => !have.some(c => c.grade === g));
       const all = have.map(c => ({ g: c.grade || 0, c })).concat(soon.map(g => ({ g }))).sort((a, b) => a.g - b.g);
@@ -2228,7 +2228,7 @@ function qCrumb(){
   const f = T.qf; if (QS.searchOn) return '';
   if (f.status === 'global') {
     if (!f.g) return '';
-    const parts = [`<button data-act="q-grp" data-g="">أسئلة جاهزة</button>`];
+    const parts = [`<button data-act="q-grp" data-g="">بنك الأسئلة</button>`];
     if (f.g !== 'curriculum' || !f.gs) { const g = QG.find(x => x[0] === f.g); parts.push(`<b>${g[1]} ${g[2]}</b>`); }
     else { const c = f.gcu && CU.list.find(x => x.id === f.gcu);
       parts.push(c ? `<button data-act="q-gsubj" data-s="${esc(f.gs)}">${esc(f.gs)}</button>` : `<b>${esc(f.gs)}</b>`);
@@ -2259,7 +2259,7 @@ function qFolders(){
 ACTS['q-subj-pick'] = () => sheet('اختر المادة', [...new Set(SUBJ_MAIN.concat(CU.list.map(c => c.subject)))].map(x => ({ act: 'm-run', attrs: `data-a="q-nav" data-s="${esc(x)}"`, icon: 'layers', label: esc(x) }))
   .concat([null, { act: 'm-run', attrs: 'data-a="q-subj-add"', icon: 'plus', label: 'مادة أخرى' }]));
 function qEmpty(){
-  return `<div class="q-empty2"><div class="q-empty2-ic">📝</div><b>ما عندك أسئلة بعد</b><p>المسابقات تلعب من «أسئلتي» فقط. اكتب أسئلتك بالزر فوق، أو أضف من الأسئلة الجاهزة (${QS.glob.length} سؤالاً) درساً كاملاً بضغطة.</p><button class="btn" data-act="t-qs" data-v="global">${ic('plus')} أضف من الأسئلة الجاهزة</button></div>`;
+  return `<div class="q-empty2"><div class="q-empty2-ic">📝</div><b>ما عندك أسئلة بعد</b><p>المسابقات تلعب من «أسئلتي» فقط. اكتب أسئلتك بالزر فوق، أو أضف من بنك الأسئلة (${QS.glob.length} سؤالاً) درساً كاملاً بضغطة.</p><button class="btn" data-act="t-qs" data-v="global">${ic('plus')} أضف من بنك الأسئلة</button></div>`;
 }
 function qSubjectView(subj){
   const src = qStatusSrc(), cnt = {}; src.forEach(q => { if (q.curriculum_id) cnt[q.curriculum_id] = (cnt[q.curriculum_id] || 0) + 1; });
@@ -2322,9 +2322,9 @@ function renderQuestions(){
       <span class="q-pl">النوع</span>${pills('type', [['all', 'الكل'], ['curriculum', 'منهج'], ['general', 'عام'], ['quick', 'سرعة بديهة']])}</div>` : '';
   const top = `<button class="icon-btn${QS.searchOn ? ' on' : ''}" data-act="t-q-search" aria-label="بحث">${ic(QS.searchOn ? 'x' : 'search')}</button>`;
   const body = `${search}
-    <div class="seg2 q-tabs2"><button class="${mine ? 'on' : ''}" data-act="t-qs" data-v="approved">أسئلتي</button><button class="${ro ? 'on' : ''}" data-act="t-qs" data-v="global">أسئلة جاهزة</button></div>
+    <div class="seg2 q-tabs2"><button class="${mine ? 'on' : ''}" data-act="t-qs" data-v="approved">أسئلتي</button><button class="${ro ? 'on' : ''}" data-act="t-qs" data-v="global">بنك الأسئلة</button></div>
     ${QS.searchOn || (ro ? f.g : f.subj || f.status === 'draft') ? '' : qOk()}
-    ${mine && !QS.selOn && !QS.searchOn ? `<div class="q-addrow"><button class="btn q-addbig" data-act="t-q-add">${ic('plus')} إضافة سؤال</button><button class="btn soft" data-act="t-q-add-menu">استيراد مجموعة</button>${QS.list.length ? `<button class="icon-btn" data-act="t-q-more" aria-label="المزيد">${ic('more')}</button>` : ''}</div>` : ''}
+    ${mine && !QS.selOn && !QS.searchOn ? `<div class="q-addrow"><button class="btn q-addbig" data-act="t-q-add">${ic('plus')} إضافة سؤال</button><button class="btn soft" data-act="t-q-add-menu">استيراد مجموعة</button>${QS.list.length || qPicked().length ? `<button class="icon-btn" data-act="t-q-more" aria-label="المزيد">${ic('more')}</button>` : ''}</div>` : ''}
     ${mine && nd && f.status !== 'draft' && !QS.searchOn ? `<button class="q-ban" data-act="t-qs" data-v="draft"><span>⏳ ${nd === 1 ? 'سؤال واحد ينتظر' : nd === 2 ? 'سؤالان ينتظران' : nd + ' أسئلة تنتظر'} مراجعتك</span><u>راجعها</u></button>` : ''}
     ${f.status === 'draft' && nd > 1 && !QS.selOn ? `<button class="btn accent" data-act="t-q-approve-all">${ic('check')} إتاحة الكل (${nd})</button>` : ''}
     ${qSelBar()}
@@ -2550,16 +2550,16 @@ ACTS['t-q-bulk-lv'] = async t => { const ids = [...QS.sel]; closeModals();
   const { error } = await sb.from('questions').update({ level: t.dataset.v }).in('id', ids); if (error) return toast(errMsg(error));
   ids.forEach(id => { const q = QS.list.find(x => x.id === id); if (q) q.level = t.dataset.v; }); QS.sel.clear(); toast('تم تغيير المستوى'); renderQuestions(); };
 ACTS['t-q-bulk-unpick'] = async () => { const P = QS.pick || new Set(), pk = [...QS.sel].filter(id => P.has(id)), own = [...QS.sel].filter(id => !P.has(id));
-  if (!await ask(`إزالة ${pk.length} سؤالاً جاهزاً من أسئلتك؟ لن تظهر لطلبتك، وتبقى في الأسئلة الجاهزة إذا احتجتها.${own.length ? `\n\n(${own.length} من أسئلتك الخاصة المحددة لن تتأثر)` : ''}`, { title: 'إزالة من أسئلتي؟', ok: 'إزالة', danger: true, safe: true })) return;
+  if (!await ask(`إزالة ${pk.length} سؤالاً من البنك من أسئلتك؟ لن تظهر لطلبتك، وتبقى في بنك الأسئلة إذا احتجتها.${own.length ? `\n\n(${own.length} من أسئلتك الخاصة المحددة لن تتأثر)` : ''}`, { title: 'إزالة من أسئلتي؟', ok: 'إزالة', danger: true, safe: true })) return;
   if (await qPickSet(pk, false)) { pk.forEach(id => QS.sel.delete(id)); if (!QS.sel.size) QS.selOn = false; toast(`أُزيل ${pk.length} سؤالاً من أسئلتك`); renderQuestions(); } };
 ACTS['t-q-bulk-del'] = async () => { const P = QS.pick || new Set(), pk = [...QS.sel].filter(id => P.has(id)), ids = [...QS.sel].filter(id => !P.has(id)); closeModals();
-  if (!await ask(`حذف ${ids.length} سؤالاً نهائياً؟${pk.length ? ` و${pk.length} سؤالاً جاهزاً ستُزال من أسئلتك فقط.` : ''}`)) return;
+  if (!await ask(`حذف ${ids.length} سؤالاً نهائياً؟${pk.length ? ` و${pk.length} سؤالاً من البنك ستُزال من أسئلتك فقط.` : ''}`)) return;
   if (pk.length && !await qPickSet(pk, false)) return;
   const { error } = ids.length ? await sb.from('questions').delete().in('id', ids) : {}; if (error) return toast(errMsg(error));
   QS.sel.clear(); QS.selOn = false; await tQuestions(); };
 
 /* public bank */
-ACTS['t-q-view'] = () => toast('هذا سؤال من الأسئلة الجاهزة. انسخه إلى أسئلتك لتعدّله.');
+ACTS['t-q-view'] = () => toast('هذا سؤال من بنك الأسئلة. انسخه إلى أسئلتك لتعدّله.');
 ACTS['t-q-copy'] = async t => {
   const g = QS.glob.find(x => x.id === t.dataset.id); if (!g) return;
   const { data, error } = await sb.from('questions').insert({ owner_id: T.user.id, status: 'approved', source: 'copy', qtype: g.qtype, level: g.level, body: g.body, options: g.options, correct_index: g.correct_index }).select().single();
@@ -3188,13 +3188,13 @@ ACTS['num-pick'] = async t => {
 const DIFF_ALL = () => DIFF.map(d => [d[0], d[1], d[2]]);
 const OPTS = {
   difficulty: { t: 'صعوبة الجولة', back: '#/t/qset', o: DIFF_ALL, foot: 'كل جولة فيها 4 أسئلة. «حسب مستوى الطالب» تصعّب الأسئلة لمن يجاوب صح وتسهّلها لمن يغلط.' },
-  q_src: { t: 'مصدر الأسئلة', back: '#/t/qset', o: () => [['all', 'أسئلتي + الأسئلة الجاهزة', 'إذا خلصت أسئلتك تكمل من البنك'], ['mine', 'أسئلتي فقط', 'لازم يكون عندك أسئلة متاحة كافية']] },
+  q_src: { t: 'مصدر الأسئلة', back: '#/t/qset', o: () => [['all', 'أسئلتي + بنك الأسئلة', 'إذا خلصت أسئلتك تكمل من البنك'], ['mine', 'أسئلتي فقط', 'لازم يكون عندك أسئلة متاحة كافية']] },
   show_ans: { t: 'إظهار الإجابة الصحيحة', back: '#/t/qset', o: () => [['each', 'بعد كل سؤال', ''], ['end', 'بنهاية الجولة', 'تظهر في مراجعة الإجابات'], ['never', 'لا تظهر', 'يعرف الطالب بس إذا كانت إجابته صح أو خطأ']] },
   scoring: { t: 'طريقة الحساب', back: '#/t/rset', o: () => [['speed', 'الإجابة الصحيحة ومكافأة السرعة', 'نقاط السؤال + مكافأة لمن يجاوب أسرع'], ['correct', 'الصحة فقط', 'نقاط السؤال بدون مكافأة سرعة'], ['penalty', 'مع خصم للخطأ', 'مثل الأول، والخاطئة تخصم (الجولة ما تنزل تحت الصفر)']] },
   lb: { t: 'لوحة المتصدرين', back: '#/t/rset', o: () => [['all', 'كاملة', 'يشوف الطالب ترتيب كل الصف'], ['top', 'أفضل عدد', 'تحدد العدد من صفحة النتائج'], ['hidden', 'مخفية حتى النهاية', 'يشوف ترتيبه بس لين تنتهي المسابقة']], get: () => SG('lb') === 'top10' ? 'top' : SG('lb') },
   names: { t: 'أسماء الطلبة في اللوحة', back: '#/t/rset', o: () => [['full', 'الاسم كاملاً', 'محمد أحمد العلي'], ['first_fam', 'الأول وحرف العائلة', 'محمد ع.'], ['first', 'الاسم الأول فقط', 'محمد']] },
   prof_title: { t: 'اللقب', back: '#/t/account', o: () => [['', 'بدون', ''], ['أ.', 'أ.', ''], ['أستاذ', 'أستاذ', ''], ['أستاذة', 'أستاذة', ''], ['د.', 'د.', '']] },
-  prof_subject: { t: 'موادي', back: '#/t/account', multi: true, o: () => SUBJECTS.filter(s => s !== 'عام' && s !== 'أخرى').map(s => [s, s, '']), foot: 'تقدر تختار أكثر من مادة. موادك تطلع أول في «أسئلة جاهزة»، والباقي تحت «مواد أخرى».' },
+  prof_subject: { t: 'موادي', back: '#/t/account', multi: true, o: () => SUBJECTS.filter(s => s !== 'عام' && s !== 'أخرى').map(s => [s, s, '']), foot: 'تقدر تختار أكثر من مادة. موادك تطلع أول في «بنك الأسئلة»، والباقي تحت «مواد أخرى».' },
   sec_style: { t: 'تسمية الشعب', back: '#/t/sset', o: () => [['letters', 'حروف', 'أ، ب، ج'], ['numbers', 'أرقام', '1، 2، 3']] },
   cname: { t: 'صيغة اسم الصف', back: '#/t/sset', o: () => [['slash', 'السادس / أ', ''], ['short', '6أ', ''], ['long', 'الصف السادس - أ', '']].map(x => [x[0], cnameDemo(x[0]), '']) },
   def_stage: { t: 'المرحلة الافتراضية', back: '#/t/sset', o: () => [['', 'آخر مرحلة اخترتها', '']].concat(Object.keys(STAGE_AR).map(k => [k, STAGE_AR[k], ''])) },
