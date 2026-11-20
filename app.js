@@ -13,6 +13,7 @@ const LS = {
   del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
 const ERR = {
+  comp_paused: 'المسابقة متوقفة مؤقتاً من المعلم، ترجع قريباً.',
   bad_code: 'رمز المشاركة غير صحيح',
   duplicate_question: 'هذا السؤال موجود في البنك، لا يمكن تكراره',
   no_questions: 'لم يتم تحديد أسئلة',
@@ -895,7 +896,7 @@ async function teacherRoute(){
     else if (page === 'class') await tClass(parts[1]);
     else if (page === 'questions') await tQuestions();
     else if (page === 'qshare') { T.qf.status = 'approved'; await tQuestions(); qSharePreview(parts[1]); }
-    else if (page === 'results') await tResults(parts[1]);
+    else if (page === 'results') await tResults(parts[1], parts[2]);
     else if (page === 'settings') await tSettings();
     else if (page === 'qset') await tQSet();
     else if (page === 'rset') tRSet();
@@ -1096,8 +1097,9 @@ async function tClasses(){
   const [c, s, k] = await Promise.all([
     sb.from('classes').select('*').order('created_at'),
     sb.from('students').select('*').order('created_at'),
-    sb.from('competitions').select('*').eq('status', 'active').order('created_at')
-  ]);
+    sb.from('competitions').select('*').eq('status', 'active').order('created_at'),
+    sb.from('competitions').select('id,group_id,class_id,title,start_date,end_date').eq('status', 'finished').order('end_date', { ascending: false }).limit(120)
+  ]).then(r => { CL.past = (r[3] && r[3].data) || []; return r; });
   if (c.error) throw c.error; if (s.error) throw s.error; if (k.error) throw k.error;
   CL.classes = c.data.filter(x => !x.archived); CL.archived = c.data.filter(x => x.archived); CL.byId = {}; CL.students = {}; CL.comps = {}; CL.allComps = k.data;
   c.data.forEach(x => { CL.byId[x.id] = x; CL.students[x.id] = []; });
@@ -1116,7 +1118,7 @@ function renderClasses(){
   const cl = CL.tab !== 'comps';
   const more = cl ? `<button class="icon-btn" data-act="c-more" aria-label="المزيد">${ic('more')}</button>` : '';
   view(cl ? 'الصفوف' : 'المسابقات', (cl ? classesList() : compsPanel()) + selBar(), cl ? 'classes' : 'comps', more);
-  cfUpdate(); cfLessons();
+  cfAuto(); cfUpdate(); cfLessons();
   if (CL.addFocus) { const i = document.querySelector(`.cls[data-cid="${CL.addFocus}"] .cl-add1 input`); CL.addFocus = null; if (i) i.focus(); }
 }
 ACTS['c-tab'] = t => { T.compEdit = null; go('#/t/' + t.dataset.t); };
@@ -1661,11 +1663,35 @@ function compsPanel(){
       <div class="sub">الصعوبة: ${(DIFF.find(d => d[0] === (c.difficulty || 'normal')) || DIFF[1])[1]}${c.curriculum_id && CU.list.length ? ' · ' + esc(cuName(CU.list.find(x => x.id === c.curriculum_id))) : ''}</div>
       <div class="row" style="flex-wrap:wrap;gap:6px">${g.map(x => `<span class="chip">${esc((CL.byId[x.class_id] || {}).name || '')}</span>`).join('')}</div>
       <a class="btn cp-res" href="#/t/results/${g[0].class_id}">${ic('chart')} النتائج والترتيب${ph === 'knockout' || ph === 'finished' ? ' والتصفيات' : ''}</a>
-      <div class="row"><button class="btn sm soft" data-act="cp-edit" data-g="${c.group_id}">${ic('edit')} الإعدادات</button><button class="btn sm soft" data-act="cp-end" data-g="${c.group_id}">إنهاء المسابقة</button></div></div>`; }).join('')
+      <div class="row"><button class="btn sm soft" data-act="cp-edit" data-g="${c.group_id}">${ic('edit')} الإعدادات</button>${c.paused_at ? `<button class="btn sm" data-act="cp-resume" data-g="${c.group_id}">${ic('play')} استئناف</button>` : `<button class="btn sm soft" data-act="cp-pause" data-g="${c.group_id}">⏸ إيقاف مؤقت</button>`}<button class="btn sm ghost" data-act="cp-end" data-g="${c.group_id}">إنهاء</button></div>${c.paused_at ? `<div class="cp-paused">⏸ متوقفة من ${esc(fmtDate(String(c.paused_at).slice(0, 10)))}. الطلبة ما يقدرون يلعبون الجولة الرسمية، والنقاط محفوظة.</div>` : ''}</div>`; }).join('')
       : '<div class="card center muted">لا توجد مسابقات نشطة.</div>') +
     (groups.length && free.length ? `<p class="sub">صفوف بلا مسابقة: ${free.map(c => esc(c.name)).join('، ')}</p>` : '') +
-'';
+    cpPast();
 }
+function cpPast(){
+  const by = {}, order = []; (CL.past || []).forEach(k => { if (!by[k.group_id]) { by[k.group_id] = []; order.push(k.group_id); } by[k.group_id].push(k); });
+  if (!order.length) return '';
+  return `<details class="cp-past"><summary>المسابقات السابقة <em>${order.length}</em></summary><div class="qsubs">${order.map(gid => { const g = by[gid], c = g[0];
+    return `<a class="qsub" href="#/t/results/${c.class_id}/${c.id}"><span class="qsub-ic" style="--c:#8E8E93">${ic('trophy')}</span><span class="grow"><b>${esc(c.title)}</b><small>${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.end_date))} · ${g.map(x => esc((CL.byId[x.class_id] || {}).name || '')).filter(Boolean).join('، ')}</small></span><i>‹</i></a>`; }).join('')}</div></details>`;
+}
+ACTS['cp-pause'] = async t => {
+  if (!await ask('إيقاف المسابقة مؤقتاً؟ الطلبة ما يقدرون يلعبون الجولة الرسمية حتى تستأنفها، والنقاط تبقى محفوظة. عند الاستئناف تتأخر المواعيد بعدد أيام الإيقاف.', { danger: false, ok: 'إيقاف مؤقت' })) return;
+  const { error } = await sb.from('competitions').update({ paused_at: new Date().toISOString() }).eq('group_id', t.dataset.g).eq('status', 'active');
+  if (error) return toast(errMsg(error)); toast('تم إيقاف المسابقة مؤقتاً'); await tClasses();
+};
+ACTS['cp-resume'] = async t => {
+  const ks = (CL.allComps || []).filter(k => k.group_id === t.dataset.g); if (!ks.length) return;
+  const today = todayKW();
+  try {
+    for (const k of ks) {
+      const from = String(k.paused_at || '').slice(0, 10) || today, d = Math.max(0, cfDays(from, today));
+      const u = { paused_at: null };
+      if (d) { if (k.start_date > from) u.start_date = addDays(k.start_date, d); u.points_end_date = addDays(k.points_end_date, d); u.end_date = addDays(k.end_date, d); }
+      const { error } = await sb.from('competitions').update(u).eq('id', k.id); if (error) throw error;
+    }
+    toast('رجعت المسابقة، والمواعيد تأخرت بعدد أيام الإيقاف'); await tClasses();
+  } catch(e){ toast(errMsg(e)); }
+};
 ACTS['t-remind'] = t => {
   const s = (T.homeStats || []).find(x => x.c.id === t.dataset.c); if (!s) return;
   const left = s.rs.filter(r => !r.played_today).map(r => r.name);
@@ -1689,7 +1715,7 @@ ACTS['cp-edit'] = async t => {
 };
 ACTS['cp-cancel'] = () => { T.compEdit = null; renderClasses(); };
 ACTS['cp-end'] = async t => {
-  if (!await ask('إنهاء هذه المسابقة لكل صفوفها؟ تبقى النتائج محفوظة.')) return;
+  if (!await ask('إنهاء هذه المسابقة؟ نتائجها وترتيبها يبقون محفوظين في «المسابقات السابقة». إذا تبي توقفها فترة استخدم «إيقاف مؤقت».', { ok: 'إنهاء' })) return;
   if (SG('msg_auto')) { const ks = (CL.allComps || []).filter(k => k.group_id === t.dataset.g); for (const k of ks) { try { const rs = await rpc('teacher_class_results', { p_class: k.class_id }); await autoPraise(k.class_id, k.id, rs.map(r => Object.assign({ cls: (CL.byId[k.class_id] || {}).name || '' }, r))); } catch(e){} } }
   const { error } = await sb.from('competitions').update({ status: 'finished' }).eq('group_id', t.dataset.g);
   if (error) return toast(errMsg(error)); await tClasses();
@@ -1698,37 +1724,57 @@ const CF_STYLES = [['kids', 'مرح', 'ابتدائي'], ['mid', 'مرح قلي�
 function compForm(){
   const isNew = T.compEdit === 'new', t = todayKW();
   const g = isNew ? null : CL.allComps.find(c => c.group_id === T.compEdit);
-  const v = g || { title: 'مسابقة تحدّي الدقيقة', start_date: t, points_end_date: addDays(t, 4), end_date: addDays(t, 7), group_size: 6, qualifiers: 8, round_window_hours: 24 };
+  const v = g || Object.assign({ title: cfAutoTitle(), start_date: t, group_size: 6, qualifiers: 8, round_window_hours: 24 }, cfSpan(t, 7, 8, 24));
+  if (isNew) { CC.titleManual = false; CC.styleManual = false; } else { CC.titleManual = true; CC.styleManual = true; }
   const opt = (val, lab) => `<option value="${val}" ${Number(v.round_window_hours) === val ? 'selected' : ''}>${lab}</option>`;
   const step = (name, label, val, min, max, hint) => `<div class="set-row cf-row"><span class="grow">${label}${hint ? `<small class="cf-hint">${hint}</small>` : ''}</span><div class="cf-step"><button type="button" data-act="cf-step" data-n="${name}" data-d="-1" aria-label="إنقاص">−</button><input name="${name}" type="number" inputmode="numeric" min="${min}" max="${max}" value="${val}"><button type="button" data-act="cf-step" data-n="${name}" data-d="1" aria-label="زيادة">+</button></div></div>`;
   const date = (name, label, val) => `<label class="set-row cf-row"><span class="grow">${label}</span><input class="cf-date" type="date" name="${name}" value="${val}" required></label>`;
-  return `<form class="col cf" data-form="cp-save">
-    <div class="cf-hero"><span class="cf-hero-ic">${ic('trophy')}</span><div class="grow"><b>${isNew ? 'مسابقة جديدة' : 'إعدادات المسابقة'}</b><div class="sub" id="cf-sum"></div></div></div>
-    <div class="set-h">العنوان</div>
-    <div class="set-grp"><label class="set-row cf-row"><input class="cf-in" name="title" value="${esc(v.title)}" required maxlength="80" placeholder="عنوان المسابقة"></label></div>
-    <div class="set-h cf-h"><span>الصفوف المشاركة <em id="cf-cnt"></em></span><button type="button" class="link" data-act="cp-all">تحديد الكل</button></div>
-    <div class="set-grp">${CL.classes.map(c => { const other = CL.comps[c.id] && CL.comps[c.id].group_id !== T.compEdit; return `<button type="button" class="set-row cf-cls ${CC.sel.has(c.id) ? 'on' : ''}" data-act="cp-cls" data-id="${c.id}"><span class="cl-ic" style="--h:${clsHue(c.name)};width:34px;height:34px;border-radius:9px;font-size:13px">${esc(clsBadge(c.name))}</span><span class="grow"><b>${esc(c.name)}</b><small class="cf-hint">${(CL.students[c.id] || []).length} طالب/ـة${other ? ' · في مسابقة أخرى' : ''}</small></span><span class="cf-chk">${ic('check')}</span></button>`; }).join('')}</div>
-    <div class="set-f">لكل صف ترتيبه وتصفياته الخاصة، والإعدادات واحدة للجميع.</div>
-    <div class="set-h">نمط واجهة الطلبة</div>
-    <div class="cf-themes">${CF_STYLES.map(x => `<button type="button" class="cf-th ${CC.style === x[0] ? 'on' : ''}" data-act="cp-style" data-v="${x[0]}"><span class="cf-ph cf-ph-${x[0]}"><i class="t"></i><i class="q"></i><i class="o"></i><i class="o"></i><i class="o"></i></span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>
-    <button type="button" class="btn sm soft cf-prev" data-act="cf-preview">${ic('play')} معاينة النمط كما يراه الطالب</button>
-    <div class="set-f">يُطبَّق على كل الصفوف المشاركة.</div>
-    <div class="set-h">المواعيد</div>
-    <div class="set-grp">${date('start_date', 'بداية جمع النقاط', v.start_date)}${date('points_end_date', 'نهاية جمع النقاط', v.points_end_date)}${date('end_date', 'نهاية المسابقة', v.end_date)}
-      <div class="cf-tl" id="cf-tl"></div><div class="cf-pool" id="cf-pool"></div>
-      <button type="button" class="set-row cf-link" data-act="t-suggest"><span class="set-ic" style="background:#5856D6">${ic('star')}</span><span class="grow">اقتراح التواريخ تلقائياً</span></button></div>
-    <div class="set-h">التصفيات</div>
-    <div class="set-grp">${step('group_size', 'حجم المجموعة', v.group_size, 2, 40, 'عدد الطلبة في كل مجموعة')}${step('qualifiers', 'المتأهلون من كل صف', v.qualifiers, 2, 64, 'يدخلون مرحلة خروج المغلوب')}
-      <label class="set-row cf-row"><span class="grow">مدة كل دور</span><select class="cf-sel" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></label></div>
-    <div class="set-h">الأسئلة</div>
-    <div class="cf-qt">${QTYPES.map(q => `<button type="button" class="cf-chip ${CC.qtypes.includes(q[0]) ? 'on' : ''}" data-act="cp-qt" data-v="${q[0]}">${ic(q[3])}<span>${q[1]}</span></button>`).join('')}</div>
-    <div class="set-grp"><label class="set-row cf-row"><span class="grow">المنهج</span><select class="cf-sel" name="cu" data-change="cp-cu">${cuOptions(CC.cu, 'كل المعتمد')}</select></label>
-      <div class="cf-les" id="cf-les"></div>
-      <div class="set-row cf-row cf-col"><span>مستوى الصعوبة</span><div class="tabs">${DIFF.map(d => `<button type="button" class="${CC.diff === d[0] ? 'on' : ''}" data-act="cp-diff" data-v="${d[0]}">${d[1]}</button>`).join('')}</div><small class="cf-hint" id="cp-diff-d">${(DIFF.find(d => d[0] === CC.diff) || DIFF[1])[2]}</small></div>
-      <button type="button" class="set-row cf-link" data-act="go-qset"><span class="set-ic" style="background:#C8102E">${ic('layers')}</span><span class="grow">إدارة المناهج</span><span class="set-chev">${ic('back')}</span></button></div>
-    <div class="set-f">كل جولة: 4 أسئلة × 15 ثانية. جولة رسمية يومياً، والتدريب مفتوح.</div>
-    <div class="row w-nav cf-bar"><button type="button" class="btn soft" data-act="cp-cancel">إلغاء</button><button class="btn" type="submit">${isNew ? 'إنشاء المسابقة' : 'حفظ'}</button></div></form>`;
+  return `<form class="col cf cf2" data-form="cp-save">
+    <div class="cf2-head"><input class="cf2-title" id="cf-title" name="title" value="${esc(v.title)}" required maxlength="80" aria-label="عنوان المسابقة"><span class="cf2-pen">${ic('edit')}</span></div>
+    <div class="cf2-sum" id="cf-sum"></div>
+    <section class="cf2-sec"><div class="cf2-q"><span>1</span>أي صف؟<em id="cf-cnt"></em>${CL.classes.length > 2 ? '<button type="button" class="link" data-act="cp-all">الكل</button>' : ''}</div>
+      <div class="cf2-cls">${CL.classes.map(c => { const other = CL.comps[c.id] && CL.comps[c.id].group_id !== T.compEdit; return `<button type="button" class="cf2-c ${CC.sel.has(c.id) ? 'on' : ''}" data-act="cp-cls" data-id="${c.id}">${ic('check')}<span>${esc(c.name)}</span>${other ? '<small>في مسابقة أخرى</small>' : ''}</button>`; }).join('')}</div></section>
+    <section class="cf2-sec"><div class="cf2-q"><span>2</span>كم مدتها؟</div>
+      <div class="cf2-dur">${CF_DUR.map(d => `<button type="button" data-act="cf-dur" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>
+      <div class="cf2-end" id="cf-end"></div><div class="cf-tl" id="cf-tl"></div></section>
+    <section class="cf2-sec"><div class="cf2-q"><span>3</span>من أي أسئلة؟</div>
+      <select class="input cf2-sel" name="cu" data-change="cp-cu">${cuOptions(CC.cu, 'كل الأسئلة المتاحة')}</select>
+      <div class="cf-les" id="cf-les"></div><div class="cf-pool" id="cf-pool"></div></section>
+    <button class="btn cf2-go" type="submit">${isNew ? 'ابدأ المسابقة' : 'حفظ التعديلات'}</button>
+    <details class="cf2-more"><summary>إعدادات إضافية <small>التواريخ، التصفيات، الصعوبة، شكل الواجهة</small></summary>
+      <div class="set-h">التواريخ</div>
+      <div class="set-grp">${date('start_date', 'بداية جمع النقاط', v.start_date)}${date('points_end_date', 'نهاية جمع النقاط', v.points_end_date)}${date('end_date', 'نهاية المسابقة', v.end_date)}</div>
+      <div class="set-h">التصفيات</div>
+      <div class="set-grp">${step('group_size', 'حجم المجموعة', v.group_size, 2, 40, 'عدد الطلبة في كل مجموعة')}${step('qualifiers', 'المتأهلون من كل صف', v.qualifiers, 2, 64, 'يدخلون مرحلة خروج المغلوب')}
+        <label class="set-row cf-row"><span class="grow">مدة كل دور</span><select class="cf-sel" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></label></div>
+      <div class="set-h">الصعوبة وأنواع الأسئلة</div>
+      <div class="set-grp"><div class="set-row cf-row cf-col"><span>مستوى الصعوبة</span><div class="tabs">${DIFF.map(d => `<button type="button" class="${CC.diff === d[0] ? 'on' : ''}" data-act="cp-diff" data-v="${d[0]}">${d[1]}</button>`).join('')}</div><small class="cf-hint" id="cp-diff-d">${(DIFF.find(d => d[0] === CC.diff) || DIFF[1])[2]}</small></div></div>
+      <div class="cf-qt">${QTYPES.map(q => `<button type="button" class="cf-chip ${CC.qtypes.includes(q[0]) ? 'on' : ''}" data-act="cp-qt" data-v="${q[0]}">${ic(q[3])}<span>${q[1]}</span></button>`).join('')}</div>
+      <div class="set-h">شكل واجهة الطلبة <small class="muted">يتحدد تلقائياً من مرحلة الصف</small></div>
+      <div class="cf-themes">${CF_STYLES.map(x => `<button type="button" class="cf-th ${CC.style === x[0] ? 'on' : ''}" data-act="cp-style" data-v="${x[0]}"><span class="cf-ph cf-ph-${x[0]}"><i class="t"></i><i class="q"></i><i class="o"></i><i class="o"></i><i class="o"></i></span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>
+      <button type="button" class="btn sm soft cf-prev" data-act="cf-preview">${ic('play')} معاينة كما يراها الطالب</button>
+      <div class="set-f">كل جولة: 4 أسئلة × 15 ثانية. جولة رسمية يومياً، والتدريب مفتوح.</div>
+    </details>
+    <button type="button" class="link cf2-cancel" data-act="cp-cancel">إلغاء</button></form>`;
 }
+/* simple setup helpers: duration presets, auto title, auto student-screen style */
+const CF_DUR = [[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']];
+function cfSpan(start, total, q, hours){
+  const ko = Math.ceil(Math.log2(Math.max(2, q || 8))) * Math.max(1, Math.ceil((hours || 24) / 24));
+  const pts = Math.max(2, total - ko), pe = addDays(start, pts - 1);
+  return { points_end_date: pe, end_date: addDays(pe, ko) };
+}
+function cfAutoTitle(){ const cs = CL.classes.filter(c => CC.sel.has(c.id)); return cs.length === 1 ? 'مسابقة ' + cs[0].name : 'مسابقة تحدّي الدقيقة'; }
+const STAGE_STYLE = { primary: 'kids', middle: 'mid', secondary: 'mid', university: 'uni' };
+function cfAutoStyle(){ const c = CL.classes.find(x => CC.sel.has(x.id)); return (c && STAGE_STYLE[c.stage]) || (c && c.style) || 'mid'; }
+ACTS['cf-dur'] = t => { const f = t.closest('form'), st = f.start_date.value || todayKW(); const sp = cfSpan(st, Number(t.dataset.d), Number(f.qualifiers.value), Number(f.round_window_hours.value));
+  f.start_date.value = st; f.points_end_date.value = sp.points_end_date; f.end_date.value = sp.end_date; cfUpdate(); };
+function cfAuto(){
+  const f = document.querySelector('[data-form="cp-save"]'); if (!f) return;
+  if (!CC.titleManual) f.title.value = cfAutoTitle();
+  if (!CC.styleManual) { CC.style = cfAutoStyle(); f.querySelectorAll('.cf-th').forEach(b => b.classList.toggle('on', b.dataset.v === CC.style)); }
+}
+document.addEventListener('input', e => { if (e.target.id === 'cf-title') CC.titleManual = true; });
 /* live summary + timeline for the competition form */
 function cfDays(a, b){ return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5); }
 function cfUpdate(){
@@ -1737,10 +1783,12 @@ function cfUpdate(){
   const s = f.start_date.value, p = f.points_end_date.value, e = f.end_date.value;
   const pd = s && p ? cfDays(s, p) + 1 : 0, kd = p && e ? cfDays(p, e) : 0;
   const cnt = document.getElementById('cf-cnt'); if (cnt) cnt.textContent = `(${n} من ${CL.classes.length})`;
-  const sum = document.getElementById('cf-sum'); if (sum) sum.textContent = `${n} صف · ${st} طالب/ـة · ${pd > 0 ? pd + ' يوم نقاط' : ''}${kd > 0 ? ' ثم ' + kd + ' يوم تصفيات' : ''}`;
+  const sum = document.getElementById('cf-sum'); if (sum) sum.textContent = n ? `${n === 1 ? 'صف واحد' : n + ' صفوف'} · ${st} طالب/ـة` : 'اختر صفاً واحداً على الأقل';
+  const tot = s && e ? cfDays(s, e) + 1 : 0;
+  f.querySelectorAll('[data-act="cf-dur"]').forEach(b => { const sp = s && cfSpan(s, Number(b.dataset.d), Number(f.qualifiers.value), Number(f.round_window_hours.value)); b.classList.toggle('on', !!sp && sp.end_date === e && sp.points_end_date === p); });
+  const en = document.getElementById('cf-end'); if (en) en.textContent = s && e ? `${s === todayKW() ? 'تبدأ اليوم' : 'تبدأ ' + fmtDate(s)} وتنتهي ${fmtDate(e)} (${tot} يوماً)` : '';
   const tl = document.getElementById('cf-tl'); if (!tl) return;
   if (pd <= 0 || kd < 0) { tl.innerHTML = '<span class="cf-bad">تحقق من ترتيب التواريخ</span>'; return; }
-  const tot = pd + Math.max(kd, 0);
   tl.innerHTML = `<div class="cf-bar2"><i class="pts" style="flex:${pd}"><span>نقاط · ${pd} يوم</span></i>${kd > 0 ? `<i class="ko" style="flex:${kd}"><span>تصفيات · ${kd}</span></i>` : ''}</div><div class="cf-dates"><span>${esc(fmtDate(s))}</span><span>${esc(fmtDate(e))}</span></div>`;
   tl.title = tot + ' يوم';
   cfPool(pd);
@@ -1794,10 +1842,10 @@ ACTS['cp-les'] = t => { const l = t.dataset.l;
   if (CFL[CC.cu] && CC.lessons.length === CFL[CC.cu].length) CC.lessons = [];
   cfLessons(); cfUpdate(); };
 function cpKeep(){ const f = document.querySelector('[data-form="cp-save"]'); if (f && f.cu) CC.cu = f.cu.value; }
-ACTS['cp-style'] = t => { CC.style = t.dataset.v; t.parentElement.querySelectorAll('.cf-th').forEach(b => b.classList.toggle('on', b === t)); };
+ACTS['cp-style'] = t => { CC.style = t.dataset.v; CC.styleManual = true; t.parentElement.querySelectorAll('.cf-th').forEach(b => b.classList.toggle('on', b === t)); };
 ACTS['cp-diff'] = t => { CC.diff = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const d = document.getElementById('cp-diff-d'); if (d) d.textContent = DIFF.find(x => x[0] === CC.diff)[2]; };
-ACTS['cp-cls'] = t => { const id = t.dataset.id; CC.sel.has(id) ? CC.sel.delete(id) : CC.sel.add(id); t.classList.toggle('on'); cfUpdate(); };
-ACTS['cp-all'] = () => { CL.classes.forEach(c => CC.sel.add(c.id)); document.querySelectorAll('[data-act="cp-cls"]').forEach(b => b.classList.add('on')); cfUpdate(); };
+ACTS['cp-cls'] = t => { const id = t.dataset.id; CC.sel.has(id) ? CC.sel.delete(id) : CC.sel.add(id); t.classList.toggle('on'); cfAuto(); cfUpdate(); };
+ACTS['cp-all'] = () => { CL.classes.forEach(c => CC.sel.add(c.id)); document.querySelectorAll('[data-act="cp-cls"]').forEach(b => b.classList.add('on')); cfAuto(); cfUpdate(); };
 ACTS['cp-qt'] = t => { const k = t.dataset.v; if (CC.qtypes.includes(k)) { if (CC.qtypes.length === 1) return toast('اختر نوعاً واحداً على الأقل'); CC.qtypes = CC.qtypes.filter(x => x !== k); } else CC.qtypes.push(k); t.classList.toggle('on'); };
 ACTS['t-suggest'] = () => {
   const f = document.querySelector('[data-form="cp-save"]');
@@ -2630,22 +2678,26 @@ document.addEventListener('paste', e => {
 
 /* ---- results ---- */
 const RS = { sort: 'pts', q: '', rows: [], name: '' };
-async function tResults(classId){
+async function tResults(classId, compId){
   if (!classId) return location.replace('#/t/comps');
-  const [cq, kq] = await Promise.all([sb.from('classes').select('id,name').order('created_at'), sb.from('competitions').select('id,group_id,class_id,title').eq('status', 'active')]);
+  RS.comp = compId || null;
+  const [cq, kq] = await Promise.all([sb.from('classes').select('id,name').order('created_at'), compId
+    ? sb.from('competitions').select('id,group_id,class_id,title').eq('group_id', (await sb.from('competitions').select('group_id').eq('id', compId).maybeSingle()).data?.group_id || compId)
+    : sb.from('competitions').select('id,group_id,class_id,title').eq('status', 'active')]);
   if (cq.error) throw cq.error;
   const comp = (kq.data || []).find(k => k.class_id === classId);
+  if (compId && comp) RS.comp = comp.id;
   const inGroup = comp ? new Set(kq.data.filter(k => k.group_id === comp.group_id).map(k => k.class_id)) : new Set([classId]);
   const classes = cq.data.filter(c => inGroup.has(c.id));
   if (!classes.length) return location.replace('#/t/comps');
   const id = classId, pick = classes.filter(c => c.id === id);
   RS.title = comp ? comp.title : 'النتائج';
-  const res = await Promise.all(pick.map(c => rpc('teacher_class_results', { p_class: c.id }).then(r => r.map(x => Object.assign({ cls: c.name }, x))).catch(() => [])));
+  const res = await Promise.all(pick.map(c => (RS.comp ? rpc('teacher_comp_results', { p_class: c.id, p_comp: RS.comp }) : rpc('teacher_class_results', { p_class: c.id })).then(r => r.map(x => Object.assign({ cls: c.name }, x))).catch(() => [])));
   RS.rows = res.flat(); RS.all = false; RS.id = id; RS.classes = classes;
   RS.name = (classes.find(c => c.id === id) || {}).name || '';
   RS.ko = null;
-  if (comp) { const { data: kc } = await sb.from('competitions').select('id,start_date,points_end_date,end_date,status').eq('id', comp.id).maybeSingle(); if (kc && phaseOf(kc) === 'finished') autoPraise(id, kc.id, RS.rows); }
-  { try { const b = await rpc('teacher_bracket', { p_class: id }); if (b && b.size && b.rounds.length && b.today >= b.rounds[0].day) RS.ko = b; } catch(e){} }
+  if (comp && !RS.comp) { const { data: kc } = await sb.from('competitions').select('id,start_date,points_end_date,end_date,status').eq('id', comp.id).maybeSingle(); if (kc && phaseOf(kc) === 'finished') autoPraise(id, kc.id, RS.rows); }
+  { try { const b = await (RS.comp ? rpc('teacher_comp_bracket', { p_class: id, p_comp: RS.comp }) : rpc('teacher_bracket', { p_class: id })); if (b && b.size && b.rounds.length && b.today >= b.rounds[0].day) RS.ko = b; } catch(e){} }
   renderResults();
 }
 function renderResults(){
@@ -2685,7 +2737,7 @@ function renderResults(){
      <div class="set-f center">${list.length} من ${n} · النقطة الخضراء: لعب اليوم</div>`;
   view(RS.title || 'النتائج', body, 'comps', `<button class="icon-btn" data-act="r-msg-all" aria-label="رسالة للصف">${ic('mail')}</button><button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, '#/t/comps');
 }
-ACTS['r-cls'] = t => go('#/t/results/' + t.dataset.id);
+ACTS['r-cls'] = t => go('#/t/results/' + t.dataset.id + (RS.comp ? '/' + RS.comp : ''));
 const rsRank = r => { const l = RS.rows.filter(x => x.cls === r.cls); return r.r || (l.slice().sort((x, y) => y.pts - x.pts).indexOf(r) + 1); };
 const rsStu = r => ({ id: r.id, name: r.name, pts: r.pts, rank: r.pts ? rsRank(r) : '—', cls: r.cls });
 ACTS['r-msg'] = t => { const r = RS.rows.find(x => x.id === t.dataset.id); if (r) msgSend([rsStu(r)]); };
