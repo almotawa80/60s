@@ -1631,14 +1631,14 @@ ACTS['s-more'] = t => { const c = ctx(t), id = t.dataset.id, s = (CL.students[c.
 ACTS['s-edit'] = t => {
   const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return;
   closeModals();
-  modal(`<h3>تعديل بيانات الطالب/ـة</h3><form class="col" data-form="s-edit-save" data-id="${s.id}" data-cid="${c.id}">
-    <div class="field"><label for="se-n">الاسم</label><input class="input" id="se-n" name="name" value="${esc(s.name)}" required maxlength="60"></div>
-    <div class="field"><label for="se-no">رقم الطالب</label><input class="input" id="se-no" name="no" value="${esc(s.student_no || '')}" dir="ltr" inputmode="numeric" maxlength="20"></div>
-    <div class="field"><label for="se-ph">رقم الهاتف</label><input class="input" id="se-ph" name="ph" type="tel" value="${esc(s.phone || '')}" dir="ltr" placeholder="مثال: 99999999" maxlength="20"></div>
-    <div class="field"><label>الجنس</label><div class="tabs seg-g">${[['m', 'طالب'], ['f', 'طالبة'], ['', 'غير محدد']].map(x => `<label class="${(s.gender || '') === x[0] ? 'on' : ''}"><input type="radio" name="g" value="${x[0]}" ${(s.gender || '') === x[0] ? 'checked' : ''}>${x[1]}</label>`).join('')}</div></div>
-    <div class="field"><label for="se-c">الصف</label><select class="input" id="se-c" name="cls">${CL.classes.map(x => `<option value="${x.id}" ${x.id === c.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
-    <p class="sub">يبقى رمز الدخول كما هو، والنقل لصف آخر يحتفظ بالرمز.</p>
-    <div class="row"><button type="button" class="btn soft" data-act="close-modal">إلغاء</button><button class="btn" type="submit">حفظ</button></div></form>`);
+  const g0 = s.gender || '', many = CL.classes.length > 1;
+  modal(`<form class="se1" data-form="s-edit-save" data-id="${s.id}" data-cid="${c.id}">
+    <div class="st1-h"><b>تعديل الطالب</b><button type="button" class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div>
+    <input class="se1-n" name="name" value="${esc(s.name)}" required maxlength="60" aria-label="الاسم" autocomplete="off">
+    <div class="se1-g">${[['m', '👦 طالب'], ['f', '👧 طالبة']].map(x => `<label class="${g0 === x[0] ? 'on' : ''}"><input type="radio" name="g" value="${x[0]}" ${g0 === x[0] ? 'checked' : ''}>${x[1]}</label>`).join('')}</div>
+    ${many ? `<div class="se1-l">الصف</div><div class="se1-c">${CL.classes.map(x => `<label class="${x.id === c.id ? 'on' : ''}"><input type="radio" name="cls" value="${x.id}" ${x.id === c.id ? 'checked' : ''}>${esc(x.name)}</label>`).join('')}</div>` : `<input type="hidden" name="cls" value="${c.id}">`}
+    <details class="se1-more"${s.phone || s.student_no ? ' open' : ''}><summary>＋ رقم هاتف ولي الأمر</summary><input class="input" name="ph" type="tel" value="${esc(s.phone || '')}" dir="ltr" placeholder="99999999" maxlength="20" aria-label="رقم الهاتف"><input class="input" name="no" value="${esc(s.student_no || '')}" dir="ltr" inputmode="numeric" maxlength="20" placeholder="رقم الطالب (اختياري)" aria-label="رقم الطالب"></details>
+    <button class="btn se1-save" type="submit">حفظ</button></form>`);
 };
 ACTS['s-edit-save'] = async f => {
   const row = { name: f.name.value.trim(), student_no: f.no.value.trim(), class_id: f.cls.value, phone: f.ph.value.replace(/[^0-9+]/g, '').slice(0, 20) || null, gender: (f.querySelector('[name=g]:checked') || {}).value || null };
@@ -4451,3 +4451,5 @@ if ('serviceWorker' in navigator) {
   }).catch(() => {});
 }
 })();
+/* edit-student form: highlight the chosen chip */
+document.addEventListener('change', e => { const i = e.target; if (!i.closest || !i.closest('.se1-g,.se1-c')) return; i.closest('.se1-g,.se1-c').querySelectorAll('label').forEach(l => l.classList.toggle('on', l.contains(i))); });

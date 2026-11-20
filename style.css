@@ -2261,3 +2261,16 @@ body.dark .s-nav{background:#231C1D}
 .ch-cls{display:block;color:var(--muted);font-size:12px;font-weight:700}
 .ch1,.cp1{padding-bottom:110px}
 .cp-row .chev{opacity:.4;display:flex}
+/* v111 edit student */
+.se1{display:flex;flex-direction:column;gap:14px}
+.se1-n{width:100%;min-height:62px;border:2px solid var(--line);border-radius:18px;background:var(--card);color:var(--ink);font:inherit;font-size:21px;font-weight:800;padding:0 16px;text-align:center}
+.se1-n:focus{outline:none;border-color:var(--primary)}
+.se1-g,.se1-c{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.se1-g label,.se1-c label{display:flex;align-items:center;justify-content:center;min-height:58px;border-radius:16px;background:var(--soft);font-weight:800;font-size:17px;cursor:pointer;border:2px solid transparent}
+.se1-g label.on,.se1-c label.on{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 14%,transparent)}
+.se1-g input,.se1-c input{position:absolute;opacity:0;pointer-events:none}
+.se1-l{color:var(--muted);font-weight:800;font-size:14px;margin-bottom:-6px}
+.se1-more summary{color:var(--muted);font-weight:800;cursor:pointer;list-style:none;padding:4px 0}
+.se1-more summary::-webkit-details-marker{display:none}
+.se1-more[open]{display:flex;flex-direction:column;gap:8px}
+.btn.se1-save{min-height:58px;font-size:19px;font-weight:900}
