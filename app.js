@@ -722,12 +722,13 @@ const STATUS_AR = { draft: 'مسودة', approved: 'متاح', rejected: 'مرف
 const STYLE_AR = { kids: 'مرح · ابتدائي', mid: 'مرح قليلاً · متوسط', uni: 'هادئ · ثانوي وجامعة' };
 const STYLE_SW = { kids: 'linear-gradient(135deg,#FFD9B0,#E3262F)', mid: 'linear-gradient(135deg,#C8102E,#F5B72B)', uni: 'linear-gradient(135deg,#FAF6F3,#7A1220)' };
 const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png" alt=""></div>';
-const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['questions', 'الأسئلة', 'help'], ['comps', 'المسابقات', 'trophy'], ['settings', 'الإعدادات', 'gear']];
+const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['new', 'تحدي', 'plus'], ['questions', 'الأسئلة', 'help'], ['join', 'انضم', 'join']];
+const navIc = n => n[0] === 'join' ? '<span class="join-ic" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' : n[0] === 'new' ? `<span class="plus-ic">${ic('plus')}</span>` : ic(n[2]);
 
 function shell(title, body, active, top, back){
   return `<div class="t-top"><div class="brand">${back ? `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>` : LOGO_S}<span class="t-title">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
     `<div class="t-body">${body}</div>` +
-    `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}">${ic(n[2])}<span>${n[1]}</span></a>`).join('')}</nav>`;
+    `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}${n[0] === 'new' ? ' t-plus' : ''}">${navIc(n)}<span>${n[1]}</span></a>`).join('')}</nav>`;
 }
 const NAVI = { prev: 0 };
 const PCACHE = {}; // last rendered teacher page per hash, shown instantly while fresh data loads
@@ -810,7 +811,7 @@ function viewRaw(title, body, active, top, back){
   // a slow page that finishes loading after the user already moved to another tab must not take over the screen
   if (location.hash.indexOf('#/t') === 0) {
     const hp = (location.hash.match(/^#\/t\/([a-z]+)/) || [])[1] || 'home';
-    const want = { class: 'classes', results: 'comps', qshare: 'questions', qset: 'settings', rset: 'settings' }[hp] || hp;
+    const want = { class: 'classes', results: 'home', comps: 'home', qshare: 'questions' }[hp] || hp;
     const isTab = k => NAV.some(n => n[0] === k);
     if (isTab(want) && isTab(active) && active !== want) return;
     if (body.indexOf('<div class="spin"></div>') !== 0) PCACHE[location.hash] = { title, body, top, back };
@@ -822,12 +823,12 @@ function viewRaw(title, body, active, top, back){
     const tmp = document.createElement('div'); tmp.innerHTML = shell(title, body, active, top, back);
     oldTop.replaceWith(tmp.querySelector('.t-top')); oldBody.replaceWith(tmp.querySelector('.t-body'));
     nav.querySelectorAll('a').forEach((a, j) => a.classList.toggle('on', j === i0));
-    const lens = nav.querySelector('.lens'); if (lens) { lens.style.opacity = i0 < 0 ? '0' : ''; lens.style.setProperty('--i', i); }
+    const lens = nav.querySelector('.lens'); if (lens) { lens.style.opacity = i0 < 0 || active === 'new' ? '0' : ''; lens.style.setProperty('--i', i); }
     NAVI.prev = i; window.scrollTo(0, 0); return;
   }
   $app.innerHTML = shell(title, body, active, top, back); window.scrollTo(0, 0);
   const lens = $app.querySelector('.lens');
-  if (lens && i0 < 0) lens.style.opacity = '0';
+  if (lens && (i0 < 0 || active === 'new')) lens.style.opacity = '0';
   if (lens) requestAnimationFrame(() => requestAnimationFrame(() => { lens.style.setProperty('--i', i); NAVI.prev = i; }));
 }
 /* liquid-glass lens: drag across the tab bar */
@@ -945,6 +946,8 @@ async function teacherRoute(){
       T.settings = (r.data && r.data.settings) || {};
     }
     if (page === 'classes' || page === 'comps') { CL.tab = page; await tClasses(); }
+    else if (page === 'new') { CL.tab = 'comps'; T.compPreset = T.compPreset || { cu: '', lessons: [] }; await tClasses(); }
+    else if (page === 'join') tJoin();
     else if (page === 'class') await tClass(parts[1]);
     else if (page === 'questions') await tQuestions();
     else if (page === 'qshare') { T.qf.status = 'approved'; await tQuestions(); qSharePreview(parts[1]); }
@@ -979,49 +982,27 @@ async function tHome(){
   const classes = cl.data, compBy = {};
   cp.data.forEach(c => { if (!compBy[c.class_id]) compBy[c.class_id] = c; });
   if (!classes.length) { if (!W.step) W.step = 1; return renderWizard(); }
-  const failed = new Set();
-  const results = await Promise.all(classes.map(c => rpc('teacher_class_results', { p_class: c.id }).catch(() => { failed.add(c.id); return []; })));
-  const stats = classes.filter(c => !failed.has(c.id)).map(c => {
-    const rs = results[classes.indexOf(c)], n = rs.length, comp = compBy[c.id], ph = phaseOf(comp);
-    const played = rs.filter(r => r.played_today).length;
-    const pts = rs.reduce((a, r) => a + (r.pts || 0), 0);
-    const rounds = rs.reduce((a, r) => a + (r.rounds || 0), 0);
-    const correct = rs.reduce((a, r) => a + (r.correct || 0), 0);
-    return { c, rs, n, comp, ph, played, pts, avg: n ? Math.round(pts / n) : 0, acc: rounds ? Math.round(correct * 100 / (rounds * 4)) : null, rounds, correct, partPct: n ? Math.round(played * 100 / n) : 0, never: rs.filter(r => !r.rounds).length };
+  // one card per running challenge: big «played today X of Y»; nothing else (Khalid: no clutter)
+  const groups = {}, order = [];
+  cp.data.forEach(c => { if (!classes.some(k => k.id === c.class_id)) return; const g = c.group_id || c.id; if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(c); });
+  const res = await Promise.all(order.map(g => Promise.all(groups[g].map(c => rpc('teacher_class_results', { p_class: c.class_id }).catch(() => null)))));
+  const cards = order.map((g, k) => {
+    const cs = groups[g], c = cs[0], rs = res[k].filter(Boolean).flat(), n = rs.length, played = rs.filter(r => r.played_today).length;
+    const names = cs.map(x => (classes.find(y => y.id === x.class_id) || {}).name).filter(Boolean).join('، ');
+    const ph = phaseOf(c), pct = n ? Math.round(played * 100 / n) : 0;
+    const dl = Math.round((new Date(c.end_date) - new Date(todayKW())) / 864e5);
+    const mid = c.paused_at ? `<div class="hc-big">⏸</div><div class="hc-sub">متوقف مؤقتاً</div>`
+      : ph === 'upcoming' ? `<div class="hc-big hc-day">${esc(fmtDate(c.start_date))}</div><div class="hc-sub">يبدأ</div>`
+      : `<div class="hc-ring" style="--p:${pct}"><div><b>${played}</b><small>من ${n}</small></div></div><div class="hc-sub">لعبوا اليوم</div>`;
+    return `<a class="hc" href="#/t/results/${c.class_id}"><b class="hc-t">${esc(c.title || 'تحدي')}</b><small class="hc-c">${esc(names)}${ph === 'points' || ph === 'knockout' ? ` · باقي ${daysAr(Math.max(0, dl))}` : ''}</small>${mid}</a>`;
   });
-  const total = stats.reduce((a, s) => a + s.n, 0);
-  const playedToday = stats.reduce((a, s) => a + s.played, 0);
-  const allRounds = stats.reduce((a, s) => a + s.rounds, 0), allCorrect = stats.reduce((a, s) => a + s.correct, 0);
-  const acc = allRounds ? Math.round(allCorrect * 100 / (allRounds * 4)) : null;
-  const activeComps = stats.filter(s => s.ph === 'points' || s.ph === 'knockout').length;
-
-  const kpi = (v, l, ic2) => `<div class="kpi"><div class="kpi-ic">${ic(ic2)}</div><b>${v}</b><span>${l}</span></div>`;
-  let html = failed.size ? `<div class="rs-empty rs-fail" role="alert">${ic('clock')}<div><b>تعذّر تحميل نتائج ${failed.size === classes.length ? 'الصفوف' : failed.size + ' من ' + classes.length + ' صفوف'}</b><small>${failed.size === classes.length ? 'الأرقام أدناه غير متاحة الآن.' : 'الأرقام أدناه لا تشمل: ' + esc(classes.filter(c => failed.has(c.id)).map(c => c.name).join('، '))}</small></div><button class="btn sm soft" data-act="h-retry">إعادة المحاولة</button></div>` : '';
-  if (failed.size === classes.length) { view('مرحباً، ' + (T.name || ''), html, 'home'); return; }
-  html += `<div class="kpis kpis4">${kpi(total, 'الطلبة', 'user')}${kpi(total ? Math.round(playedToday * 100 / total) + '%' : '—', 'لعبوا اليوم', 'clock')}${kpi(acc == null ? '—' : acc + '%', 'الإجابات الصحيحة', 'check')}${kpi(activeComps, 'مسابقات جارية', 'trophy')}</div>`;
-
-  // alerts
-  const alerts = stats.filter(s => s.ph === 'points' && s.n - s.played > 0);
-  T.homeStats = stats;
-  if (alerts.length) html += `<div class="card col today-card"><div class="row between"><b>${ic('clock')} اليوم: لم يلعبوا بعد</b><span class="chip warn">${alerts.reduce((a, s) => a + s.n - s.played, 0)}</span></div>` +
-    alerts.map(s => `<div class="row between today-row"><a class="grow dash-link" href="#/t/results/${s.c.id}" data-act="h-res-idle" data-c="${s.c.id}"><b>${esc(s.c.name)} · لعب ${s.played} من ${s.n} اليوم</b><div class="sub">لم يلعبوا اليوم: ${s.rs.filter(r => !r.played_today).slice(0, 4).map(r => esc(r.name.split(' ')[0])).join('، ')}${s.n - s.played > 4 ? '…' : ''}</div></a><button class="btn sm wa-btn" data-act="t-remind" data-c="${s.c.id}">${ic('send')} تذكير</button></div>`).join('') + `</div>`;
-
-  // competitions timeline
-  const comps = stats.filter(s => s.comp);
-  html += `<div class="card col"><div class="row between"><b>${ic('layers')} المسابقات</b><a class="sub" href="#/t/comps">إدارة</a></div>` +
-    (comps.length ? comps.map(s => {
-      const t = todayKW(), c = s.comp;
-      const dl = Math.round((new Date(c.end_date) - new Date(t)) / 864e5);
-      return `<a class="row between dash-link" href="#/t/results/${s.c.id}"><div><b>${esc(s.c.name)}</b><div class="sub">${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.end_date))}</div></div><span class="chip ${s.ph === 'points' ? 'good' : s.ph === 'knockout' ? 'warn' : ''}">${PHASE_AR[s.ph]}${dl >= 0 && s.ph !== 'finished' ? ' · ' + dl + ' يوم' : ''}</span></a>`;
-    }).join('') : '<p class="sub">لا توجد مسابقة جارية.</p><a class="btn" href="#/t/comps">' + ic('trophy') + ' إنشاء مسابقة</a>') + `</div>`;
-  // needs attention
-  const never = stats.filter(s => s.comp && s.ph !== 'upcoming' && s.never > 0);
-  if (never.length) html += `<div class="card col"><b>${ic('user')} يحتاجون متابعة: لم يشاركوا أبداً</b>` +
-    never.map(s => `<a class="row between dash-link" href="#/t/results/${s.c.id}"><span>${esc(s.c.name)}</span><span class="chip bad">${s.never}</span></a>`).join('') + `</div>`;
-
-
-  view('مرحباً، ' + (T.name || ''), html, 'home');
+  const html = cards.length ? `<div class="hcs">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
+  view('الرئيسية', html + `<a class="h-more" href="#/t/comps">التحديات السابقة وإدارتها ‹</a>`, 'home');
 }
+function tJoin(){
+  view('انضم', `<form class="tj" data-form="t-join"><div class="tj-em">🎯</div><h2>عندك رمز؟</h2><input class="tj-in" name="code" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123" dir="ltr" aria-label="رمز الصف"><button class="btn tj-go" type="submit">ادخل</button><p class="sub">ادخل كطالب برمز الصف، مثلاً عشان تجرّب التحدي بعين طلابك.</p></form>`, 'join');
+}
+ACTS['t-join'] = f => { const v = (f.code.value || '').replace(/\s+/g, '').toUpperCase(); if (v.length < 4) return toast('اكتب الرمز كامل'); location.hash = '#/j/' + encodeURIComponent(v); };
 ACTS['h-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tHome().catch(e => { toast('ما زال التحميل متعذّراً. تأكد من الاتصال'); t.removeAttribute('aria-busy'); t.textContent = 'إعادة المحاولة'; }); };
 ACTS['h-res-idle'] = t => { RS.sort = 'idle'; RS.q = ''; location.hash = '#/t/results/' + t.dataset.c; };
 
@@ -1189,7 +1170,8 @@ async function tClasses(){
 function renderClasses(){
   const cl = CL.tab !== 'comps';
   const more = cl ? `<button class="icon-btn" data-act="c-more" aria-label="المزيد">${ic('more')}</button>` : '';
-  view(cl ? 'الصفوف' : 'المسابقات', (cl ? classesList() : compsPanel()) + selBar(), cl ? 'classes' : 'comps', more);
+  const onNew = location.hash.indexOf('#/t/new') === 0;
+  view(cl ? 'الصفوف' : onNew && T.compEdit ? 'تحدي جديد' : 'التحديات', (cl ? classesList() : compsPanel()) + selBar(), cl ? 'classes' : onNew ? 'new' : 'home', more, cl || onNew ? undefined : '#/t/home');
   cfAuto(); cfUpdate(); cfLessons();
   if (CL.addFocus) { const i = document.querySelector(`.cls[data-cid="${CL.addFocus}"] .cl-add1 input`); CL.addFocus = null; if (i) i.focus(); }
 }
@@ -1799,7 +1781,7 @@ ACTS['cp-edit'] = async t => {
   const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (g[0].qtypes || first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = g[0].difficulty || 'normal'; CC.cu = g[0].curriculum_id || ''; CC.lessons = (g[0].lessons || []).slice(); CC.style = first.style || 'mid';
   renderClasses();
 };
-ACTS['cp-cancel'] = () => { T.compEdit = null; renderClasses(); };
+ACTS['cp-cancel'] = () => { T.compEdit = null; if (location.hash.indexOf('#/t/new') === 0) return go('#/t/home'); renderClasses(); };
 ACTS['cp-end'] = async t => {
   if (!await ask('إنهاء هذه المسابقة؟ نتائجها وترتيبها يبقون محفوظين في «المسابقات السابقة». إذا تبي توقفها فترة استخدم «إيقاف مؤقت».', { ok: 'إنهاء' })) return;
   if (SG('msg_auto')) { const ks = (CL.allComps || []).filter(k => k.group_id === t.dataset.g); for (const k of ks) { try { const rs = await rpc('teacher_class_results', { p_class: k.class_id }); await autoPraise(k.class_id, k.id, rs.map(r => Object.assign({ cls: (CL.byId[k.class_id] || {}).name || '' }, r))); } catch(e){} } }
@@ -2026,7 +2008,7 @@ ACTS['cp-save'] = async f => {
     if (keep.length) chk(await sb.from('competitions').update(p).in('id', keep.map(c => c.id)));
     if (drop.length) chk(await sb.from('competitions').update({ status: 'finished' }).in('id', drop.map(c => c.id)));
     chk(await sb.from('classes').update({ qtypes: CC.qtypes, style: CC.style || 'mid' }).in('id', ids));
-    T.compEdit = null; toast('تم الحفظ'); await tClasses();
+    T.compEdit = null; toast('تم الحفظ'); if (location.hash.indexOf('#/t/new') === 0) { go('#/t/home'); return; } await tClasses();
   } catch(e){
     let back = '';
     if (ended) { const r = await sb.from('competitions').update({ status: 'active' }).in('id', movedIds); back = r.error ? ' تنبيه: لم تُستعد المسابقة السابقة لبعض الصفوف، راجعها من المسابقات.' : ' بقيت الصفوف في مسابقتها السابقة كما كانت.'; }
@@ -3038,7 +3020,7 @@ function renderResults(){
      <div class="tabs rs-seg">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
      <div class="rl-grp" id="r-list">${items || (RS.q ? `<div class="set-row center muted">لا يوجد طالب يطابق «${esc(RS.q)}». جرّب جزءاً من الاسم أو رقم الطالب.</div>` : '<div class="set-row center muted">لا يوجد طلبة.</div>')}</div>
      <div class="set-f center">${list.length} من ${n} · النقطة الخضراء: لعب اليوم</div>` + (any ? sum + pod : '');
-  view(RS.title || 'النتائج', body, 'comps', `<button class="icon-btn" data-act="r-msg-all" aria-label="رسالة للصف">${ic('mail')}</button><button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, '#/t/comps');
+  view(RS.title || 'النتائج', body, 'home', `<button class="icon-btn" data-act="r-msg-all" aria-label="رسالة للصف">${ic('mail')}</button><button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, '#/t/comps');
 }
 ACTS['r-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tResults.apply(null, RS.args || [RS.id, RS.comp]).catch(() => renderResults()); };
 ACTS['r-cls'] = t => go('#/t/results/' + t.dataset.id + (RS.comp ? '/' + RS.comp : ''));
