@@ -1012,6 +1012,7 @@ async function teacherRoute(){
     else if (page === 'qshare') { T.qf.status = 'approved'; await tQuestions(); qSharePreview(parts[1]); }
     else if (page === 'results') await tResults(parts[1], parts[2]);
     else if (page === 'settings') await tSettings();
+    else if (page === 'sg') tSetGroup(parts[1]);
     else if (page === 'qset') await tQSet();
     else if (page === 'rset') tRSet();
     else if (page === 'account') await tAccount();
@@ -3454,23 +3455,31 @@ async function tSettings(){
   const sub = [mySubjects().join('، '), SG('school')].filter(Boolean).join(' · ');
   view('الإعدادات',
     `<button class="set-profile" data-act="go" data-h="#/t/account">${avatarHtml('big-av')}<div class="grow"><b>${esc(tName())}</b><div class="sub">${sub ? esc(sub) : `<span dir="ltr">${esc(T.user.email || '')}</span>`}</div></div><span class="set-chev">${ic('back')}</span></button>` +
-    sGrp('المسابقة', [sRow({ act: 'go', attrs: 'data-h="#/t/qset"', icon: 'help', color: '#C8102E', label: 'إعدادات الأسئلة', val: esc(optLabel('difficulty')) }),
-      sRow({ act: 'go', attrs: 'data-h="#/t/rset"', icon: 'chart', color: '#FF9500', label: 'إعدادات النتائج', val: esc(optLabel('scoring')) })]) +
-    sGrp('الطلبة', [sRow({ act: 'go', attrs: 'data-h="#/t/sset"', icon: 'users', color: '#1FA971', label: 'الطلبة والصفوف' }),
-      sRow({ act: 'go', attrs: 'data-h="#/t/msgtpl"', icon: 'mail', color: '#2F80ED', label: 'قوالب الرسائل', val: 'تشجيع · تقدير · توصية' })]) +
-    sGrp('المظهر', [sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر', val: `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>` })]) +
-    sGrp('التطبيق', [
+    sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/sg/ch"', icon: 'trophy', color: '#C8102E', label: 'التحدي', val: 'الأسئلة · النقاط' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/sg/st"', icon: 'users', color: '#1FA971', label: 'الطلاب', val: 'الصفوف · الرسائل' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر', val: `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>` }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق', val: 'تثبيت · بيانات' })]) +
+    sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
+    `<div class="set-f center">تحدّي الدقيقة · الإصدار ${APP_VER}</div>`, 'settings');
+}
+function tSetGroup(k){
+  const G = {
+    ch: ['التحدي', sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/qset"', icon: 'help', color: '#C8102E', label: 'إعدادات الأسئلة', val: esc(optLabel('difficulty')) }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/rset"', icon: 'chart', color: '#FF9500', label: 'النقاط والترتيب' })])],
+    st: ['الطلاب', sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/sset"', icon: 'users', color: '#1FA971', label: 'الطلبة والصفوف' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/msgtpl"', icon: 'mail', color: '#2F80ED', label: 'قوالب الرسائل', val: 'تشجيع · تقدير · توصية' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/archive"', icon: 'archive', color: '#A2845E', label: 'الصفوف المؤرشفة' })])],
+    app: ['التطبيق', sGrp('', [
       isStandalone() ? '' : sRow({ act: 'st-install', icon: 'download', color: '#2F80ED', label: 'تثبيت التطبيق على الشاشة الرئيسية' }),
       sRow({ act: 'st-invite', icon: 'star', color: '#F5B72B', label: 'دعوة زميل/ـة' }),
       sRow({ act: 'st-feedback', icon: 'send', color: '#14A89B', label: 'اقتراح أو مشكلة' }),
       sRow({ act: 'st-about', icon: 'info', color: '#8E8E93', label: 'عن التطبيق', val: 'الإصدار ' + APP_VER })]) +
-    sGrp('البيانات', [
+      sGrp('البيانات', [
       sRow({ act: 'go', attrs: 'data-h="#/t/export"', icon: 'download', color: '#14A89B', label: 'تصدير البيانات', val: 'Excel · PDF' }),
-      sRow({ act: 'go', attrs: 'data-h="#/t/archive"', icon: 'archive', color: '#A2845E', label: 'الصفوف المؤرشفة' }),
       sRow({ act: 'st-newyear', icon: 'refresh', color: '#FF9500', label: 'بدء سنة دراسية جديدة' }),
-      sRow({ act: 'st-privacy', icon: 'lock', color: '#9B51E0', label: 'الخصوصية' })]) +
-    sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
-    `<div class="set-f center">تحدّي الدقيقة · الإصدار ${APP_VER}</div>`, 'settings');
+      sRow({ act: 'st-privacy', icon: 'lock', color: '#9B51E0', label: 'الخصوصية' })])]
+  }, g = G[k] || G.ch;
+  view(g[0], g[1], 'settings', '', '#/t/settings');
 }
 const APP_VER = '0.3';
 ACTS['st-about'] = () => modal(`<h3>عن التطبيق</h3><div class="col"><p><b>تحدّي الدقيقة</b> · الإصدار ${APP_VER}</p><div class="set-grp">
@@ -3523,7 +3532,7 @@ async function tQSet(){
     sGrp('الجولة', [optRow('difficulty', 'صعوبة الجولة')], 'كل جولة فيها 4 أسئلة، ولكل سؤال 15 ثانية. الإعدادات تنطبق على كل مسابقة جديدة.') +
     sGrp('أنواع الأسئلة', QTYPES.map(q => swRow({ act: 'qs-type', k: q[0], on: qt.includes(q[0]), icon: q[3], color: QC[q[0]], label: q[1], sub: q[2] })), 'اختر نوع واحد على الأقل، وتنسحب الأسئلة منها عشوائياً.') +
     sGrp('أثناء اللعب', [swRow({ k: 'shuffle', label: 'خلط الخيارات', sub: 'ترتيب الخيارات يختلف لكل طالب' }), swRow({ k: 'norep', label: 'عدم تكرار الأسئلة المجابة صح' }), optRow('show_ans', 'إظهار الإجابة الصحيحة')]),
-    'settings', '', '#/t/settings');
+    'settings', '', '#/t/sg/ch');
 }
 ACTS['qs-type'] = async t => {
   let v = (SG('qtypes') || ['curriculum', 'general', 'quick']).slice(); const k = t.dataset.k;
@@ -3546,7 +3555,7 @@ function tRSet(){
     sGrp('عند تساوي النقاط', [sRow({ act: 'go', attrs: 'data-h="#/t/tb"', label: 'ترتيب المعايير', val: esc(TBL[tbk[0]][0] + '، ثم ' + TBL[tbk[1]][0]) })]) +
     sGrp('لوحة المتصدرين للطلبة', [optRow('lb', 'اللوحة'), lb === 'top' ? numRow('lb_n', 'عدد المتصدرين') : '',
       swRow({ k: 'lb_pts', label: 'إظهار نقاط الطلبة الآخرين' }), swRow({ k: 'lb_me', label: 'إظهار ترتيب الطالب دائماً', sub: 'حتى لو مو من الأوائل' }), optRow('names', 'الأسماء في اللوحة')]),
-    'settings', '', '#/t/settings');
+    'settings', '', '#/t/sg/ch');
 }
 const TBL = { accuracy: ['نسبة الإجابات الصحيحة', 'الأعلى نسبة إجابات صحيحة'], speed: ['السرعة', 'متوسط زمن الإجابات الصحيحة'], rounds: ['المشاركة', 'عدد الجولات الرسمية'], last: ['آخر جولة', 'نقاط آخر جولة لعبها'] };
 function tbKeys(){
@@ -3615,7 +3624,7 @@ function tSSet(){
     sGrp('أسماء الطلبة', [optRow('stu_name', 'عرض الاسم'), optRow('stu_sort', 'ترتيب القائمة')], 'طريقة عرض الأسماء لك أنت داخل التطبيق.') +
     sGrp('دخول الطلبة', [sRow({ act: 'go', attrs: 'data-h="#/t/entry"', icon: 'share', color: '#1FA971', label: 'رابط الدخول', val: 'رابط · QR' }),
       swRow({ k: 'remember', label: 'تذكّر الطالب على جهازه', sub: 'ما يحتاج يكتب الرمز كل مرة' }), swRow({ k: 'rename', label: 'السماح للطالب بتعديل اسمه' })]),
-    'settings', '', '#/t/settings');
+    'settings', '', '#/t/sg/st');
 }
 async function tEntry(){
   const url = location.origin + location.pathname;
@@ -3665,7 +3674,7 @@ async function tExport(){
   view('تصدير البيانات',
     sGrp('ماذا تصدّر؟', [radio('all', 'كل البيانات'), radio('cls', 'صف معين', c.data.length ? sel('ex-cls', c.data, EX.cls, 'الصف') : '', c.data.length ? '' : 'لا توجد صفوف بعد'), radio('comp', 'مسابقة معينة', EX.comps.length ? sel('ex-comp', EX.comps, EX.comp, 'المسابقة') : '', EX.comps.length ? '' : 'لا توجد مسابقات بعد')]) +
     sGrp('الصيغة', [`<div class="set-row"><div class="tabs grow">${[['xlsx', 'Excel'], ['pdf', 'PDF']].map(f => `<button type="button" class="${EX.fmt === f[0] ? 'on' : ''}" data-act="ex-fmt" data-v="${f[0]}">${f[1]}</button>`).join('')}</div></div>`], 'PDF يفتح نافذة الطباعة، واختر «حفظ PDF».') +
-    `<button class="btn" data-act="ex-go">${ic('download')} تصدير</button>`, 'settings', '', '#/t/settings');
+    `<button class="btn" data-act="ex-go">${ic('download')} تصدير</button>`, 'settings', '', '#/t/sg/app');
 }
 ACTS['ex-scope'] = t => { EX.scope = t.dataset.v; rerender(); };
 ACTS['ex-fmt'] = t => { EX.fmt = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); };
@@ -3698,7 +3707,7 @@ function printTables(title, tables){
 async function tArchive(){
   const { data, error } = await sb.from('classes').select('id,name').eq('archived', true).order('created_at'); if (error) throw error;
   view('الصفوف المؤرشفة', data.length ? sGrp('', data.map(c => `<div class="set-row"><span class="grow">${esc(c.name)}</span><button class="btn sm soft" data-act="ar-restore" data-id="${c.id}">استرجاع</button></div>`), 'الصفوف المؤرشفة ما تظهر بالقوائم، وبياناتها محفوظة.')
-    : `<div class="cl-empty sm"><b>ما فيه صفوف مؤرشفة</b><small>تقدر تؤرشف صف من قائمة الصفوف، أو تبدأ سنة جديدة من الإعدادات.</small></div>`, 'settings', '', '#/t/settings');
+    : `<div class="cl-empty sm"><b>ما فيه صفوف مؤرشفة</b><small>تقدر تؤرشف صف من قائمة الصفوف، أو تبدأ سنة جديدة من الإعدادات.</small></div>`, 'settings', '', '#/t/sg/st');
 }
 ACTS['ar-restore'] = async t => { const { error } = await sb.from('classes').update({ archived: false }).eq('id', t.dataset.id); if (error) return toast(errMsg(error)); toast('تم الاسترجاع'); rerender(); };
 
@@ -3715,7 +3724,7 @@ function tMsgTpl(){
   view('قوالب الرسائل', Object.keys(MSG_K).map(k => sGrp(MSG_K[k][2] + ' ' + MSG_K[k][0], tplList(k).map((s, i) => sRow({ act: 'mt-edit', attrs: `data-k="${k}" data-i="${i}"`, label: `<span class="mt-txt">${esc(s)}</span>` }))
       .concat(`<button class="set-row" data-act="mt-edit" data-k="${k}" data-i="-1"><span class="set-ic" style="background:#34C759">${ic('plus')}</span><span class="grow" style="color:var(--primary)">إضافة قالب</span></button>`))).join('') +
     sGrp('تلقائي', [swRow({ k: 'msg_auto', label: 'تقدير تلقائي للثلاثة الأوائل', sub: 'يوصلهم أول قالب تقدير لما تنتهي المسابقة' })],
-      'تقدر تستخدم بالقوالب: {الاسم} و{النقاط} و{الترتيب} و{الصف}، وتتعبى تلقائياً لكل طالب.'), 'settings', '', '#/t/settings');
+      'تقدر تستخدم بالقوالب: {الاسم} و{النقاط} و{الترتيب} و{الصف}، وتتعبى تلقائياً لكل طالب.'), 'settings', '', '#/t/sg/st');
 }
 ACTS['mt-edit'] = t => {
   const k = t.dataset.k, i = Number(t.dataset.i), s = i >= 0 ? tplList(k)[i] : '';
