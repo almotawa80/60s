@@ -400,6 +400,9 @@ ACTS['s-rename'] = async () => {
 };
 function cdText(){ const day = 864e5, k = 3 * 36e5, now = Date.now(), next = Math.floor((now + k) / day) * day + day - k, d = Math.max(0, next - now); const p = x => String(x).padStart(2, '0'); return p(Math.floor(d / 36e5)) + ':' + p(Math.floor(d % 36e5 / 6e4)) + ':' + p(Math.floor(d % 6e4 / 1e3)); }
 function startCountdown(){ clearInterval(S.cdT); const el = document.getElementById('cd'); if (!el) return; S.cdT = setInterval(() => { const e = document.getElementById('cd'); if (!e) return clearInterval(S.cdT); const t = cdText(); e.textContent = t; if (t === '00:00:00') { clearInterval(S.cdT); setTimeout(() => S.demo ? null : loadHome(), 1500); } }, 1000); }
+/* a teacher signed in on this device (supabase auth token in storage) */
+function hasTeacher(){ try { return Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k) && localStorage.getItem(k)); } catch(e){ return false; } }
+ACTS['s-to-teacher'] = () => { closeModals(); location.hash = '#/t/home'; };
 ACTS['s-menu'] = () => {
   const m = LS.get('mc_mode') || 'auto';
   modal('<div class="sheet"><div class="sheet-list">' +
@@ -407,6 +410,7 @@ ACTS['s-menu'] = () => {
     '<div class="sheet-i" style="flex-direction:column;align-items:stretch;gap:8px"><span style="display:flex;gap:12px;align-items:center">' + ic('moon') + 'المظهر</span>' + modeSeg() + '</div>' +
     '<button class="sheet-i" data-act="s-sound-row">' + ic(FX.on() ? 'sound' : 'mute') + '<span>الصوت: ' + (FX.on() ? 'مفعّل' : 'مكتوم') + '</span></button>' +
     '<button class="sheet-i" data-act="s-switch">' + ic('users') + '<span>غيّر اللاعب</span></button>' +
+    (hasTeacher() ? '<button class="sheet-i" data-act="s-to-teacher">' + ic('back') + '<span>رجوع لحساب المعلم</span></button>' : '') +
     '</div><div class="sheet-list"><button class="sheet-i danger" data-act="s-logout-ask">' + ic('logout') + '<span>تسجيل الخروج</span></button></div>' +
     '<button class="sheet-i sheet-cancel" data-act="close-modal">إغلاق</button></div>');
 };
