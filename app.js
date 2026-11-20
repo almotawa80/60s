@@ -4501,3 +4501,27 @@ document.addEventListener('change', e => { const i = e.target; if (!i.closest ||
   const scan = () => document.querySelectorAll('input[type=password]:not([data-eye])').forEach(add);
   new MutationObserver(scan).observe(document.body, { childList: true, subtree: true }); scan();
 })();
+/* v121: pull any sheet down (from anywhere on it) to close it */
+(function(){
+  let D = null;
+  const sheetOf = t => t.closest && (t.closest('.modal-back:not(.dlg-back) .modal') || t.closest('.ce1-sh.on .ce1-card'));
+  document.addEventListener('touchstart', e => {
+    D = null; if (e.touches.length !== 1 || document.querySelector('.dlg-back')) return;
+    const s = sheetOf(e.target); if (!s || e.target.closest('input[type=range],textarea,.crop,.drag-h')) return;
+    let sc = e.target; while (sc && sc !== s && !(sc.scrollHeight > sc.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+    D = { s, sc: sc || s, y0: e.touches[0].clientY, x0: e.touches[0].clientX, t0: Date.now(), dy: 0, on: false };
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!D) return; const dy = e.touches[0].clientY - D.y0, dx = e.touches[0].clientX - D.x0;
+    if (!D.on) { if (Math.abs(dy) < 8) return; if (dy < 0 || Math.abs(dx) > Math.abs(dy) || D.sc.scrollTop > 0 || D.s.scrollTop > 0) { D = null; return; } D.on = true; D.s.style.transition = 'none'; }
+    e.preventDefault(); D.dy = Math.max(0, dy); D.s.style.transform = `translateY(${D.dy}px)`;
+  }, { passive: false });
+  const end = () => {
+    if (!D || !D.on) { D = null; return; } const d = D; D = null;
+    const v = d.dy / Math.max(1, Date.now() - d.t0), shut = d.dy > Math.min(140, d.s.offsetHeight * .3) || (v > .6 && d.dy > 40);
+    d.s.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)'; d.s.style.transform = shut ? `translateY(${d.s.offsetHeight + 40}px)` : '';
+    setTimeout(() => { d.s.style.transition = ''; if (!shut) return; d.s.style.transform = '';
+      const sh = d.s.closest('.ce1-sh'); if (sh) sh.classList.remove('on'); else { const m = d.s.closest('.modal-back'); if (m) m.remove(); } }, 220);
+  };
+  document.addEventListener('touchend', end); document.addEventListener('touchcancel', end);
+})();
