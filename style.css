@@ -2285,3 +2285,6 @@ body.dark .s-nav{background:#231C1D}
 .dlg-a button.dng{background:#C8102E!important;color:#fff!important;box-shadow:0 4px 0 #8E0A1E}
 .dlg-a button:only-child{grid-column:1/-1}
 .dlg-in{border-radius:14px!important;min-height:50px;margin-top:12px}
+.se1-ph{min-height:54px;font-size:18px!important;text-align:center}
+.btn.se1-save{text-decoration:none!important}
+.se1-more[open] summary{margin-bottom:4px}
