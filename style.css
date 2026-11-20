@@ -2295,3 +2295,21 @@ body.dark .s-nav{background:#231C1D}
 .se1-more[open] summary::after{transform:rotate(-90deg)}
 .se1 .btn,.se1 button{text-decoration:none!important;-webkit-text-decoration:none!important}
 .modal:has(.se1){max-height:92vh;overflow-y:auto}
+/* v116 edit challenge: one screen + in-form sheets */
+.ce1{gap:12px;padding-bottom:120px}
+.ce1-n{font-size:22px;font-weight:900;min-height:60px}
+.ce1-q{font-size:18px;font-weight:900;margin:6px 2px -4px}
+.ce1 .cf2-end{text-align:center}
+.ce1-row{display:flex;align-items:center;gap:12px;background:var(--card);border:0;border-radius:18px;padding:14px 16px;width:100%;text-align:start;color:var(--ink);font:inherit;cursor:pointer}
+.ce1-row b{display:block;font-size:17px;font-weight:900}.ce1-row small{display:block;color:var(--muted);font-size:13px;font-weight:700}.ce1-row small.low{color:#d97706}
+.ce1-e{font-size:26px}.ce1-ch{color:var(--muted);font-size:20px}
+.ce1-more{align-self:center;background:none;border:0;color:var(--muted);font:800 15px 'Cairo',system-ui,sans-serif;padding:8px 14px;cursor:pointer}
+.ce1-save{margin-top:6px}
+.ce1-sh{position:fixed;inset:0;z-index:48;background:rgba(10,10,10,.5);display:none;align-items:flex-end;justify-content:center}
+.ce1-sh.on{display:flex;animation:fadeIn .2s}
+.ce1-card{background:var(--bg);width:100%;max-width:520px;max-height:86vh;overflow-y:auto;border-radius:26px 26px 0 0;padding:16px 18px calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+.ce1-h{display:flex;align-items:center;gap:10px}.ce1-h b{flex:1;font-size:22px;font-weight:900}
+.ce1-x{width:38px;height:38px;border-radius:50%;border:0;background:var(--card);color:var(--ink);font-size:17px;cursor:pointer}
+.ce1-l{font-weight:900;font-size:15px;margin-bottom:-4px}
+.ce1-card .set-grp{margin:0}
+@keyframes fadeIn{from{opacity:0}}

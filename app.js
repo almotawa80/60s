@@ -1367,6 +1367,7 @@ function renderClasses(){
   const cur = cl && CL.cur && !CL.sel && CL.byId[CL.cur];
   if (cl && CL.cur && !cur && !CL.sel) { CL.cur = null; return location.replace('#/t/classes'); }
   if (cur) { view(cur.name, classPage(cur), 'classes', `<button class="icon-btn" data-act="c-pmore" aria-label="المزيد">${ic('more')}</button>`, '#/t/classes'); if (CL.addFocus) { const i = document.querySelector('.cp1 .cl-add1 input'); CL.addFocus = null; if (i) i.focus(); } return; }
+  if (!cl && !onNew && T.compEdit && T.compEdit !== 'new') { view('تعديل التحدي', compForm(), 'home', `<button class="icon-btn" data-act="cp-cancel" aria-label="إغلاق">${ic('x')}</button>`); cfAuto(); cfUpdate(); cfLessons(); return; }
   view(cl ? 'الصفوف' : onNew && T.compEdit ? 'تحدي جديد' : 'التحديات', (cl ? classesList() : compsPanel()) + selBar(), cl ? 'classes' : onNew ? 'new' : 'home', more, cl || onNew ? undefined : '#/t/home');
   cfAuto(); cfUpdate(); cfLessons();
   if (CL.addFocus) { const i = document.querySelector(`.cls[data-cid="${CL.addFocus}"] .cl-add1 input`); CL.addFocus = null; if (i) i.focus(); }
@@ -1410,7 +1411,7 @@ ACTS['ch-more'] = () => { const ks = chComps(), c = ks[0]; if (!c) return; const
 ACTS['ch-run'] = t => { closeModals(); const a = t.dataset.a; setTimeout(() => ACTS[a](t), 30); };
 ACTS['ch-code'] = () => { const k = chComps()[0], cc = k && CL.byId[k.class_id]; if (!cc) return; if (!cc.self_join) return go('#/t/class/' + cc.id); CK.cls = cc; ACTS['c-joinshow']({ closest: () => null, dataset: {} }); };
 ACTS['ch-det'] = () => { const k = chComps()[0]; if (k) go('#/t/results/' + k.class_id); };
-ACTS['ch-edit'] = t => { const g = t.dataset.g; location.hash = '#/t/comps'; setTimeout(() => ACTS['cp-edit']({ dataset: { g } }), 700); };
+ACTS['ch-edit'] = t => { closeModals(); ACTS['cp-edit']({ dataset: { g: t.dataset.g } }); };
 ACTS['c-tab'] = t => { T.compEdit = null; go('#/t/' + t.dataset.t); };
 function classesList(){
   const top = CL.sel ? '' : `<button class="btn cl-add" data-act="aw-start">${ic('plus')} إضافة طلبة</button><div class="cl-newc"><button class="link" data-act="t-add-class">＋ صف جديد</button></div><input type="file" id="awimg" accept="image/*" class="hide" data-change="aw-img"><input type="file" id="awxl" accept=".xlsx,.xls,.csv" class="hide" data-change="aw-xl"><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
@@ -2055,7 +2056,7 @@ ACTS['cp-edit'] = async t => {
   const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (g[0].qtypes || first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = g[0].difficulty || 'normal'; CC.cu = g[0].curriculum_id || ''; CC.lessons = (g[0].lessons || []).slice(); CC.style = first.style || 'mid';
   renderClasses();
 };
-ACTS['cp-cancel'] = () => { T.compEdit = null; if (location.hash.indexOf('#/t/new') === 0) return go('#/t/home'); renderClasses(); };
+ACTS['cp-cancel'] = () => { T.compEdit = null; if (location.hash.indexOf('#/t/ch/') === 0) return renderClasses(); if (location.hash.indexOf('#/t/new') === 0) return go('#/t/home'); renderClasses(); };
 ACTS['cp-end'] = async t => {
   if (!await ask('إنهاء هذه المسابقة؟ نتائجها وترتيبها يبقون محفوظين في «المسابقات السابقة». إذا تبي توقفها فترة استخدم «إيقاف مؤقت».', { ok: 'إنهاء' })) return;
   if (SG('msg_auto')) { const ks = (CL.allComps || []).filter(k => k.group_id === t.dataset.g); for (const k of ks) { try { const rs = await rpc('teacher_class_results', { p_class: k.class_id }); await autoPraise(k.class_id, k.id, rs.map(r => Object.assign({ cls: (CL.byId[k.class_id] || {}).name || '' }, r))); } catch(e){} } }
@@ -2070,6 +2071,7 @@ function compForm(){
   if (isNew) { CC.titleManual = false; CC.styleManual = false; } else { CC.titleManual = true; CC.styleManual = true; }
   CC.ko = v.end_date > v.points_end_date;
   const step = (name, label, val, min, max, hint) => `<div class="set-row cf-row"><span class="grow">${label}${hint ? `<small class="cf-hint">${hint}</small>` : ''}</span><div class="cf-step"><button type="button" data-act="cf-step" data-n="${name}" data-d="-1" aria-label="إنقاص">−</button><input name="${name}" type="number" inputmode="numeric" min="${min}" max="${max}" value="${val}"><button type="button" data-act="cf-step" data-n="${name}" data-d="1" aria-label="زيادة">+</button></div></div>`;
+  if (!isNew) return compEditForm(v);
   const date = (name, label, val) => `<label class="set-row cf-row"><span class="grow">${label}</span><input class="cf-date" type="date" name="${name}" value="${val}" required></label>`;
   return `<form class="col cf cf2" data-form="cp-save">
     <div class="cf2-head"><input class="cf2-title" id="cf-title" name="title" value="${esc(v.title)}" required maxlength="80" aria-label="عنوان المسابقة"><span class="cf2-pen">${ic('edit')}</span></div>
@@ -2102,6 +2104,50 @@ function compForm(){
     </details>
     <button class="btn cf2-go" type="submit">${isNew ? (v.start_date > todayKW() ? 'جدولة المسابقة' : 'ابدأ المسابقة') : 'حفظ التعديلات'}</button>
     <button type="button" class="link cf2-cancel" data-act="cp-cancel">إلغاء</button></form>`;
+}
+/* edit an existing challenge (v116): name, duration, lessons; the rest in «المزيد» (in-form overlays so the fields stay in the form) */
+function compEditForm(v){
+  return `<form class="col cf cf2 ce1" data-form="cp-save">
+    <input class="input ce1-n" id="cf-title" name="title" value="${esc(v.title)}" required maxlength="80" aria-label="اسم التحدي">
+    <div class="ce1-q">كم مدته؟</div>
+    <div class="cf2-dur">${CF_DUR.map(d => `<button type="button" data-act="cf-dur" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>
+    <div class="cf2-end" id="cf-end"></div>
+    <div class="ce1-q">الأسئلة</div>
+    <button type="button" class="ce1-row" data-act="ce-open" data-p="les"><span class="ce1-e">📖</span><span class="grow"><b id="ce-lb">كل الدروس</b><small id="ce-ls"></small></span><span class="ce1-ch">←</span></button>
+    <button type="button" class="ce1-more" data-act="ce-open" data-p="more">المزيد ⋯</button>
+    <button class="btn cf2-go ce1-save" type="submit">حفظ</button>
+    <div class="ce1-sh" id="ce-les"><div class="ce1-card"><div class="ce1-h"><b>الدروس</b><button type="button" class="ce1-x" data-act="ce-close" aria-label="إغلاق">✕</button></div>
+      <select class="input cf2-sel" name="cu" data-change="cp-cu">${cuOptions(CC.cu, 'كل الأسئلة المتاحة')}</select>
+      <div class="cf-les" id="cf-les"></div><div class="cf-pool" id="cf-pool"></div>
+      <button type="button" class="btn" data-act="ce-close">تم</button></div></div>
+    <div class="ce1-sh" id="ce-more"><div class="ce1-card"><div class="ce1-h"><b>المزيد</b><button type="button" class="ce1-x" data-act="ce-close" aria-label="إغلاق">✕</button></div>
+      ${CL.classes.length > 1 ? `<div class="ce1-l">الصف</div><div class="cf2-cls">${CL.classes.map(c => { const other = CL.comps[c.id] && CL.comps[c.id].group_id !== T.compEdit; return `<button type="button" class="cf2-c ${CC.sel.has(c.id) ? 'on' : ''}" data-act="cp-cls" data-id="${c.id}">${ic('check')}<span>${esc(c.name)}</span>${other ? '<small>في مسابقة أخرى</small>' : ''}</button>`; }).join('')}</div>` : ''}
+      <div class="set-grp cf3">
+        <label class="cf3-r"><span class="grow">يبدأ</span><b id="cf3-sd"></b><i>‹</i><input class="cf3-date" type="date" name="start_date" value="${v.start_date}" required></label>
+        <div class="cf3-note" id="cf3-dates"></div>
+        <input type="hidden" name="points_end_date" value="${v.points_end_date}"><input type="hidden" name="end_date" value="${v.end_date}">
+        <input type="hidden" name="group_size" value="${v.group_size || 6}"><input type="hidden" name="qualifiers" value="${v.qualifiers || 8}"><input type="hidden" name="round_window_hours" value="${v.round_window_hours || 24}">
+      </div>
+      <div class="set-grp cf3">
+        <button type="button" class="cf3-r" data-act="cf3-ko"><span class="grow">تصفيات في النهاية<small>الأوائل وجهاً لوجه</small></span><span class="ios-sw ${CC.ko ? 'on' : ''}" id="cf3-kosw"><i></i></span></button>
+        <button type="button" class="cf3-r ${CC.ko ? '' : 'hide'}" id="cf3-qr" data-act="cf3-q"><span class="grow">عدد المتأهلين</span><b id="cf3-qv"></b><i>‹</i></button>
+      </div>
+      <div class="set-grp cf3">
+        <button type="button" class="cf3-r" data-act="cf3-diff"><span class="grow">الصعوبة</span><b id="cf3-dv"></b><i>‹</i></button>
+        <button type="button" class="cf3-r" data-act="cf3-qt"><span class="grow">أنواع الأسئلة</span><b id="cf3-tv"></b><i>‹</i></button>
+        <button type="button" class="cf3-r" data-act="cf3-style"><span class="grow">شكل شاشة الطالب</span><b id="cf3-yv"></b><i>‹</i></button>
+      </div>
+      <button type="button" class="btn" data-act="ce-close">تم</button></div></div>
+  </form>`;
+}
+ACTS['ce-open'] = t => { const x = document.getElementById('ce-' + t.dataset.p); if (x) x.classList.add('on'); };
+ACTS['ce-close'] = t => { const x = t.closest('.ce1-sh'); if (x) x.classList.remove('on'); };
+document.addEventListener('click', e => { if (e.target.classList && e.target.classList.contains('ce1-sh')) e.target.classList.remove('on'); });
+function ceSum(){
+  const lb = document.getElementById('ce-lb'), ls = document.getElementById('ce-ls'); if (!lb) return;
+  const all = CFL[CC.cu]; lb.textContent = !CC.cu ? 'كل الأسئلة' : (!CC.lessons.length ? 'كل الدروس' : CC.lessons.length + ' دروس');
+  ls.textContent = CC.poolN == null ? '' : `${CC.poolN} سؤال · تكفي ${CC.poolDays} يوم ${CC.poolOk ? '✓' : '⚠️'}`;
+  ls.className = CC.poolOk === false ? 'low' : '';
 }
 /* simple setup helpers: duration presets, auto title, auto student-screen style */
 const CF_DUR = [[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']];
@@ -2152,7 +2198,7 @@ async function cfPool(pd){
   const n = POOL[key], days = Math.floor(n / 4), ok = days >= pd;
   const x = document.getElementById('cf-pool'); if (!x) return;
   x.className = 'cf-pool ' + (ok ? 'ok' : 'low');
-  x.innerHTML = `${ic(ok ? 'check' : 'help')} <span>من «أسئلتي»: ${n} سؤالاً يناسب هذه المسابقة، تكفي لـ ${days} يوماً دون تكرار${ok ? '' : `. تحتاج ${pd * 4 - n} سؤالاً إضافياً لتغطية ${pd} يوم`}</span>${ok ? '' : `<button type="button" class="btn sm" data-act="cf-addready">${ic('plus')} أضف بنك الأسئلة المناسبة</button>`}`;
+  CC.poolN = n; CC.poolDays = days; CC.poolOk = ok; setTimeout(ceSum); x.innerHTML = `${ic(ok ? 'check' : 'help')} <span>من «أسئلتي»: ${n} سؤالاً يناسب هذه المسابقة، تكفي لـ ${days} يوماً دون تكرار${ok ? '' : `. تحتاج ${pd * 4 - n} سؤالاً إضافياً لتغطية ${pd} يوم`}</span>${ok ? '' : `<button type="button" class="btn sm" data-act="cf-addready">${ic('plus')} أضف بنك الأسئلة المناسبة</button>`}`;
 }
 /* one tap for a new teacher: pick every ready question that fits this competition (types, curriculum, lessons) */
 ACTS['cf-addready'] = async t => {
@@ -2218,11 +2264,11 @@ async function cfLessons(){
     <button type="button" class="cf2-l all ${all ? 'on' : ''}" data-act="cp-les" data-l=""><i>${ic('check')}</i><span class="grow">كل الدروس</span><em>${ls.reduce((a, y) => a + y[1], 0)}</em></button>
     ${ls.map(([l, n], i) => `<button type="button" class="cf2-l ${!all && CC.lessons.includes(l) ? 'on' : ''}" data-act="cp-les" data-l="${esc(l)}"><i>${ic('check')}</i><span class="grow">${esc(l)}</span><em>${n}</em></button>`).join('')}</div>`;
 }
-ACTS['cp-cu'] = t => { CC.cu = t.value; CC.lessons = []; cfLessons(); cfUpdate(); };
+ACTS['cp-cu'] = t => { CC.cu = t.value; CC.lessons = []; cfLessons(); cfUpdate(); ceSum(); };
 ACTS['cp-les'] = t => { const l = t.dataset.l;
   if (!l) CC.lessons = []; else if (CC.lessons.includes(l)) CC.lessons = CC.lessons.filter(x => x !== l); else CC.lessons.push(l);
   if (CFL[CC.cu] && CC.lessons.length === CFL[CC.cu].length) CC.lessons = [];
-  cfLessons(); cfUpdate(); };
+  cfLessons(); cfUpdate(); ceSum(); };
 function cpKeep(){ const f = document.querySelector('[data-form="cp-save"]'); if (f && f.cu) CC.cu = f.cu.value; }
 /* «إعدادات إضافية»: iOS-style rows; each opens a small sheet */
 const fmtDay = d => { try { return new Date(d + 'T00:00:00').toLocaleDateString('ar-KW-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' }); } catch(e){ return d; } };
