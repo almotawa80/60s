@@ -1588,7 +1588,7 @@ html body .cl-add{min-height:54px;font-size:17px;font-weight:800}
 .aw-addline .pl,.cl-add1 .pl{color:var(--primary);font-weight:900;font-size:19px}
 .aw-addline input,.cl-add1 input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:15px;color:var(--ink);outline:0;padding:6px 0}
 .cl-add1{margin-top:8px}.cl-add1 .btn.sm{margin:0;min-height:36px}
-.cl-add1:not(:focus-within) .btn{display:none}
+.cl-add1:not(:focus-within):has(input:placeholder-shown) .btn{display:none}
 .aw-go{margin-top:auto}
 .aw-hint{color:#1a7f37;font-size:13.5px;font-weight:700;margin:0}
 .aw-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}

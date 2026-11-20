@@ -1084,7 +1084,7 @@ async function tHome(){
     return `<a class="hc" href="#/t/ch/${c.group_id || c.id}"><b class="hc-t">${esc(c.title || 'تحدي')}</b><small class="hc-c">${esc(names)}${ph === 'points' || ph === 'knockout' ? ` · باقي ${daysAr(Math.max(0, dl))}` : ''}</small>${mid}</a>`;
   });
   const html = cards.length ? `<div class="hcs">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
-  view('الرئيسية', html + `<a class="h-more" href="#/t/comps">التحديات السابقة وإدارتها ‹</a>`, 'home');
+  view('الرئيسية', html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
 }
 /* ---- «تحدي جديد»: who → subject → how long → ready (one question per screen) ---- */
 const NW = { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, poll: null };
@@ -1368,7 +1368,7 @@ function renderClasses(){
   if (cl && CL.cur && !cur && !CL.sel) { CL.cur = null; return location.replace('#/t/classes'); }
   if (cur) { view(cur.name, classPage(cur), 'classes', `<button class="icon-btn" data-act="c-pmore" aria-label="المزيد">${ic('more')}</button>`, '#/t/classes'); if (CL.addFocus) { const i = document.querySelector('.cp1 .cl-add1 input'); CL.addFocus = null; if (i) i.focus(); } return; }
   if (!cl && !onNew && T.compEdit && T.compEdit !== 'new') { view('تعديل التحدي', compForm(), 'home', `<button class="icon-btn" data-act="cp-cancel" aria-label="إغلاق">${ic('x')}</button>`); cfAuto(); cfUpdate(); cfLessons(); return; }
-  view(cl ? 'الصفوف' : onNew && T.compEdit ? 'تحدي جديد' : 'التحديات', (cl ? classesList() : compsPanel()) + selBar(), cl ? 'classes' : onNew ? 'new' : 'home', more, cl || onNew ? undefined : '#/t/home');
+  view(cl ? 'الصفوف' : onNew && T.compEdit ? 'تحدي جديد' : T.compEdit ? 'التحديات' : 'التحديات السابقة', (cl ? classesList() : compsPanel()) + selBar(), cl ? 'classes' : onNew ? 'new' : 'home', more, cl || onNew ? undefined : '#/t/home');
   cfAuto(); cfUpdate(); cfLessons();
   if (CL.addFocus) { const i = document.querySelector(`.cls[data-cid="${CL.addFocus}"] .cl-add1 input`); CL.addFocus = null; if (i) i.focus(); }
 }
@@ -1432,7 +1432,7 @@ function classPage(c){
   return `<div class="cp1" data-cid="${c.id}">${box}<div class="cp-list">` +
     nw.map(x => `<div class="cp-row"><span class="grow"><b>${esc(x.name)}</b> <span class="cn-tag">جديد</span></span><button class="cn-ok" data-act="s-approve" data-id="${x.id}" aria-label="موافقة">✓</button><button class="cn-no" data-act="s-reject" data-id="${x.id}" aria-label="حذف">✕</button></div>`).join('') +
     st.map((x, i) => `<button class="cp-row" data-act="s-card" data-id="${x.id}"><span class="cp-rk">${i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}</b></span><span class="chev">${ic('back')}</span></button>`).join('') +
-    `<form class="cl-add1 cp-add" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="اكتب اسم طالب" autocomplete="off" enterkeyhint="done"><button class="btn sm" type="submit">إضافة</button></form></div></div>`;
+    `<form class="cl-add1 cp-add" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="اكتب اسم طالب" autocomplete="off" enterkeyhint="send"><button class="btn sm" type="submit">إضافة</button></form></div></div>`;
 }
 ACTS['c-open'] = t => go('#/t/class/' + t.dataset.id);
 ACTS['c-pmore'] = () => { const el = document.querySelector('.cp1[data-cid]'); if (el) ACTS['c-cmore'](el); };
@@ -1473,7 +1473,7 @@ function classSection(c){
         <div class="sw-main" data-act="s-card" data-id="${x.id}" role="button" tabindex="0"${selS ? ` aria-pressed="${CL.sel.ids.has(x.id) ? 'true' : 'false'}"` : ''}>${selS ? `<span class="selmark">${ic(CL.sel.ids.has(x.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${sort === 'pts' && comp ? '' : x._i}</span>`}<div class="grow"><b>${esc(fmtStu(x.name))}${x.approved === false ? ' <span class="cn-tag">جديد</span>' : ''}${k.today ? '<i class="cl-dot" title="لعب اليوم"></i>' : ''}</b><div class="sub">${esc(x.student_no) || '—'}${comp ? ` · ${k.pts} نقطة` : ''}${x.gender === 'f' ? ' · طالبة' : x.gender === 'm' ? ' · طالب' : ''}</div></div>
         ${selS ? '' : `<button class="cl-wa" data-act="s-wa" data-id="${x.id}" aria-label="إرسال الرمز واتساب">${ic('send')}</button>`}</div></div>`; }).join('')}</div>`
         : `<div class="cl-empty sm"><b>لا يوجد طلبة في ${esc(c.name)}</b><small>صوّر كشف الأسماء أو الصقه، أو اكتب الأسماء واحداً واحداً تحت.</small><button class="btn" data-act="aw-start" data-cid="${c.id}">${ic('plus')} إضافة طلبة</button></div>`) +
-      (CL.sel ? '' : `<form class="cl-add1" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="طالب" autocomplete="off" enterkeyhint="done"><button class="btn sm" type="submit">إضافة</button></form>`) + '</div>';
+      (CL.sel ? '' : `<form class="cl-add1" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="طالب" autocomplete="off" enterkeyhint="send"><button class="btn sm" type="submit">إضافة</button></form>`) + '</div>';
   }
   const selC = CL.sel && CL.sel.type === 'classes';
   const days = comp && ph === 'points' ? cfDays(todayKW(), comp.points_end_date) : null;
@@ -1990,28 +1990,18 @@ function compGroups(){
 }
 function compsPanel(){
   if (T.compEdit) return compForm();
-  const groups = compGroups();
-  const free = CL.classes.filter(c => !CL.comps[c.id]);
-  return `<button class="btn" data-act="cp-new">${ic('plus')} مسابقة جديدة</button>` +
-    (groups.length ? groups.map(g => { const c = g[0], ph = phaseOf(c); return `<div class="card col"><div class="row between"><b style="font-size:18px">${esc(c.title)}</b><span class="chip ${ph === 'points' ? 'good' : ph === 'knockout' ? 'warn' : ''}">${PHASE_AR[ph]}</span></div>
-      <div class="sub">النقاط: ${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.points_end_date))} · النهاية: ${esc(fmtDate(c.end_date))}</div>
-      <div class="sub">الصعوبة: ${(DIFF.find(d => d[0] === (c.difficulty || 'normal')) || DIFF[1])[1]}${c.curriculum_id && CU.list.length ? ' · ' + esc(cuName(CU.list.find(x => x.id === c.curriculum_id))) : ''}</div>
-      <div class="row" style="flex-wrap:wrap;gap:6px">${g.map(x => `<span class="chip">${esc((CL.byId[x.class_id] || {}).name || '')}</span>`).join('')}</div>
-      <a class="btn cp-res" href="#/t/results/${g[0].class_id}">${ic('chart')} النتائج والترتيب${ph === 'knockout' || ph === 'finished' ? ' والتصفيات' : ''}</a>
-      <div class="row"><button class="btn sm soft" data-act="cp-edit" data-g="${c.group_id}">${ic('edit')} الإعدادات</button>${c.paused_at ? `<button class="btn sm" data-act="cp-resume" data-g="${c.group_id}">${ic('play')} استئناف</button>` : `<button class="btn sm soft" data-act="cp-pause" data-g="${c.group_id}">⏸ إيقاف مؤقت</button>`}<button class="btn sm ghost" data-act="cp-end" data-g="${c.group_id}">إنهاء</button></div><button class="btn sm soft cp-try" data-act="cp-try" data-g="${c.group_id}">🎮 جرّب كطالب</button>${c.paused_at ? `<div class="cp-paused">⏸ متوقفة من ${esc(fmtDate(String(c.paused_at).slice(0, 10)))}. الطلبة ما يقدرون يلعبون الجولة الرسمية، والنقاط محفوظة.</div>` : ''}</div>`; }).join('')
-      : '<div class="card center muted">لا توجد مسابقات نشطة.</div>') +
-    (groups.length && free.length ? `<p class="sub">صفوف بلا مسابقة: ${free.map(c => esc(c.name)).join('، ')}</p>` : '') +
-    cpPast();
+  /* v119: active challenges live on the home page; this page is only the past ones */
+  return cpPast() || '<div class="h-empty"><div class="h-em">🏆</div><b>ما فيه تحديات سابقة</b><small>لما ينتهي تحدي، يطلع هنا مع نتائجه</small></div>';
 }
 function cpPast(){
   const by = {}, order = []; (CL.past || []).forEach(k => { if (!by[k.group_id]) { by[k.group_id] = []; order.push(k.group_id); } by[k.group_id].push(k); });
   if (!order.length) return '';
-  return `<details class="cp-past"><summary>المسابقات السابقة <em>${order.length}</em></summary><div class="qsubs">${order.map(gid => { const g = by[gid], c = g[0];
-    return `<div class="cpp-row"><a class="qsub" href="#/t/results/${c.class_id}/${c.id}"><span class="qsub-ic" style="--c:#8E8E93">${ic('trophy')}</span><span class="grow"><b>${esc(c.title)}</b><small>${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.end_date))} · ${g.map(x => esc((CL.byId[x.class_id] || {}).name || '')).filter(Boolean).join('، ')}</small></span><i>‹</i></a><button class="cpp-del" data-act="cp-del-past" data-g="${esc(gid)}" aria-label="حذف نهائي">${ic('trash')}</button></div>`; }).join('')}</div></details>`;
+  return `<div class="cp-past"><div class="qsubs">${order.map(gid => { const g = by[gid], c = g[0];
+    return `<div class="cpp-row"><a class="qsub" href="#/t/results/${c.class_id}/${c.id}"><span class="qsub-ic" style="--c:#8E8E93">${ic('trophy')}</span><span class="grow"><b>${esc(c.title)}</b><small>${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.end_date))} · ${g.map(x => esc((CL.byId[x.class_id] || {}).name || '')).filter(Boolean).join('، ')}</small></span><i>‹</i></a><button class="cpp-del" data-act="cp-del-past" data-g="${esc(gid)}" aria-label="حذف نهائي">${ic('trash')}</button></div>`; }).join('')}</div></div>`;
 }
 ACTS['cp-del-past'] = async t => {
   const gid = t.dataset.g, k = (CL.past || []).find(x => x.group_id === gid); if (!k) return;
-  if (!await ask(`حذف «${k.title}» نهائياً؟ تنحذف المسابقة وكل نتائجها وجولات الطلبة فيها، وما يمكن استرجاعها.`, { danger: true, ok: 'حذف نهائي' })) return;
+  if (!await ask('تنحذف نتائجه كلها، وما ترجع.', { title: `حذف «${k.title.split('·').pop().trim()}»؟`, danger: true, ok: 'حذف', cancel: 'لا' })) return;
   const { error } = await sb.from('competitions').delete().eq('group_id', gid).eq('status', 'finished');
   if (error) return toast(errMsg(error));
   Object.keys(PCACHE).forEach(h => { if (h.indexOf('#/t/results') === 0) delete PCACHE[h]; });
