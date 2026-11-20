@@ -786,9 +786,15 @@ function ordMark(btns, seq, order, ok){
 }
 function optMark(b, sym, sr){ if (b.querySelector('.opt-mk')) return; const m = document.createElement('span'); m.className = 'opt-mk'; m.textContent = sym; m.setAttribute('aria-hidden', 'true'); b.appendChild(m); b.setAttribute('aria-label', (b.querySelector('.txt') || b).textContent + '، ' + sr); }
 function reviewHtml(){
-  const L = S.log || []; if (!L.length) return '';
-  return '<details class="rv"><summary class="rv-h">مراجعة إجاباتك (' + L.length + ')</summary>' + L.map((x, i) => '<div class="rv-i ' + (x.ok ? 'ok' : 'no') + '"><span class="rv-n">' + (x.ok ? '✓' : '✗') + '</span><div><div class="rv-q">' + esc(x.q) + '</div>' +
-    (x.ok ? '<div class="rv-a good">' + esc(x.o[x.c]) + '</div>' : (x.c != null ? '<div class="rv-a good">الصحيحة: ' + esc(x.o[x.c]) + '</div>' : '') + '<div class="rv-a bad">' + (x.x == null ? 'انتهى الوقت' : 'إجابتك: ' + esc(x.o[x.x])) + '</div>') + '</div></div>').join('') + '</details>';
+  const L = (S.log || []).slice(-4); if (!L.length) return '';
+  const bad = L.filter(x => !x.ok), good = L.filter(x => x.ok), ans = x => Array.isArray(x.o) && x.c != null ? esc(x.o[x.c]) : '';
+  return (bad.length ? '<div class="rv2-h">راجع أخطاءك <span>' + bad.length + '</span></div>' +
+    bad.map(x => '<div class="rv2-w"><p>' + esc(x.q) + '</p>' +
+      '<div class="rv2-l no"><i>✕</i>' + (x.x == null ? '<b class="nt">خلص الوقت</b>' : '<b>' + esc(x.o[x.x]) + '</b>') + '<small>إجابتك</small></div>' +
+      (ans(x) ? '<div class="rv2-l ok"><i>✓</i><b>' + ans(x) + '</b><small>الصحيحة</small></div>' : '') + '</div>').join('') +
+    '<button class="rv2-dr" data-act="s-start" data-kind="review">🔁 تدرّب على أخطائك</button>'
+    : '<div class="rv2-all">ما غلطت في ولا سؤال 👏<small>كمّل كذا وتتصدر الترتيب</small></div>') +
+    (good.length && bad.length ? '<details class="rv2-ok"><summary><i>✓</i>جاوبت ' + good.length + ' صح<em>‹</em></summary>' + good.map(x => '<div class="rv2-g">' + esc(x.q) + '<small>' + ans(x) + '</small></div>').join('') + '</details>' : '');
 }
 async function showResult(sm){
   stopTimer(); S.gen = (S.gen || 0) + 1; S.cur = null;
@@ -815,10 +821,10 @@ async function showResult(sm){
     (sm && sm.kind === 'knockout' ? '<p class="center sub">تُحسم المواجهة بعدد الإجابات الصحيحة ثم السرعة، وتظهر النتيجة في الرئيسية عندما ينهي منافسك.</p>' : '') +
     '<div class="stars-row">' + stars + '</div>' +
     '<div class="center"><div class="big" id="bigpts">0</div><div class="muted">نقاط هذه الجولة</div></div>' +
-    '<div class="rows card"><div class="r"><span>أجبت عن</span><b>' + toAr(answered) + ' من ٤</b></div><div class="r"><span>الإجابات الصحيحة</span><b>' + toAr(sm ? sm.correct_count : 0) + ' من ٤</b></div>' + rankRow + '</div>' +
+    (rankRow ? '<div class="rows card">' + rankRow + '</div>' : '') +
     (S.upMsg ? '<div class="s-up">' + S.upMsg + '</div>' : '') +
-    '<button class="btn" data-act="s-reload">تم</button>' +
-    reviewHtml() + '</div></div>';
+    reviewHtml() +
+    '<button class="btn rv2-done" data-act="s-reload">تم</button></div></div>';
   const target = sm ? sm.total_points : 0, el = document.getElementById('bigpts'), t0 = performance.now();
   if (FX.reduce()) { if (el) el.textContent = target; } else (function roll(t){ const k = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - k, 3); if (el) el.textContent = Math.round(target * e); if (k < 1) requestAnimationFrame(roll); })(t0);
 }
