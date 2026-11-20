@@ -1953,7 +1953,7 @@ function snack(msg, onUndo, onCommit){
 window.addEventListener('pagehide', () => { const s2 = document.getElementById('snack'); if (s2 && s2._commit) s2._commit(); });
 ACTS['t-del-student'] = async t => { const c = ctx(t); closeModals();
   const arr = CL.students[c.id] || [], st0 = arr.find(x => x.id === t.dataset.id); if (!st0) return;
-  if (!await ask(`سيُحذف «${st0.name}» من الصف مع كل نقاطه ونتائجه وجولاته، ولن يعمل رمز دخوله بعد الآن. لا يمكن التراجع عن ذلك.`, { title: 'حذف الطالب؟', ok: 'حذف الطالب', cancel: 'إلغاء', danger: true, safe: true })) return;
+  if (!await ask('تنحذف نقاطه كلها، وما ترجع.', { title: `حذف ${st0.name}؟`, ok: 'حذف', cancel: 'لا', danger: true, safe: true })) return;
   const { error } = await sb.from('students').delete().eq('id', st0.id);
   if (error) return toast('تعذّر حذف ' + st0.name + '. تأكد من الاتصال وحاول مجدداً');
   const i = arr.findIndex(x => x.id === st0.id); if (i >= 0) arr.splice(i, 1);
