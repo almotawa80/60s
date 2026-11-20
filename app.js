@@ -1547,7 +1547,7 @@ function st1Html(c, s){
   const comp = CL.comps[c.id], ord = st1Order(c), i = ord.findIndex(x => x.id === s.id);
   const ranked = ord.filter(x => x.approved !== false), k = CST(s.id), rk = ranked.findIndex(x => x.id === s.id) + 1;
   const pv = ord[i - 1], nx = ord[i + 1];
-  return `<div class="st1" data-cid="${c.id}" data-id="${s.id}"><div class="st1-h"><b>${esc(s.name)}</b><button class="icon-btn" data-act="s-more" data-id="${s.id}" aria-label="المزيد">${ic('more')}</button></div>
+  return `<div class="st1" data-cid="${c.id}" data-id="${s.id}"><div class="st1-h"><b>${esc(s.name)}</b><button class="icon-btn" data-act="s-more" data-id="${s.id}" aria-label="المزيد">${ic('more')}</button><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div>
     ${comp ? `<div class="st1-stats"><div><b>${k.pts}</b><small>نقطة</small></div><div><b>${k.pts && rk ? rk : '—'}</b><small>المركز</small></div></div><div class="st1-today ${k.today ? 'on' : ''}">${k.today ? 'لعب اليوم ✓' : 'ما لعب اليوم'}</div>` : ''}
     <button class="btn cp-share" data-act="s-wa" data-id="${s.id}">أرسل له رمز الدخول</button>
     <div class="st1-nav"><button class="icon-btn" data-act="s-go" data-id="${pv ? pv.id : ''}" ${pv ? '' : 'disabled'} aria-label="السابق">→</button><small>${i + 1} من ${ord.length}</small><button class="icon-btn" data-act="s-go" data-id="${nx ? nx.id : ''}" ${nx ? '' : 'disabled'} aria-label="التالي">←</button></div></div>`;
@@ -1561,7 +1561,7 @@ ACTS['s-go'] = t => { const c = ctx(t), id = t.dataset.id, s = id && (CL.student
 })();
 ACTS['s-more'] = t => { const c = ctx(t), id = t.dataset.id, s = (CL.students[c.id] || []).find(x => x.id === id); if (!s) return; closeModals();
   const A = `data-id="${id}" data-cid="${c.id}"`;
-  setTimeout(() => modal(`<div class="st1" data-cid="${c.id}"><div class="st1-h"><b>${esc(s.name)}</b></div><div class="st1-opts">${[['s-edit', '✏️', 'تعديل الاسم'], ['s-msg', '✉️', 'رسالة'], ['t-regen', '🔄', 'رمز جديد'], ['t-del-student', '🗑️', 'حذف']].map(o => `<button class="st1-o" data-act="${o[0]}" ${A}><span class="e">${o[1]}</span><b>${o[2]}</b></button>`).join('')}</div></div>`), 30); };
+  setTimeout(() => modal(`<div class="st1" data-cid="${c.id}"><div class="st1-h"><b>${esc(s.name)}</b><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div><div class="st1-opts">${[['s-edit', '✏️', 'تعديل الاسم'], ['s-msg', '✉️', 'رسالة'], ['t-regen', '🔄', 'رمز جديد'], ['t-del-student', '🗑️', 'حذف']].map(o => `<button class="st1-o" data-act="${o[0]}" ${A}><span class="e">${o[1]}</span><b>${o[2]}</b></button>`).join('')}</div></div>`), 30); };
 ACTS['s-edit'] = t => {
   const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return;
   closeModals();

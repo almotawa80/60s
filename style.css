@@ -2220,3 +2220,6 @@ html body[data-theme] .pv .opts.kc .opt .letter.shp{width:26px;height:26px;font-
 .st1-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .st1-o{flex-direction:column;justify-content:center;gap:6px;min-height:96px;padding:12px;text-align:center}
 .st1-o .e{font-size:30px}
+:has(> .st1) > .modal-x,.modal:has(.st1) .modal-x{display:none!important}
+.st1-h{padding-inline-end:0!important;gap:10px}
+.st1-h .icon-btn{width:44px;height:44px;border-radius:50%;background:var(--soft);display:grid;place-items:center;flex:none}
