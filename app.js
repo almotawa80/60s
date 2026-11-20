@@ -118,6 +118,7 @@ function modal(html){
   el.addEventListener('click', e => { if (e.target === el) el.remove(); });
   el._opener = document.activeElement;
   document.body.appendChild(el);
+  if (!el.querySelector('[data-act="close-modal"],.aw-rh')) { const x = document.createElement('button'); x.type = 'button'; x.className = 'modal-x'; x.dataset.act = 'close-modal'; x.setAttribute('aria-label', 'إغلاق'); x.innerHTML = ic('x'); el.querySelector('.modal').prepend(x); }
   const mo = el.querySelector('.modal'), h = mo.querySelector('h3,.sheet-t'); if (h) { h.id = h.id || 'mh' + Date.now(); mo.setAttribute('aria-labelledby', h.id); }
   setTimeout(() => { if (document.contains(el) && !el.contains(document.activeElement)) mo.focus({ preventScroll: true }); }, 30);
   /* give focus back to whatever opened the modal once it is gone */
@@ -1030,7 +1031,7 @@ const QTYPES = [['curriculum', 'المنهج', 'أسئلة من مادتك', 'la
 const SUBJECTS = ['عام', 'اللغة العربية', 'الرياضيات', 'العلوم', 'التربية الإسلامية', 'اللغة الإنجليزية', 'الاجتماعيات', 'الحاسوب', 'أخرى'];
 const METHODS = [['manual', 'إضافة يدوية', 'اكتب اسم الصف وأسماء الطلبة', 'edit'], ['file', 'رفع ملف Excel', 'عدة صفوف دفعة واحدة', 'upload'], ['self', 'يسجّل الطلبة عبر الرابط', 'رابط يسجل به الطلبة بأنفسهم', 'user']];
 const W = { step: 0, stage: null, qtypes: ['curriculum', 'general', 'quick'], subject: 'عام', method: null, cname: '', names: '', self: '', multi: null, compNow: true, start: '' };
-const WSTEPS = ['المرحلة', 'الأسئلة', 'الإضافة', 'الطلبة', 'المسابقة'];
+const WSTEPS = ['الصف والطلبة', 'المراجعة'];
 function wSave(){
   const g = id => document.getElementById(id);
   if (g('w-cname')) W.cname = g('w-cname').value.trim();
@@ -1040,59 +1041,62 @@ function wSave(){
   if (g('w-start')) W.start = g('w-start').value;
 }
 function renderWizard(){
+  /* two steps: (1) stage + class + how students join, (2) editable summary: class, competition date, question source */
+  if (W.step > 2) W.step = 2;
   const s = W.step;
   const prog = `<div class="w-prog">${WSTEPS.map((n, i) => `<div class="w-st ${i + 1 < s ? 'done' : i + 1 === s ? 'cur' : ''}"><span>${i + 1 < s ? '✓' : i + 1}</span><small>${n}</small></div>`).join('')}</div>`;
   let body = '', ok = true;
   if (s === 1) {
-    body = `<h2 class="w-h">ما المرحلة الدراسية؟</h2><p class="sub">نختار لك شكل الواجهة المناسب للطلبة.</p><div class="picks picks2">${STAGES.map(x => `<button class="pick ${W.stage === x[0] ? 'on' : ''}" data-act="w-stage" data-v="${x[0]}"><span class="pick-ic">${ic(x[4])}</span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>`;
-    ok = !!W.stage;
-  } else if (s === 2) {
-    body = `<h2 class="w-h">أنواع الأسئلة</h2><p class="sub">اختر نوعاً أو أكثر. كل جولة: 1 سهل، 2 متوسط، 1 صعب.</p><div class="picks picks2">${QTYPES.map(x => `<button class="pick ${W.qtypes.includes(x[0]) ? 'on' : ''}" data-act="w-qtype" data-v="${x[0]}"><span class="pick-ic">${ic(x[3])}</span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>` +
-      (W.qtypes.includes('curriculum') ? `<div class="field"><label for="w-sub">المادة / المنهج</label><select class="input" id="w-sub">${SUBJECTS.map(x => `<option ${W.subject === x ? 'selected' : ''}>${x}</option>`).join('')}</select><p class="sub">المناهج المتاحة يرفعها المشرف، ويمكنك إضافة أسئلتك من صفحة الأسئلة.</p></div>` : '');
-    ok = W.qtypes.length > 0;
-  } else if (s === 3) {
-    body = `<h2 class="w-h">كيف تضيف الصفوف والطلبة؟</h2><div class="picks">${METHODS.map(x => `<button class="pick wide ${W.method === x[0] ? 'on' : ''}" data-act="w-method" data-v="${x[0]}"><span class="pick-ic">${ic(x[3])}</span><div><b>${x[1]}</b><small>${x[2]}</small></div></button>`).join('')}</div>`;
-    ok = !!W.method;
-  } else if (s === 4) {
+    let how = '';
     if (W.method === 'manual') {
-      body = `<h2 class="w-h">بيانات الصف</h2><div class="field"><label for="w-cname">اسم الصف</label><input class="input" id="w-cname" value="${esc(W.cname)}" placeholder="مثال: السادس / أ"></div>
-        <div class="field"><label for="w-names">أسماء الطلبة (اسم في كل سطر، ويمكن إضافة الرقم بعد فاصلة)</label><textarea class="input" id="w-names" rows="8" placeholder="سارة العتيبي، 1001&#10;ليان الزامل، 1002">${esc(W.names)}</textarea></div>
-        <p class="sub">يمكنك ترك الأسماء فارغة وإضافتها لاحقاً.</p>`;
+      how = `<div class="field"><label for="w-cname">اسم الصف</label><input class="input" id="w-cname" value="${esc(W.cname)}" placeholder="مثال: السادس / أ"></div>
+        <div class="field"><label for="w-names">أسماء الطلبة <small class="muted">اسم في كل سطر، ويمكن إضافة الرقم بعد فاصلة. يمكنك تركها فارغة الآن.</small></label><textarea class="input" id="w-names" rows="6" placeholder="سارة العتيبي، 1001&#10;ليان الزامل، 1002">${esc(W.names)}</textarea></div>`;
     } else if (W.method === 'file') {
       const g = W.multi;
-      body = `<h2 class="w-h">رفع ملف الصفوف</h2><p class="sub">ملف واحد بثلاثة أعمدة: الاسم، رقم الطالب، الصف.</p>
-        <div class="row"><button class="btn soft" data-act="t-multi-sample">${ic('download')} نموذج</button><button class="btn" data-act="w-file">${ic('upload')} اختيار الملف</button></div><input type="file" id="wxl" accept=".xlsx,.xls,.csv" class="hide" data-change="w-file-chosen">` +
-        (g ? `<div class="card"><b>${Object.keys(g).length} صف · ${Object.values(g).reduce((a, x) => a + x.length, 0)} طالب/ـة</b>${Object.keys(g).map(k => `<div class="row between dash-link"><span>${esc(k)}</span><span class="sub">${g[k].length}</span></div>`).join('')}</div>` : '');
-      ok = !!g;
-    } else {
-      body = `<h2 class="w-h">التسجيل الذاتي</h2><p class="sub">اكتب أسماء الصفوف (صف في كل سطر). سنعطيك رابطاً لكل صف ترسله للطلبة، فيسجل كل طالب اسمه ورقمه ويحصل على رمزه.</p>
-        <div class="field"><textarea class="input" id="w-self" rows="5" placeholder="السادس / أ&#10;السادس / ب">${esc(W.self)}</textarea></div>`;
+      how = `<p class="sub">ملف واحد بثلاثة أعمدة: الاسم، رقم الطالب، الصف.</p>
+        <div class="row"><button class="btn" data-act="w-file">${ic('upload')} ${g ? 'اختيار ملف آخر' : 'اختيار الملف'}</button><button class="btn soft" data-act="t-multi-sample">${ic('download')} نموذج</button></div><input type="file" id="wxl" accept=".xlsx,.xls,.csv" class="hide" data-change="w-file-chosen">` +
+        (g ? `<div class="card"><b>سيُضاف ${Object.values(g).reduce((a, x) => a + x.length, 0)} طالب/ـة في ${Object.keys(g).length} صف</b>${Object.keys(g).map(k => `<div class="row between dash-link"><span>${esc(k)}</span><span class="sub">${g[k].length}</span></div>`).join('')}</div>` : '');
+    } else if (W.method === 'self') {
+      how = `<div class="field"><label for="w-self">أسماء الصفوف <small class="muted">صف في كل سطر. نعطيك رابطاً لكل صف يسجّل منه الطلبة أسماءهم ويحصلون على رموزهم.</small></label><textarea class="input" id="w-self" rows="4" placeholder="السادس / أ&#10;السادس / ب">${esc(W.self)}</textarea></div>`;
     }
-  } else if (s === 5) {
+    body = `<h2 class="w-h">الصف والطلبة</h2>
+      <div class="field"><label>المرحلة الدراسية</label><div class="picks picks2">${STAGES.map(x => `<button class="pick ${W.stage === x[0] ? 'on' : ''}" data-act="w-stage" data-v="${x[0]}"><span class="pick-ic">${ic(x[4])}</span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div></div>
+      <div class="field"><label>طريقة إضافة الطلبة</label><div class="picks">${METHODS.map(x => `<button class="pick wide ${W.method === x[0] ? 'on' : ''}" data-act="w-method" data-v="${x[0]}"><span class="pick-ic">${ic(x[3])}</span><div><b>${x[1]}</b><small>${x[2]}</small></div></button>`).join('')}</div></div>
+      ${how}`;
+    ok = !!W.stage && !!W.method && (W.method !== 'file' || !!W.multi);
+  } else {
     if (!W.start) W.start = todayKW();
-    const pe = addDays(W.start, 4), end = addDays(pe, 3);
-    body = `<h2 class="w-h">المسابقة</h2><div class="picks">
-      <button class="pick wide ${W.compNow ? 'on' : ''}" data-act="w-comp" data-v="1"><span class="pick-ic">${ic('trophy')}</span><div><b>أنشئ المسابقة الآن</b><small>بإعدادات مقترحة يمكنك تعديلها لاحقاً</small></div></button>
-      <button class="pick wide ${!W.compNow ? 'on' : ''}" data-act="w-comp" data-v="0"><span class="pick-ic">${ic('clock')}</span><div><b>لاحقاً</b><small>أنشئها من صفحة الصف متى شئت</small></div></button></div>` +
-      (W.compNow ? `<div class="card col"><div class="field"><label for="w-start">بداية جمع النقاط</label><input class="input" type="date" id="w-start" value="${W.start}" data-change="w-start"></div>
+    const pe = addDays(W.start, 4), end = addDays(pe, 3), stg = STAGES.find(x => x[0] === W.stage);
+    const clsTxt = W.method === 'manual' ? `${esc(W.cname)}${W.names.trim() ? ' · ' + W.names.split('\n').filter(x => x.trim()).length + ' طالب/ـة' : ' · بدون طلبة الآن'}` :
+      W.method === 'file' ? `${Object.keys(W.multi || {}).length} صف · ${Object.values(W.multi || {}).reduce((a, x) => a + x.length, 0)} طالب/ـة من الملف` :
+      `${W.self.split('\n').filter(x => x.trim()).length} صف · يسجّل الطلبة عبر الرابط`;
+    body = `<h2 class="w-h">راجع قبل الإنشاء</h2>
+      <div class="set-grp">
+        <button class="set-row" data-act="w-prev"><span class="grow rl-txt"><b>الصف</b><small>${stg ? stg[1] + ' · ' : ''}${clsTxt}</small></span><span class="link">تعديل</span></button>
+      </div>
+      <div class="field"><label>المسابقة</label><div class="tabs"><button type="button" class="${W.compNow ? 'on' : ''}" data-act="w-comp" data-v="1">أنشئها الآن</button><button type="button" class="${!W.compNow ? 'on' : ''}" data-act="w-comp" data-v="0">لاحقاً</button></div></div>
+      ${W.compNow ? `<div class="card col"><div class="field"><label for="w-start">موعد بداية المسابقة</label><input class="input" type="date" id="w-start" value="${W.start}" data-change="w-start"></div>
         <div class="row between"><span class="sub">جمع النقاط</span><b>${esc(fmtDate(W.start))} ← ${esc(fmtDate(pe))}</b></div>
         <div class="row between"><span class="sub">التصفيات حتى</span><b>${esc(fmtDate(end))}</b></div>
-        <p class="sub">جولة رسمية يومياً: 4 أسئلة × 15 ثانية. يتأهل 8 للتصفيات.</p></div>` : '');
+        <p class="sub">جولة رسمية يومياً: 4 أسئلة × 15 ثانية. يتأهل 8 للتصفيات. تقدر تعدّلها لاحقاً من المسابقات.</p></div>` : ''}
+      <div class="field"><label>مصدر الأسئلة</label><div class="lv-chips w-chips">${QTYPES.map(x => `<button type="button" class="${W.qtypes.includes(x[0]) ? 'on' : ''}" data-act="w-qtype" data-v="${x[0]}" aria-pressed="${W.qtypes.includes(x[0])}">${x[1]}</button>`).join('')}</div></div>
+      ${W.qtypes.includes('curriculum') ? `<div class="field"><label for="w-sub">المادة</label><select class="input" id="w-sub">${SUBJECTS.map(x => `<option ${W.subject === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>` : ''}`;
+    ok = W.qtypes.length > 0;
   }
-  const nav = `<div class="row w-nav">${s > 1 ? `<button class="btn soft" data-act="w-prev">رجوع</button>` : ''}<button class="btn" data-act="${s === 5 ? 'w-finish' : 'w-next'}" ${ok ? '' : 'disabled'}>${s === 5 ? 'إنشاء' : 'التالي'}</button></div>`;
+  const nav = `<div class="row w-nav">${s > 1 ? `<button class="btn soft" data-act="w-prev">رجوع</button>` : ''}<button class="btn" data-act="${s === 2 ? 'w-finish' : 'w-next'}" ${ok ? '' : 'disabled'}>${s === 2 ? (W.compNow && W.start > todayKW() ? 'إنشاء وجدولة المسابقة' : 'إنشاء') : 'التالي'}</button></div>`;
   view('إعداد سريع', `<div class="card w-card">${prog}<div class="col">${body}</div></div>${nav}`, 'home');
 }
-ACTS['w-stage'] = t => { W.stage = t.dataset.v; renderWizard(); };
+ACTS['w-stage'] = t => { wSave(); W.stage = t.dataset.v; renderWizard(); };
 ACTS['w-qtype'] = t => { wSave(); const k = t.dataset.v; W.qtypes = W.qtypes.includes(k) ? W.qtypes.filter(x => x !== k) : W.qtypes.concat(k); renderWizard(); };
-ACTS['w-method'] = t => { W.method = t.dataset.v; renderWizard(); };
+ACTS['w-method'] = t => { wSave(); W.method = t.dataset.v; renderWizard(); };
 ACTS['w-comp'] = t => { wSave(); W.compNow = t.dataset.v === '1'; renderWizard(); };
 ACTS['w-start'] = () => { wSave(); renderWizard(); };
-ACTS['w-prev'] = () => { wSave(); W.step--; renderWizard(); };
+ACTS['w-prev'] = () => { wSave(); W.step = 1; renderWizard(); };
 ACTS['w-next'] = () => {
   wSave();
-  if (W.step === 4 && W.method === 'manual' && !W.cname) return toast('اكتب اسم الصف');
-  if (W.step === 4 && W.method === 'self' && !W.self.trim()) return toast('اكتب اسم صف واحد على الأقل');
-  W.step++; renderWizard();
+  if (W.method === 'manual' && !W.cname) return toast('اكتب اسم الصف');
+  if (W.method === 'self' && !W.self.trim()) return toast('اكتب اسم صف واحد على الأقل');
+  W.step = 2; renderWizard();
 };
 ACTS['w-file'] = () => document.getElementById('wxl').click();
 ACTS['w-file-chosen'] = async t => {
@@ -1134,7 +1138,7 @@ ACTS['w-finish'] = async t => {
     }
   } catch(e){
     const vals = Object.values(P.by), nc = vals.filter(g => g.c).length, ns = vals.reduce((a, g) => a + g.added, 0);
-    await ask((nc || ns ? `حُفظ حتى الآن: ${nc} صف${ns ? ' و' + ns + ' طالب/ـة' : ''}. ` : 'لم يُحفظ شيء بعد. ') + 'اضغط «إنشاء» مرة أخرى لإكمال الباقي دون تكرار ما حُفظ.\n\nالسبب: ' + errMsg(e), { title: 'لم يكتمل الإعداد', alert: true, ok: 'حسناً', danger: false });
+    await ask((nc || ns ? `حُفظ حتى الآن: ${nc} صف${ns ? ' و' + ns + ' طالب/ـة' : ''}. ` : 'لم يُحفظ شيء بعد. ') + 'اضغط «إكمال الإنشاء» لإكمال الباقي دون تكرار ما حُفظ.\n\nالسبب: ' + errMsg(e), { title: 'لم يكتمل الإعداد', alert: true, ok: 'حسناً', danger: false });
     t.disabled = false; t.textContent = 'إكمال الإنشاء'; return;
   }
   W.prog = null;
@@ -1192,7 +1196,7 @@ function renderClasses(){
 ACTS['c-tab'] = t => { T.compEdit = null; go('#/t/' + t.dataset.t); };
 function classesList(){
   const top = CL.sel ? '' : `<button class="btn cl-add" data-act="aw-start">${ic('plus')} إضافة طلبة</button><div class="cl-newc"><button class="link" data-act="t-add-class">＋ صف جديد</button></div><input type="file" id="awimg" accept="image/*" class="hide" data-change="aw-img"><input type="file" id="awxl" accept=".xlsx,.xls,.csv" class="hide" data-change="aw-xl"><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
-  const arch = CL.archived && CL.archived.length && !CL.sel ? `<details class="cl-arch"><summary>${ic('layers')} الصفوف المؤرشفة (${CL.archived.length})</summary>${CL.archived.map(c => `<div class="cl-arch-r"><span class="grow">${esc(c.name)}<small>${(CL.students[c.id] || []).length} طالب</small></span><button class="btn sm soft" data-act="c-unarchive" data-id="${c.id}">استرجاع</button></div>`).join('')}</details>` : '';
+  const arch = CL.archived && CL.archived.length && !CL.sel ? `<a class="cl-arch cl-arch-l" href="#/t/archive">${ic('layers')} الصفوف المؤرشفة (${CL.archived.length})<span class="grow"></span>${ic('back')}</a>` : '';
   if (!CL.classes.length) return top + `<div class="cl-empty">${ic('users')}<b>لا يوجد طلبة بعد</b><small>اضغط «إضافة طلبة» فوق، وصوّر كشف الأسماء أو الصقه، وخلال دقيقة يصير الصف جاهز.</small></div>` + arch;
   return top + CL.classes.map(classSection).join('') + arch;
 }
@@ -3329,10 +3333,11 @@ async function tExport(){
   if (c.error) throw c.error;
   EX.classes = c.data; EX.comps = [];
   const seen = new Set(); (k.data || []).forEach(x => { if (!seen.has(x.group_id)) { seen.add(x.group_id); EX.comps.push(x); } });
-  const radio = (v, label, extra) => `<button class="set-row radio" data-act="ex-scope" data-v="${v}"><span class="grow">${label}</span><span class="tick ${EX.scope === v ? 'on' : ''}">${ic('check')}</span></button>${EX.scope === v && extra ? extra : ''}`;
+  if ((EX.scope === 'cls' && !c.data.length) || (EX.scope === 'comp' && !EX.comps.length)) EX.scope = 'all';
+  const radio = (v, label, extra, off) => `<button class="set-row radio" data-act="ex-scope" data-v="${v}" ${off ? 'disabled aria-disabled="true"' : ''}><span class="grow">${label}${off ? `<small class="sub" style="display:block">${off}</small>` : ''}</span><span class="tick ${EX.scope === v ? 'on' : ''}">${ic('check')}</span></button>${EX.scope === v && extra ? extra : ''}`;
   const sel = (id, list, val, lab) => `<label class="set-row"><span class="grow muted">${lab}</span><select class="ex-sel" id="${id}">${list.map(x => `<option value="${x.id}" ${val === x.id ? 'selected' : ''}>${esc(x.name || x.title)}</option>`).join('')}</select></label>`;
   view('تصدير البيانات',
-    sGrp('ماذا تصدّر؟', [radio('all', 'كل البيانات'), radio('cls', 'صف معين', c.data.length ? sel('ex-cls', c.data, EX.cls, 'الصف') : ''), radio('comp', 'مسابقة معينة', EX.comps.length ? sel('ex-comp', EX.comps, EX.comp, 'المسابقة') : '')]) +
+    sGrp('ماذا تصدّر؟', [radio('all', 'كل البيانات'), radio('cls', 'صف معين', c.data.length ? sel('ex-cls', c.data, EX.cls, 'الصف') : '', c.data.length ? '' : 'لا توجد صفوف بعد'), radio('comp', 'مسابقة معينة', EX.comps.length ? sel('ex-comp', EX.comps, EX.comp, 'المسابقة') : '', EX.comps.length ? '' : 'لا توجد مسابقات بعد')]) +
     sGrp('الصيغة', [`<div class="set-row"><div class="tabs grow">${[['xlsx', 'Excel'], ['pdf', 'PDF']].map(f => `<button type="button" class="${EX.fmt === f[0] ? 'on' : ''}" data-act="ex-fmt" data-v="${f[0]}">${f[1]}</button>`).join('')}</div></div>`], 'PDF يفتح نافذة الطباعة، واختر «حفظ PDF».') +
     `<button class="btn" data-act="ex-go">${ic('download')} تصدير</button>`, 'settings', '', '#/t/settings');
 }
@@ -3403,25 +3408,35 @@ ACTS['mt-del'] = async t => { const k = t.dataset.k, l = tplList(k).slice(), i =
 const MS = { to: [], kind: 'encourage', i: 0 };
 function msgSend(students){
   if (!students.length) return toast('حدد طالب واحد على الأقل');
-  Object.assign(MS, { to: students, kind: MS.kind || 'encourage', i: 0 }); closeModals(); modal(msgHtml());
+  Object.assign(MS, { to: students, kind: MS.kind || 'encourage', i: -1, draft: '', dirty: false }); closeModals(); modal(msgHtml());
 }
+/* recipients and text first; ready-made templates are optional and never wipe a typed draft silently */
 function msgHtml(){
-  const one = MS.to.length === 1, l = tplList(MS.kind), base = l[MS.i] != null ? l[MS.i] : '';
-  return `<div class="msg-s"><h3>${ic('mail')} رسالة ${one ? 'إلى ' + esc(fmtStu(MS.to[0].name)) : 'إلى ' + MS.to.length + ' طالب/ـة'}</h3>
+  const one = MS.to.length === 1, l = tplList(MS.kind);
+  const names = MS.to.slice(0, 4).map(x => esc(fmtStu(x.name))).join('، ') + (MS.to.length > 4 ? ` و${MS.to.length - 4} آخرين` : '');
+  return `<div class="msg-s"><h3>${ic('mail')} رسالة للطلبة</h3>
+    <div class="ms-to"><span class="sub">إلى:</span> <b>${names}</b></div>
+    <form class="col" data-form="ms-send"><label class="sr-only" for="ms-b">نص الرسالة</label><textarea class="input" id="ms-b" name="b" rows="4" maxlength="600" required placeholder="اكتب رسالتك…">${esc(MS.draft)}</textarea>
+    ${one ? '' : '<small class="sub">{الاسم} و{النقاط} و{الترتيب} تتعبى لكل طالب.</small>'}
     <div class="tabs">${Object.keys(MSG_K).map(k => `<button type="button" class="${MS.kind === k ? 'on' : ''}" data-act="ms-kind" data-v="${k}">${MSG_K[k][2]} ${MSG_K[k][0]}</button>`).join('')}</div>
-    <div class="ms-tpls">${l.map((s, i) => `<button type="button" class="ms-tpl${MS.i === i ? ' on' : ''}" data-act="ms-tpl" data-i="${i}">${esc(one ? fillTpl(s, MS.to[0]) : s)}</button>`).join('')}</div>
-    <form class="col" data-form="ms-send"><textarea class="input" name="b" rows="3" maxlength="600" required>${esc(one ? fillTpl(base, MS.to[0]) : base)}</textarea>
-    ${one ? '' : '<small class="sub">{الاسم} و{النقاط} و{الترتيب} تتعبى لكل طالب.</small>'}<button class="btn" type="submit">${ic('send')} إرسال</button></form></div>`;
+    <details class="ms-ready"${MS.draft ? '' : ' open'}><summary>استخدم رسالة جاهزة</summary><div class="ms-tpls">${l.map((s, i) => `<button type="button" class="ms-tpl${MS.i === i ? ' on' : ''}" data-act="ms-tpl" data-i="${i}">${esc(one ? fillTpl(s, MS.to[0]) : s)}</button>`).join('') || '<p class="sub">لا توجد رسائل جاهزة لهذا النوع.</p>'}</div></details>
+    <button class="btn" type="submit">${ic('send')} إرسال${one ? '' : ' إلى ' + MS.to.length}</button></form></div>`;
 }
-ACTS['ms-kind'] = t => { MS.kind = t.dataset.v; MS.i = 0; const m = document.querySelector('.msg-s'); if (m) m.outerHTML = msgHtml(); };
-ACTS['ms-tpl'] = t => { MS.i = Number(t.dataset.i); const m = document.querySelector('.msg-s'); if (m) m.outerHTML = msgHtml(); };
+document.addEventListener('input', e => { if (e.target.id === 'ms-b') { MS.draft = e.target.value; MS.dirty = true; } });
+function msRerender(){ const m = document.querySelector('.msg-s'); if (m) m.outerHTML = msgHtml(); }
+ACTS['ms-kind'] = t => { MS.kind = t.dataset.v; MS.i = -1; msRerender(); };
+ACTS['ms-tpl'] = async t => {
+  const i = Number(t.dataset.i), tpl = tplList(MS.kind)[i] || '', txt = MS.to.length === 1 ? fillTpl(tpl, MS.to[0]) : tpl;
+  if (MS.dirty && MS.draft.trim() && MS.draft !== txt && !await ask('سيُستبدل النص الذي كتبته بالرسالة الجاهزة.', { title: 'استبدال المسودة؟', ok: 'استبدال', cancel: 'إبقاء نصي', danger: false, safe: true })) return;
+  MS.i = i; MS.draft = txt; MS.dirty = false; msRerender();
+};
 ACTS['ms-send'] = async f => {
   const b = f.b.value.trim(); if (!b) return;
   const rows = MS.to.map(s => ({ student_id: s.id, kind: MS.kind, body: MS.to.length === 1 ? b : fillTpl(b, s) }));
-  const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
-  const { error } = await sb.from('messages').insert(rows); btn.disabled = false;
-  if (error) return toast(/relation|does not exist|schema cache/i.test(error.message || '') ? 'ميزة الرسائل تحتاج تحديث قاعدة البيانات أول' : errMsg(error));
-  closeModals(); toast(MS.to.length === 1 ? 'وصلت الرسالة ✓' : `وصلت الرسالة لـ ${MS.to.length} طالب/ـة ✓`);
+  const btn = f.querySelector('button[type=submit]'); if (btn.disabled) return; const lbl = btn.innerHTML; btn.disabled = true; btn.textContent = 'جارٍ الإرسال…';
+  const { error } = await sb.from('messages').insert(rows); btn.disabled = false; btn.innerHTML = lbl;
+  if (error) return toast(/relation|does not exist|schema cache/i.test(error.message || '') ? 'ميزة الرسائل غير مفعّلة بعد. تواصل مع الدعم' : 'تعذّر الإرسال، تأكد من الاتصال وحاول مجدداً. نصك محفوظ.');
+  MS.draft = ''; closeModals(); toast(MS.to.length === 1 ? 'أُرسلت الرسالة ✓ تظهر للطالب في جرس الرسائل' : `أُرسلت إلى ${MS.to.length} طالب/ـة ✓ تظهر لهم في جرس الرسائل`);
 };
 async function autoPraise(classId, compId, rows){
   try {
@@ -3458,8 +3473,8 @@ ACTS['st-profile'] = () => go('#/t/account');
 ACTS['t-menu'] = () => {
   const it = (act, icon, color, label, attrs) => `<button class="sheet-i" data-act="${act}" ${attrs || ''}><span class="set-ic" style="background:${color}">${ic(icon)}</span><span class="grow">${label}</span></button>`;
   modal(`<div class="sheet t-menu">
-    <button class="sheet-list tm-head" data-act="tm-go" data-a="st-profile">${avatarHtml('big-av')}<div class="grow"><b>${esc(T.name)}</b><div class="sub" dir="ltr" style="text-align:right">${esc((T.user && T.user.email) || '')}</div></div><span class="set-chev">${ic('back')}</span></button>
-    <div class="sheet-list">${it('tm-go', 'user', '#8E8E93', 'حسابي', 'data-a="st-profile"')}
+    <button class="sheet-list tm-head" data-act="tm-go" data-a="st-profile">${avatarHtml('big-av')}<div class="grow"><b>${esc(T.name)}</b><div class="sub">حسابي · <span dir="ltr">${esc((T.user && T.user.email) || '')}</span></div></div><span class="set-chev">${ic('back')}</span></button>
+    <div class="sheet-list">
       <div class="sheet-i tm-mode"><span class="set-ic" style="background:#5856D6">${ic('moon')}</span><span class="grow">الوضع</span></div><div class="tm-seg">${modeSeg()}</div></div>
     <div class="sheet-list">${it('tm-go', 'gear', '#8E8E93', 'كل الإعدادات', 'data-a="tm-settings"')}</div>
     <div class="sheet-list"><button class="sheet-i danger" data-act="tm-go" data-a="st-logout-ask">${ic('logout')}<span>تسجيل الخروج</span></button></div>
