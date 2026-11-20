@@ -4133,6 +4133,8 @@ async function studentJoin(code){
     Object.assign(JN, { code, info, first: '', fam: '' });
     jnRender((info.names || []).some(n => !n.taken) ? 'list' : 'form');
   } catch(e){
+    // not a class code: maybe the student's personal code typed in «انضم» → normal login
+    if (/invalid_join/.test((e && e.message) || '') && code.length === 6) { location.hash = '#/c/' + code; return; }
     $app.innerHTML = `<div class="hero">${LOGO}<h1>تحدّي الدقيقة</h1></div><div class="pad"><div class="err">${esc(errMsg(e))}</div><button class="btn" data-act="go-student" style="margin-top:14px">رجوع</button></div>`;
   }
 }
