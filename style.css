@@ -1889,3 +1889,6 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
 .ms-ready>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:700;color:var(--primary)}
 .sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .w-chips{flex-wrap:wrap;overflow:visible}
+.qi2-pk{display:block;color:#168A5B;font-weight:700;font-size:12.5px}
+.les-pk{font-size:14px;color:var(--muted);padding:2px 0 6px}.les-pk.some{color:#168A5B;font-weight:700}
+.cf-pool .btn.sm{margin-top:8px;width:100%}
