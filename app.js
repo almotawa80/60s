@@ -1692,7 +1692,8 @@ function classPage(c){
   return `<div class="cp1" data-cid="${c.id}">${box}<div class="cp-list">` +
     nw.map(x => `<div class="cp-row"><span class="grow"><b>${esc(x.name)}</b> <span class="cn-tag">جديد</span></span><button class="cn-ok" data-act="s-approve" data-id="${x.id}" aria-label="موافقة">✓</button><button class="cn-no" data-act="s-reject" data-id="${x.id}" aria-label="حذف">✕</button></div>`).join('') +
     st.map((x, i) => `<button class="cp-row" data-act="s-card" data-id="${x.id}"><span class="cp-rk">${i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}</b></span><span class="chev">${ic('back')}</span></button>`).join('') +
-    `<form class="cl-add1 cp-add" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="اكتب اسم طالب" autocomplete="off" enterkeyhint="send"><button class="btn sm" type="submit">إضافة</button></form></div></div>`;
+    `<form class="cl-add1 cp-add" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="اكتب اسم طالب" autocomplete="off" enterkeyhint="send"><button class="btn sm" type="submit">إضافة</button></form>` +
+    `<button class="cp-many" data-act="aw-start" data-cid="${c.id}">📷 أضف أسماء كثيرة من صورة أو Excel</button></div></div>`;
 }
 ACTS['c-open'] = t => go('#/t/class/' + t.dataset.id);
 ACTS['c-pmore'] = () => { const el = document.querySelector('.cp1[data-cid]'); if (el) ACTS['c-cmore'](el); };
@@ -3733,8 +3734,10 @@ ACTS['aw-start'] = t => {
     <button class="aw-opt" data-act="aw-file"><span class="aw-oi">📄</span><span class="grow"><b>ملف Excel</b><small>إذا عندك الكشف من نظام المدرسة</small></span></button>
     <button class="aw-opt" data-act="aw-self"><span class="aw-oi">🔗</span><span class="grow"><b>الطلبة يسجّلون بأنفسهم</b><small>رابط أو QR ترسله للصف</small></span></button>${made ? '<button class="link aw-later" data-act="close-modal">لاحقاً</button>' : ''}</div>`);
 };
-ACTS['aw-photo'] = () => { closeModals(); document.getElementById('awimg').click(); };
-ACTS['aw-file'] = () => { closeModals(); document.getElementById('awxl').click(); };
+/* v163: the file pickers may not be on the page (class page), so make them when needed */
+function awInput(id, accept, act){ let i = document.getElementById(id); if (!i) { i = document.createElement('input'); i.type = 'file'; i.id = id; i.accept = accept; i.className = 'hide'; i.dataset.change = act; document.body.appendChild(i); } return i; }
+ACTS['aw-photo'] = () => { closeModals(); awInput('awimg', 'image/*', 'aw-img').click(); };
+ACTS['aw-file'] = () => { closeModals(); awInput('awxl', '.xlsx,.xls,.csv', 'aw-xl').click(); };
 ACTS['aw-paste'] = () => { closeModals();
   modal(`<h3>كتابة أو لصق الأسماء</h3><p class="sub">اسم الطالب في كل سطر. تقدر تنسخ عمود الأسماء من Excel أو الواتساب وتلصقه هنا.</p>
     <textarea class="input paste-ta aw-ta" rows="9" dir="auto" placeholder="سارة خالد العتيبي&#10;ليان عبدالله الزامل&#10;نور محمد الحربي"></textarea><div class="paste-info"></div>
