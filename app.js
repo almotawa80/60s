@@ -271,7 +271,7 @@ async function loadHome(){
   setTheme(S.home.class.style); LS.set('mc_theme', S.home.class.style || 'mid');
   { const a = profs(), i = a.findIndex(p => p.token === S.token), me = { token: S.token, name: S.home.student.name, cls: S.home.class.name, code: (i >= 0 && a[i].code) || LS.get('mc_code') };
     if (i >= 0) a[i] = me; else a.unshift(me); profSave(a); }
-  renderHome();
+  renderHome(); bgCheck();
   rpc('student_prefs', { p_token: S.token }).then(p => {
     S.prefs = p || {};
     if (p && p.remember === false && LS.get('mc_token')) { try { sessionStorage.setItem('mc_token', S.token); } catch(e){} LS.del('mc_token'); }
@@ -389,14 +389,74 @@ function honorHtml(b){
     (b.champion ? '<div class="honor-ch">👑<b>' + esc(b.champion.name) + '</b><span>بطل/ـة التصفيات</span></div>' : '') +
     (pod.length ? '<div class="honor-l">' + pod.map((x, i) => '<div><span>' + ['🥇', '🥈', '🥉'][i] + '</span><b>' + esc(x.name) + '</b><small>' + x.pts + ' نقطة</small></div>').join('') + '</div><small class="honor-f">الأعلى نقاطاً في مرحلة جمع النقاط</small>' : '') + '</div>';
 }
-const BADGES = { first: ['🎯', 'أول جولة', 'أنهيت أول جولة رسمية'], perfect: ['💯', '4 من 4', 'أجبت الأسئلة الأربعة كلها صح'], streak3: ['🔥', '3 أيام متتالية', 'لعبت 3 أيام وراء بعض'], fast: ['⚡', 'البرق', 'إجابة صحيحة في أقل من 3 ثوانٍ'], practice10: ['🏋️', 'المتدرّب', '10 جولات تدريب'] };
+/* v154 badges with levels: student_home.badges = [{k, n}] (old format {k, on, n} still read) */
+const BG2 = [
+  { k: 'fast', i: '⚡', n: 'البرق', d: 'إجابة صحيحة في أقل من 3 ثوانٍ', t: [1, 10, 50], u: 'إجابة' },
+  { k: 'first', i: '🎯', n: 'أول جولة', d: 'أنهيت أول جولة رسمية', t: [1], u: 'جولة' },
+  { k: 'practice', i: '🏋️', n: 'المتدرّب', d: 'جولات تدريب', t: [10, 25, 50], u: 'جولة' },
+  { k: 'streak', i: '🔥', n: 'متتالي', d: 'أيام لعب وراء بعض', t: [3, 7, 30], u: 'يوم' },
+  { k: 'perfect', i: '💯', n: '4 من 4', d: 'جولة كل أسئلتها صح', t: [1, 5, 20], u: 'جولة' },
+  { k: 'correct', i: '📚', n: 'المجتهد', d: 'إجابات صحيحة', t: [25, 100, 500], u: 'إجابة' }];
+const BG_LV = [['br', 'برونزي'], ['sv', 'فضي'], ['gd', 'ذهبي']];
+function bgVals(){ const h = S.home || {}, v = {}; ((h.badges) || []).forEach(x => {
+    const old = { practice10: 'practice', streak3: 'streak' }[x.k] || x.k;
+    v[old] = x.n != null ? Number(x.n) : x.on ? (old === 'streak' ? 3 : 1) : 0; });
+  if (h.streak && (v.streak || 0) < h.streak) v.streak = h.streak;
+  return BG2.map(b => Object.assign({ v: v[b.k] || 0 }, b)); }
+const bgLv = b => b.t.filter(x => b.v >= x).length;
+function bgCard(b){ const l = bgLv(b), max = l === b.t.length, nx = b.t[l], on = l > 0;
+  return '<button class="bg2 ' + (on ? 'on' : 'off') + '" data-act="bg2-det" data-k="' + b.k + '">' + (on ? '<span class="bg2-ok">✓</span>' : '') +
+    '<span class="bg2-md">' + b.i + (on && b.t.length > 1 ? '<span class="bg2-lv ' + BG_LV[l - 1][0] + '">' + BG_LV[l - 1][1] + '</span>' : '') + '</span><b>' + b.n + '</b><small>' + b.d + '</small>' +
+    (b.t.length > 1 ? '<span class="bg2-tier">' + b.t.map((_, j) => '<i class="' + (j < l ? BG_LV[j][0] : '') + '"></i>').join('') + '</span>' : '') +
+    (max ? '<span class="bg2-cnt">✓ اكتملت</span>' : '<span class="bg2-bar"><i style="width:' + Math.round(Math.min(b.v, nx) * 100 / nx) + '%"></i></span><span class="bg2-cnt">' + Math.min(b.v, nx) + ' من ' + nx + '</span>') + '</button>'; }
+function badgesHtml(){ const bs = bgVals(), n = bs.filter(b => bgLv(b) > 0).length;
+  const frac = b => { const l = bgLv(b); return l === b.t.length ? -1 : b.v / b.t[l]; };
+  const near = bs.filter(b => frac(b) >= 0).sort((a, b) => frac(b) - frac(a))[0];
+  const sorted = bs.slice().sort((a, b) => (bgLv(b) > 0) - (bgLv(a) > 0) || frac(b) - frac(a));
+  let nh = '';
+  if (near && near.v > 0) { const nx = near.t[bgLv(near)], left = nx - near.v;
+    nh = '<div class="bg2-next"><span class="bg2-md">' + near.i + '</span><div class="grow"><b>قربت! ' + near.n + '</b><small>باقي ' + left + ' ' + near.u + '</small><div class="bg2-nb"><i style="width:' + Math.round(near.v * 100 / nx) + '%"></i></div></div></div>'; }
+  return '<div class="bg2-h"><b>شاراتي</b><span>(' + n + ' من ' + bs.length + ')</span></div>' + nh + '<div class="bg2-grid">' + sorted.map(bgCard).join('') + '</div>' +
+    (S.home && S.home.streak ? '<p class="bg2-st">🔥 سلسلتك الحالية: ' + S.home.streak + ' يوم متتالي</p>' : ''); }
+ACTS['bg2-det'] = t => { const b = bgVals().find(x => x.k === t.dataset.k); if (!b) return; const l = bgLv(b);
+  modal('<div class="bg2-ds"><div class="bg2-md big">' + b.i + '</div><h3>' + b.n + '</h3><p>' + b.d + '</p><div class="bg2-steps">' +
+    b.t.map((x, j) => '<div class="' + (j < l ? 'done' : '') + '"><i class="' + (b.t.length > 1 ? BG_LV[j][0] : 'rd') + '"></i>' + (b.t.length > 1 ? BG_LV[j][1] + ' · ' : '') + x + ' ' + b.u + '<small>' + (j < l ? '✓ كسبتها' : Math.min(b.v, x) + ' من ' + x) + '</small></div>').join('') +
+    '</div><button class="btn" data-act="close-modal">تم</button></div>'); };
+/* new-badge popup: compares levels with the last ones this device saw; first visit only stores them */
+function bgCheck(){ const h = S.home; if (!h || S.demo || !h.student || !h.student.id || !(h.badges || []).some(x => x.k === 'correct')) return;
+  const key = 'mc_bg_' + h.student.id, bs = bgVals(), cur = {}; bs.forEach(b => cur[b.k] = bgLv(b));
+  let old = null; try { old = JSON.parse(LS.get(key) || 'null'); } catch(e){}
+  LS.set(key, JSON.stringify(cur));
+  if (!old) return;
+  const won = bs.filter(b => cur[b.k] > (old[b.k] || 0)).map(b => [b, cur[b.k]]);
+  if (won.length) bgWin(won); }
+function bgWin(won){
+  document.querySelectorAll('.bg2-win').forEach(x => x.remove());
+  const w = document.createElement('div'); w.className = 'bg2-win'; let left = won.slice();
+  w.innerHTML = '<div class="bg2-wb"><div class="bg2-stk"></div><div class="bg2-hint">اسحب يمين أو يسار ↔</div><div class="bg2-dots"></div><div class="bg2-two"><button class="g" data-w="see">شوف شاراتي</button><button class="r" data-w="ok">تم</button></div></div>';
+  document.body.appendChild(w);
+  const stk = w.querySelector('.bg2-stk');
+  stk.innerHTML = left.map(([b, l]) => '<div class="bg2-c"><small>كسبت شارة جديدة!</small><div class="bg2-glow">' + b.i + (b.t.length > 1 ? '<span class="bg2-lv ' + BG_LV[l - 1][0] + '">' + BG_LV[l - 1][1] + '</span>' : '') + '</div><h3>' + b.n + '</h3><p>' + b.d + '</p></div>').reverse().join('');
+  const conf = () => { const cs = ['#C8102E', '#F5B72B', '#1F9D55', '#1E6FD9', '#fff']; for (let i = 0; i < 36; i++) { const d = document.createElement('i'); d.className = 'bg2-cf'; d.style.left = Math.random() * 100 + '%'; d.style.background = cs[i % 5]; d.style.animationDuration = (1.6 + Math.random() * 1.4) + 's'; d.style.animationDelay = Math.random() * .4 + 's'; w.appendChild(d); setTimeout(() => d.remove(), 3500); } };
+  const draw = () => { const cs = [...stk.children];
+    cs.forEach((c, i) => { const d = cs.length - 1 - i; c.style.transition = 'transform .55s cubic-bezier(.2,.9,.3,1.15),opacity .4s'; c.style.transform = 'translateY(' + (-d * 34) + 'px) scale(' + (1 - d * .08) + ')'; c.style.zIndex = 10 - d; c.style.opacity = d > 2 ? 0 : 1; });
+    w.querySelector('.bg2-dots').innerHTML = won.length > 1 ? won.map((_, i) => '<i class="' + (i === won.length - left.length ? 'on' : '') + '"></i>').join('') : '';
+    w.querySelector('.bg2-hint').style.visibility = left.length > 1 ? 'visible' : 'hidden';
+    const el = cs[cs.length - 1]; if (!el || left.length < 2) return;
+    let x0 = null, dx = 0; el.style.touchAction = 'pan-y';
+    el.onpointerdown = e => { x0 = e.clientX; dx = 0; el.setPointerCapture(e.pointerId); el.style.transition = 'none'; };
+    el.onpointermove = e => { if (x0 == null) return; dx = e.clientX - x0; el.style.transform = 'translateX(' + dx + 'px) rotate(' + dx / 18 + 'deg)'; };
+    el.onpointerup = el.onpointercancel = () => { if (x0 == null) return; x0 = null; el.style.transition = 'transform .3s,opacity .3s';
+      if (Math.abs(dx) > 80) { el.style.transform = 'translateX(' + (dx > 0 ? 500 : -500) + 'px) rotate(' + dx / 6 + 'deg)'; el.style.opacity = 0; setTimeout(() => { el.remove(); left.shift(); draw(); setTimeout(conf, 250); }, 220); }
+      else el.style.transform = ''; }; };
+  draw(); conf();
+  w.addEventListener('click', e => { const b = e.target.closest('[data-w]'); if (!b) return; w.remove(); if (b.dataset.w === 'see') ACTS['s-tab']({ dataset: { t: 'bd' } }); });
+}
+ACTS['bg2-try'] = () => { const bs = bgVals(); bgWin([[bs[0], 1], [bs[2], 1], [bs[1], 1]]); };
 /* student bottom bar (v106): home · ranking · badges · me. Not shown during a round (the round replaces the page). */
 function sNav(cur){ return '<nav class="s-nav">' + [['home', '🏠', 'الرئيسية'], ['lb', '🏆', 'الترتيب'], ['bd', '⭐', 'شاراتي'], ['me', '👤', 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (cur === x[0] ? ' aria-current="page"' : '') + '><span class="i">' + x[1] + '</span>' + x[2] + '</button>').join('') + '</nav>'; }
 function sPage(t, body){ const th = document.body.dataset.theme || 'mid'; S.tab = t; closeModals(); stopTimer(); clearInterval(S.cdT);
   $app.innerHTML = '<div class="sh s-tabpg pvx">' + body + '</div>' + sNav(t); scrollTo(0, 0); }
-function badgesHtml(){ const b = (S.home && S.home.badges) || [], n = b.filter(x => x.on).length;
-  return '<h3>شاراتي <span class="sub">(' + n + ' من ' + b.length + ')</span></h3><div class="bdg-grid">' + b.map(x => { const d = BADGES[x.k] || ['⭐', x.k, '']; return '<div class="bdg ' + (x.on ? 'on' : '') + '"><span class="bdg-i">' + d[0] + '</span><b>' + d[1] + '</b><small>' + d[2] + (x.k === 'practice10' && !x.on ? ' (' + (x.n || 0) + '/10)' : '') + '</small></div>'; }).join('') + '</div>' +
-    (S.home && S.home.streak ? '<p class="center sub" style="margin-top:12px">🔥 سلسلتك الحالية: ' + S.home.streak + ' يوم متتالي</p>' : ''); }
 ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
   if (k === 'home') return renderHome();
   if (k === 'bd') return sPage('bd', '<div class="s-pgc">' + badgesHtml() + '</div>');
@@ -413,12 +473,7 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
     } catch(e){ toast(errMsg(e)); } }
 };
 ACTS['s-sound-tab'] = t => { const on = FX.toggle(); t.querySelector('i').textContent = on ? '🔊' : '🔇'; toast(on ? 'الصوت مفعّل' : 'الصوت مكتوم'); };
-ACTS['s-badges'] = () => {
-  const b = (S.home && S.home.badges) || [], n = b.filter(x => x.on).length;
-  modal('<h3>شاراتي <span class="sub">(' + n + ' من ' + b.length + ')</span></h3><div class="bdg-grid">' + b.map(x => { const d = BADGES[x.k] || ['⭐', x.k, '']; return '<div class="bdg ' + (x.on ? 'on' : '') + '"><span class="bdg-i">' + d[0] + '</span><b>' + d[1] + '</b><small>' + d[2] + (x.k === 'practice10' && !x.on ? ' (' + (x.n || 0) + '/10)' : '') + '</small></div>'; }).join('') + '</div>' +
-    (S.home && S.home.streak ? '<p class="center sub" style="margin-top:12px">🔥 سلسلتك الحالية: ' + S.home.streak + ' يوم متتالي</p>' : '') +
-    '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button>');
-};
+ACTS['s-badges'] = () => modal('<div class="bg2-mod">' + badgesHtml() + '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button></div>');
 ACTS['s-rename'] = async () => {
   const v = await ask('اكتب اسمك الثلاثي', { input: S.home.student.name, ok: 'حفظ', danger: false }); if (v == null) return;
   try { const r = await rpc('student_rename', { p_token: S.token, p_name: v }); S.home.student.name = r.name; closeModals(); renderHome(); bellBadge(); toast('تم تعديل اسمك'); } catch(e){ toast(errMsg(e)); }
@@ -607,7 +662,7 @@ function demoStart(th){
   setTheme(['kids', 'mid', 'uni'].includes(th) ? th : 'mid'); applyMode();
   S.demo = { pts: 0, ok: 0 };
   try { const dq = JSON.parse(LS.get('mc_demoq') || 'null'); S.demoQ = Array.isArray(dq) && dq.length >= 4 ? dq : null; } catch(e){ S.demoQ = null; }
-  S.home = { class: { name: 'صف تجريبي', size: 24, style: th }, student: { name: 'طالب تجريبي' }, competition: { days_left_points: 4 }, phase: 'points', total_points: 120, rank: 3, gap: 40, streak: 2, wrong_count: 0, badges: [{ k: 'first', on: true }, { k: 'perfect', on: false }, { k: 'streak3', on: false }, { k: 'fast', on: true }, { k: 'practice10', on: false, n: 3 }] };
+  S.home = { class: { name: 'صف تجريبي', size: 24, style: th }, student: { name: 'طالب تجريبي' }, competition: { days_left_points: 4 }, phase: 'points', total_points: 120, rank: 3, gap: 40, streak: 2, wrong_count: 0, badges: [{ k: 'fast', n: 4 }, { k: 'first', n: 1 }, { k: 'practice', n: 9 }, { k: 'streak', n: 2 }, { k: 'perfect', n: 0 }, { k: 'correct', n: 18 }] };
   renderHome();
 }
 function demoQ(pos){
