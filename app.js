@@ -1637,7 +1637,7 @@ ACTS['s-edit'] = t => {
     <input class="se1-n" name="name" value="${esc(s.name)}" required maxlength="60" aria-label="الاسم" autocomplete="off">
     <div class="se1-g">${[['m', '👦 طالب'], ['f', '👧 طالبة']].map(x => `<label class="${g0 === x[0] ? 'on' : ''}"><input type="radio" name="g" value="${x[0]}" ${g0 === x[0] ? 'checked' : ''}>${x[1]}</label>`).join('')}</div>
     <div class="se1-l">📞 رقم هاتف ولي الأمر</div><input class="input se1-ph" name="ph" type="tel" value="${esc(s.phone || '')}" dir="ltr" placeholder="99999999" maxlength="20" aria-label="رقم هاتف ولي الأمر">
-    <details class="se1-more"><summary>المزيد ‹</summary><div class="se1-l">رقم الطالب</div><input class="input" name="no" value="${esc(s.student_no || '')}" dir="ltr" inputmode="numeric" maxlength="20" placeholder="اختياري" aria-label="رقم الطالب">
+    <details class="se1-more" ontoggle="if(this.open)setTimeout(()=>this.scrollIntoView({block:'end',behavior:'smooth'}),50)"><summary>المزيد</summary><div class="se1-l">رقم الطالب</div><input class="input" name="no" value="${esc(s.student_no || '')}" dir="ltr" inputmode="numeric" maxlength="20" placeholder="اختياري" aria-label="رقم الطالب">
       ${many ? `<div class="se1-l">نقله لصف ثاني</div><div class="se1-c">${CL.classes.map(x => `<label class="${x.id === c.id ? 'on' : ''}"><input type="radio" name="cls" value="${x.id}" ${x.id === c.id ? 'checked' : ''}>${esc(x.name)}</label>`).join('')}</div>` : ''}</details>
     ${many ? '' : `<input type="hidden" name="cls" value="${c.id}">`}
     <button class="btn se1-save" type="submit">حفظ</button></form>`);

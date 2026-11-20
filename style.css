@@ -2288,3 +2288,9 @@ body.dark .s-nav{background:#231C1D}
 .se1-ph{min-height:54px;font-size:18px!important;text-align:center}
 .btn.se1-save{text-decoration:none!important}
 .se1-more[open] summary{margin-bottom:4px}
+.se1-more .se1-l{margin:6px 0 0}
+.se1-more[open]{gap:10px}
+.se1-more summary::after{content:' ‹';display:inline-block;transition:transform .2s}
+.se1-more[open] summary::after{transform:rotate(-90deg)}
+.se1 .btn,.se1 button{text-decoration:none!important;-webkit-text-decoration:none!important}
+.modal:has(.se1){max-height:92vh;overflow-y:auto}
