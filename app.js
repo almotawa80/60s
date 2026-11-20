@@ -1378,7 +1378,7 @@ function renderClasses(){
   const cur = cl && CL.cur && !CL.sel && CL.byId[CL.cur];
   if (cl && CL.cur && !cur && !CL.sel) { CL.cur = null; return location.replace('#/t/classes'); }
   if (cur) { view(cur.name, classPage(cur), 'classes', `<button class="icon-btn" data-act="c-pmore" aria-label="المزيد">${ic('more')}</button>`, '#/t/classes'); if (CL.addFocus) { const i = document.querySelector('.cp1 .cl-add1 input'); CL.addFocus = null; if (i) i.focus(); } return; }
-  if (!cl && !onNew && T.compEdit && T.compEdit !== 'new') { view('تعديل التحدي', compForm(), 'home', `<button class="icon-btn" data-act="cp-cancel" aria-label="إغلاق">${ic('x')}</button>`); cfAuto(); cfUpdate(); cfLessons(); return; }
+  if (!cl && !onNew && T.compEdit && T.compEdit !== 'new') { view('تعديل التحدي', compForm(), 'home', `<button class="icon-btn" data-act="cp-cancel" aria-label="إغلاق">${ic('x')}</button>`); cfAuto(); cfUpdate(); cfLessons(); ceSum(); return; }
   view(cl ? 'الصفوف' : onNew && T.compEdit ? 'تحدي جديد' : T.compEdit ? 'التحديات' : 'التحديات السابقة', (cl ? classesList() : compsPanel()) + selBar(), cl ? 'classes' : onNew ? 'new' : 'home', more, cl || onNew ? undefined : '#/t/home');
   cfAuto(); cfUpdate(); cfLessons();
   if (CL.addFocus) { const i = document.querySelector(`.cls[data-cid="${CL.addFocus}"] .cl-add1 input`); CL.addFocus = null; if (i) i.focus(); }
@@ -2117,8 +2117,8 @@ function compEditForm(v){
     <button type="button" class="ce1-row" data-act="ce-open" data-p="les"><span class="ce1-e">📖</span><span class="grow"><b id="ce-lb">كل الدروس</b><small id="ce-ls"></small></span><span class="ce1-ch">←</span></button>
     <button type="button" class="ce1-more" data-act="ce-open" data-p="more">المزيد ⋯</button>
     <button class="btn cf2-go ce1-save" type="submit">حفظ</button>
-    <div class="ce1-sh" id="ce-les"><div class="ce1-card"><div class="ce1-h"><b>الدروس</b><button type="button" class="ce1-x" data-act="ce-close" aria-label="إغلاق">✕</button></div>
-      <select class="input cf2-sel" name="cu" data-change="cp-cu">${cuOptions(CC.cu, 'كل الأسئلة المتاحة')}</select>
+    <div class="ce1-sh" id="ce-les"><div class="ce1-card"><div class="ce1-h"><b>من أي مادة؟</b><button type="button" class="ce1-x" data-act="ce-close" aria-label="إغلاق">✕</button></div>
+      <select class="input cf2-sel" name="cu" data-change="cp-cu">${cuOptions(CC.cu, 'منوعة (بدون مادة)')}</select>
       <div class="cf-les" id="cf-les"></div><div class="cf-pool" id="cf-pool"></div>
       <button type="button" class="btn" data-act="ce-close">تم</button></div></div>
     <div class="ce1-sh" id="ce-more"><div class="ce1-card"><div class="ce1-h"><b>المزيد</b><button type="button" class="ce1-x" data-act="ce-close" aria-label="إغلاق">✕</button></div>
@@ -2146,7 +2146,7 @@ ACTS['ce-close'] = t => { const x = t.closest('.ce1-sh'); if (x) x.classList.rem
 document.addEventListener('click', e => { if (e.target.classList && e.target.classList.contains('ce1-sh')) e.target.classList.remove('on'); });
 function ceSum(){
   const lb = document.getElementById('ce-lb'), ls = document.getElementById('ce-ls'); if (!lb) return;
-  const all = CFL[CC.cu]; lb.textContent = !CC.cu ? 'كل الأسئلة' : (!CC.lessons.length ? 'كل الدروس' : CC.lessons.length + ' دروس');
+  const cu = CC.cu && CU.list.find(x => x.id === CC.cu); lb.textContent = !cu ? 'منوعة (ثقافة عامة وسرعة بديهة)' : `${cu.subject} · ${gradeAr(cu)} · ${!CC.lessons.length ? 'كل الدروس' : CC.lessons.length + ' دروس'}`;
   ls.textContent = CC.poolN == null ? '' : `${CC.poolN} سؤال · تكفي ${CC.poolDays} يوم ${CC.poolOk ? '✓' : '⚠️'}`;
   ls.className = CC.poolOk === false ? 'low' : '';
 }
@@ -2267,7 +2267,7 @@ async function cfLessons(){
     <button type="button" class="cf2-l all ${all ? 'on' : ''}" data-act="cp-les" data-l=""><i>${ic('check')}</i><span class="grow">كل الدروس</span><em>${ls.reduce((a, y) => a + y[1], 0)}</em></button>
     ${ls.map(([l, n], i) => `<button type="button" class="cf2-l ${!all && CC.lessons.includes(l) ? 'on' : ''}" data-act="cp-les" data-l="${esc(l)}"><i>${ic('check')}</i><span class="grow">${esc(l)}</span><em>${n}</em></button>`).join('')}</div>`;
 }
-ACTS['cp-cu'] = t => { CC.cu = t.value; CC.lessons = []; cfLessons(); cfUpdate(); ceSum(); };
+ACTS['cp-cu'] = t => { CC.cu = t.value; CC.lessons = []; if (CC.cu && CC.qtypes && !CC.qtypes.includes('curriculum')) CC.qtypes = ['curriculum'].concat(CC.qtypes); cfLessons(); cfUpdate(); ceSum(); };
 ACTS['cp-les'] = t => { const l = t.dataset.l;
   if (!l) CC.lessons = []; else if (CC.lessons.includes(l)) CC.lessons = CC.lessons.filter(x => x !== l); else CC.lessons.push(l);
   if (CFL[CC.cu] && CC.lessons.length === CFL[CC.cu].length) CC.lessons = [];
