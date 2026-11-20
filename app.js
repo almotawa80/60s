@@ -229,7 +229,7 @@ ACTS['s-login'] = async () => {
   if (!inp || inp.value.length < 6) { box.innerHTML = '<div class="err">اكتب الرمز كاملاً (6 خانات)</div>'; return; }
   if (S.logging === inp.value) return;
   box.innerHTML = '';
-  const code = inp.value, btn = $app.querySelector('[data-act="s-login"]'), lbl = btn && btn.textContent;
+  const code = normCode(inp.value), btn = $app.querySelector('[data-act="s-login"]'), lbl = btn && btn.textContent;
   S.logging = code; if (btn) { btn.setAttribute('aria-busy', 'true'); btn.textContent = 'جارٍ التحقق…'; }
   try {
     let info = null; try { info = await rpc('class_join_info', { p_join: code }); } catch(_){}
@@ -1167,7 +1167,7 @@ ACTS['nw-show'] = async () => { const x = (NW.made || [])[0]; if (!x) return; le
 function tJoin(){
   view('انضم', `<form class="tj" data-form="t-join"><div class="tj-em">🎯</div><h2>عندك رمز؟</h2><input class="tj-in" name="code" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123" dir="ltr" aria-label="رمز الصف"><button class="btn tj-go" type="submit">ادخل</button><p class="sub">ادخل كطالب برمز الصف، مثلاً عشان تجرّب التحدي بعين طلابك.</p></form>`, 'join');
 }
-ACTS['t-join'] = f => { const v = (f.code.value || '').replace(/\s+/g, '').toUpperCase(); if (v.length < 4) return toast('اكتب الرمز كامل'); location.hash = '#/j/' + encodeURIComponent(v); };
+ACTS['t-join'] = f => { const v = normCode(f.code.value); if (v.length < 4) return toast('اكتب الرمز كامل'); location.hash = '#/j/' + encodeURIComponent(v); };
 ACTS['h-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tHome().catch(e => { toast('ما زال التحميل متعذّراً. تأكد من الاتصال'); t.removeAttribute('aria-busy'); t.textContent = 'إعادة المحاولة'; }); };
 ACTS['h-res-idle'] = t => { RS.sort = 'idle'; RS.q = ''; location.hash = '#/t/results/' + t.dataset.c; };
 
@@ -4121,7 +4121,10 @@ ACTS['t-save-name'] = async f => {
    ROUTER
    ====================================================== */
 const JN = {};
+/* codes typed on an Arabic keyboard: Arabic-Indic digits → 0-9, drop spaces/marks */
+function normCode(v){ return String(v || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^A-Za-z0-9]/g, '').toUpperCase(); }
 async function studentJoin(code){
+  code = normCode(code);
   document.body.classList.remove('wide');
   $app.innerHTML = '<div class="spin"></div>';
   try {
