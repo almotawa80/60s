@@ -583,9 +583,10 @@ const DEMO_Q = [
 ];
 function pvClose(show){
   let x = document.getElementById('pv-x');
-  if (!show) { if (x) x.remove(); return; }
+  if (!show) { if (x) x.remove(); document.documentElement.classList.remove('pvmode'); return; }
+  document.documentElement.classList.add('pvmode');
   if (x) return;
-  x = document.createElement('button'); x.id = 'pv-x'; x.type = 'button'; x.setAttribute('aria-label', 'إغلاق المعاينة'); x.innerHTML = '✕ <span>معاينة</span>';
+  x = document.createElement('button'); x.id = 'pv-x'; x.type = 'button'; x.setAttribute('aria-label', 'إغلاق المعاينة'); x.innerHTML = '<span>معاينة · لا تُحتسب نقاط</span><b>✕</b>';
   x.addEventListener('click', () => { stopTimer(); const b = LS.get('mc_pvback') || '#/t/home'; LS.del('mc_pvback'); location.hash = b.indexOf('#/p/') === 0 ? '#/t/home' : b; });
   document.body.appendChild(x);
 }

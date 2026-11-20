@@ -2356,11 +2356,8 @@ html body .sl.sl-red .sl1-go{background:#fff!important;color:#B00D27!important;b
 html body .sl.sl-red h1{color:#fff!important;text-shadow:0 2px 10px rgba(0,0,0,.25)}
 .sl1-p{color:#fff;font-weight:800;font-size:15px;opacity:.9;margin-top:-4px}
 html body .sl.sl-red .sl1-t,html body .sl.sl-red .sl1-t b{color:#fff!important}
-#pv-x{position:fixed;z-index:400;bottom:calc(104px + env(safe-area-inset-bottom));left:12px;height:40px;padding:0 14px;border:0;border-radius:999px;background:rgba(0,0,0,.62);color:#fff;font:800 15px 'Cairo',system-ui,sans-serif;display:flex;align-items:center;gap:6px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);cursor:pointer}
-#pv-x span{font-size:13px;opacity:.85}
 .ch-warn{background:rgba(229,72,77,.12);border:1.5px solid rgba(229,72,77,.45);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:6px;text-align:center;margin-bottom:12px}
 .ch-warn b{font-size:17px;font-weight:900}.ch-warn small{color:var(--muted);font-weight:700}.ch-warn .btn{margin-top:6px}
-body:has(.play) #pv-x{display:none}
 /* v125 challenge page: 4 small actions under the hero */
 .ch-acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
 .ch-a{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--card);border:0;border-radius:16px;padding:10px 4px;color:var(--ink);font:800 13px 'Cairo',system-ui,sans-serif;cursor:pointer}
@@ -2369,3 +2366,9 @@ body:has(.play) #pv-x{display:none}
 .ch-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .ch-b{min-height:48px;border:0;border-radius:16px;background:var(--card);color:var(--ink);font:800 15px 'Cairo',system-ui,sans-serif;cursor:pointer}
 .ch-b.end{color:#E5484D}
+/* v128 preview: thin bar on top with a big ✕, visible on every screen (also during the round) */
+#pv-x{position:fixed;z-index:400;top:0;left:0;right:0;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0 8px;border:0;background:rgba(10,10,14,.88);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;display:flex;align-items:center;justify-content:space-between;font:800 14px 'Cairo',system-ui,sans-serif;cursor:pointer;direction:rtl}
+#pv-x span{opacity:.8}
+#pv-x b{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:20px}
+html.pvmode body{padding-top:calc(48px + env(safe-area-inset-top))}
+html.pvmode body .play.pv{height:calc(100dvh - 48px - env(safe-area-inset-top))}
