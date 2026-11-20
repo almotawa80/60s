@@ -3488,8 +3488,7 @@ function renderResults(){
   byPts.forEach((r, i) => { if (r.pts !== prev) { rk = i + 1; prev = r.pts; } rank.set(r, rk); });
   if (!RS.all) { rows.forEach(r => { if (r.r) rank.set(r, r.r); }); byPts.sort((x, y) => (x.r || 0) - (y.r || 0)); }
   const sorters = { pts: (x, y) => y.pts - x.pts, acc: (x, y) => acc(y) - acc(x), rounds: (x, y) => y.rounds - x.rounds, idle: (x, y) => (x.played_today - y.played_today) || (x.rounds - y.rounds) };
-  let list = rows.slice().sort(sorters[RS.sort]);
-  if (RS.q) list = list.filter(r => (r.name + ' ' + r.student_no).includes(RS.q));
+  let list = rows.slice().sort(sorters.pts);
   const played = rows.filter(r => r.played_today).length;
   const tr = rows.reduce((a, r) => a + r.rounds, 0), tc = rows.reduce((a, r) => a + r.correct, 0);
   const avg = n ? Math.round(rows.reduce((a, r) => a + r.pts, 0) / n) : 0;
@@ -3512,16 +3511,18 @@ function renderResults(){
     return view(RS.title || 'النتائج', chips + `<div class="rs-empty rs-fail" role="alert">${ic('clock')}<div><b>تعذّر تحميل النتائج</b><small>تأكد من الاتصال بالإنترنت ثم أعد المحاولة. لم يتغير شيء في بيانات الطلبة.</small></div></div><button class="btn" data-act="r-retry">إعادة المحاولة</button>`, 'comps', '', '#/t/comps');
   }
   const ko = RS.ko ? `<div class="card col ko-card"><b>${ic('trophy')} التصفيات</b>${bracketHtml(RS.ko)}${honorHtml(RS.ko)}</div>` : '';
-  const today = n ? `<div class="rs-today"><b>لعب ${played} من ${n} اليوم</b>${n - played ? `<button class="link" data-act="r-sort" data-v="idle">عرض من لم يلعب</button>` : ''}</div>` : '';
-  const body = chips + today + ko +
-    (!n ? `<div class="rs-empty">${ic('users')}<div><b>لا يوجد طلبة في هذا الصف</b><small>أضف الطلبة من صفحة الصفوف، وستظهر نتائجهم هنا بعد أول جولة.</small></div></div><a class="btn soft" href="#/t/classes">إضافة طلبة</a>` :
-     !any ? `<div class="rs-empty">${ic('clock')}<div><b>لم يلعب أحد بعد</b><small>تظهر النقاط والترتيب هنا بعد أول جولة رسمية.</small></div></div>` : '') +
-    `<div class="rs-search">${ic('search')}<input id="r-q" placeholder="بحث بالاسم أو الرقم" value="${esc(RS.q)}"></div>
-     <div class="tabs rs-seg">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
-     <div class="rl-grp" id="r-list">${items || (RS.q ? `<div class="set-row center muted">لا يوجد طالب يطابق «${esc(RS.q)}». جرّب جزءاً من الاسم أو رقم الطالب.</div>` : '<div class="set-row center muted">لا يوجد طلبة.</div>')}</div>
-     <div class="set-f center">${list.length} من ${n} · النقطة الخضراء: لعب اليوم</div>` + (any ? sum + pod : '');
-  view(RS.title || 'النتائج', body, 'home', `<button class="icon-btn" data-act="r-msg-all" aria-label="رسالة للصف">${ic('mail')}</button><button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, CL.chg ? '#/t/ch/' + CL.chg : '#/t/comps');
+  /* v117: simple details page: 4 numbers, one list by points; Excel + message under ⋯ */
+  const body = chips + (any ? sum : '') + ko +
+    (!n ? `<div class="rs-empty">${ic('users')}<div><b>لا يوجد طلبة في هذا الصف</b></div></div>` :
+     !any ? `<div class="rs-empty">${ic('clock')}<div><b>ما لعب أحد للحين</b></div></div>` : '') +
+    (n ? `<div class="rl-grp rs1" id="r-list">${items}</div>` : '');
+  const ttl = String(RS.title || 'النتائج').split('·').pop().trim();
+  view(ttl, body, 'home', `<button class="icon-btn" data-act="r-more" aria-label="المزيد">${ic('more')}</button>`, CL.chg ? '#/t/ch/' + CL.chg : '#/t/comps');
 }
+ACTS['r-more'] = () => modal(`<div class="aw-sheet"><h3>المزيد</h3><div class="st1-opts">
+  <button class="st1-o" data-act="r-run" data-a="t-res-export"><span>📥</span>تنزيل Excel</button>
+  <button class="st1-o" data-act="r-run" data-a="r-msg-all"><span>✉️</span>رسالة للصف</button></div></div>`);
+ACTS['r-run'] = t => { const a = t.dataset.a; closeModals(); ACTS[a](t); };
 ACTS['r-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tResults.apply(null, RS.args || [RS.id, RS.comp]).catch(() => renderResults()); };
 ACTS['r-cls'] = t => go('#/t/results/' + t.dataset.id + (RS.comp ? '/' + RS.comp : ''));
 const rsRank = r => { const l = RS.rows.filter(x => x.cls === r.cls); return r.r || (l.slice().sort((x, y) => y.pts - x.pts).indexOf(r) + 1); };
