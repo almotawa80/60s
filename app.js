@@ -3531,7 +3531,7 @@ if (_ui.y && _ui.h === location.hash) {
   setTimeout(tryScroll, 300);
 }
 /* app feel: block pinch / double-tap zoom */
-['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => { if (document.querySelector('.play')) e.preventDefault(); }, { passive: false }));
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); }, { passive: false }));
 /* connection banner */
 function netBanner(){ let b = document.getElementById('net'); if (navigator.onLine) { if (b) b.remove(); return; } if (!b) { b = document.createElement('div'); b.id = 'net'; b.setAttribute('role', 'status'); b.textContent = 'لا يوجد اتصال بالإنترنت، تحقق من الشبكة قبل أن تبدأ الجولة'; document.body.appendChild(b); } }
 window.addEventListener('online', () => { netBanner(); toast('عاد الاتصال ✓'); });
