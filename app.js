@@ -2839,7 +2839,7 @@ function q4LedSheet(l){
   QS.led = l; const cu = QS.subjCu, qs = q4LesQs(cu, l);
   q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-back" aria-label="رجوع">→</button><h3>${esc(q4LN(cu, l))}</h3>${l === NO_LESSON ? '' : '<button class="q4-x" data-act="q4-ren" aria-label="تغيير الاسم">✏️</button>'}</div>
     <div class="q4-ql">${qs.map(q => `<button class="q4-qr" data-act="q4-qe" data-id="${q.id}"><span class="grow"><b>${esc(q.body)}</b>${q.owner_id && !q4Mine(cu, l) ? '<small>عدّلته</small>' : ''}</span><i>✏️</i></button>`).join('') || '<p class="p3-note">ما فيه أسئلة بعد</p>'}</div>
-    <button class="q4-addq" data-act="q4-qe" data-id="">＋ أضف سؤال</button>
+    <div class="q4-2"><button class="q4-addq" data-act="q4-qe" data-id="">＋ أضف سؤال</button><button class="q4-addq" data-act="q4-imp">📷 من صورة أو ملف</button></div>
     <button class="q4-del" data-act="q4-dell">حذف الدرس</button>
     <button class="p3-big" data-act="q4-back">تم ✓</button></div>`);
 }
@@ -2863,13 +2863,14 @@ ACTS['q4-dell'] = async () => {
   const m = ((T.settings || {}).myLes || {})[cu]; if (m && m.includes(l)) { m.splice(m.indexOf(l), 1); await q4SaveSettings(); }
   toast('انحذف الدرس'); await tQuestions(); q4SubjSheet(QS.subj3);
 };
-ACTS['q4-qe'] = t => q4QForm(t.dataset.id);
-function q4QForm(id){
+ACTS['q4-qe'] = t => { QS.q4q = null; q4QForm(t.dataset.id); };
+function q4QForm(id, pre){
   const q = id ? (QS.glob.find(x => x.id === id) || QS.list.find(x => x.id === id)) : null; QS.qe = id || '';
-  const o = q ? q.options.slice() : ['', '', '', '']; while (o.length < 4) o.push(''); const ci = q ? q.correct_index : 0;
-  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-bl" aria-label="رجوع">→</button><h3>${q ? 'تعديل السؤال' : 'سؤال جديد'}</h3></div>
-    <form class="q4-qf" data-form="q4-qsave"><label for="q4b">السؤال</label><textarea class="input" id="q4b" name="b" required maxlength="400">${q ? esc(q.body) : ''}</textarea>
-    <label>الإجابات (اضغط الدائرة للصحيحة)</label>
+  const o = q ? q.options.slice() : pre ? pre.options.slice(0, 4) : ['', '', '', '']; while (o.length < 4) o.push(''); const ci = q ? q.correct_index : pre ? -1 : 0;
+  const qq = QS.q4q, hd = pre && qq ? `سؤال ${qq.total - qq.list.length} من ${qq.total}` : q ? 'تعديل السؤال' : 'سؤال جديد';
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="${pre ? 'q4-qq-stop' : 'q4-bl'}" aria-label="رجوع">→</button><h3>${hd}</h3>${pre ? '<button class="q4-ed" data-act="q4-qq-skip">تخطّي</button>' : ''}</div>
+    <form class="q4-qf" data-form="q4-qsave"><label for="q4b">السؤال</label><textarea class="input" id="q4b" name="b" required maxlength="400">${q ? esc(q.body) : pre ? esc(pre.body) : ''}</textarea>
+    <label>${pre ? '👇 اضغط الدائرة جنب الإجابة الصحيحة' : 'الإجابات (اضغط الدائرة للصحيحة)'}</label>
     ${o.slice(0, 4).map((v, j) => `<div class="q4-op"><button type="button" class="${j === ci ? 'ok' : ''}" data-act="q4-ok" data-j="${j}" aria-label="الإجابة الصحيحة">${j === ci ? '✓' : ''}</button><input class="input" name="o${j}" value="${esc(v)}" ${j < 2 ? 'required' : ''} maxlength="120"></div>`).join('')}
     <input type="hidden" name="c" value="${ci}">
     <p class="p3-note">التعديل عندك بس، وما يتغيّر عند المعلمين الثانيين.</p>
@@ -2880,6 +2881,7 @@ ACTS['q4-bl'] = () => q4LedSheet(QS.led);
 ACTS['q4-ok'] = t => { const f = t.closest('form'); f.querySelectorAll('.q4-op button').forEach(b => { b.className = ''; b.textContent = ''; }); t.className = 'ok'; t.textContent = '✓'; f.c.value = t.dataset.j; };
 ACTS['q4-qsave'] = async f => {
   const cu = QS.subjCu, l = QS.led, body = f.b.value.trim(), raw = [0, 1, 2, 3].map(j => f['o' + j].value.trim()), c = +f.c.value;
+  if (c < 0) return toast('اضغط الدائرة جنب الإجابة الصحيحة');
   if (!raw[c]) return toast('اكتب الإجابة الصحيحة');
   const opts = raw.filter(Boolean), ci = opts.indexOf(raw[c]); if (opts.length < 2) return toast('اكتب إجابتين على الأقل');
   const old = QS.qe ? (QS.glob.find(x => x.id === QS.qe) || QS.list.find(x => x.id === QS.qe)) : null;
@@ -2892,8 +2894,34 @@ ACTS['q4-qsave'] = async f => {
     if (!error && old) { await qPickSet([old.id], false); ({ error } = await sb.from('question_hides').insert({ question_id: old.id })); }
   }
   if (error) { btn.removeAttribute('aria-busy'); return toast(errMsg(error)); }
+  if (QS.q4q) { QS.q4q.saved++; return q4QNext(); }
   toast('انحفظ ✓'); await tQuestions(); q4LedSheet(l);
 };
+/* import into the open lesson: photo (read, then confirm each) or Excel (preview, then add all) */
+ACTS['q4-imp'] = () => { q4File('q4ximg', 'image/*', 'q4-img'); q4File('q4xxl', '.xlsx,.xls,.csv', 'q4-xl');
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-bl" aria-label="رجوع">→</button><h3>أضف أسئلة للدرس</h3></div>
+    <button class="q5-imp" data-act="q4-pick" data-i="q4ximg"><span class="e">📷</span><b>صورة</b><small>ورقة أسئلة أو صفحة من الكتاب</small></button>
+    <button class="q5-imp" data-act="q4-pick" data-i="q4xxl"><span class="e">📊</span><b>ملف Excel</b><small>كل سؤال في سطر</small></button>
+    <button class="q4-del" data-act="t-q-template">تنزيل نموذج Excel</button></div>`); };
+function q4File(id, acc, ch){ let i = document.getElementById(id); if (!i) { i = document.createElement('input'); i.type = 'file'; i.id = id; i.accept = acc; i.className = 'hide'; i.dataset.change = ch; document.body.appendChild(i); } i.value = ''; return i; }
+ACTS['q4-pick'] = t => document.getElementById(t.dataset.i).click();
+ACTS['q4-xl'] = async t => { const file = t.files && t.files[0]; if (!file) return;
+  try { const c = parseQuestions(await readRows(file)); if (!c.length) return toast('الملف فارغ'); QS.toLes = { cu: QS.subjCu, l: QS.led }; closeModals(); qPreview(c, file.name); } catch(e){ toast(errMsg(e)); } };
+ACTS['q4-img'] = async t => { const file = t.files && t.files[0]; if (!file) return;
+  q4Open(`<div class="q4-sh"><h3>جاري قراءة الصورة…</h3><p class="p3-note">أول مرة تأخذ دقيقة تقريباً.</p><div class="ocr-bar"><i id="ocr-p"></i></div></div>`);
+  try {
+    await loadJs(OCRJS, 'Tesseract');
+    const w = await Tesseract.createWorker('ara+eng', 1, { logger: x => { if (x.status === 'recognizing text') { const a = document.getElementById('ocr-p'); if (a) a.style.width = Math.round(x.progress * 100) + '%'; } } });
+    const { data } = await w.recognize(await shrinkImg(file, 2200)); await w.terminate();
+    const qs = ocrToQs(data.text || '').map(q => ({ body: q.body, options: q.options.slice(0, 4) }));
+    if (!qs.length) { toast('ما قدرت أقرأ أسئلة واضحة. جرّب صورة أوضح.'); return q4LedSheet(QS.led); }
+    QS.q4q = { list: qs, total: qs.length, saved: 0 }; q4QNext();
+  } catch(e){ toast('تعذّرت قراءة الصورة'); q4LedSheet(QS.led); }
+};
+async function q4QNext(){ const o = QS.q4q, q = o && o.list.shift(); if (q) return q4QForm('', q);
+  QS.q4q = null; toast(`انضاف ${o ? o.saved : 0} سؤال ✓`); await tQuestions(); q4LedSheet(QS.led); }
+ACTS['q4-qq-skip'] = () => q4QNext();
+ACTS['q4-qq-stop'] = () => { if (QS.q4q) QS.q4q.list = []; q4QNext(); };
 ACTS['q4-qdel'] = async () => {
   const id = QS.qe, q = QS.glob.find(x => x.id === id) || QS.list.find(x => x.id === id); if (!q) return;
   if (!await ask('ينشال من عندك بس.', { title: 'حذف السؤال؟', ok: 'حذف', danger: true })) return;
@@ -3260,7 +3288,7 @@ ACTS['t-q-export'] = async () => { await XL();
   const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'الأسئلة'); XLSX.writeFile(wb, 'أسئلتي.xlsx');
 };
-ACTS['t-q-import'] = () => { closeModals(); document.getElementById('qxl').click(); };
+ACTS['t-q-import'] = () => { QS.toLes = null; closeModals(); document.getElementById('qxl').click(); };
 
 /* parse rows (Excel) into checked candidates with a reason for each problem */
 const Q_LV = { 'سهل': 'easy', 'متوسط': 'medium', 'صعب': 'hard', easy: 'easy', medium: 'medium', hard: 'hard' };
@@ -3301,7 +3329,7 @@ function parsePasteQ(txt, level, qtype){
     c.err = p.length < 5 ? 'يحتاج السؤال والإجابة الصحيحة و3 خيارات خاطئة' : qCheck(c, seen); return c;
   });
 }
-ACTS['t-q-paste'] = t => { closeModals(); const keep = t && t.dataset && t.dataset.keep ? (QS.pasteText || '') : '';
+ACTS['t-q-paste'] = t => { if (!(t && t.dataset && t.dataset.keep)) QS.toLes = null; closeModals(); const keep = t && t.dataset && t.dataset.keep ? (QS.pasteText || '') : '';
   modal(`<h3>لصق أسئلة كنص</h3><p class="sub">كل سؤال في سطر: السؤال | الإجابة الصحيحة | خطأ | خطأ | خطأ</p>
     <textarea class="input qp-ta" rows="7" dir="auto" placeholder="ما عاصمة الكويت؟ | مدينة الكويت | الجهراء | الأحمدي | الفروانية">${esc(keep)}</textarea>
     <div class="grid2"><select class="input" id="qp-lv">${Object.keys(LEVEL_AR).map(k => `<option value="${k}" ${k === 'medium' ? 'selected' : ''}>${LEVEL_AR[k]}</option>`).join('')}</select>
@@ -3343,7 +3371,7 @@ function qPreview(c, src){
 ACTS['t-q-pv-save'] = async t => {
   const skip = document.getElementById('qpv-skip'), rev = document.getElementById('qpv-rev');
   const src = QS.pv.filter(x => !x.err && !x.dup && !x.saved);
-  const rows = src.map(x => ({ owner_id: T.user.id, qtype: x.qtype, level: x.level, body: x.body, options: x.options, correct_index: x.correct_index, status: rev && rev.checked ? 'draft' : 'approved', source: 'teacher', curriculum_id: x.qtype === 'curriculum' ? (T.qf.cu || null) : null }));
+  const rows = src.map(x => ({ owner_id: T.user.id, qtype: x.qtype, level: x.level, body: x.body, options: x.options, correct_index: x.correct_index, status: rev && rev.checked ? 'draft' : 'approved', source: 'teacher', curriculum_id: QS.toLes ? QS.toLes.cu : x.qtype === 'curriculum' ? (T.qf.cu || null) : null, lesson: QS.toLes && QS.toLes.l !== NO_LESSON ? QS.toLes.l : null }));
   if (!rows.length) return toast('لا توجد أسئلة جديدة لإضافتها');
   t.disabled = true; t.textContent = 'جارٍ الحفظ…';
   const before = QS.pv.filter(x => x.saved).length; let done = before;
@@ -3352,7 +3380,7 @@ ACTS['t-q-pv-save'] = async t => {
     for (let i = 0; i < rows.length; i += 100) { const { error } = await sb.from('questions').insert(rows.slice(i, i + 100)); if (error) throw error; src.slice(i, i + 100).forEach(x => { x.saved = true; }); done += Math.min(100, rows.length - i); }
     closeModals(); T.qf.status = rows[0].status;
     toast(`تمت إضافة ${done} سؤالاً` + (rows[0].status === 'draft' ? ' للمراجعة' : ''));
-    await tQuestions();
+    await tQuestions(); if (QS.toLes) { QS.toLes = null; q4LedSheet(QS.led); }
   } catch(e){ t.disabled = false; const left = QS.pv.filter(x => !x.err && !x.dup && !x.saved).length;
     t.textContent = done ? `إكمال إضافة ${left} سؤالاً` : 'إعادة المحاولة';
     toast(done ? `حُفظ ${done} سؤالاً وتعذّر الباقي (${left}). اضغط لإكمال الإضافة` : 'تعذّر حفظ الأسئلة. تأكد من الاتصال وحاول مجدداً'); }

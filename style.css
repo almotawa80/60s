@@ -2443,3 +2443,6 @@ html.admmode .t-top,html.admmode .topbar{top:calc(46px + env(safe-area-inset-top
 .q4-sh .q4-del{min-height:44px;font-size:15px;background:none}
 .set-ic.emo{background:none!important;font-size:23px;line-height:1;width:32px;height:32px}
 .q5-sb.q5-new{background:none;border:2px dashed var(--line);color:var(--muted)}.q5-sb.q5-new .e{font-size:30px;font-weight:900}
+.q4-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.q5-imp{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;padding:16px;border-radius:18px;border:0;background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.q5-imp .e{font-size:34px}.q5-imp b{font-size:17px;font-weight:900}.q5-imp small{color:var(--muted);font-weight:700}
