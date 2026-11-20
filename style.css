@@ -2348,11 +2348,11 @@ html body[data-theme] .play.pv .opts.kc .opt:nth-child(n){min-height:0!important
 .pw-eye{position:absolute;top:50%;left:6px;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:50%;background:transparent;font-size:20px;cursor:pointer;opacity:.55;filter:grayscale(1)}
 .pw-eye.on{opacity:1;filter:none}
 .st1-o.dng{color:#E5484D}
-/* v122 first screen: always the app's red, with a small «لصق الرمز» */
-html body .sh.sl.sl-red{background:radial-gradient(120% 80% at 50% 0%,#E0263F 0%,#B00D27 45%,#6E0717 100%)!important;color:#fff}
-html body .sl.sl-red .code-box{background:rgba(255,255,255,.14)!important;border:2px solid rgba(255,255,255,.35)!important;color:#fff!important}
-html body .sl.sl-red .code-box.on{border-color:#FFD34D!important;box-shadow:0 0 0 3px rgba(255,211,77,.3)!important}
-html body .sl.sl-red .sl1-go{background:#fff!important;color:#B00D27!important;box-shadow:0 6px 0 rgba(0,0,0,.25)!important}
+/* v122 first screen (v156: black like the other student screens), with a small «لصق الرمز» */
+html body .sh.sl.sl-red{background:#000!important;color:#F5F5F7}
+html body .sl.sl-red .code-box{background:#1C1C1E!important;border:2px solid #3A3A3C!important;color:#fff!important}
+html body .sl.sl-red .code-box.on{border-color:#C8102E!important;box-shadow:0 0 0 3px rgba(200,16,46,.3)!important}
+html body .sl.sl-red .sl1-go{background:#C8102E!important;color:#fff!important;box-shadow:0 5px 0 #8E0B21!important}
 html body .sl.sl-red h1{color:#fff!important;text-shadow:0 2px 10px rgba(0,0,0,.25)}
 .sl1-p{color:#fff;font-weight:800;font-size:15px;opacity:.9;margin-top:-4px}
 html body .sl.sl-red .sl1-t,html body .sl.sl-red .sl1-t b{color:#fff!important}
@@ -2667,3 +2667,13 @@ html body:not(.wide) .sh.pvx .s-me-av.em{background:#2C2C2E!important;font-size:
 .bg2-two .g{background:#2C2C2E;color:#F5F5F7}.bg2-two .r{background:#C8102E;color:#fff;box-shadow:0 5px 0 #8E0B21}
 .bg2-cf{position:absolute;top:-10px;width:9px;height:14px;border-radius:2px;animation:bg2fall linear forwards}
 @keyframes bg2fall{to{transform:translateY(110vh) rotate(720deg)}}
+/* v156: first screen black; «أنا معلم؟» pinned at the bottom as a clear button */
+html body .sh.sl.sl-red{min-height:100dvh!important;display:flex!important;flex-direction:column!important;box-sizing:border-box}
+html body .sh.sl.sl-red>.pad{flex:1 1 auto!important;display:flex!important;flex-direction:column!important}
+html body .sl.sl-red .sl-t{margin-top:auto;padding:24px 0 calc(10px + env(safe-area-inset-bottom))}
+html body .sl.sl-red .sl1-t{width:100%;min-height:54px;border:0;border-radius:18px;background:#1C1C1E!important;color:#F5F5F7!important;font:inherit;font-weight:800;font-size:16px;opacity:1;cursor:pointer}
+html body .sl.sl-red .sl1-t b{color:#fff!important;text-decoration:none}
+/* v156: long-press on the code boxes shows the system «Paste» (input stays visible to iOS but its text is transparent) */
+html body .sl .code-input{opacity:1!important;color:transparent!important;-webkit-text-fill-color:transparent;caret-color:transparent;background:transparent!important;border:0!important;outline:0;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+html body .sh.sl.sl-red{padding-bottom:0!important}
+html body .sl .code-input:focus,html body .sl .code-input:focus-visible{outline:none!important;box-shadow:none!important}

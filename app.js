@@ -204,10 +204,9 @@ function studentLogin(){
     '<div class="col sl1"><b class="sl1-q">' + (profs().length ? 'لاعب جديد؟' : 'عندك رمز؟') + '</b>' +
     '<div class="code-wrap"><div class="code-boxes">' + '<div class="code-box"></div>'.repeat(6) + '</div>' +
     '<input class="code-input" id="code" inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="20" aria-label="رمز الدخول"></div>' +
-    '<button class="link sl1-p" data-act="s-paste">📋 لصق الرمز</button>' +
     '<div id="lerr"></div>' +
     '<button class="btn sl1-go" data-act="s-login">دخول</button><p class="sl1-h">الرمز تاخذه من معلمك</p></div>' +
-    '<div class="center sl-t"><button class="link sl1-t" data-act="go-teacher">أنا معلم؟ <b>ادخل من هنا</b></button></div></div></div>';
+    '<div class="center sl-t"><button class="sl1-t" data-act="go-teacher">👨‍🏫 أنا معلم؟ <b>ادخل من هنا</b></button></div></div></div>';
   const inp = document.getElementById('code');
   const paint = v => $app.querySelectorAll('.code-box').forEach((el, i) => { el.textContent = v[i] || ''; el.classList.toggle('on', i === Math.min(v.length, 5)); });
   inp.addEventListener('input', () => {
@@ -216,6 +215,7 @@ function studentLogin(){
     if (inp.value.length === 6) ACTS['s-login']();
   });
   paint('');
+  inp.addEventListener('paste', e => { const t = (e.clipboardData || window.clipboardData || { getData: () => '' }).getData('text'); if (!t) return; e.preventDefault(); S.fill(t); });
   S.fill = v => { const m = String(v || '').match(/#\/[jc]\/([A-Za-z0-9]+)/); inp.value = normCode(m ? m[1] : v).slice(0, 6); paint(inp.value); if (inp.value.length === 6) ACTS['s-login'](); };
   if (S.preCode) { const c = S.preCode; S.preCode = null; setTimeout(() => S.fill(c), 50); } else if (!profs().length) setTimeout(() => inp.focus(), 50);
 }
