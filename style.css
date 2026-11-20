@@ -2217,3 +2217,6 @@ html body[data-theme] .pv .opts.kc .opt .letter.shp{width:26px;height:26px;font-
 .st1-opts{display:flex;flex-direction:column;gap:10px}
 .st1-o{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:0 18px;border:0;border-radius:18px;background:var(--soft);font:inherit;color:var(--ink);text-align:start;cursor:pointer}
 .st1-o .e{font-size:26px}.st1-o b{font-size:18px;font-weight:700}
+.st1-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.st1-o{flex-direction:column;justify-content:center;gap:6px;min-height:96px;padding:12px;text-align:center}
+.st1-o .e{font-size:30px}
