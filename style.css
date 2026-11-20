@@ -2510,3 +2510,14 @@ html.admmode .t-top,html.admmode .topbar{top:calc(46px + env(safe-area-inset-top
 html body[data-theme] .pv .opts.kc.tf .opt.oc0:not(.good):not(.bad){background:#1F9D55!important;border-color:#167A41!important;box-shadow:0 5px 0 #0F5A30!important}
 html body[data-theme] .pv .opts.kc.tf .opt.oc1:not(.good):not(.bad){background:#E5484D!important;border-color:#B5132E!important;box-shadow:0 5px 0 #8F0F24!important}
 .p3-seg button{white-space:nowrap;padding:0 6px;font-size:14px}
+.q4-qf .q4-tf,.q4-qf .q4-or{display:none}.q4-qf.m1 .q4-tf{display:block}.q4-qf.m2 .q4-or{display:flex;flex-direction:column;gap:8px}.q4-qf.m1 .q4-mc,.q4-qf.m2 .q4-mc{display:none}
+.q4-mc{display:flex;flex-direction:column;gap:8px}
+/* v143: lesson editor = one neutral fill, compact one-line rows (Khalid) */
+.q4-sh .q4-x,.q4-sh .q4-ed,.q4-ql,.q4-qf .input,.q4-qf .p3-seg{background:color-mix(in srgb,var(--ink) 9%,transparent)!important;border-color:transparent}
+.q4-qf .input:focus{border-color:var(--primary)}
+.q4-op button{border-color:color-mix(in srgb,var(--ink) 25%,transparent)}
+.q4-qr{padding:10px 12px;gap:10px}
+.q4-qr b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;line-height:1.4}
+.q4-qr .grow{min-width:0}
+.q4-qr em{font-style:normal;flex:none;width:24px;height:24px;border-radius:50%;background:color-mix(in srgb,var(--ink) 12%,transparent);display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--muted)}
+.q4-qr small{flex:none}
