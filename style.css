@@ -1909,3 +1909,9 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
 .qi2-x svg{width:18px;height:18px}.qi2-x:active{background:var(--soft,#eee)}
 .qi2-x.add{color:#168A5B}
 .qi2.open .qi2-x{display:none}
+/* ready questions: not added = dimmed, below */
+.qi2.out{background:transparent;border-style:dashed}
+.qi2.out .q-body,.qi2.out .qi2-a,.qi2.out .lvd{opacity:.5}
+.qi2-out{display:block;color:var(--muted);font-weight:700;font-size:12.5px}
+.qs-lh.in{color:#168A5B;display:flex;align-items:center;gap:6px}.qs-lh.in svg{width:15px;height:15px}
+.qs-lh.out{margin-top:18px}

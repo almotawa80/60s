@@ -2094,9 +2094,9 @@ function qItem(q, ro){
     : q._pk ? `<button class="qi2-b" data-act="q-pk" data-id="${q.id}">${ic('x')} إزالة من أسئلتي</button><button class="qi2-b" data-act="q-report" data-id="${q.id}">${ic('flag')} بلّغ عن خطأ</button>` : q.status === 'draft'
     ? `<button class="qi2-b ok" data-act="t-q-status" data-id="${q.id}" data-s="approved">${ic('check')} إتاحة في المسابقات</button><button class="qi2-b" data-act="t-q-edit" data-id="${q.id}">${ic('edit')} تعديل</button><button class="qi2-b del" data-act="t-q-del2" data-id="${q.id}">${ic('trash')} حذف</button>`
     : `<button class="qi2-b" data-act="t-q-edit" data-id="${q.id}">${ic('edit')} تعديل</button><button class="qi2-b" data-act="t-q-share1" data-id="${q.id}">${ic('share')} مشاركة</button><button class="qi2-b del" data-act="t-q-del2" data-id="${q.id}">${ic('trash')} حذف</button>`;
-  return `<div class="qi2${open ? ' open' : ''}${on ? ' sel' : ''}${hidden ? ' hid' : ''}" data-act="${sel ? 't-q-pick' : 't-q-open'}" data-id="${q.id}" role="button" tabindex="0" ${sel ? `aria-pressed="${on ? 'true' : 'false'}"` : `aria-expanded="${open ? 'true' : 'false'}"`}>
+  return `<div class="qi2${ro && !picked ? ' out' : ''}${open ? ' open' : ''}${on ? ' sel' : ''}${hidden ? ' hid' : ''}" data-act="${sel ? 't-q-pick' : 't-q-open'}" data-id="${q.id}" role="button" tabindex="0" ${sel ? `aria-pressed="${on ? 'true' : 'false'}"` : `aria-expanded="${open ? 'true' : 'false'}"`}>
     ${sel ? `<span class="tick sq${on ? ' on' : ''}" aria-hidden="true">${ic('check')}</span>` : `<i class="lvd lv-${q.level}" title="${LEVEL_AR[q.level] || ''}"></i>`}
-    <div class="qi2-m">${ro && picked ? '<small class="qi2-pk">✓ في أسئلتي</small>' : !ro && q._pk ? '<small class="qi2-pk">من الأسئلة الجاهزة</small>' : ''}<b class="q-body">${q.image && !open ? '🖼️ ' : ''}${esc(q.body)}</b>
+    <div class="qi2-m">${ro && picked ? '<small class="qi2-pk">✓ في أسئلتي</small>' : ro ? '<small class="qi2-out">ما يدخل المسابقات</small>' : !ro && q._pk ? '<small class="qi2-pk">من الأسئلة الجاهزة</small>' : ''}<b class="q-body">${q.image && !open ? '🖼️ ' : ''}${esc(q.body)}</b>
       ${open ? `${q.image ? `<img class="qi2-img" src="${esc(q.image)}" alt="" loading="lazy">` : ''}<div class="qi2-opts">${q.options.map((o, i) => `<span class="${i === q.correct_index ? 'c' : ''}">${i === q.correct_index ? ic('check') : ''}${esc(o)}</span>`).join('')}</div>
         <div class="qi2-meta">${LEVEL_AR[q.level] || ''} · ${TYPE_AR[q.qtype] || q.qtype}${QS.dup.has(q.id) ? ' · <b class="qi-dup">مكرر</b>' : ''}</div>${qStat(q)}${acts ? `<div class="qi2-acts">${acts}</div>` : ''}`
       : `<span class="qi2-a">${ic('check')}${esc(q.options[q.correct_index] || '')}</span>`}</div>${!sel && ((!ro && q._pk) || (ro && picked)) ? `<button class="qi2-x" data-act="q-pk" data-id="${q.id}" aria-label="إزالة من أسئلتي">${ic('x')}</button>` : ''}${!sel && ro && !picked ? `<button class="qi2-x add" data-act="q-pk" data-id="${q.id}" aria-label="أضف إلى أسئلتي">${ic('plus')}</button>` : ''}</div>`;
@@ -2274,11 +2274,17 @@ function qListHtml(){
   if (!QS.list.length && !qPicked().length && !ro && !f.cu && !f.subj && !QS.searchOn) return qEmpty();
   if (f.status === 'approved' && !QS.searchOn && !f.subj) return qFolders();
   const list = qFiltered();
-  if (ro && !QS.searchOn && f.gcu && f.gl != null) return qLesHead(list) + list.map(q => qItem(q, ro)).join('');
+  if (ro && !QS.searchOn && f.gcu && f.gl != null) return qLesHead(list) + qRoList(list);
   const head = f.status === 'approved' && !QS.searchOn && f.subj && !['none', '__list'].includes(f.subj) && !f.cu ? qSubjectView(f.subj) : '';
   const addHere = f.cu ? `<button class="q-addhere" data-act="t-q-add-menu">${ic('plus')} إضافة أسئلة لهذا المنهج</button>` : '';
   if (!list.length) return head + `<div class="card center muted">${QS.searchOn ? 'لا نتائج للبحث.' : f.cu ? 'لا توجد أسئلة في هذا المنهج بعد.' : f.status === 'draft' ? 'لا توجد أسئلة بانتظار المراجعة.' : 'لا توجد أسئلة هنا.'}</div>` + addHere;
-  return head + (head ? `<div class="qs-lh">كل أسئلة ${esc(f.subj)} (${list.length})</div>` : '') + list.map(q => qItem(q, ro)).join('') + addHere;
+  return head + (head ? `<div class="qs-lh">كل أسئلة ${esc(f.subj)} (${list.length})</div>` : '') + (ro ? qRoList(list) : list.map(q => qItem(q, ro)).join('')) + addHere;
+}
+// Ready questions: the ones in «أسئلتي» first, the rest below, dimmed, under their own heading.
+function qRoList(list){
+  const P = QS.pick || new Set(), inn = list.filter(q => P.has(q.id)), out = list.filter(q => !P.has(q.id));
+  return (inn.length && out.length ? `<div class="qs-lh in">${ic('check')} في أسئلتي، تدخل المسابقات (${inn.length})</div>` : '') + inn.map(q => qItem(q, true)).join('')
+    + (out.length && inn.length ? `<div class="qs-lh out">غير مضافة، ما تدخل المسابقات (${out.length})</div>` : '') + out.map(q => qItem(q, true)).join('');
 }
 ACTS['q-nav'] = t => { T.qf.subj = t.dataset.s; T.qf.cu = ''; QS.selOn = false; QS.sel.clear(); renderQuestions(); scrollTo(0, 0); };
 ACTS['q-nav-cu'] = t => { T.qf.cu = t.dataset.id; renderQuestions(); scrollTo(0, 0); };
