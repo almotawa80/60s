@@ -22,7 +22,7 @@ const ERR = {
   already_played_today: 'أنهيت جولتك الرسمية اليوم، عد غداً',
   official_not_open: 'الجولة الرسمية غير متاحة الآن',
   no_competition: 'لا توجد مسابقة نشطة لصفك بعد',
-  not_enough_questions: 'لا توجد أسئلة معتمدة كافية بعد، أخبر المعلم/ـة',
+  not_enough_questions: 'لا توجد أسئلة متاحة كافية بعد، أخبر المعلم/ـة',
   forbidden: 'غير مسموح بهذا الإجراء',
   wrong_position: 'تعذّر تسجيل الإجابة، أعد المحاولة',
   invalid_join: 'رابط التسجيل غير صالح أو مغلق، اطلب رابطاً جديداً من المعلم/ـة',
@@ -263,7 +263,7 @@ ACTS['s-msgs'] = async () => {
     const l = await rpc('student_messages', { p_token: S.token });
     if (S.prefs) S.prefs.unread = 0; bellBadge();
     const EM = { encourage: '💪', praise: '🌟', advice: '💡' };
-    m.querySelector('.modal').innerHTML = '<h3>' + ic('bell') + ' رسائل المعلم/ـة</h3>' + (l.length ? '<div class="s-msgs">' + l.map(x => '<div class="s-msg' + (x.new ? ' new' : '') + '"><span class="em">' + (EM[x.kind] || '✉️') + '</span><div class="grow">' + esc(x.body) + '<small>' + esc(fmtDate(String(x.at).slice(0, 10))) + '</small></div></div>').join('') + '</div>' : '<p class="muted center">ما فيه رسائل بعد. كمّل لعب وبتوصلك رسائل من معلمك 💌</p>') +
+    m.querySelector('.modal').innerHTML = '<h3>' + ic('bell') + ' رسائل المعلم/ـة</h3>' + (l.length ? '<div class="s-msgs">' + l.map(x => '<div class="s-msg' + (x.new ? ' new' : '') + '"><span class="em">' + (EM[x.kind] || '✉️') + '</span><div class="grow">' + esc(x.body) + '<small>' + esc(fmtDate(String(x.at).slice(0, 10))) + '</small></div></div>').join('') + '</div>' : '<p class="muted center">لا توجد رسائل بعد.</p>') +
       '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button>';
   } catch(e){ m.remove(); toast(errMsg(e)); }
 };
@@ -271,41 +271,43 @@ ACTS['s-reload'] = () => S.demo ? renderHome() : loadHome();
 
 function renderHome(){
   const h = S.home, c = h.competition, ph = h.phase;
-  let body = '';
+  const statsHtml = lbl => '<div class="stats"><div class="stat"><b>' + h.total_points + '</b><span>نقاطي</span></div><div class="stat"><b>' + (h.rank || '-') + '</b><span>' + lbl + '</span></div></div>';
+  /* the main action (start / continue / face-off) comes first, details after */
+  let head = '', main = '', rest = '';
   if (ph === 'none') {
-    body = '<div class="phase"><b>لا توجد مسابقة نشطة</b></div><p class="muted">سيبدأ التحدي عندما يجهّز المعلم/ـة المسابقة. يمكنك التدريب الآن.</p>';
+    head = '<div class="phase"><b>لا توجد مسابقة نشطة</b></div>';
+    rest = '<p class="muted">سيبدأ التحدي عندما يجهّز المعلم/ـة المسابقة. يمكنك التدريب الآن.</p>';
   } else if (ph === 'upcoming') {
-    body = '<div class="phase"><b>تبدأ المسابقة قريباً</b><span class="chip warn">' + esc(fmtDate(c.start_date)) + '</span></div><p class="muted">يمكنك التدريب حتى موعد البداية.</p>';
+    head = '<div class="phase"><b>تبدأ المسابقة ' + esc(fmtDate(c.start_date)) + '</b></div>';
+    rest = '<p class="muted">جهّز نفسك: درّب نفسك الآن بلا نقاط حتى موعد البداية.</p>';
   } else if (ph === 'points') {
-    body = '<div class="phase"><b>مرحلة جمع النقاط</b><span class="chip warn">' + (c.days_left_points > 0 ? 'تنتهي بعد ' + c.days_left_points + ' يوم' : 'آخر يوم') + '</span></div>' +
-      '<div class="stats"><div class="stat"><b>' + h.total_points + '</b><span>نقاطي</span></div><div class="stat"><b>' + (h.rank || '-') + '</b><span>ترتيبي في الصف</span></div></div>' +
+    head = '<div class="phase"><b>مرحلة جمع النقاط</b><span class="chip warn">' + (c.days_left_points > 0 ? 'تنتهي بعد ' + c.days_left_points + ' يوم' : 'آخر يوم') + '</span></div>';
+    if (h.in_progress_attempt) main = '<button class="btn accent" data-act="s-start" data-kind="official">' + ic('play') + ' أكمل جولتك</button>';
+    else if (h.played_today) main = '<div class="next-r"><span>لعبت جولة اليوم ✓ جولتك القادمة بعد</span><b id="cd">' + cdText() + '</b></div>';
+    else main = '<button class="btn accent" data-act="s-start" data-kind="official">' + ic('play') + ' ابدأ التحدي</button>';
+    rest = statsHtml('ترتيبي في الصف') +
       (h.gap != null && h.rank > 1 ? '<div class="gap-l">' + (h.gap > 0 ? 'ينقصك <b>' + h.gap + '</b> نقطة لتتقدم في الترتيب' : 'أنت متعادل مع من فوقك، جولة واحدة تكفي!') + '</div>' : (h.rank === 1 && h.total_points ? '<div class="gap-l">أنت في الصدارة 🏆 حافظ عليها</div>' : ''));
   } else if (ph === 'knockout') {
-    body = '<div class="phase"><b>مرحلة التصفيات</b><span class="chip">حتى ' + esc(fmtDate(c.end_date)) + '</span></div>' +
-      '<div class="stats"><div class="stat"><b>' + h.total_points + '</b><span>نقاطي</span></div><div class="stat"><b>' + (h.rank || '-') + '</b><span>ترتيبي في الصف</span></div></div>' +
-      '<div id="ko" class="ko-wrap"></div>';
+    head = '<div class="phase"><b>مرحلة التصفيات</b><span class="chip">حتى ' + esc(fmtDate(c.end_date)) + '</span></div>';
+    main = '<div id="ko" class="ko-wrap"></div>'; // today's face-off is shown first inside, then the bracket
+    rest = statsHtml('ترتيبي في الصف');
   } else {
-    body = '<div class="phase"><b>انتهت المسابقة</b></div><div class="stats"><div class="stat"><b>' + h.total_points + '</b><span>نقاطي</span></div><div class="stat"><b>' + (h.rank || '-') + '</b><span>ترتيبي النهائي</span></div></div><div id="ko" class="ko-wrap"></div>';
-  }
-  let main = '';
-  if (ph === 'points') {
-    if (h.in_progress_attempt) main = '<button class="btn accent" data-act="s-start" data-kind="official">' + ic('play') + ' أكمل جولتك</button>';
-    else if (h.played_today) main = '<div class="next-r"><span>جولتك القادمة بعد</span><b id="cd">' + cdText() + '</b></div>';
-    else main = '<button class="btn accent" data-act="s-start" data-kind="official">' + ic('play') + ' ابدأ التحدي</button>';
+    head = '<div class="phase"><b>انتهت المسابقة</b></div>';
+    rest = statsHtml('ترتيبي النهائي') + '<div id="ko" class="ko-wrap"></div>';
   }
   const th = document.body.dataset.theme || 'mid';
   const steps = [['points', 'جمع النقاط'], ['knockout', 'التصفيات'], ['finished', 'النهاية']], si = steps.findIndex(x => x[0] === ph);
-  if (si >= 0) body = '<div class="ph-strip">' + steps.map((x, i) => '<span class="' + (i < si ? 'done' : i === si ? 'cur' : '') + '">' + x[1] + '</span>').join('<i></i>') + '</div>' + body;
+  const strip = si >= 0 ? '<div class="ph-strip">' + steps.map((x, i) => '<span class="' + (i < si ? 'done' : i === si ? 'cur' : '') + '">' + x[1] + '</span>').join('<i></i>') + '</div>' : '';
   $app.innerHTML = '<div class="sh pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
     '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋' + (h.streak ? ' <span class="streak" title="أيام متتالية">🔥 ' + h.streak + '</span>' : '') + '</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
     '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
     '<button class="avatar av-btn" data-act="s-menu" aria-label="القائمة">' + esc((h.student.name || '?').trim().charAt(0)) + '</button></div></div>' +
-    '<div class="quick q2">' +
-    '<button data-act="s-badges">' + ic('star') + '<span>شاراتي</span></button>' +
-    '<button data-act="s-leaders">' + ic('trophy') + '<span>المتصدرون</span></button></div>' +
-    '<div class="comp">' + body + main +
+    '<div class="comp">' + strip + head + main + rest +
     '<div class="s-row2"><button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button>' +
-    (h.wrong_count ? '<button class="btn ghost rv-btn" data-act="s-start" data-kind="review">أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div></div>';
+    (h.wrong_count ? '<button class="btn ghost rv-btn" data-act="s-start" data-kind="review">أخطائي (' + h.wrong_count + ')</button>' : '') + '</div></div>' +
+    '<div class="quick q2">' +
+    '<button data-act="s-leaders">' + ic('trophy') + '<span>الترتيب</span></button>' +
+    '<button data-act="s-badges">' + ic('star') + '<span>شاراتي</span></button></div></div>';
   startCountdown();
   if ((ph === 'knockout' || ph === 'finished') && !S.demo) loadKo();
 }
@@ -343,7 +345,6 @@ ACTS['s-badges'] = () => {
   const b = (S.home && S.home.badges) || [], n = b.filter(x => x.on).length;
   modal('<h3>شاراتي <span class="sub">(' + n + ' من ' + b.length + ')</span></h3><div class="bdg-grid">' + b.map(x => { const d = BADGES[x.k] || ['⭐', x.k, '']; return '<div class="bdg ' + (x.on ? 'on' : '') + '"><span class="bdg-i">' + d[0] + '</span><b>' + d[1] + '</b><small>' + d[2] + (x.k === 'practice10' && !x.on ? ' (' + (x.n || 0) + '/10)' : '') + '</small></div>'; }).join('') + '</div>' +
     (S.home && S.home.streak ? '<p class="center sub" style="margin-top:12px">🔥 سلسلتك الحالية: ' + S.home.streak + ' يوم متتالي</p>' : '') +
-    (S.prefs && S.prefs.rename ? '<button class="btn soft" style="margin-top:14px" data-act="s-rename">' + ic('edit') + ' تعديل اسمي</button>' : '') +
     '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button>');
 };
 ACTS['s-rename'] = async () => {
@@ -373,7 +374,9 @@ ACTS['s-profile'] = () => { closeModals();
     (LS.get('mc_code') ? '<div class="r"><span>رمز الدخول</span><button class="code-pill" data-act="copy" data-v="' + esc(LS.get('mc_code')) + '">' + esc(LS.get('mc_code')) + ' ' + ic('layers') + '</button></div>' : '') +
     '<div class="r"><span>مجموع النقاط</span><b>' + h.total_points + '</b></div>' +
     '<div class="r"><span>الترتيب في الصف</span><b>' + (h.rank || '-') + ' من ' + h.class.size + '</b></div></div>' +
-    '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button>');
+    (LS.get('mc_code') ? '<button class="btn soft" style="margin-top:14px" data-act="copy" data-v="' + esc(LS.get('mc_code')) + '">' + ic('layers') + ' نسخ رمز الدخول</button>' : '') +
+    (S.prefs && S.prefs.rename ? '<button class="btn soft" style="margin-top:8px" data-act="s-rename">' + ic('edit') + ' تعديل اسمي</button>' : '') +
+    '<button class="btn soft" style="margin-top:8px" data-act="close-modal">إغلاق</button>');
 };
 ACTS['s-leaders'] = async () => {
   if (S.demo) return toast('المتصدرون يظهرون في المسابقة الفعلية');
@@ -670,8 +673,8 @@ async function submit(idx){
 function optMark(b, sym, sr){ if (b.querySelector('.opt-mk')) return; const m = document.createElement('span'); m.className = 'opt-mk'; m.textContent = sym; m.setAttribute('aria-hidden', 'true'); b.appendChild(m); b.setAttribute('aria-label', (b.querySelector('.txt') || b).textContent + '، ' + sr); }
 function reviewHtml(){
   const L = S.log || []; if (!L.length) return '';
-  return '<div class="rv"><b class="rv-h">مراجعة إجاباتك</b>' + L.map((x, i) => '<div class="rv-i ' + (x.ok ? 'ok' : 'no') + '"><span class="rv-n">' + (x.ok ? '✓' : '✗') + '</span><div><div class="rv-q">' + esc(x.q) + '</div>' +
-    (x.ok ? '<div class="rv-a good">' + esc(x.o[x.c]) + '</div>' : (x.c != null ? '<div class="rv-a good">الصحيحة: ' + esc(x.o[x.c]) + '</div>' : '') + '<div class="rv-a bad">' + (x.x == null ? 'انتهى الوقت' : 'إجابتك: ' + esc(x.o[x.x])) + '</div>') + '</div></div>').join('') + '</div>';
+  return '<details class="rv"><summary class="rv-h">مراجعة إجاباتك (' + L.length + ')</summary>' + L.map((x, i) => '<div class="rv-i ' + (x.ok ? 'ok' : 'no') + '"><span class="rv-n">' + (x.ok ? '✓' : '✗') + '</span><div><div class="rv-q">' + esc(x.q) + '</div>' +
+    (x.ok ? '<div class="rv-a good">' + esc(x.o[x.c]) + '</div>' : (x.c != null ? '<div class="rv-a good">الصحيحة: ' + esc(x.o[x.c]) + '</div>' : '') + '<div class="rv-a bad">' + (x.x == null ? 'انتهى الوقت' : 'إجابتك: ' + esc(x.o[x.x])) + '</div>') + '</div></div>').join('') + '</details>';
 }
 async function showResult(sm){
   stopTimer(); S.gen = (S.gen || 0) + 1; S.cur = null;
@@ -680,7 +683,7 @@ async function showResult(sm){
   if (lose) await FX.explode();
   setTimeout(() => { if (win) FX.win(perfect); else if (!lose) FX.meh(); }, 250);
   const head = perfect ? 'مثالي! 🏆' : win ? 'فوز رائع!' : lose ? 'انتهت الجولة' : 'أحسنت';
-  const sub = perfect ? '4 من 4 — لا يُهزم!' : win ? 'أداء ممتاز، استمر!' : lose ? 'لا بأس، جرّب التدريب وعد أقوى' : 'قريب من القمة، حاول غداً';
+  const sub = perfect ? '٤ من ٤، لا يُهزم!' : win ? 'أداء ممتاز، استمر!' : lose ? 'لا بأس، جرّب التدريب وعد أقوى' : 'قريب من القمة، حاول غداً';
   const stars = [0, 1, 2, 3].map(i => '<span class="star-s' + (i < cc ? ' on' : '') + '" style="animation-delay:' + (0.5 + i * 0.25) + 's">' + ic('star') + '</span>').join('');
   let rankRow = '';
   if (sm && sm.kind === 'official' && sm.rank_after) {
@@ -688,18 +691,20 @@ async function showResult(sm){
     const delta = d > 0 ? '<span class="up">▲ صعدت ' + d + '</span>' : d < 0 ? '<span class="down">▼ نزلت ' + (-d) + '</span>' : '<span class="muted">بلا تغيير</span>';
     rankRow = '<div class="r"><span>ترتيبي الجديد</span><b>' + sm.rank_after + ' ' + delta + '</b></div>';
   }
+ const L4 = (S.log || []).slice(-4), answered = L4.length ? L4.filter(x => x.x != null).length : (sm ? sm.correct_count : 0);
+  const toAr = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
   const th = document.body.dataset.theme || 'mid';
   $app.innerHTML = '<div class="sh pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
     '<div class="result ' + (win ? 'is-win' : lose ? 'is-lose' : '') + '"><div class="medal-wrap">' + (win ? '<div class="rays"></div>' : '') + '<div class="medal">' + ic(lose ? 'clock' : 'trophy') + '</div></div>' +
     '<h2 class="center res-h">' + head + '</h2><p class="center muted" style="margin-top:-8px">' + sub + (sm && sm.kind === 'practice' ? ' · تدريب' : sm && sm.kind === 'knockout' ? ' · مواجهة التصفيات' : '') + '</p>' +
     (sm && sm.kind === 'knockout' ? '<p class="center sub">تُحسم المواجهة بعدد الإجابات الصحيحة ثم السرعة، وتظهر النتيجة في الرئيسية عندما ينهي منافسك.</p>' : '') +
     '<div class="stars-row">' + stars + '</div>' +
-    '<div class="center"><div class="big" id="bigpts">0</div><div class="muted">مجموع النقاط</div></div>' +
-    reviewHtml() +
-    '<div class="rows card"><div class="r"><span>الإجابات الصحيحة</span><b>' + (sm ? sm.correct_count : 0) + ' من 4</b></div>' + rankRow + '</div>' +
-    (sm && sm.kind === 'official' ? '<button class="btn accent" data-act="s-leaders">' + ic('trophy') + ' عرض الترتيب</button>' : '') +
+    '<div class="center"><div class="big" id="bigpts">0</div><div class="muted">نقاط هذه الجولة</div></div>' +
+    '<div class="rows card"><div class="r"><span>أجبت عن</span><b>' + toAr(answered) + ' من ٤</b></div><div class="r"><span>الإجابات الصحيحة</span><b>' + toAr(sm ? sm.correct_count : 0) + ' من ٤</b></div>' + rankRow + '</div>' +
+    '<button class="btn" data-act="s-reload">العودة للرئيسية</button>' +
+    (sm && sm.kind === 'official' ? '<button class="btn ghost" data-act="s-leaders">' + ic('trophy') + ' عرض الترتيب</button>' : '') +
     ((S.log || []).some(x => !x.ok) && !S.demo ? '<button class="btn ghost" data-act="s-start" data-kind="review">تدرّب على أخطائك</button>' : '') +
-    '<button class="btn" data-act="s-reload">العودة للرئيسية</button></div></div>';
+    reviewHtml() + '</div></div>';
   const target = sm ? sm.total_points : 0, el = document.getElementById('bigpts'), t0 = performance.now();
   if (FX.reduce()) { if (el) el.textContent = target; } else (function roll(t){ const k = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - k, 3); if (el) el.textContent = Math.round(target * e); if (k < 1) requestAnimationFrame(roll); })(t0);
 }
@@ -712,7 +717,7 @@ const CK = { cls: null, students: [], comp: null, pending: [] };
 const QS = { list: [], glob: [], globalCount: 0, stats: {}, q: '', sel: new Set(), selOn: false, dup: new Set(), norm: {} };
 const TYPE_AR = { curriculum: 'منهج', general: 'عام', quick: 'سرعة بديهة', memory: 'ذاكرة' };
 const LEVEL_AR = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' };
-const STATUS_AR = { draft: 'مسودة', approved: 'معتمد', rejected: 'مرفوض' };
+const STATUS_AR = { draft: 'مسودة', approved: 'متاح', rejected: 'مرفوض' };
 const STYLE_AR = { kids: 'مرح · ابتدائي', mid: 'مرح قليلاً · متوسط', uni: 'هادئ · ثانوي وجامعة' };
 const STYLE_SW = { kids: 'linear-gradient(135deg,#FFD9B0,#E3262F)', mid: 'linear-gradient(135deg,#C8102E,#F5B72B)', uni: 'linear-gradient(135deg,#FAF6F3,#7A1220)' };
 const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png" alt=""></div>';
@@ -865,22 +870,22 @@ function teacherAuth(){
     <div class="tabs"><button type="button" class="${up ? '' : 'on'}" data-act="t-mode" data-mode="in">تسجيل الدخول</button><button type="button" class="${up ? 'on' : ''}" data-act="t-mode" data-mode="up">إنشاء حساب</button></div>
     ${up ? '<div class="field"><label for="a-name">الاسم</label><input class="input" id="a-name" name="name" required></div>' : ''}
     <div class="field"><label for="a-email">البريد الإلكتروني</label><input class="input" id="a-email" name="email" type="email" required dir="ltr" placeholder="example@school.edu.kw"></div>
-    <div class="field"><label for="a-pw">كلمة المرور</label><input class="input" id="a-pw" name="password" type="password" required minlength="6" dir="ltr"></div>
+    <div class="field"><label for="a-pw">كلمة المرور</label><input class="input" id="a-pw" name="password" type="password" required minlength="6" dir="ltr" aria-describedby="a-pw-h" autocomplete="${up ? 'new-password' : 'current-password'}"><small class="sub" id="a-pw-h">${up ? '6 أحرف على الأقل' : ''}</small></div>
     ${up ? '' : '<button type="button" class="link forgot" data-act="t-forgot">نسيت كلمة المرور؟</button>'}
     <div id="aerr"></div>
-    <button class="btn" type="submit">${up ? 'إنشاء الحساب' : 'دخول'}</button>
+    <button class="btn" type="submit">${up ? 'إنشاء حساب المعلم' : 'دخول المعلم'}</button>
     ${cfg.GOOGLE_LOGIN ? '<button type="button" class="btn ghost" data-act="t-oauth" data-p="google">المتابعة باستخدام Google</button>' : ''}
     ${cfg.APPLE_LOGIN ? '<button type="button" class="btn ghost" data-act="t-oauth" data-p="apple">المتابعة باستخدام Apple</button>' : ''}
   </form>
-  <div class="center"><button class="link" data-act="go-student">دخول الطلبة</button></div></div>`;
+  <div class="center"><button class="link" data-act="go-student">أنت طالب/ـة؟ دخول الطلبة</button></div></div>`;
 }
 ACTS['t-forgot'] = async () => {
   const cur = (document.getElementById('a-email') || {}).value || '';
   const email = await ask('سنرسل رابطاً لتعيين كلمة مرور جديدة إلى بريدك.', { title: 'استعادة كلمة المرور', input: cur, placeholder: 'example@school.edu.kw', dir: 'ltr', ok: 'إرسال الرابط', danger: false });
   if (!email) return;
   const { error } = await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: location.origin + location.pathname });
-  if (error) return toast(errMsg(error));
-  ask('افتح الرسالة التي وصلتك واضغط الرابط، وستظهر لك خانة كلمة المرور الجديدة.', { title: 'تم الإرسال ✉️', alert: true, ok: 'حسناً', danger: false });
+  if (error) return toast('تعذّر إرسال الرابط: ' + errMsg(error));
+  ask(`أرسلنا رابط الاستعادة إلى ${email.trim()}.\n\nالخطوة التالية: افتح الرسالة واضغط الرابط، وستظهر لك خانة كلمة المرور الجديدة. إذا لم تصل خلال دقائق فافحص مجلد الرسائل غير المرغوبة.`, { title: 'تم الإرسال ✉️', alert: true, ok: 'حسناً', danger: false });
 };
 /* returning from an e-mail link (sign-up confirm / password recovery) */
 async function authReturn(){
@@ -992,13 +997,13 @@ async function tHome(){
   const kpi = (v, l, ic2) => `<div class="kpi"><div class="kpi-ic">${ic(ic2)}</div><b>${v}</b><span>${l}</span></div>`;
   let html = failed.size ? `<div class="rs-empty rs-fail" role="alert">${ic('clock')}<div><b>تعذّر تحميل نتائج ${failed.size === classes.length ? 'الصفوف' : failed.size + ' من ' + classes.length + ' صفوف'}</b><small>${failed.size === classes.length ? 'الأرقام أدناه غير متاحة الآن.' : 'الأرقام أدناه لا تشمل: ' + esc(classes.filter(c => failed.has(c.id)).map(c => c.name).join('، '))}</small></div><button class="btn sm soft" data-act="h-retry">إعادة المحاولة</button></div>` : '';
   if (failed.size === classes.length) { view('مرحباً، ' + (T.name || ''), html, 'home'); return; }
-  html += `<div class="kpis kpis4">${kpi(total, 'الطلبة', 'user')}${kpi(total ? Math.round(playedToday * 100 / total) + '%' : '—', 'لعبوا اليوم', 'clock')}${kpi(acc == null ? '—' : acc + '%', 'دقة الإجابات', 'check')}${kpi(activeComps, 'مسابقات جارية', 'trophy')}</div>`;
+  html += `<div class="kpis kpis4">${kpi(total, 'الطلبة', 'user')}${kpi(total ? Math.round(playedToday * 100 / total) + '%' : '—', 'لعبوا اليوم', 'clock')}${kpi(acc == null ? '—' : acc + '%', 'الإجابات الصحيحة', 'check')}${kpi(activeComps, 'مسابقات جارية', 'trophy')}</div>`;
 
   // alerts
   const alerts = stats.filter(s => s.ph === 'points' && s.n - s.played > 0);
   T.homeStats = stats;
   if (alerts.length) html += `<div class="card col today-card"><div class="row between"><b>${ic('clock')} اليوم: لم يلعبوا بعد</b><span class="chip warn">${alerts.reduce((a, s) => a + s.n - s.played, 0)}</span></div>` +
-    alerts.map(s => `<div class="row between today-row"><a class="grow dash-link" href="#/t/results/${s.c.id}" data-act="h-res-idle" data-c="${s.c.id}"><b>${esc(s.c.name)} · لعب ${s.played} من ${s.n} اليوم</b><div class="sub">لم يلعبوا اليوم ${s.n - s.played}: ${s.rs.filter(r => !r.played_today).slice(0, 4).map(r => esc(r.name.split(' ')[0])).join('، ')}${s.n - s.played > 4 ? '…' : ''}</div></a><button class="btn sm wa-btn" data-act="t-remind" data-c="${s.c.id}">${ic('send')} تذكير</button></div>`).join('') + `</div>`;
+    alerts.map(s => `<div class="row between today-row"><a class="grow dash-link" href="#/t/results/${s.c.id}" data-act="h-res-idle" data-c="${s.c.id}"><b>${esc(s.c.name)} · لعب ${s.played} من ${s.n} اليوم</b><div class="sub">لم يلعبوا اليوم: ${s.rs.filter(r => !r.played_today).slice(0, 4).map(r => esc(r.name.split(' ')[0])).join('، ')}${s.n - s.played > 4 ? '…' : ''}</div></a><button class="btn sm wa-btn" data-act="t-remind" data-c="${s.c.id}">${ic('send')} تذكير</button></div>`).join('') + `</div>`;
 
   // competitions timeline
   const comps = stats.filter(s => s.comp);
@@ -1023,7 +1028,7 @@ ACTS['h-res-idle'] = t => { RS.sort = 'idle'; RS.q = ''; location.hash = '#/t/re
 const STAGES = [['primary', 'ابتدائي', 'الصفوف 1–5', 'kids', 'star'], ['middle', 'متوسط', 'الصفوف 6–9', 'mid', 'layers'], ['secondary', 'ثانوي', 'الصفوف 10–12', 'mid', 'chart'], ['university', 'جامعة', 'طلبة الجامعة', 'uni', 'trophy']];
 const QTYPES = [['curriculum', 'المنهج', 'أسئلة من مادتك', 'layers'], ['general', 'معلومات عامة', 'ثقافة ومعرفة', 'help'], ['quick', 'سرعة بديهة', 'حساب وألغاز', 'clock'], ['memory', 'الذاكرة', 'تذكّر وترتيب', 'star']];
 const SUBJECTS = ['عام', 'اللغة العربية', 'الرياضيات', 'العلوم', 'التربية الإسلامية', 'اللغة الإنجليزية', 'الاجتماعيات', 'الحاسوب', 'أخرى'];
-const METHODS = [['manual', 'إضافة يدوية', 'اكتب اسم الصف وأسماء الطلبة', 'edit'], ['file', 'رفع ملف Excel', 'عدة صفوف دفعة واحدة', 'upload'], ['self', 'تسجيل ذاتي', 'رابط يسجل به الطلبة بأنفسهم', 'user']];
+const METHODS = [['manual', 'إضافة يدوية', 'اكتب اسم الصف وأسماء الطلبة', 'edit'], ['file', 'رفع ملف Excel', 'عدة صفوف دفعة واحدة', 'upload'], ['self', 'يسجّل الطلبة عبر الرابط', 'رابط يسجل به الطلبة بأنفسهم', 'user']];
 const W = { step: 0, stage: null, qtypes: ['curriculum', 'general', 'quick'], subject: 'عام', method: null, cname: '', names: '', self: '', multi: null, compNow: true, start: '' };
 const WSTEPS = ['المرحلة', 'الأسئلة', 'الإضافة', 'الطلبة', 'المسابقة'];
 function wSave(){
@@ -1043,7 +1048,7 @@ function renderWizard(){
     ok = !!W.stage;
   } else if (s === 2) {
     body = `<h2 class="w-h">أنواع الأسئلة</h2><p class="sub">اختر نوعاً أو أكثر. كل جولة: 1 سهل، 2 متوسط، 1 صعب.</p><div class="picks picks2">${QTYPES.map(x => `<button class="pick ${W.qtypes.includes(x[0]) ? 'on' : ''}" data-act="w-qtype" data-v="${x[0]}"><span class="pick-ic">${ic(x[3])}</span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>` +
-      (W.qtypes.includes('curriculum') ? `<div class="field"><label for="w-sub">المادة / المنهج</label><select class="input" id="w-sub">${SUBJECTS.map(x => `<option ${W.subject === x ? 'selected' : ''}>${x}</option>`).join('')}</select><p class="sub">المناهج المعتمدة يرفعها المشرف، ويمكنك إضافة أسئلتك من صفحة الأسئلة.</p></div>` : '');
+      (W.qtypes.includes('curriculum') ? `<div class="field"><label for="w-sub">المادة / المنهج</label><select class="input" id="w-sub">${SUBJECTS.map(x => `<option ${W.subject === x ? 'selected' : ''}>${x}</option>`).join('')}</select><p class="sub">المناهج المتاحة يرفعها المشرف، ويمكنك إضافة أسئلتك من صفحة الأسئلة.</p></div>` : '');
     ok = W.qtypes.length > 0;
   } else if (s === 3) {
     body = `<h2 class="w-h">كيف تضيف الصفوف والطلبة؟</h2><div class="picks">${METHODS.map(x => `<button class="pick wide ${W.method === x[0] ? 'on' : ''}" data-act="w-method" data-v="${x[0]}"><span class="pick-ic">${ic(x[3])}</span><div><b>${x[1]}</b><small>${x[2]}</small></div></button>`).join('')}</div>`;
@@ -1135,9 +1140,11 @@ ACTS['w-finish'] = async t => {
   W.prog = null;
   const links = made.filter(c => c.join_code);
   view('تم الإعداد 🎉', `<div class="card col center"><div class="medal" style="width:96px;height:96px">${ic('check')}</div><b style="font-size:20px">جاهز!</b><p class="sub">أُنشئ ${made.length} صف${added ? ' وأُضيف ' + added + ' طالب/ـة' : ''}${W.compNow ? '، والمسابقة تبدأ ' + esc(fmtDate(W.start)) : ''}.</p></div>` +
-    (links.length ? `<div class="card col"><b>روابط التسجيل الذاتي</b>${links.map(c => `<div class="col" style="gap:6px"><b>${esc(c.name)}</b><div class="join-box" dir="ltr">${esc(joinLink(c.join_code))}</div><button class="btn sm" data-act="copy" data-v="${esc(joinLink(c.join_code))}">نسخ الرابط</button></div>`).join('')}</div>` : '') +
-    `<div class="card col"><b>الخطوات التالية</b><div class="sub">1. وزّع الرموز أو الروابط على الطلبة من صفحة الصف.<br>2. راجع الأسئلة واعتمدها من صفحة الأسئلة.<br>3. تابع المشاركة من الرئيسية.</div></div>
-     <div class="row"><a class="btn" href="#/t/classes" style="text-decoration:none">الصفوف</a><button class="btn soft" data-act="w-done">لوحة التحكم</button></div>`, 'home');
+    (links.length ? `<div class="card col"><b>روابط التسجيل</b>${links.map(c => `<div class="col" style="gap:6px"><b>${esc(c.name)}</b><div class="join-box" dir="ltr">${esc(joinLink(c.join_code))}</div><button class="btn sm" data-act="copy" data-v="${esc(joinLink(c.join_code))}">نسخ الرابط</button></div>`).join('')}</div>` : '') +
+    `<a class="btn" href="#/t/classes" style="text-decoration:none">${ic('send')} مشاركة طريقة الدخول</a>
+     ${W.compNow ? `<a class="btn soft" href="#/t/comps" style="text-decoration:none">عرض المسابقة</a>` : ''}
+     ${(QS.list || []).some(q => q.status === 'draft') ? `<a class="btn ghost" href="#/t/questions" style="text-decoration:none">مراجعة الأسئلة المنتظرة</a>` : ''}
+     <button class="btn ghost" data-act="w-done">الرئيسية</button>`, 'home');
   Object.assign(W, { step: 0, stage: null, method: null, cname: '', names: '', self: '', multi: null, start: '' });
 };
 ACTS['w-done'] = () => go('#/t/home');
@@ -1205,9 +1212,9 @@ function classSection(c){
     const selS = CL.sel && CL.sel.type === 'students' && CL.sel.cid === c.id;
     const fl = CL.flash && CL.flash.cid === c.id ? CL.flash : null;
     body = `<div class="cls-body">` +
-      (fl ? `<div class="cl-flash"><button class="cl-flash-x" data-act="cl-flash-x" aria-label="إغلاق">${ic('x')}</button>${fl.added ? `<b>الخطوة التالية: أرسل لهم طريقة الدخول</b><small>تمت إضافة ${fl.n} طالباً إلى «${esc(c.name)}»، ولكل واحد رمز دخول خاص.</small><div class="row"><button class="btn sm wa-btn" data-act="c-send">${ic('send')} واتساب</button><button class="btn sm soft" data-act="t-print-codes">${ic('print')} طباعة البطاقات</button></div>${comp ? '' : `<button class="link" data-act="cp-new-for">أو أنشئ مسابقة لهذا الصف</button>`}` : `<b>✅ تم إنشاء الصف${fl.n ? ` ومعه ${fl.n} طالباً` : ''}</b><small>${fl.n ? 'الخطوة التالية: أرسل الرموز للطلبة، ثم أنشئ مسابقة.' : fl.link ? 'شارك رابط التسجيل أدناه مع الطلبة.' : 'أضف الطلبة، ثم أنشئ مسابقة.'}</small><div class="row">${fl.n ? `<button class="btn sm" data-act="c-send">${ic('send')} إرسال الرموز</button>` : ''}${comp ? '' : `<button class="btn sm soft" data-act="cp-new-for">${ic('trophy')} إنشاء مسابقة</button>`}</div>`}</div>` : '') +
-      (CL.sel ? '' : `<div class="cl-acts">${st0.length ? `<button class="btn sm soft" data-act="c-send">${ic('send')} إرسال الرموز</button>` : '<span class="grow"></span>'}<button class="icon-btn" data-act="c-cmore" aria-label="المزيد">${ic('more')}</button></div>`) +
-      (c.self_join ? `<div class="join-row"><span class="sub">التسجيل الذاتي مفعّل</span><button class="btn sm soft" data-act="c-joinshow">عرض</button><button class="btn sm" data-act="copy" data-v="${esc(link)}">نسخ الرابط</button></div>` : '') +
+      (fl ? `<div class="cl-flash"><button class="cl-flash-x" data-act="cl-flash-x" aria-label="إغلاق">${ic('x')}</button>${fl.added ? `<b>الخطوة التالية: أرسل لهم طريقة الدخول</b><small>تمت إضافة ${fl.n} طالباً إلى «${esc(c.name)}»، ولكل واحد رمز دخول خاص.</small><div class="row"><button class="btn sm wa-btn" data-act="c-send">${ic('send')} واتساب</button><button class="btn sm soft" data-act="t-print-codes">${ic('print')} طباعة البطاقات</button></div>${comp ? '' : `<button class="link" data-act="cp-new-for">أو أنشئ مسابقة لهذا الصف</button>`}` : `<b>✅ تم إنشاء الصف${fl.n ? ` ومعه ${fl.n} طالباً` : ''}</b><small>${fl.n ? 'الخطوة التالية: أرسل الرموز للطلبة، ثم أنشئ مسابقة.' : fl.link ? 'شارك رابط التسجيل أدناه مع الطلبة.' : 'أضف الطلبة، ثم أنشئ مسابقة.'}</small><div class="row">${fl.n ? `<button class="btn sm" data-act="c-send">${ic('send')} مشاركة رموز الدخول</button>` : ''}${comp ? '' : `<button class="btn sm soft" data-act="cp-new-for">${ic('trophy')} إنشاء مسابقة</button>`}</div>`}</div>` : '') +
+      (CL.sel ? '' : `<div class="cl-acts">${st0.length ? `<button class="btn sm soft" data-act="c-send">${ic('send')} مشاركة رموز الدخول</button>` : '<span class="grow"></span>'}<button class="icon-btn" data-act="c-cmore" aria-label="المزيد">${ic('more')}</button></div>`) +
+      (c.self_join ? `<div class="join-row"><span class="sub">يسجّل الطلبة عبر الرابط</span><button class="btn sm soft" data-act="c-joinshow">عرض</button><button class="btn sm" data-act="copy" data-v="${esc(link)}">نسخ الرابط</button></div>` : '') +
       (never.length && !CL.sel ? `<div class="cl-alert">${ic('user')}<span class="grow"><b>${never.length}</b> لم يدخلوا أبداً</span><button class="btn sm soft" data-act="c-send" data-only="never">أرسل لهم الرمز</button></div>` : '') +
       (st0.length > 10 ? `<div class="cl-search">${ic('search')}<input class="cl-q" data-cid="${c.id}" placeholder="بحث بالاسم أو الرقم" value="${esc(q)}"></div>` : '') +
       (st0.length > 1 ? `<div class="lv-chips cl-sort">${[['no', 'الترتيب'], ['name', 'الاسم']].concat(comp ? [['pts', 'النقاط'], ['idle', 'لم يلعب اليوم']] : []).map(x => `<button class="${sort === x[0] ? 'on' : ''}" data-act="c-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>` : '') +
@@ -1342,11 +1349,11 @@ ACTS['s-card'] = async t => {
   const ini = s.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
   modal(`<div class="st-card" data-cid="${c.id}"><div class="st-top"><div class="avatar big-av">${esc(ini)}</div><div><b>${esc(s.name)}</b><div class="sub">${esc(c.name)} · رقم ${esc(s.student_no) || '—'}</div>${s.phone ? `<a class="sub" href="tel:${esc(s.phone)}" dir="ltr" style="color:var(--primary);text-decoration:none">${ic('send')} ${esc(s.phone)}</a>` : ''}</div></div>
     <button class="code-pill eye big-pill" data-act="c-eye" data-code="${esc(s.code)}"><span>••••••</span>${ic('eye')}</button>
-    <div class="stats" id="st-stats"><div class="stat"><b>…</b><span>النقاط</span></div><div class="stat"><b>…</b><span>الترتيب</span></div><div class="stat"><b>…</b><span>الجولات</span></div><div class="stat"><b>…</b><span>الدقة</span></div></div>
+    <div class="stats" id="st-stats"><div class="stat"><b>…</b><span>النقاط</span></div><div class="stat"><b>…</b><span>الترتيب</span></div><div class="stat"><b>…</b><span>الجولات</span></div><div class="stat"><b>…</b><span>نسبة الصحيح</span></div></div>
     <div class="sub center" id="st-today">${comp ? esc(comp.title) + ' · ' + PHASE_AR[phaseOf(comp)] : 'لا توجد مسابقة نشطة'}</div>
     <div class="st-acts"><button class="btn soft" data-act="s-edit" data-id="${s.id}">${ic('edit')} تعديل البيانات</button>
     <button class="btn" data-act="s-wa" data-id="${s.id}" style="background:linear-gradient(180deg,#4FD394,#1FA971);box-shadow:0 5px 0 #0E6A45">${ic('send')} إرسال الرمز واتساب</button>
-    <div class="row"><button class="btn soft" data-act="copy" data-v="${esc(s.code)}">نسخ الرمز</button><button class="btn soft" data-act="t-regen" data-id="${s.id}">${ic('refresh')} رمز جديد</button></div>
+    <div class="row"><button class="btn soft" data-act="copy" data-v="${esc(s.code)}">نسخ رمز الدخول</button><button class="btn soft" data-act="t-regen" data-id="${s.id}">${ic('refresh')} رمز جديد</button></div>
     <button class="btn soft" data-act="s-msg" data-id="${s.id}">${ic('mail')} إرسال رسالة</button>
     <button class="btn soft" data-act="t-del-student" data-id="${s.id}" style="color:#B3122A">${ic('trash')} حذف</button></div></div>`);
   try {
@@ -1355,7 +1362,7 @@ ACTS['s-card'] = async t => {
     const idx = sorted.findIndex(r => (r.id && r.id === s.id) || (r.name === s.name && String(r.student_no) === String(s.student_no)));
     const r = sorted[idx]; const box = document.getElementById('st-stats'); if (!box || !r) return;
     const acc = r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) + '%' : '—';
-    box.innerHTML = `<div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? idx + 1 : '—'}</b><span>الترتيب من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>الدقة</span></div>`;
+    box.innerHTML = `<div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? idx + 1 : '—'}</b><span>الترتيب من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>نسبة الصحيح</span></div>`;
     if (comp) document.getElementById('st-today').innerHTML += r.played_today ? ' · <b style="color:#168A5B">لعب اليوم ✓</b>' : ' · <b style="color:#8a5a00">لم يلعب اليوم</b>';
     const g = s.gender, who = g === 'f' ? 'ابنتكم' : g === 'm' ? 'ابنكم' : 'ابنكم/ابنتكم';
     ST_PARENT = { phone: s.phone, msg: `السلام عليكم ولي أمر ${s.name}\nهذا ملخص مشاركة ${who} في «تحدّي الدقيقة»${comp ? ' (' + comp.title + ')' : ''} بصف ${c.name}:\n• النقاط: ${r.pts}\n• الترتيب: ${r.pts ? (idx + 1) + ' من ' + sorted.length : '—'}\n• الجولات: ${r.rounds}\n• دقة الإجابات: ${acc}\nشكراً لمتابعتكم وتشجيعكم 🌟\n${T.name ? 'المعلم/ـة: ' + T.name : ''}` };
@@ -1399,13 +1406,13 @@ ACTS['s-wa'] = t => {
   let ph = (s.phone || '').replace(/[^0-9]/g, '');
   if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2);
   window.open('https://wa.me/' + (ph || '') + '?text=' + encodeURIComponent(msg), '_blank');
-  CL.sent.add(s.id); if (t.classList.contains('send-row')) { t.classList.add('sent'); t.querySelector('.send-ic').innerHTML = ic('check'); }
+  CL.sent.add(s.id); if (t.classList.contains('send-row')) { t.classList.add('sent'); t.querySelector('.send-ic').innerHTML = ic('check'); const sm = t.querySelector('small'); if (sm) sm.textContent = 'فُتح واتساب ✓'; }
 };
 ACTS['c-send'] = t => { const c = ctx(t), only = t.dataset.only;
   const st = only === 'never' ? CK.students.filter(x => !CST(x.id).rounds) : CK.students;
-  modal(`<div class="col" data-cid="${c.id}"><h3>إرسال الرموز · ${esc(c.name)}</h3><p class="sub">اضغط على كل اسم يفتح واتساب برسالة فيها رمزه ورابط الدخول، ويتعلّم ✓ بعد الإرسال.</p>
-    <div class="send-list">${st.map(x => `<button class="send-row ${CL.sent.has(x.id) ? 'sent' : ''}" data-act="s-wa" data-id="${x.id}"><span class="grow"><b>${esc(x.name)}</b><small>${x.phone ? esc(x.phone) : 'بدون رقم: تختار المحادثة بنفسك'}</small></span><span class="send-ic">${ic(CL.sent.has(x.id) ? 'check' : 'send')}</span></button>`).join('')}</div>
-    <div class="row"><button class="btn soft" data-act="t-print-codes">${ic('print')} طباعة</button><button class="btn soft" data-act="t-export-codes">${ic('download')} Excel</button></div></div>`);
+  modal(`<div class="col" data-cid="${c.id}"><h3>مشاركة رموز الدخول · ${esc(c.name)}</h3><p class="sub">اضغط على كل اسم ليفتح واتساب برسالة فيها رمزه ورابط الدخول. تظهر «فُتح واتساب» بعد فتحه، وتأكد أنت من الإرسال داخل واتساب.</p>
+    <div class="send-list">${st.map(x => `<button class="send-row ${CL.sent.has(x.id) ? 'sent' : ''}" data-act="s-wa" data-id="${x.id}"><span class="grow"><b>${esc(x.name)}</b><small>${CL.sent.has(x.id) ? 'فُتح واتساب ✓' : x.phone ? esc(x.phone) : 'بدون رقم: تختار المحادثة بنفسك'}</small></span><span class="send-ic">${ic(CL.sent.has(x.id) ? 'check' : 'send')}</span></button>`).join('')}</div>
+    <div class="row"><button class="btn soft" data-act="t-print-codes">${ic('print')} طباعة البطاقات</button><button class="btn soft" data-act="t-export-codes">${ic('download')} تصدير Excel</button></div></div>`);
 };
 ACTS['c-menu'] = t => {
   const c = ctx(t);
@@ -1473,17 +1480,20 @@ function ncHtml(){
   return `<div class="nc2"><h3>صف جديد</h3>
     <div class="nc2-s"><div class="nc2-l">المرحلة ${last && last === NC.stage ? '<small>✓ آخر مرحلة اخترتها</small>' : ''}</div><div class="nc2-g4">${NC_ST.map(x => chip('nc2-st', x[0], x[1], x[0] === NC.stage, 1)).join('')}</div></div>
     ${st ? `<div class="nc2-s"><div class="nc2-l">${NC.stage === 'university' ? 'السنة' : 'الصف'}</div><div class="nc2-gr" style="--n:${st[2].length > 5 ? 5 : st[2].length}">${st[2].map((g, k) => chip('nc2-gr', g, NC.stage === 'university' ? UNI_Y[k] : GRADES[g - 1], g === NC.grade)).join('')}</div></div>` : ''}
+    <details class="nc2-det"${NC.det || NC.sec || NC.g ? ' open' : ''}><summary>تفاصيل الصف <small class="sub">${[NC.sec ? 'الشعبة ' + esc(NC.sec) : '', NC.g ? { m: 'بنين', f: 'بنات', mix: 'مختلط' }[NC.g] : ''].filter(Boolean).join(' · ') || 'الشعبة ونوع الصف (اختياري)'}</small></summary>
     <div class="nc2-s"><div class="nc2-l">الشعبة</div><div class="nc2-gr" style="--n:${Math.min(5, secList().length)}">${secList().map(x => chip('nc2-sec', x, x, x === NC.sec)).join('')}</div></div>
-    <div class="nc2-s"><div class="nc2-l">الطلبة</div><div class="nc2-g3">${[['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']].map(x => chip('nc2-gd', x[0], x[1], x[0] === NC.g, 1)).join('')}</div></div>
+    <div class="nc2-s"><div class="nc2-l">الطلبة</div><div class="nc2-g3">${[['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']].map(x => chip('nc2-gd', x[0], x[1], x[0] === NC.g, 1)).join('')}</div></div></details>
     <div class="nc2-name">${NC.editing ? `<input class="input" id="nc2-in" value="${esc(name)}" maxlength="60" placeholder="مثال: السادس / 1">` : `<div class="grow"><small>اسم الصف</small><b>${name ? esc(name) : '<span class="muted">اختر الصف</span>'}</b></div><button type="button" class="nc2-pen" data-act="nc2-edit" aria-label="تعديل الاسم">${ic('edit')}</button>`}</div>
     <button class="btn" data-act="nc2-save" ${name || NC.editing ? '' : 'disabled'}>إنشاء الصف</button></div>`;
 }
 function ncRender(){ const m = document.querySelector('.nc2'); if (m) { m.outerHTML = ncHtml(); if (NC.editing) { const i = document.getElementById('nc2-in'); if (i) { i.focus(); i.select(); } } } }
-ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { stage: SG('def_stage') || (T.settings || {}).lastStage || 'primary', grade: null, sec: '', g: SG('def_gender') || '', custom: '', editing: false }); modal(ncHtml()); };
+ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { det: false, stage: SG('def_stage') || (T.settings || {}).lastStage || 'primary', grade: null, sec: '', g: SG('def_gender') || '', custom: '', editing: false }); modal(ncHtml()); };
 ACTS['nc2-st'] = t => { if (NC.stage !== t.dataset.v) NC.grade = null; NC.stage = t.dataset.v; NC.custom = ''; ncRender(); };
 ACTS['nc2-gr'] = t => { NC.grade = Number(t.dataset.v); NC.custom = ''; ncRender(); };
 ACTS['nc2-sec'] = t => { NC.sec = NC.sec === t.dataset.v ? '' : t.dataset.v; NC.custom = ''; ncRender(); };
 ACTS['nc2-gd'] = t => { NC.g = NC.g === t.dataset.v ? '' : t.dataset.v; ncRender(); };
+document.addEventListener('change', e => { if (e.target.name !== 'start_date') return; const f = e.target.form, b = f && f.querySelector('.cf2-go'); if (b && /ابدأ المسابقة|جدولة المسابقة/.test(b.textContent)) b.textContent = e.target.value > todayKW() ? 'جدولة المسابقة' : 'ابدأ المسابقة'; });
+document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('nc2-det')) NC.det = e.target.open; }, true);
 ACTS['nc2-edit'] = () => { NC.editing = true; ncRender(); };
 ACTS['nc2-save'] = async t => {
   const inp = document.getElementById('nc2-in'); if (inp) NC.custom = inp.value.replace(/\s+/g, ' ').trim();
@@ -1815,7 +1825,7 @@ function compForm(){
     <details class="cf2-more"><summary>إعدادات إضافية <small>التواريخ، التصفيات، الصعوبة، شكل الواجهة</small></summary>
       <div class="cf2-box"><div class="cf2-bh">📅 التواريخ</div><div class="set-grp">${date('start_date', 'بداية جمع النقاط', v.start_date)}${date('points_end_date', 'نهاية جمع النقاط', v.points_end_date)}${date('end_date', 'نهاية المسابقة', v.end_date)}</div></div>
       <div class="cf2-box"><div class="cf2-bh">🏆 التصفيات</div><div class="set-grp">${step('group_size', 'حجم المجموعة', v.group_size, 2, 40, 'عدد الطلبة في كل مجموعة')}${step('qualifiers', 'المتأهلون من كل صف', v.qualifiers, 2, 64, 'يدخلون مرحلة خروج المغلوب')}
-        <label class="set-row cf-row"><span class="grow">مدة كل دور</span><select class="cf-sel" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></label></div></div>
+        <label class="set-row cf-row"><span class="grow">الوقت المتاح للعب كل مواجهة</span><select class="cf-sel" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></label></div></div>
       <div class="cf2-box"><div class="cf2-bh">🎯 الصعوبة</div><div class="set-grp"><div class="set-row cf-row cf-col"><span>مستوى الصعوبة</span><div class="tabs">${DIFF.map(d => `<button type="button" class="${CC.diff === d[0] ? 'on' : ''}" data-act="cp-diff" data-v="${d[0]}">${d[1]}</button>`).join('')}</div><small class="cf-hint" id="cp-diff-d">${(DIFF.find(d => d[0] === CC.diff) || DIFF[1])[2]}</small></div></div></div>
       <div class="cf2-box"><div class="cf2-bh">🧩 أنواع الأسئلة</div><div class="cf-qt">${QTYPES.map(q => `<button type="button" class="cf-chip ${CC.qtypes.includes(q[0]) ? 'on' : ''}" data-act="cp-qt" data-v="${q[0]}">${ic(q[3])}<span>${q[1]}</span></button>`).join('')}</div></div>
       <div class="cf2-box"><div class="cf2-bh">🎨 شكل واجهة الطلبة <small>يتحدد تلقائياً من مرحلة الصف</small></div>
@@ -1823,7 +1833,7 @@ function compForm(){
       <button type="button" class="btn sm soft cf-prev" data-act="cf-preview">${ic('play')} معاينة كما يراها الطالب</button></div>
       <div class="set-f">كل جولة: 4 أسئلة × 15 ثانية. جولة رسمية يومياً، والتدريب مفتوح.</div>
     </details>
-    <button class="btn cf2-go" type="submit">${isNew ? 'ابدأ المسابقة' : 'حفظ التعديلات'}</button>
+    <button class="btn cf2-go" type="submit">${isNew ? (v.start_date > todayKW() ? 'جدولة المسابقة' : 'ابدأ المسابقة') : 'حفظ التعديلات'}</button>
     <button type="button" class="link cf2-cancel" data-act="cp-cancel">إلغاء</button></form>`;
 }
 /* simple setup helpers: duration presets, auto title, auto student-screen style */
@@ -1871,7 +1881,7 @@ async function cfPool(pd){
   const n = POOL[key], days = Math.floor(n / 4), ok = days >= pd;
   const x = document.getElementById('cf-pool'); if (!x) return;
   x.className = 'cf-pool ' + (ok ? 'ok' : 'low');
-  x.innerHTML = `${ic(ok ? 'check' : 'help')} <span>بنك الأسئلة: ${n} سؤالاً معتمداً، تكفي لـ ${days} يوماً دون تكرار${ok ? '' : `. تحتاج ${pd * 4 - n} سؤالاً إضافياً لتغطية ${pd} يوم`}</span>`;
+  x.innerHTML = `${ic(ok ? 'check' : 'help')} <span>بنك الأسئلة: ${n} سؤالاً متاحاً، تكفي لـ ${days} يوماً دون تكرار${ok ? '' : `. تحتاج ${pd * 4 - n} سؤالاً إضافياً لتغطية ${pd} يوم`}</span>`;
 }
 ACTS['cf-preview'] = () => themePreview(CC.style || 'mid');
 function themePreview(th){
@@ -1991,10 +2001,10 @@ function qBank(){
   const n = pool.length, days = Math.floor(n / QPD), mine = QS.list.filter(q => q.status === 'approved').length;
   const pc = k => n ? Math.round(lv[k] * 100 / n) : 0;
   const low = days < 14, weak = n && ['easy', 'medium', 'hard'].find(k => lv[k] < n * 0.15);
-  return `<div class="qb ${low ? 'low' : 'ok'}"><div class="qb-h"><b>${n}</b><span>سؤالاً معتمداً متاحاً لطلبتك</span><span class="grow"></span><em>تكفي ${daysAr(days)}</em></div>
+  return `<div class="qb ${low ? 'low' : 'ok'}"><div class="qb-h"><b>${n}</b><span>سؤالاً متاحاً متاحاً لطلبتك</span><span class="grow"></span><em>تكفي ${daysAr(days)}</em></div>
     <div class="qb-bar">${['easy', 'medium', 'hard'].map(k => `<i class="lv-${k}" style="width:${pc(k)}%"></i>`).join('')}</div>
     <div class="qb-lg">${['easy', 'medium', 'hard'].map(k => `<span><i class="lv-${k}"></i>${LEVEL_AR[k]} ${lv[k]}</span>`).join('')}</div>
-    <p class="qb-n">منها ${mine} من أسئلتك و${QS.glob.length} من البنك العام.${low ? ` أضف ${14 * QPD - n} سؤالاً لتكفي أسبوعين.` : ''}${weak ? ` أسئلة مستوى «${LEVEL_AR[weak]}» قليلة.` : ''}</p></div>`;
+    <p class="qb-n">منها ${mine} من أسئلتك و${QS.glob.length} من الأسئلة الجاهزة.${low ? ` أضف ${14 * QPD - n} سؤالاً لتكفي أسبوعين.` : ''}${weak ? ` أسئلة مستوى «${LEVEL_AR[weak]}» قليلة.` : ''}</p></div>`;
 }
 function qStat(q){
   const s = QS.stats[q.id]; if (!s || !s.answered) return '';
@@ -2016,7 +2026,7 @@ function qItem(q, ro){
   const sel = QS.selOn && !ro, on = QS.sel.has(q.id), open = !sel && (QS.open === q.id || q.status === 'draft');
   const hidden = ro && QS.hid && QS.hid.has(q.id);
   const acts = ro ? (T.qf.gcu ? `<button class="qi2-b" data-act="q-hide" data-id="${q.id}">${hidden ? `${ic('check')} أرجعه لمسابقاتي` : `${ic('x')} لا تستخدمه`}</button><button class="qi2-b" data-act="q-report" data-id="${q.id}">${ic('flag')} بلّغ عن خطأ</button>` : '') : q.status === 'draft'
-    ? `<button class="qi2-b ok" data-act="t-q-status" data-id="${q.id}" data-s="approved">${ic('check')} اعتماد</button><button class="qi2-b" data-act="t-q-edit" data-id="${q.id}">${ic('edit')} تعديل</button><button class="qi2-b del" data-act="t-q-del2" data-id="${q.id}">${ic('trash')} حذف</button>`
+    ? `<button class="qi2-b ok" data-act="t-q-status" data-id="${q.id}" data-s="approved">${ic('check')} إتاحة في المسابقات</button><button class="qi2-b" data-act="t-q-edit" data-id="${q.id}">${ic('edit')} تعديل</button><button class="qi2-b del" data-act="t-q-del2" data-id="${q.id}">${ic('trash')} حذف</button>`
     : `<button class="qi2-b" data-act="t-q-edit" data-id="${q.id}">${ic('edit')} تعديل</button><button class="qi2-b" data-act="t-q-share1" data-id="${q.id}">${ic('share')} مشاركة</button><button class="qi2-b del" data-act="t-q-del2" data-id="${q.id}">${ic('trash')} حذف</button>`;
   return `<div class="qi2${open ? ' open' : ''}${on ? ' sel' : ''}${hidden ? ' hid' : ''}" data-act="${sel ? 't-q-pick' : 't-q-open'}" data-id="${q.id}" role="button" tabindex="0" ${sel ? `aria-pressed="${on ? 'true' : 'false'}"` : `aria-expanded="${open ? 'true' : 'false'}"`}>
     ${sel ? `<span class="tick sq${on ? ' on' : ''}" aria-hidden="true">${ic('check')}</span>` : `<i class="lvd lv-${q.level}" title="${LEVEL_AR[q.level] || ''}"></i>`}
@@ -2201,7 +2211,7 @@ function qSelBar(){
   if (!QS.selOn) return '';
   const n = QS.sel.size;
   return `<div class="q-selbar"><button class="btn sm ghost" data-act="t-q-selall">الكل</button><b>${n} محدد</b><span class="grow"></span>
-    <button class="btn sm" data-act="t-q-bulk" data-s="approved" ${n ? '' : 'disabled'}>${ic('check')} اعتماد</button>
+    <button class="btn sm" data-act="t-q-bulk" data-s="approved" ${n ? '' : 'disabled'}>${ic('check')} إتاحة</button>
     <button class="btn sm soft" data-act="t-q-bulk-more" ${n ? '' : 'disabled'}>${ic('more')}</button>
     <button class="icon-btn" data-act="t-q-selx" aria-label="إلغاء التحديد">${ic('x')}</button></div>`;
 }
@@ -2219,9 +2229,9 @@ function renderQuestions(){
   const body = `${search}
     <div class="seg2 q-tabs2"><button class="${mine ? 'on' : ''}" data-act="t-qs" data-v="approved">أسئلتي</button><button class="${ro ? 'on' : ''}" data-act="t-qs" data-v="global">أسئلة جاهزة</button></div>
     ${QS.searchOn || (ro ? f.g : f.subj || f.status === 'draft') ? '' : qOk()}
-    ${mine && !QS.selOn && !QS.searchOn ? `<button class="btn q-addbig" data-act="t-q-add-menu">${ic('plus')} إضافة أسئلة</button>` : ''}
+    ${mine && !QS.selOn && !QS.searchOn ? `<div class="q-addrow"><button class="btn q-addbig" data-act="t-q-add">${ic('plus')} إضافة سؤال</button><button class="btn soft" data-act="t-q-add-menu">استيراد مجموعة</button>${QS.list.length ? `<button class="icon-btn" data-act="t-q-more" aria-label="المزيد">${ic('more')}</button>` : ''}</div>` : ''}
     ${mine && nd && f.status !== 'draft' && !QS.searchOn ? `<button class="q-ban" data-act="t-qs" data-v="draft"><span>⏳ ${nd === 1 ? 'سؤال واحد ينتظر' : nd === 2 ? 'سؤالان ينتظران' : nd + ' أسئلة تنتظر'} مراجعتك</span><u>راجعها</u></button>` : ''}
-    ${f.status === 'draft' && nd > 1 && !QS.selOn ? `<button class="btn accent" data-act="t-q-approve-all">${ic('check')} اعتماد الكل (${nd})</button>` : ''}
+    ${f.status === 'draft' && nd > 1 && !QS.selOn ? `<button class="btn accent" data-act="t-q-approve-all">${ic('check')} إتاحة الكل (${nd})</button>` : ''}
     ${qSelBar()}
     ${qCrumb()}<div id="qlist" class="qi-list">${qListHtml()}</div>
     <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen"><input type="file" id="qocr" accept="image/*" class="hide" data-change="t-q-ocr-chosen">`;
@@ -2243,14 +2253,18 @@ ACTS['t-qs'] = t => { T.qf.status = t.dataset.v; T.qf.g = ''; T.qf.gs = ''; T.qf
 ACTS['t-qf'] = t => { T.qf[t.dataset.k] = t.value; renderQuestions(); };
 ACTS['t-q-add-menu'] = () => {
   const here = T.qf.cu && CU.list.find(c => c.id === T.qf.cu);
-  modal(`<div class="aw-sheet"><h3>كيف تبي تضيف الأسئلة؟</h3>${here ? `<div class="aw-from">${esc(here.subject)} · ${gradeAr(here)}</div>` : ''}
-    <button class="aw-opt main" data-act="m-run" data-a="t-q-add"><span class="aw-oi">✍️</span><span class="grow"><b>كتابة سؤال</b><small>سؤال وأربع إجابات</small></span></button>
+  modal(`<div class="aw-sheet"><h3>استيراد مجموعة أسئلة</h3>${here ? `<div class="aw-from">${esc(here.subject)} · ${gradeAr(here)}</div>` : ''}
     <button class="aw-opt" data-act="m-run" data-a="t-q-ocr"><span class="aw-oi">📷</span><span class="grow"><b>تصوير ورقة أسئلة</b><small>من كتاب أو اختبار</small></span></button>
     <button class="aw-opt" data-act="m-run" data-a="t-q-paste"><span class="aw-oi">📋</span><span class="grow"><b>لصق مجموعة أسئلة</b><small>سؤال في كل سطر</small></span></button>
     <button class="aw-opt" data-act="m-run" data-a="t-q-import"><span class="aw-oi">📄</span><span class="grow"><b>ملف Excel</b><small>لعدد كبير من الأسئلة</small></span></button>
     <button class="aw-opt" data-act="m-run" data-a="t-q-code"><span class="aw-oi">🔑</span><span class="grow"><b>رمز من زميل</b><small>أسئلة شاركها معلم آخر</small></span></button>
-    ${QS.list.length ? `<div class="q-more-l"><button class="link" data-act="m-run" data-a="t-q-selon">تحديد عدة أسئلة</button><button class="link" data-act="m-run" data-a="t-q-share-all">مشاركة أسئلتي</button><button class="link" data-act="m-run" data-a="t-q-export">تنزيل أسئلتي</button><button class="link" data-act="m-run" data-a="t-q-template">نموذج Excel</button></div>` : ''}</div>`);
+    <button class="link" data-act="m-run" data-a="t-q-template">تنزيل نموذج Excel</button></div>`);
 };
+ACTS['t-q-more'] = () => sheet('أسئلتي', [
+  { act: 'm-run', attrs: 'data-a="t-q-selon"', icon: 'check', label: 'تحديد عدة أسئلة' },
+  { act: 'm-run', attrs: 'data-a="t-q-share-all"', icon: 'share', label: 'مشاركة أسئلتي' },
+  { act: 'm-run', attrs: 'data-a="t-q-export"', icon: 'download', label: 'تنزيل أسئلتي' }
+]);
 ACTS['t-q-del-rejected'] = async () => {
   const n = QS.list.filter(q => q.status === 'rejected').length;
   if (!n) return toast('لا توجد أسئلة مرفوضة');
@@ -2262,17 +2276,18 @@ ACTS['t-q-del-rejected'] = async () => {
 /* question form: tap the right answer, segment pickers, save & next */
 function qForm(q){
   const isNew = !q || !q.id, ocr = QS.ocrQ && QS.ocrQ.total && isNew && q;
-  q = q || { qtype: QS.lastType || 'curriculum', level: QS.lastLevel || 'medium', body: '', options: ['', '', '', ''], correct_index: 0, curriculum_id: QS.lastCu || '' };
+  q = q || { qtype: QS.lastType || 'curriculum', level: QS.lastLevel || 'medium', body: '', options: ['', '', '', ''], correct_index: -1, curriculum_id: QS.lastCu || '' };
   const seg = (name, cur, map) => `<input type="hidden" name="${name}" value="${cur}"><div class="qf-seg" data-name="${name}">${Object.keys(map).filter(k => k !== 'memory').map(k => `<button type="button" class="${cur === k ? 'on' : ''}" data-act="qf-seg" data-v="${k}">${map[k]}</button>`).join('')}</div>`;
   return `<h3>${ocr ? `سؤال ${QS.ocrQ.total - QS.ocrQ.list.length} من ${QS.ocrQ.total} من الصورة` : isNew ? 'إضافة سؤال' : 'تعديل سؤال'}</h3>${ocr ? '<p class="sub">راجع النص واضغط الدائرة بجانب الإجابة الصحيحة.</p>' : ''}<form class="col qf" data-form="t-save-q"><input type="hidden" name="id" value="${q.id || ''}"><input type="hidden" name="next" value="">
     <div class="field"><label for="q-b">نص السؤال</label><textarea class="input" id="q-b" name="body" rows="2" required maxlength="300" placeholder="اكتب السؤال هنا">${esc(q.body)}</textarea>
       <small id="q-dupw" class="q-dupw hide">هذا السؤال موجود في البنك، ولن يُحفظ مكرراً.</small></div>
-    <div class="field"><input type="hidden" name="image" value="${esc(q.image || '')}"><div class="q-imgf" id="q-imgf">${qImgField(q.image)}</div><input type="file" id="qf-file" accept="image/*" class="hide" data-change="qf-img-chosen"></div>
-    <div class="field"><label class="qf-ol">الخيارات <small class="muted">اكتب الصحيحة واضغط دائرتها، والباقي نقترحه لك</small></label><input type="hidden" name="correct" value="${q.correct_index}">
+    <div class="field"><label class="qf-ol">الخيارات <small class="muted">اضغط الدائرة بجانب الإجابة الصحيحة</small></label><input type="hidden" name="correct" value="${q.correct_index}">
     ${[0, 1, 2, 3].map(i => `<div class="qo${q.correct_index === i ? ' on' : ''}"><button type="button" class="qo-c" data-act="qf-c" data-i="${i}" aria-label="الإجابة الصحيحة ${LETTERS[i]}">${ic('check')}</button><input class="input" name="o${i}" value="${esc(q.options[i])}" required maxlength="100" placeholder="${i === q.correct_index ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[i]}"></div>`).join('')}
-    <button type="button" class="qf-sug" data-act="qf-sug">✨ اقترح إجابات خاطئة</button><small class="qf-sugn hide" id="qf-sugn">اقتراحات تلقائية، عدّلها إذا تحتاج.</small></div>
-    <div class="field"><label>المستوى</label>${seg('level', q.level, LEVEL_AR)}</div>
-    <div class="field"><label>النوع</label>${seg('qtype', q.qtype, TYPE_AR)}</div>
+    <button type="button" class="qf-sug" data-act="qf-sug">✨ اقترح إجابات خاطئة</button><small class="qf-sugn hide" id="qf-sugn">اقتراحات تلقائية، عدّلها إذا تحتاج.</small><div class="err hide" id="qf-cerr" role="alert">اختر الإجابة الصحيحة بالضغط على الدائرة بجانبها.</div></div>
+    <details class="qf-det"${q.image || !isNew ? ' open' : ''}><summary>تفاصيل السؤال <small class="sub">${LEVEL_AR[q.level] || ''} · ${TYPE_AR[q.qtype] || ''}${q.image ? ' · صورة' : ''}</small></summary>
+    <div class="field"><input type="hidden" name="image" value="${esc(q.image || '')}"><div class="q-imgf" id="q-imgf">${qImgField(q.image)}</div><input type="file" id="qf-file" accept="image/*" class="hide" data-change="qf-img-chosen"></div>
+    <div class="field"><label>الصعوبة</label>${seg('level', q.level, LEVEL_AR)}</div>
+    <div class="field"><label>النوع</label>${seg('qtype', q.qtype, TYPE_AR)}</div></details>
     <div class="field ${q.qtype === 'curriculum' ? '' : 'hide'}" id="q-cuf"><label for="q-cu">المنهج</label><select class="input" id="q-cu" name="cu" data-change="qf-cu">${cuOptions(q.curriculum_id || '')}</select>
       <label for="q-ls" class="q-lsl">الدرس <small class="muted">اختر من القائمة أو اكتب درساً جديداً</small></label><input class="input" id="q-ls" name="lesson" list="q-lsd" maxlength="80" autocomplete="off" value="${esc(q.lesson || (isNew ? QS.lastLesson || '' : ''))}" placeholder="مثال: الزكاة"><datalist id="q-lsd">${qLessonOpts(q.curriculum_id || '')}</datalist></div>
     ${ocr ? `<div class="grid2"><button class="btn" type="button" data-act="t-save-q-next">حفظ والتالي</button><button class="btn soft" type="button" data-act="t-q-ocr-skip">تخطي</button></div>` : isNew ? `<div class="grid2"><button class="btn" type="submit">حفظ</button><button class="btn soft" type="button" data-act="t-save-q-next">حفظ والتالي</button></div>` : `<button class="btn" type="submit">حفظ التعديل</button>`}
@@ -2283,7 +2298,7 @@ ACTS['qf-seg'] = t => { const s = t.parentElement, f = t.closest('form'); f[s.da
 function qLessons(cu){ if (!cu) return []; return [...new Set(QS.list.concat(QS.glob).filter(q => q.curriculum_id === cu && q.lesson).map(q => q.lesson))]; }
 function qLessonOpts(cu){ return qLessons(cu).map(l => `<option value="${esc(l)}"></option>`).join(''); }
 ACTS['qf-cu'] = t => { const d = document.getElementById('q-lsd'); if (d) d.innerHTML = qLessonOpts(t.value); };
-ACTS['qf-c'] = t => { const f = t.closest('form'), i = Number(t.dataset.i); f.correct.value = i;
+ACTS['qf-c'] = t => { const f = t.closest('form'), i = Number(t.dataset.i); f.correct.value = i; const ce = document.getElementById('qf-cerr'); if (ce) ce.classList.add('hide');
   f.querySelectorAll('.qo').forEach((r, j) => { r.classList.toggle('on', j === i); r.querySelector('input').placeholder = j === i ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[j]; }); };
 /* suggest wrong answers without AI: nearby numbers, true/false, or answers of similar questions in the bank */
 const QSTOP = new Set(['ما', 'من', 'هو', 'هي', 'في', 'كم', 'متى', 'اين', 'أين', 'هل', 'ماذا', 'لماذا', 'كيف', 'اي', 'أي', 'الى', 'على', 'عن', 'يسمى', 'تسمى', 'the', 'what', 'is', 'of', 'a']);
@@ -2323,7 +2338,8 @@ function qSuggest(body, ans, n){
   return out;
 }
 function qfFillSug(f, force){
-  const ci = Number(f.correct.value), ans = f['o' + ci].value, slots = [0, 1, 2, 3].filter(i => i !== ci && (force ? (!f['o' + i].value.trim() || f['o' + i].dataset.sug) : !f['o' + i].value.trim()));
+  const ci = Number(f.correct.value); if (ci < 0) { if (force) { const ce = document.getElementById('qf-cerr'); if (ce) ce.classList.remove('hide'); } return 0; }
+  const ans = f['o' + ci].value, slots = [0, 1, 2, 3].filter(i => i !== ci && (force ? (!f['o' + i].value.trim() || f['o' + i].dataset.sug) : !f['o' + i].value.trim()));
   if (!slots.length) return force ? toast('امسح خانة لنقترح فيها') : 0;
   const sug = qSuggest(f.body.value, ans, slots.length);
   if (!sug.length) return force ? toast(ans.trim() ? 'ما لقيت اقتراحات مناسبة، اكتبها بنفسك' : 'اكتب الإجابة الصحيحة أولاً') : 0;
@@ -2367,7 +2383,7 @@ ACTS['t-save-q'] = async f => {
   const next = f.next.value === '1'; f.next.value = '';
   const row = { qtype: f.qtype.value, level: f.level.value, body: f.body.value.trim(), options: [0, 1, 2, 3].map(i => f['o' + i].value.trim()), correct_index: Number(f.correct.value), curriculum_id: f.qtype.value === 'curriculum' ? (f.cu.value || null) : null, image: f.image.value || null };
   row.lesson = row.curriculum_id ? (f.lesson.value.replace(/\s+/g, ' ').trim().slice(0, 80) || null) : null;
-  if (row.correct_index < 0) return toast('اضغط الدائرة بجانب الإجابة الصحيحة');
+  if (row.correct_index < 0) { const ce = document.getElementById('qf-cerr'); if (ce) { ce.classList.remove('hide'); ce.scrollIntoView({ block: 'center' }); } return; }
   QS.lastCu = f.cu.value; QS.lastType = row.qtype; QS.lastLevel = row.level; QS.lastLesson = row.lesson || '';
   if (new Set(row.options).size < 4) return toast('الخيارات يجب أن تكون مختلفة');
   const k = qNorm(row.body);
@@ -2381,7 +2397,7 @@ ACTS['t-save-q'] = async f => {
     f.image.value = ''; document.getElementById('q-imgf').innerHTML = qImgField('');
     f.body.value = ''; [0, 1, 2, 3].forEach(i => { const el = f['o' + i]; el.value = ''; delete el.dataset.sug; el.classList.remove('sug'); }); const sn = document.getElementById('qf-sugn'); if (sn) sn.classList.add('hide'); ACTS['qf-c'](f.querySelector('[data-i="0"]'));
     const w = document.getElementById('q-dupw'); if (w) w.classList.add('hide');
-    f.body.focus(); toast(`تم الحفظ. أسئلتك المعتمدة: ${QS.list.filter(q => q.status === 'approved').length}`);
+    f.body.focus(); toast(`تم الحفظ. أسئلتك المتاحة: ${QS.list.filter(q => q.status === 'approved').length}`);
     const d = document.getElementById('q-lsd'); if (d) d.innerHTML = qLessonOpts(f.cu.value);
     renderQuestionsKeepModal(); return;
   }
@@ -2396,8 +2412,8 @@ function qSetStatus(ids, s, msg){
   snack(msg, () => { ids.forEach(id => { const q = QS.list.find(x => x.id === id); if (q && prev[id]) q.status = prev[id]; }); renderQuestions(); },
     async () => { const { error } = await sb.from('questions').update({ status: s }).in('id', ids); if (error) { toast(errMsg(error)); await tQuestions(); } });
 }
-ACTS['t-q-status'] = t => { const s = t.dataset.s; qSetStatus([t.dataset.id], s, s === 'approved' ? 'تم اعتماد السؤال' : 'تم رفض السؤال'); };
-ACTS['t-q-approve-all'] = () => { const ids = QS.list.filter(q => q.status === 'draft').map(q => q.id); qSetStatus(ids, 'approved', `تم اعتماد ${ids.length} سؤالاً`); };
+ACTS['t-q-status'] = t => { const s = t.dataset.s; qSetStatus([t.dataset.id], s, s === 'approved' ? 'أصبح السؤال متاحاً في المسابقات' : 'تم رفض السؤال'); };
+ACTS['t-q-approve-all'] = () => { const ids = QS.list.filter(q => q.status === 'draft').map(q => q.id); qSetStatus(ids, 'approved', `تمت إتاحة ${ids.length} سؤالاً`); };
 ACTS['t-q-del'] = async t => {
   if (!await ask('حذف هذا السؤال نهائياً؟')) return;
   const { error } = await sb.from('questions').delete().eq('id', t.dataset.id);
@@ -2410,9 +2426,9 @@ ACTS['t-q-selon'] = () => { QS.selOn = !QS.selOn; QS.sel.clear(); renderQuestion
 ACTS['t-q-selx'] = () => { QS.selOn = false; QS.sel.clear(); renderQuestions(); };
 ACTS['t-q-pick'] = t => { const id = t.dataset.id; QS.sel.has(id) ? QS.sel.delete(id) : QS.sel.add(id); renderQuestions(); };
 ACTS['t-q-selall'] = () => { const ids = qFiltered().map(q => q.id); const all = ids.every(id => QS.sel.has(id)); ids.forEach(id => all ? QS.sel.delete(id) : QS.sel.add(id)); renderQuestions(); };
-ACTS['t-q-bulk'] = t => { const ids = [...QS.sel], s = t.dataset.s; closeModals(); qSetStatus(ids, s, `${s === 'approved' ? 'تم اعتماد' : s === 'rejected' ? 'تم رفض' : 'تم نقل'} ${ids.length} سؤالاً`); };
+ACTS['t-q-bulk'] = t => { const ids = [...QS.sel], s = t.dataset.s; closeModals(); qSetStatus(ids, s, `${s === 'approved' ? 'تمت إتاحة' : s === 'rejected' ? 'تم رفض' : 'تم نقل'} ${ids.length} سؤالاً`); };
 ACTS['t-q-bulk-more'] = () => sheet(`${QS.sel.size} سؤالاً محدداً`, [
-  { act: 't-q-bulk', attrs: 'data-s="approved"', icon: 'check', label: 'اعتماد' },
+  { act: 't-q-bulk', attrs: 'data-s="approved"', icon: 'check', label: 'إتاحة في المسابقات' },
   { act: 't-q-bulk', attrs: 'data-s="draft"', icon: 'eye', label: 'إرجاعها للمراجعة' },
   { act: 't-q-bulk', attrs: 'data-s="rejected"', icon: 'x', label: 'رفض' },
   { act: 't-q-bulk-lv', attrs: 'data-v="easy"', icon: 'layers', label: 'جعلها سهلة' },
@@ -2431,7 +2447,7 @@ ACTS['t-q-bulk-del'] = async () => { const ids = [...QS.sel]; closeModals();
   QS.sel.clear(); QS.selOn = false; await tQuestions(); };
 
 /* public bank */
-ACTS['t-q-view'] = () => toast('هذا سؤال من البنك العام. انسخه إلى أسئلتك لتعدّله.');
+ACTS['t-q-view'] = () => toast('هذا سؤال من الأسئلة الجاهزة. انسخه إلى أسئلتك لتعدّله.');
 ACTS['t-q-copy'] = async t => {
   const g = QS.glob.find(x => x.id === t.dataset.id); if (!g) return;
   const { data, error } = await sb.from('questions').insert({ owner_id: T.user.id, status: 'approved', source: 'copy', qtype: g.qtype, level: g.level, body: g.body, options: g.options, correct_index: g.correct_index }).select().single();
@@ -2575,7 +2591,7 @@ async function qSharePreview(code){
     const p = await rpc('shared_preview', { p_code: code });
     if (!p) return toast(ERR.bad_code);
     const qs = p.questions || [];
-    modal(`<h3>أسئلة من ${esc(p.from || 'زميل')}</h3><p class="sub">${qs.length} سؤالاً. تُضاف إلى أسئلتك معتمدة، ويمكنك تعديلها.</p>
+    modal(`<h3>أسئلة من ${esc(p.from || 'زميل')}</h3><p class="sub">${qs.length} سؤالاً. تُضاف إلى أسئلتك متاحة، ويمكنك تعديلها.</p>
       <div class="qpv-list">${qs.slice(0, 60).map(x => `<div class="qpv"><b>${x.image ? '🖼️ ' : ''}${esc(x.body)}</b><small>${LEVEL_AR[x.level] || ''} · ${TYPE_AR[x.qtype] || ''}</small></div>`).join('')}</div>
       <button class="btn" data-act="t-q-share-import" data-c="${esc(code)}" ${qs.length ? '' : 'disabled'}>إضافة إلى أسئلتي</button>`);
   } catch(e){ toast(errMsg(e)); }
@@ -2729,14 +2745,18 @@ function awReview(rows, src){
 function awRenderReview(){
   closeModals();
   const R = AW.rows, nNew = R.filter(r => r.on && !r.where).length, nOld = R.filter(r => r.where && !r.move).length, nWarn = R.filter(r => r.warn && r.on).length, nMove = R.filter(r => r.move).length;
+  const tid = AW.cid || AW.pick || AW.detect || (CL.classes.length === 1 ? CL.classes[0].id : null), tc = CL.classes.find(c => c.id === tid);
+  if (tc && !AW.cid) AW.pick = tc.id;
   modal(`<div class="aw-rev"><div class="aw-rh"><button class="link" data-act="close-modal">إلغاء</button><h3>راجع الأسماء</h3><span></span></div>
+    <div class="aw-to">${tc ? `إلى <b>${esc(tc.name)}</b>` : '<span class="muted">لم يُحدد الصف بعد</span>'}${AW.cid ? '' : `<button class="link" data-act="aw-chg">${tc ? 'تغيير الصف' : 'اختر الصف'}</button>`}</div>
     <span class="aw-from">📋 ${AW.src === 'photo' ? 'وجدنا' : 'عندك'} ${R.length} اسماً</span>
-    <div class="aw-sum"><span class="n">${nNew} جديد</span>${nOld ? `<span class="o">${nOld} موجودون</span>` : ''}${nMove ? `<span class="w">${nMove} نقل</span>` : ''}${nWarn ? `<span class="w">${nWarn} يحتاج مراجعة</span>` : ''}</div>
+    <div class="aw-sum"><span class="n">${nNew} جديد</span>${nOld ? `<span class="o">${nOld} مكرر (موجود مسبقاً)</span>` : ''}${nMove ? `<span class="w">${nMove} نقل</span>` : ''}${nWarn ? `<span class="w">${nWarn} يحتاج مراجعة</span>` : ''}</div>
     <div class="aw-list">${R.map((r, i) => r.where
       ? `<div class="aw-nm ${r.move ? 'move' : 'old'}"><span class="grow">${esc(r.name)}</span>${r.move ? `<em>نقل من ${esc(r.where.c.name)}</em><button class="aw-x" data-act="aw-move" data-i="${i}" aria-label="إلغاء النقل">✕</button>` : `<em>في ${esc(r.where.c.name)}</em><button class="aw-mv" data-act="aw-move" data-i="${i}">نقل؟</button>`}</div>`
       : `<div class="aw-nm${r.warn ? ' warn' : ''}${r.on ? '' : ' off'}"><input class="aw-in" data-i="${i}" value="${esc(r.name)}" aria-label="اسم الطالب">${r.warn && r.on ? '<em>تأكد من الاسم</em>' : ''}<button class="aw-x" data-act="aw-del" data-i="${i}" aria-label="${r.on ? 'حذف' : 'إرجاع'}">${r.on ? '✕' : '↺'}</button></div>`).join('')}
       <form class="aw-addline" data-form="aw-add1"><span class="pl">＋</span><input name="n" placeholder="إضافة اسم نسيته" autocomplete="off"></form></div>
-    <button class="btn aw-go" data-act="aw-next" ${nNew + nMove ? '' : 'disabled'}>متابعة (${nNew + nMove} طالباً)</button></div>`).classList.add('aw-full');
+    ${nNew + nMove ? '' : '<p class="sub center">لا توجد أسماء جديدة لإضافتها.</p>'}
+    <button class="btn aw-go" data-act="${tc ? 'aw-save' : 'aw-next'}" ${nNew + nMove ? '' : 'disabled'}>${tc ? `أضف ${nNew + nMove} إلى ${esc(tc.name)}` : `اختر الصف (${nNew + nMove} طالباً)`}</button></div>`).classList.add('aw-full');
 }
 document.addEventListener('change', e => { const i = e.target.closest && e.target.closest('.aw-in'); if (!i) return; const r = AW.rows[+i.dataset.i]; r.name = i.value.replace(/\s+/g, ' ').trim(); awFlag(r); if (r.name.length < 2) r.on = false; awRenderReview(); });
 ACTS['aw-del'] = t => { const r = AW.rows[+t.dataset.i]; r.on = !r.on; awRenderReview(); };
@@ -2752,7 +2772,7 @@ function awPick(self){
     ${AW.detect && !self ? `<p class="aw-hint">✓ قرأنا «${esc((CL.classes.find(c => c.id === AW.detect) || {}).name || '')}» من أعلى الكشف</p>` : ''}
     <div class="aw-grid">${CL.classes.map(c => `<button class="aw-pk${c.id === pre ? ' on' : ''}" data-act="aw-pk" data-id="${c.id}" data-self="${self ? 1 : ''}">${esc(c.name)}</button>`).join('')}<button class="aw-pk new" data-act="aw-newcls" data-self="${self ? 1 : ''}">＋ صف جديد</button></div>
     ${self ? '' : `<div class="aw-conf">${target ? `سيتم إضافة <b>${n}</b> طالباً إلى <b>${esc(target.name)}</b>` : 'اختر الصف'}</div>`}
-    <button class="btn" data-act="${self ? 'aw-self-go' : 'aw-save'}" ${target ? '' : 'disabled'}>${self ? 'عرض الرابط' : 'إضافة'}</button></div>`).classList.add('aw-full');
+    <button class="btn" data-act="${self ? 'aw-self-go' : 'aw-back'}" ${target ? '' : 'disabled'}>${self ? 'عرض الرابط' : 'تم'}</button></div>`).classList.add('aw-full');
 }
 ACTS['aw-back'] = () => awRenderReview();
 ACTS['aw-pk'] = t => { AW.pick = t.dataset.id; awPick(!!t.dataset.self); };
@@ -2764,7 +2784,8 @@ ACTS['aw-newcls'] = async t => {
   if (error) return toast(errMsg(error));
   CL.classes.push(data); CL.byId[data.id] = data; CL.students[data.id] = []; AW.pick = data.id; awPick(!!t.dataset.self);
 };
-ACTS['aw-save'] = t => awSave(AW.pick, t);
+ACTS['aw-save'] = t => awSave(AW.cid || AW.pick, t);
+ACTS['aw-chg'] = () => awPick();
 async function awSave(cid, btn){
   const c = CL.classes.find(x => x.id === cid); if (!c) return;
   const g = c.gender === 'm' || c.gender === 'f' ? c.gender : '';
@@ -2790,7 +2811,7 @@ async function awSave(cid, btn){
     }, () => {});
   } catch(e){
     const n = (AW.codes || []).length;
-    if (btn) { btn.disabled = false; btn.textContent = n ? 'إكمال الإضافة' : 'إضافة'; }
+    if (btn) { btn.disabled = false; btn.textContent = n ? 'إكمال الإضافة' : 'إعادة المحاولة'; }
     toast(n ? `أُضيف ${n} من ${total} طالباً. اضغط «إكمال الإضافة» لإضافة الباقي دون تكرار` : 'تعذّرت الإضافة: ' + errMsg(e));
   }
 }
@@ -2857,29 +2878,30 @@ function renderResults(){
   const top3 = byPts.filter(r => r.pts > 0).slice(0, 3);
   const pod = top3.length >= 2 ? `<div class="podium">${[1, 0, 2].map(i => top3[i] ? `<div class="pd pd${i + 1}"><div class="pd-medal">${i + 1}</div><b>${esc(top3[i].name.split(' ')[0])}</b><span>${top3[i].pts}</span><div class="pd-step"></div></div>` : '<div class="pd"></div>').join('')}</div>` : '';
   const chips = RS.classes.length > 1 ? `<div class="lv-chips">${RS.classes.map(c => `<button class="${RS.id === c.id ? 'on' : ''}" data-act="r-cls" data-id="${c.id}">${esc(c.name)}</button>`).join('')}</div>` : `<div class="rs-cls">${esc(RS.name)}</div>`;
-  const sorts = [['pts', 'النقاط'], ['acc', 'الدقة'], ['rounds', 'الجولات'], ['idle', 'لم يلعبوا']];
+  const sorts = [['pts', 'النقاط'], ['acc', 'نسبة الصحيح'], ['rounds', 'الجولات'], ['idle', 'لم يلعبوا اليوم']];
   const max = Math.max(1, ...rows.map(r => r.pts));
   const any = rows.some(r => r.rounds > 0);
   if (!any && RS.sort === 'pts') list.sort((x, y) => x.name.localeCompare(y.name, 'ar'));
   const items = list.map(r => { const a2 = acc(r), rr = rank.get(r);
     return `<button class="rl-row" data-act="r-open" data-k="${esc(r.cls + '|' + r.name + '|' + r.student_no)}">
       <span class="rl-rk ${r.pts && rr <= 3 ? 'm' + rr : ''}">${r.pts ? rr : ''}</span>
-      <span class="grow rl-txt"><b>${esc(r.name)}</b><small>${RS.all ? esc(r.cls) + ' · ' : ''}${r.rounds ? r.rounds + ' جولة · دقة ' + a2 + '%' : 'لم يلعب بعد'}</small>
+      <span class="grow rl-txt"><b>${esc(r.name)}</b><small>${RS.all ? esc(r.cls) + ' · ' : ''}${r.rounds ? r.rounds + ' جولة · ' + a2 + '% صحيحة' : 'لم يلعب بعد'}</small>
       ${r.pts ? `<span class="rl-bar"><i style="width:${Math.round(r.pts * 100 / max)}%"></i></span>` : ''}</span>
       ${r.played_today ? `<span class="rl-dot" title="لعب اليوم"></span>` : ''}
       <span class="rl-pts ${r.pts ? '' : 'z'}">${r.pts}</span></button>`; }).join('');
-  const sum = `<div class="rs-sum"><div><b>${n}</b><span>طالب/ـة</span></div><div><b>${n ? Math.round(played * 100 / n) : 0}%</b><span>لعبوا اليوم</span></div><div><b>${avg}</b><span>متوسط النقاط</span></div><div><b>${tr ? Math.round(tc * 100 / (tr * 4)) + '%' : '—'}</b><span>الدقة</span></div></div>`;
+  const sum = `<div class="rs-sum"><div><b>${n}</b><span>طالب/ـة</span></div><div><b>${n ? Math.round(played * 100 / n) : 0}%</b><span>لعبوا اليوم</span></div><div><b>${avg}</b><span>متوسط النقاط</span></div><div><b>${tr ? Math.round(tc * 100 / (tr * 4)) + '%' : '—'}</b><span>نسبة الصحيح</span></div></div>`;
   if (RS.err) {
     return view(RS.title || 'النتائج', chips + `<div class="rs-empty rs-fail" role="alert">${ic('clock')}<div><b>تعذّر تحميل النتائج</b><small>تأكد من الاتصال بالإنترنت ثم أعد المحاولة. لم يتغير شيء في بيانات الطلبة.</small></div></div><button class="btn" data-act="r-retry">إعادة المحاولة</button>`, 'comps', '', '#/t/comps');
   }
   const ko = RS.ko ? `<div class="card col ko-card"><b>${ic('trophy')} التصفيات</b>${bracketHtml(RS.ko)}${honorHtml(RS.ko)}</div>` : '';
-  const body = chips + sum + pod + ko +
+  const today = n ? `<div class="rs-today"><b>لعب ${played} من ${n} اليوم</b>${n - played ? `<button class="link" data-act="r-sort" data-v="idle">عرض من لم يلعب</button>` : ''}</div>` : '';
+  const body = chips + today + ko +
     (!n ? `<div class="rs-empty">${ic('users')}<div><b>لا يوجد طلبة في هذا الصف</b><small>أضف الطلبة من صفحة الصفوف، وستظهر نتائجهم هنا بعد أول جولة.</small></div></div><a class="btn soft" href="#/t/classes">إضافة طلبة</a>` :
      !any ? `<div class="rs-empty">${ic('clock')}<div><b>لم يلعب أحد بعد</b><small>تظهر النقاط والترتيب هنا بعد أول جولة رسمية.</small></div></div>` : '') +
     `<div class="rs-search">${ic('search')}<input id="r-q" placeholder="بحث بالاسم أو الرقم" value="${esc(RS.q)}"></div>
      <div class="tabs rs-seg">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
      <div class="rl-grp" id="r-list">${items || (RS.q ? `<div class="set-row center muted">لا يوجد طالب يطابق «${esc(RS.q)}». جرّب جزءاً من الاسم أو رقم الطالب.</div>` : '<div class="set-row center muted">لا يوجد طلبة.</div>')}</div>
-     <div class="set-f center">${list.length} من ${n} · النقطة الخضراء: لعب اليوم</div>`;
+     <div class="set-f center">${list.length} من ${n} · النقطة الخضراء: لعب اليوم</div>` + (any ? sum + pod : '');
   view(RS.title || 'النتائج', body, 'comps', `<button class="icon-btn" data-act="r-msg-all" aria-label="رسالة للصف">${ic('mail')}</button><button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, '#/t/comps');
 }
 ACTS['r-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tResults.apply(null, RS.args || [RS.id, RS.comp]).catch(() => renderResults()); };
@@ -2900,9 +2922,9 @@ ACTS['r-open'] = t => {
   const acc = r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) + '%' : '—';
   const ini = r.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
   modal(`<div class="st-card"><div class="st-top"><div class="avatar big-av">${esc(ini)}</div><div><b>${esc(r.name)}</b><div class="sub">${esc(r.cls)} · رقم ${esc(r.student_no) || '—'}</div></div></div>
-    <div class="stats"><div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? sorted.indexOf(r) + 1 : '—'}</b><span>في صفه من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>الدقة</span></div></div>
+    <div class="stats"><div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? sorted.indexOf(r) + 1 : '—'}</b><span>في صفه من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>نسبة الصحيح</span></div></div>
     <div class="sub center">${r.correct} إجابة صحيحة من ${r.rounds * 4} · ${r.played_today ? '<b style="color:#168A5B">لعب اليوم ✓</b>' : '<b style="color:#8a5a00">لم يلعب اليوم</b>'}</div>
-    <button class="btn" style="margin-top:14px" data-act="r-report" data-id="${r.id}" data-name="${esc(r.name)}" data-cls="${esc(r.cls)}">تقرير المستوى المفصّل</button>
+    <button class="btn" style="margin-top:14px" data-act="r-report" data-id="${r.id}" data-name="${esc(r.name)}" data-cls="${esc(r.cls)}">تقرير أداء الطالب</button><small class="sub center" style="display:block;margin-top:4px">${RS.comp ? 'يشمل جولات هذه المسابقة فقط' : 'يشمل جولات المسابقة الحالية'}</small>
     <button class="btn soft" style="margin-top:8px" data-act="r-msg" data-id="${r.id}">${ic('mail')} إرسال رسالة</button></div>`);
 };
 const LV_AR = { easy: 'السهلة', medium: 'المتوسطة', hard: 'الصعبة' };
@@ -2946,7 +2968,7 @@ function buildReport(name, d, g){
   const list = (arr, empty) => arr.length ? '<ul class="rp-ul">' + arr.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '<div class="sub">' + empty + '</div>';
   const text = 'تقرير المستوى: ' + name + '\nالتقدير: ' + grade[0] + ' · الدقة ' + acc + '%\nنقاط القوة: ' + (strong.join('، ') || '—') + '\nنقاط الضعف: ' + (weak.join('، ') || '—') + '\nالتوصيات: ' + tips.join(' | ');
   return { text, html: `<div class="rp"><div class="rp-head"><b>${esc(name)}</b><span style="background:${grade[1]}">${grade[0]}</span></div>
-    <div class="stats"><div class="stat"><b>${acc}%</b><span>الدقة</span></div><div class="stat"><b>${d.total}</b><span>أسئلة</span></div><div class="stat"><b>${sp != null ? sp + ' ث' : '—'}</b><span>${speed}</span></div></div>
+    <div class="stats"><div class="stat"><b>${acc}%</b><span>نسبة الإجابات الصحيحة</span></div><div class="stat"><b>${d.total}</b><span>أسئلة</span></div><div class="stat"><b>${sp != null ? sp + ' ث' : '—'}</b><span>${speed}</span></div></div>
     ${trend ? '<div class="sub center">' + trend + '</div>' : ''}
     <h4>حسب الصعوبة</h4>${lv.map(x => bar(x.n, x.p, x.c + '/' + x.t)).join('')}
     ${sb.length > 1 || (sb[0] && sb[0].n !== 'عام') ? '<h4>حسب المادة</h4>' + sb.map(x => bar(x.n, x.p, x.c + '/' + x.t)).join('') : ''}
@@ -2981,7 +3003,7 @@ ACTS['r-report-pdf'] = async t => {
   const wrap = document.createElement('div'); wrap.className = 'rp-pdf-host';
   const page = document.createElement('div'); page.className = 'rp-pdf'; page.dir = 'rtl';
   const body = src.cloneNode(true); body.querySelectorAll('.rp-acts,button').forEach(b => b.remove());
-  page.innerHTML = `<div class="rp-pdf-top"><img src="icon-192.png" alt=""><div><b>تحدّي الدقيقة</b><span>تقرير المستوى المفصّل</span></div><div class="rp-pdf-meta">${RS.lastCls ? esc(RS.lastCls) + '<br>' : ''}${esc(RS.name || '')}<br>${new Date().toLocaleDateString('ar-KW-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}</div></div>`;
+  page.innerHTML = `<div class="rp-pdf-top"><img src="icon-192.png" alt=""><div><b>تحدّي الدقيقة</b><span>تقرير أداء الطالب</span></div><div class="rp-pdf-meta">${RS.lastCls ? esc(RS.lastCls) + '<br>' : ''}${esc(RS.name || '')}<br>${new Date().toLocaleDateString('ar-KW-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}</div></div>`;
   page.appendChild(body);
   page.insertAdjacentHTML('beforeend', `<div class="rp-pdf-foot">المعلم/ـة: ${esc(T.name || '')} · أُعدّ هذا التقرير آلياً من نتائج الجولات الرسمية</div>`);
   wrap.appendChild(page); document.body.appendChild(wrap); rpSplitWords(page);
@@ -2996,7 +3018,7 @@ ACTS['r-report-pdf'] = async t => {
 };
 ACTS['r-report-copy'] = () => { navigator.clipboard && navigator.clipboard.writeText(RS.lastText || ''); toast('تم النسخ'); };
 ACTS['t-res-export'] = async () => { await XL();
-  const rows = [['الصف', 'الاسم', 'رقم الطالب', 'النقاط', 'الجولات', 'الإجابات الصحيحة', 'الدقة %', 'لعب اليوم']].concat(RS.rows.slice().sort((x, y) => y.pts - x.pts).map(r => [r.cls, r.name, r.student_no, r.pts, r.rounds, r.correct, r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) : '', r.played_today ? 'نعم' : 'لا']));
+  const rows = [['الصف', 'الاسم', 'رقم الطالب', 'النقاط', 'الجولات', 'الإجابات الصحيحة', 'نسبة الإجابات الصحيحة %', 'لعب اليوم']].concat(RS.rows.slice().sort((x, y) => y.pts - x.pts).map(r => [r.cls, r.name, r.student_no, r.pts, r.rounds, r.correct, r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) : '', r.played_today ? 'نعم' : 'لا']));
   const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'النتائج'); XLSX.writeFile(wb, 'نتائج-' + RS.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };
@@ -3054,9 +3076,9 @@ ACTS['num-pick'] = async t => {
 const DIFF_ALL = () => DIFF.map(d => [d[0], d[1], d[2]]);
 const OPTS = {
   difficulty: { t: 'صعوبة الجولة', back: '#/t/qset', o: DIFF_ALL, foot: 'كل جولة فيها 4 أسئلة. «حسب مستوى الطالب» تصعّب الأسئلة لمن يجاوب صح وتسهّلها لمن يغلط.' },
-  q_src: { t: 'مصدر الأسئلة', back: '#/t/qset', o: () => [['all', 'أسئلتي + البنك العام', 'إذا خلصت أسئلتك تكمل من البنك'], ['mine', 'أسئلتي فقط', 'لازم يكون عندك أسئلة معتمدة كافية']] },
+  q_src: { t: 'مصدر الأسئلة', back: '#/t/qset', o: () => [['all', 'أسئلتي + الأسئلة الجاهزة', 'إذا خلصت أسئلتك تكمل من البنك'], ['mine', 'أسئلتي فقط', 'لازم يكون عندك أسئلة متاحة كافية']] },
   show_ans: { t: 'إظهار الإجابة الصحيحة', back: '#/t/qset', o: () => [['each', 'بعد كل سؤال', ''], ['end', 'بنهاية الجولة', 'تظهر في مراجعة الإجابات'], ['never', 'لا تظهر', 'يعرف الطالب بس إذا كانت إجابته صح أو خطأ']] },
-  scoring: { t: 'طريقة الحساب', back: '#/t/rset', o: () => [['speed', 'الصحة والسرعة', 'نقاط السؤال + مكافأة لمن يجاوب أسرع'], ['correct', 'الصحة فقط', 'نقاط السؤال بدون مكافأة سرعة'], ['penalty', 'مع خصم للخطأ', 'مثل الأول، والخاطئة تخصم (الجولة ما تنزل تحت الصفر)']] },
+  scoring: { t: 'طريقة الحساب', back: '#/t/rset', o: () => [['speed', 'الإجابة الصحيحة ومكافأة السرعة', 'نقاط السؤال + مكافأة لمن يجاوب أسرع'], ['correct', 'الصحة فقط', 'نقاط السؤال بدون مكافأة سرعة'], ['penalty', 'مع خصم للخطأ', 'مثل الأول، والخاطئة تخصم (الجولة ما تنزل تحت الصفر)']] },
   lb: { t: 'لوحة المتصدرين', back: '#/t/rset', o: () => [['all', 'كاملة', 'يشوف الطالب ترتيب كل الصف'], ['top', 'أفضل عدد', 'تحدد العدد من صفحة النتائج'], ['hidden', 'مخفية حتى النهاية', 'يشوف ترتيبه بس لين تنتهي المسابقة']], get: () => SG('lb') === 'top10' ? 'top' : SG('lb') },
   names: { t: 'أسماء الطلبة في اللوحة', back: '#/t/rset', o: () => [['full', 'الاسم كاملاً', 'محمد أحمد العلي'], ['first_fam', 'الأول وحرف العائلة', 'محمد ع.'], ['first', 'الاسم الأول فقط', 'محمد']] },
   prof_title: { t: 'اللقب', back: '#/t/account', o: () => [['', 'بدون', ''], ['أ.', 'أ.', ''], ['أستاذ', 'أستاذ', ''], ['أستاذة', 'أستاذة', ''], ['د.', 'د.', '']] },
@@ -3183,7 +3205,7 @@ function tRSet(){
       swRow({ k: 'lb_pts', label: 'إظهار نقاط الطلبة الآخرين' }), swRow({ k: 'lb_me', label: 'إظهار ترتيب الطالب دائماً', sub: 'حتى لو مو من الأوائل' }), optRow('names', 'الأسماء في اللوحة')]),
     'settings', '', '#/t/settings');
 }
-const TBL = { accuracy: ['الدقة', 'نسبة الإجابات الصحيحة'], speed: ['السرعة', 'متوسط زمن الإجابات الصحيحة'], rounds: ['المشاركة', 'عدد الجولات الرسمية'], last: ['آخر جولة', 'نقاط آخر جولة لعبها'] };
+const TBL = { accuracy: ['نسبة الإجابات الصحيحة', 'الأعلى نسبة إجابات صحيحة'], speed: ['السرعة', 'متوسط زمن الإجابات الصحيحة'], rounds: ['المشاركة', 'عدد الجولات الرسمية'], last: ['آخر جولة', 'نقاط آخر جولة لعبها'] };
 function tbKeys(){
   let a = (T.settings || {}).tb;
   if (!Array.isArray(a) || a.length !== 4) { const f = (T.settings || {}).tiebreak || 'accuracy'; a = [f].concat(['accuracy', 'speed', 'rounds', 'last'].filter(x => x !== f)); }
@@ -3568,7 +3590,7 @@ ACTS['crop-save'] = async t => {
   if (error) { t.disabled = false; return toast(errMsg(error)); }
   T.avatar = url; closeModals(); rerender(); toast('تم حفظ الصورة');
 };
-ACTS['st-name'] = () => modal(`<h3>الاسم</h3><form class="col" data-form="t-save-name"><div class="field"><input class="input" name="name" value="${esc(T.name)}" required maxlength="60"></div><p class="sub">يظهر هذا الاسم للطلبة في صفحة التسجيل الذاتي.</p><button class="btn" type="submit">حفظ</button></form>`);
+ACTS['st-name'] = () => modal(`<h3>الاسم</h3><form class="col" data-form="t-save-name"><div class="field"><input class="input" name="name" value="${esc(T.name)}" required maxlength="60"></div><p class="sub">يظهر هذا الاسم للطلبة في صفحة التسجيل عبر الرابط.</p><button class="btn" type="submit">حفظ</button></form>`);
 ACTS['st-pass'] = () => modal(`<h3>تغيير كلمة المرور</h3><form class="col" data-form="st-pass-save"><div class="field"><label for="np">كلمة المرور الجديدة</label><input class="input" id="np" name="p1" type="password" minlength="6" required dir="ltr"></div>
   <div class="field"><label for="np2">تأكيد كلمة المرور</label><input class="input" id="np2" name="p2" type="password" minlength="6" required dir="ltr"></div><button class="btn" type="submit">حفظ</button></form>`);
 ACTS['st-pass-save'] = async f => {
@@ -3621,7 +3643,7 @@ async function studentJoin(code){
     $app.innerHTML = `<div class="hero">${LOGO}<h1>تحدّي الدقيقة</h1><p>التسجيل في صف <b>${esc(info.class)}</b>${info.teacher ? ' · ' + esc(info.teacher) : ''}</p></div>
       <div class="pad"><form class="card col" data-form="j-submit" data-code="${esc(code)}">
       <div class="field"><label for="j-n">الاسم الثلاثي</label><input class="input" id="j-n" name="name" required minlength="3" maxlength="60"></div>
-      <div class="field"><label for="j-no">رقم الطالب</label><input class="input" id="j-no" name="no" required inputmode="numeric" dir="ltr"></div>
+      <div class="field"><label for="j-no">رقم الطالب</label><input class="input" id="j-no" name="no" required inputmode="numeric" dir="ltr" aria-describedby="j-no-h"><small class="sub" id="j-no-h">رقمك في كشف الصف أو الرقم الذي يعطيك إياه المعلم/ـة. إن لم تعرفه فاسأل معلمك.</small></div>
       <div id="jerr"></div><button class="btn" type="submit">تسجيل</button></form></div>`;
   } catch(e){
     $app.innerHTML = `<div class="hero">${LOGO}<h1>تحدّي الدقيقة</h1></div><div class="pad"><div class="err">${esc(errMsg(e))}</div><button class="btn" data-act="go-student" style="margin-top:14px">دخول بالرمز</button></div>`;
@@ -3629,15 +3651,16 @@ async function studentJoin(code){
 }
 ACTS['j-submit'] = async f => {
   const box = document.getElementById('jerr'); box.innerHTML = '';
-  const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
+  const btn = f.querySelector('button[type=submit]'); if (btn.disabled) return; btn.disabled = true; btn.textContent = 'جارٍ التسجيل…';
   try {
     const r = await rpc('student_self_register', { p_join: f.dataset.code, p_name: f.name.value, p_no: f.no.value });
     const l = await rpc('student_login', { p_code: r.code });
     S.token = l.token; LS.set('mc_token', l.token); LS.set('mc_code', r.code);
+    let canPlay = false; try { const hm = await rpc('student_home', { p_token: l.token }); canPlay = hm && hm.phase === 'points' && !hm.played_today; } catch(_){}
     $app.innerHTML = `<div class="hero">${LOGO}<h1>تم التسجيل!</h1><p>هذا رمزك للدخول، احفظه أو صوّره</p></div>
-      <div class="pad col"><div class="card center"><div class="big-code" dir="ltr">${esc(r.code)}</div><button class="btn sm soft" data-act="copy" data-v="${esc(r.code)}">نسخ الرمز</button></div>
-      <button class="btn" data-act="j-go">ابدأ</button></div>`;
-  } catch(e){ box.innerHTML = '<div class="err">' + esc(errMsg(e)) + '</div>'; btn.disabled = false; }
+      <div class="pad col"><div class="card center"><div class="big-code" dir="ltr">${esc(r.code)}</div><button class="btn sm soft" data-act="copy" data-v="${esc(r.code)}">نسخ رمز الدخول</button></div>
+      <button class="btn" data-act="j-go">${canPlay ? 'ابدأ التحدي' : 'اذهب إلى التحدي'}</button></div>`;
+  } catch(e){ box.innerHTML = '<div class="err" role="alert">' + esc(errMsg(e)) + '</div>'; btn.disabled = false; btn.textContent = 'تسجيل'; }
 };
 ACTS['j-go'] = () => { location.hash = '#/s'; };
 

@@ -1877,3 +1877,9 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
   *:not(.spin),*:not(.spin)::before,*:not(.spin)::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
   body.quake,.qbox.shake,.opt.bad,.opt.good{animation:none!important}
 }
+.rv>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:800}
+.rs-today{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 4px 0}.rs-today .link{min-height:44px}
+.nc2-det>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;font-weight:700}.nc2-det>summary small{font-weight:400}
+.aw-to{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 2px;font-size:15px}.aw-to .link{min-height:44px}
+.q-addrow{display:flex;gap:8px;align-items:stretch}.q-addrow .q-addbig{flex:1}.q-addrow .btn.soft{flex:none;width:auto;padding-inline:14px}
+.qf-det{border-top:1px solid var(--line);padding-top:6px}.qf-det>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;font-weight:700}.qf-det>summary small{font-weight:400}
