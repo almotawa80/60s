@@ -33,7 +33,9 @@ const ERR = {
   already_registered: 'هذا الرقم مسجل مسبقاً في الصف، اطلب رمزك من المعلم/ـة',
   class_full: 'الصف ممتلئ',
   no_mistakes: 'لا توجد أخطاء لتتدرّب عليها، أحسنت! 👏',
-  no_match_today: 'لا توجد لك مواجهة اليوم في التصفيات'
+  no_match_today: 'لا توجد لك مواجهة اليوم في التصفيات',
+  adm_view: 'وضع المشاهدة 👁 اضغط «🛠 تفعيل الدعم» فوق عشان تعدّل',
+  not_admin: 'هذي الصفحة للمشرف بس'
 };
 function errMsg(e){
   const m = (e && e.message) || String(e);
@@ -1021,6 +1023,66 @@ ACTS['t-auth'] = async f => {
 };
 ACTS['t-logout'] = async () => { await sb.auth.signOut(); T.user = null; teacherAuth(); };
 
+/* ---- admin: dashboard + support access (view only until «تفعيل الدعم») ---- */
+const ADM = { st: null, tab: 'act', d: null };
+const ADM_READ = /^(admin_|question_pool|question_stats|shared_preview|teacher_bracket|teacher_class_results|teacher_comp_bracket|teacher_comp_results|teacher_student_report)/;
+const admView = () => !!(ADM.st && ADM.st.act && !ADM.st.act.can_write && location.hash.indexOf('#/t') === 0);
+const admFake = new Proxy(function(){}, { get(t, k){ if (k === 'then') return r => r({ data: null, error: { message: 'adm_view' } }); return () => admFake; } });
+(function(){
+  const from = sb.from.bind(sb), call = sb.rpc.bind(sb);
+  sb.from = n => { const q = from(n); if (admView()) ['insert', 'update', 'upsert', 'delete'].forEach(k => { q[k] = () => admFake; }); return q; };
+  sb.rpc = (n, a, o) => ((admView() && !ADM_READ.test(n)) || (ADM.st && ADM.st.act && n === 'delete_my_account')) ? admFake : call(n, a, o);
+})();
+async function admLoad(){ if (ADM.st) return ADM.st; try { ADM.st = await rpc('admin_state') || { is: false }; } catch(e){ ADM.st = { is: false }; } return ADM.st; }
+function admApply(u){
+  const a = ADM.st && ADM.st.act;
+  T.user = a ? { id: a.teacher_id, email: a.email || '', app_metadata: {}, real: u } : u;
+  let b = document.getElementById('adm-bar');
+  document.documentElement.classList.toggle('admmode', !!a);
+  if (!a) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('div'); b.id = 'adm-bar'; document.body.appendChild(b); }
+  b.className = a.can_write ? 'on' : '';
+  const nm = esc(a.name || (a.email || '').split('@')[0]);
+  b.innerHTML = `<span class="grow">${a.can_write ? '🛠 الدعم مفعّل · ' : '👁 '}${nm}</span>` +
+    (a.can_write ? `<button data-act="adm-w" data-w="0">إيقاف الدعم</button>` : `<button data-act="adm-w" data-w="1">🛠 تفعيل الدعم</button>`) +
+    `<button data-act="adm-exit">↩ اللوحة</button>`;
+}
+ACTS['adm-w'] = async t => {
+  const on = t.dataset.w === '1', a = ADM.st.act;
+  if (on && !await ask('أي تعديل ينحفظ في حسابه وباسمك.', { title: 'تفعيل الدعم؟', ok: 'تفعيل', danger: false })) return;
+  try { ADM.st = await rpc('admin_act', { p_teacher: a.teacher_id, p_write: on }); admApply(T.user.real); toast(on ? 'الدعم مفعّل 🛠' : 'رجعت للمشاهدة 👁'); } catch(e){ toast(errMsg(e)); }
+};
+ACTS['adm-exit'] = async () => { try { await rpc('admin_act', { p_teacher: null }); } catch(e){} location.hash = '#/t/admin'; location.reload(); };
+ACTS['adm-enter'] = async t => { try { await rpc('admin_act', { p_teacher: t.dataset.id, p_write: false }); location.hash = '#/t/home'; location.reload(); } catch(e){ toast(errMsg(e)); } };
+ACTS['adm-tab'] = t => { ADM.tab = t.dataset.t; admRender(); };
+const admAgo = d => { if (!d) return '—'; const x = Math.floor((Date.now() - new Date(d)) / 864e5); return x <= 0 ? 'اليوم' : x === 1 ? 'أمس' : x < 30 ? `قبل ${x} يوم` : new Date(d).toLocaleDateString('ar-KW', { day: 'numeric', month: 'long' }); };
+const nf = n => Number(n || 0).toLocaleString('en-US');
+async function tAdmin(){
+  if (!ADM.st.is) return tHome();
+  view('لوحة المشرف', '<div class="spin"></div>', 'settings', '', '#/t/settings');
+  try { ADM.d = await rpc('admin_overview'); } catch(e){ return view('لوحة المشرف', `<p class="sub center">${esc(errMsg(e))}</p>`, 'settings', '', '#/t/settings'); }
+  admRender();
+}
+function admRender(){
+  const d = ADM.d, today = new Date().toDateString();
+  const L = (d.list || []).slice().sort(ADM.tab === 'new' ? (a, b) => new Date(b.created_at) - new Date(a.created_at) : (a, b) => b.rounds - a.rounds || new Date(b.last_sign_in_at || 0) - new Date(a.last_sign_in_at || 0));
+  const k = (n, l, e) => `<div class="ad-k"><b>${nf(n)}</b><span>${l}</span>${e ? `<em>${e}</em>` : ''}</div>`;
+  view('لوحة المشرف',
+    `<div class="ad-k4">${k(d.teachers, 'معلم', d.teachers_week ? `+${d.teachers_week} هالأسبوع` : '')}${k(d.students, 'طالب', d.students_week ? `+${d.students_week} هالأسبوع` : '')}${k(d.live, 'تحدي شغّال')}${k(d.rounds_week, 'جولة هالأسبوع', `اليوم ${nf(d.rounds_today)}`)}</div>
+    <div class="ad-segs"><button data-act="adm-tab" data-t="act" class="${ADM.tab === 'act' ? 'on' : ''}">الأنشط</button><button data-act="adm-tab" data-t="new" class="${ADM.tab === 'new' ? 'on' : ''}">الجدد</button></div>
+    <div class="ad-rows">${L.map(t => `<button class="ad-tr" data-act="adm-one" data-id="${t.id}"><span class="ad-av">${esc((t.name || '?')[0])}</span><span class="grow"><b>${esc(t.name || '')}${t.last_sign_in_at && new Date(t.last_sign_in_at).toDateString() === today ? '<i class="ad-dot"></i>' : ''}</b><small>${t.classes} صفوف · ${t.students} طالب · آخر دخول ${admAgo(t.last_sign_in_at)}</small></span><span class="ad-n"><b>${nf(t.rounds)}</b><small>جولة</small></span></button>`).join('') || '<p class="sub center">ما في معلمين</p>'}</div>
+    <p class="sub center">النقطة الخضراء: دخل اليوم · الجولات آخر 7 أيام</p>`, 'settings', '', '#/t/settings');
+}
+ACTS['adm-one'] = t => {
+  const x = (ADM.d.list || []).find(r => r.id === t.dataset.id); if (!x) return;
+  const row = (l, v) => `<div class="set-row"><span class="grow">${l}</span><span class="set-val">${v}</span></div>`;
+  modal(`<div class="ad-sh"><h3>${esc(x.name || '')}</h3><p class="sub" dir="ltr" style="text-align:right">${esc(x.email || '')}</p>
+    <div class="ad-st3"><div><b>${nf(x.classes)}</b><span>صفوف</span></div><div><b>${nf(x.students)}</b><span>طالب</span></div><div><b>${nf(x.rounds)}</b><span>جولة</span></div></div>
+    <div class="set-g">${row('التحديات الشغّالة', nf(x.live))}${row('أسئلة كتبها بنفسه', nf(x.own_q))}${row('سجّل', admAgo(x.created_at))}${row('آخر دخول', admAgo(x.last_sign_in_at))}</div>
+    <button class="btn" data-act="adm-enter" data-id="${x.id}">👁 ادخل على حسابه</button>
+    ${x.email ? `<a class="btn ghost" href="mailto:${esc(x.email)}">✉️ راسله</a>` : ''}</div>`);
+};
+
 /* ---- router ---- */
 async function teacherRoute(){
   stopTimer();
@@ -1028,7 +1090,7 @@ async function teacherRoute(){
   setTheme('mid');
   const { data } = await sb.auth.getSession();
   if (!data.session) return teacherAuth();
-  T.user = data.session.user;
+  await admLoad(); admApply(data.session.user);
   const parts = location.hash.replace(/^#\/t\/?/, '').split('/');
   const page = parts[0] || 'home';
   const cached = PCACHE[location.hash];
@@ -1049,6 +1111,7 @@ async function teacherRoute(){
     else if (page === 'results') await tResults(parts[1], parts[2]);
     else if (page === 'ch') { CL.tab = 'comps'; CL.cur = null; await tClasses(); }
     else if (page === 'settings') await tSettings();
+    else if (page === 'admin') await tAdmin();
     else if (page === 'sg') tSetGroup(parts[1]);
     else if (page === 'qset') await tQSet();
     else if (page === 'rset') tRSet();
@@ -1093,9 +1156,11 @@ async function tHome(){
       : `<div class="hc-ring" style="--p:${pct}"><div><b>${played}</b><small>من ${n}</small></div></div><div class="hc-sub">لعبوا اليوم</div>`;
     return `<a class="hc" href="#/t/ch/${c.group_id || c.id}"><b class="hc-t">${esc(c.title || 'تحدي')}</b><small class="hc-c">${esc(names)}${ph === 'points' || ph === 'knockout' ? ` · باقي ${daysAr(Math.max(0, dl))}` : ''}</small>${mid}</a>`;
   });
-  const html = cards.length ? `<div class="hcs">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
+  const hv = LS.get('mc_hv') || 'big', hvb = (k, i, l) => `<button class="${hv === k ? 'on' : ''}" data-act="h-view" data-v="${k}" aria-label="${l}">${i}</button>`;
+  const html = cards.length ? `<div class="hv">${hvb('big', '<i class="hv-i1"></i>', 'مربعات كبيرة')}${hvb('two', '<i class="hv-i2"></i>', 'مربعين')}${hvb('list', '<i class="hv-i3"></i>', 'صفوف')}</div><div class="hcs hv-${hv}">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
   view('الرئيسية', html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
 }
+ACTS['h-view'] = t => { LS.set('mc_hv', t.dataset.v); document.querySelectorAll('.hv button').forEach(b => b.classList.toggle('on', b === t)); const h = document.querySelector('.hcs'); if (h) h.className = 'hcs hv-' + t.dataset.v; haptic(); };
 /* ---- «تحدي جديد»: who → subject → how long → ready (one question per screen) ---- */
 const NW = { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, poll: null };
 const SUBJ_EMOJI = { 'الرياضيات': '📐', 'التربية الإسلامية': '🕌', 'اللغة العربية': '📖', 'العلوم': '🔬', 'اللغة الإنجليزية': '🔤', 'الاجتماعيات': '🗺️', 'الحاسوب': '💻' };
@@ -3757,6 +3822,7 @@ async function tSettings(){
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/st"', icon: 'users', color: '#1FA971', label: 'الطلاب', val: 'الصفوف · الرسائل' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر', val: `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>` }),
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق', val: 'تثبيت · بيانات' })]) +
+    (ADM.st && ADM.st.is ? sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/admin"', icon: 'chart', color: '#C8102E', label: 'لوحة المشرف', val: 'المعلمين · الدعم' })]) : '') +
     sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
     `<div class="set-f center">تحدّي الدقيقة · الإصدار ${APP_VER}</div>`, 'settings');
 }
