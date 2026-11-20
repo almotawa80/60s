@@ -1391,7 +1391,7 @@ ACTS['nw-start'] = async t => {
     const busy = cs.filter(c => NW.busy.has(c.id)).map(c => c.id);
     if (busy.length) { const r = await sb.from('competitions').update({ status: 'finished' }).in('class_id', busy).eq('status', 'active'); if (r.error) throw r.error; }
     const qtypes = NW.cu ? ['curriculum', 'general', 'quick'] : ['general', 'quick'];
-    const r = await sb.from('competitions').insert(cs.map(c => ({ class_id: c.id, group_id: gid, title, start_date: today, points_end_date: sp.points_end_date, end_date: sp.end_date,
+    const r = await sb.from('competitions').insert(cs.map(c => Object.assign({ class_id: c.id, group_id: gid, title, start_date: today, points_end_date: sp.points_end_date, end_date: sp.end_date,
       group_size: 6, qualifiers: 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: NW.lessons || null }, pzVal(NW.prizes))));
     if (r.error) throw r.error;
     NW.made = [];
