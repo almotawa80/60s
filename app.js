@@ -4356,7 +4356,7 @@ function route(){
   if (/access_token=|error_description=|type=recovery/.test(h)) return authReturn();
   if (h.indexOf('#/t') === 0) teacherRoute();
   else if (h.indexOf('#/j/') === 0) studentJoin(decodeURIComponent(h.slice(4)));
-  else if (h.indexOf('#/p/') === 0) demoStart(h.slice(4));
+  else if (h.indexOf('#/p/') === 0) { document.documentElement.classList.add('embed'); demoStart(h.slice(4)); }
   else if (h.indexOf('#/c/') === 0) { S.preCode = decodeURIComponent(h.slice(4)); LS.del('mc_token'); S.token = null; history.replaceState(null, '', '#/s'); studentLogin(); }
   else studentRoute();
 }

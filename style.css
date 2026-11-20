@@ -2313,3 +2313,7 @@ body.dark .s-nav{background:#231C1D}
 .ce1-l{font-weight:900;font-size:15px;margin-bottom:-4px}
 .ce1-card .set-grp{margin:0}
 @keyframes fadeIn{from{opacity:0}}
+/* v118 demo inside an iframe: nothing may overflow, or iOS grows the frame (white strip / dark band) */
+html.embed,html.embed body{height:100%;overflow:hidden;max-width:100%}
+html.embed #app{height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+html.embed .sh{overflow:hidden;min-height:100%}
