@@ -2290,7 +2290,8 @@ function qListHtml(){
   const head = f.status === 'approved' && !QS.searchOn && f.subj && !['none', '__list'].includes(f.subj) && !f.cu ? qSubjectView(f.subj) : '';
   const addHere = f.cu ? `<button class="q-addhere" data-act="t-q-add-menu">${ic('plus')} إضافة أسئلة لهذا المنهج</button>` : '';
   if (!list.length) return head + `<div class="card center muted">${QS.searchOn ? 'لا نتائج للبحث.' : f.cu ? 'لا توجد أسئلة في هذا المنهج بعد.' : f.status === 'draft' ? 'لا توجد أسئلة بانتظار المراجعة.' : 'لا توجد أسئلة هنا.'}</div>` + addHere;
-  return head + (head ? `<div class="qs-lh">كل أسئلة ${esc(f.subj)} (${list.length})</div>` : '') + (ro ? qRoList(list) : list.map(q => qItem(q, ro)).join('')) + addHere;
+  const clr = !ro && f.status === 'approved' && f.subj && !QS.selOn ? `<button class="q-clear" data-act="q-clear">${ic('trash')} ${list.every(q => q._pk) ? 'إزالة' : 'حذف'} كل أسئلة ${f.subj === 'none' ? 'عام وسرعة بديهة' : f.subj === '__list' ? 'أسئلتي' : f.cu ? 'هذا الصف' : esc(f.subj)} (${list.length})</button>` : '';
+  return head + (head ? `<div class="qs-lh">كل أسئلة ${esc(f.subj)} (${list.length})</div>` : '') + (ro ? qRoList(list) : list.map(q => qItem(q, ro)).join('')) + addHere + clr;
 }
 // Ready questions: the ones in «أسئلتي» first, the rest below, dimmed, under their own heading.
 function qRoList(list){
@@ -2566,6 +2567,15 @@ ACTS['t-q-bulk-del'] = async () => { const P = QS.pick || new Set(), pk = [...QS
   const { error } = ids.length ? await sb.from('questions').delete().in('id', ids) : {}; if (error) return toast(errMsg(error));
   QS.sel.clear(); QS.selOn = false; await tQuestions(); };
 
+// One tap: remove/delete every question in the folder the teacher is looking at.
+ACTS['q-clear'] = async () => { const list = qFiltered(); if (!list.length) return;
+  const pk = list.filter(q => q._pk).map(q => q.id), ids = list.filter(q => !q._pk).map(q => q.id);
+  const msg = [ids.length ? `حذف ${ids.length} سؤالاً كتبتها نهائياً` : '', pk.length ? `إزالة ${pk.length} سؤالاً من البنك من أسئلتك (تبقى في البنك)` : ''].filter(Boolean).join('، و');
+  if (!await ask(msg + '؟', { title: 'تفريغ المجلد', ok: ids.length ? 'حذف' : 'إزالة' })) return;
+  if (pk.length && !await qPickSet(pk, false)) return;
+  const { error } = ids.length ? await sb.from('questions').delete().in('id', ids) : {}; if (error) return toast(errMsg(error));
+  T.qf.subj = ''; T.qf.cu = null; await tQuestions(); toast('تم');
+};
 /* public bank */
 ACTS['t-q-view'] = () => toast('هذا سؤال من بنك الأسئلة. انسخه إلى أسئلتك لتعدّله.');
 ACTS['t-q-copy'] = async t => {

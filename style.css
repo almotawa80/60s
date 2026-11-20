@@ -1932,3 +1932,5 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
 .q-back-b svg{width:18px;height:18px;flex:none}
 .q-back-b:active{opacity:.6}
 .q-here{margin:8px 2px 4px;font-size:22px;font-weight:800}
+.q-clear{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:48px;margin-top:22px;border:0;border-radius:14px;background:rgba(255,59,48,.1);color:#FF3B30;font-weight:700;font-size:15px}
+.q-clear svg{width:17px;height:17px}
