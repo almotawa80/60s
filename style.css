@@ -2168,3 +2168,4 @@ body.wide.dark .t-nav a.on,body.wide.dark .t-nav a.t-plus{color:#E5404F!importan
 .join-ic{width:26px;gap:2.5px}
 .join-ic i{height:5px;border-radius:2.5px;position:relative}
 .join-ic i::after{display:none}
+.q4-all{background:var(--card);color:var(--primary);border:2px dashed var(--primary);border-radius:16px;min-height:52px;font:inherit;font-weight:900;font-size:16px;width:100%;cursor:pointer}

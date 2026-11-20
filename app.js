@@ -2561,10 +2561,15 @@ function q4SubjSheet(s){
   const html = `<div class="q4-sh"><div class="q4-shh"><span class="e">${SUBJ_EMOJI[s] || '📘'}</span><h3>${esc(s)}</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
     ${x.cus.length > 1 ? `<div class="q4-chips">${x.cus.map(c => `<button class="${c.id === cu.id ? 'on' : ''}" data-act="q4-gr" data-id="${c.id}">${esc(q4Gr(c))}</button>`).join('')}</div>` : ''}
     <div class="q4-les">${les.map((l, i) => { const on = by[l].some(q => P.has(q.id)); return `<button class="q4-lt${on ? ' added' : ''}" data-act="q4-tg" data-i="${i}"><b>${l === NO_LESSON ? 'أسئلة عامة' : esc(l)}</b><small>${by[l].length} سؤال</small></button>`; }).join('')}</div>
-    <p class="p3-note">اضغط الدرس ينضاف لأسئلتك ✓</p></div>`;
+    <p class="p3-note">اضغط أكثر من درس، كل واحد ينضاف لأسئلتك ✓</p>
+    ${les.some(l => !by[l].some(q => P.has(q.id))) ? `<button class="q4-all" data-act="q4-all">＋ أضف كل الدروس</button>` : ''}
+    <button class="p3-big" data-act="q4-done">تم ✓</button></div>`;
   const open = document.querySelector('.modal .q4-sh');
   if (open) open.outerHTML = html; else { closeModals(); modal(html); }
 }
+ACTS['q4-all'] = async t => { const P = QS.pick || new Set(), ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && !P.has(q.id)).map(q => q.id); if (!ids.length) return;
+  t.setAttribute('aria-busy', 'true'); if (await qPickSet(ids, true)) { renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast('انضافت كل الدروس ✓'); } else t.removeAttribute('aria-busy'); };
+ACTS['q4-done'] = () => { closeModals(); renderQuestions(); scrollTo(0, 0); };
 ACTS['q4-subj'] = t => { QS.subjCu = null; q4SubjSheet(t.dataset.s); };
 ACTS['q4-gr'] = t => { QS.subjCu = t.dataset.id; q4SubjSheet(QS.subj3); };
 ACTS['q4-tg'] = async t => {
@@ -2572,8 +2577,7 @@ ACTS['q4-tg'] = async t => {
   const ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && (q.lesson || NO_LESSON) === l).map(q => q.id), on = !t.classList.contains('added');
   t.classList.toggle('added', on); t.setAttribute('aria-busy', 'true'); haptic();
   if (!await qPickSet(ids, on)) { t.classList.toggle('added', !on); t.removeAttribute('aria-busy'); return; }
-  if (on) { QS.new3 = QS.subjCu + '|' + l; closeModals(); renderQuestions(); scrollTo(0, 0); toast('انضاف لأسئلتك ✓'); }
-  else { t.removeAttribute('aria-busy'); renderQuestionsKeepModal(); toast('انشال من أسئلتك'); }
+  t.removeAttribute('aria-busy'); if (on) QS.new3 = QS.subjCu + '|' + l; renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast(on ? 'انضاف لأسئلتك ✓' : 'انشال من أسئلتك');
 };
 function q4LesSheet(i){
   const g = (QS.mine3 || [])[i]; if (!g) return closeModals();
