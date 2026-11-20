@@ -2356,3 +2356,8 @@ html body .sl.sl-red .sl1-go{background:#fff!important;color:#B00D27!important;b
 html body .sl.sl-red h1{color:#fff!important;text-shadow:0 2px 10px rgba(0,0,0,.25)}
 .sl1-p{color:#fff;font-weight:800;font-size:15px;opacity:.9;margin-top:-4px}
 html body .sl.sl-red .sl1-t,html body .sl.sl-red .sl1-t b{color:#fff!important}
+#pv-x{position:fixed;z-index:400;bottom:calc(104px + env(safe-area-inset-bottom));left:12px;height:40px;padding:0 14px;border:0;border-radius:999px;background:rgba(0,0,0,.62);color:#fff;font:800 15px 'Cairo',system-ui,sans-serif;display:flex;align-items:center;gap:6px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);cursor:pointer}
+#pv-x span{font-size:13px;opacity:.85}
+.ch-warn{background:rgba(229,72,77,.12);border:1.5px solid rgba(229,72,77,.45);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:6px;text-align:center;margin-bottom:12px}
+.ch-warn b{font-size:17px;font-weight:900}.ch-warn small{color:var(--muted);font-weight:700}.ch-warn .btn{margin-top:6px}
+body:has(.play) #pv-x{display:none}

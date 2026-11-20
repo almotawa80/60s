@@ -581,6 +581,14 @@ const DEMO_Q = [
   { body: 'أي الكواكب أقرب إلى الشمس؟', options: ['الزهرة', 'المريخ', 'عطارد', 'الأرض'], c: 2 },
   { body: 'ما جمع كلمة «كتاب»؟', options: ['كتابات', 'كاتب', 'مكتبة', 'كُتُب'], c: 3 }
 ];
+function pvClose(show){
+  let x = document.getElementById('pv-x');
+  if (!show) { if (x) x.remove(); return; }
+  if (x) return;
+  x = document.createElement('button'); x.id = 'pv-x'; x.type = 'button'; x.setAttribute('aria-label', 'إغلاق المعاينة'); x.innerHTML = '✕ <span>معاينة</span>';
+  x.addEventListener('click', () => { stopTimer(); const b = LS.get('mc_pvback') || '#/t/home'; LS.del('mc_pvback'); location.hash = b.indexOf('#/p/') === 0 ? '#/t/home' : b; });
+  document.body.appendChild(x);
+}
 function demoStart(th){
   stopTimer(); closeModals();
   document.body.classList.remove('wide');
@@ -1169,8 +1177,10 @@ ACTS['nw-start'] = async t => {
     const cs = NW.classes.filter(c => NW.cls.includes(c.id));
     const title = cs.length === 1 ? `تحدي ${cs[0].name} · ${NW.subj}` : `تحدي ${NW.subj}`;
     // questions: the chosen subject's ready questions go into «أسئلتي» so the challenge can use them
-    if (NW.cu) {
-      const [all, mine] = await Promise.all([sb.from('questions').select('id').is('owner_id', null).eq('status', 'approved').eq('curriculum_id', NW.cu).limit(5000), sb.from('question_picks').select('question_id').limit(20000)]);
+    {
+      let qq = sb.from('questions').select('id').is('owner_id', null).eq('status', 'approved').limit(5000);
+      qq = NW.cu ? qq.eq('curriculum_id', NW.cu) : qq.in('qtype', ['general', 'quick']);
+      const [all, mine] = await Promise.all([qq, sb.from('question_picks').select('question_id').limit(20000)]);
       const have = new Set((mine.data || []).map(x => x.question_id)), todo = (all.data || []).map(x => x.id).filter(id => !have.has(id));
       for (let i = 0; i < todo.length; i += 500) { const r = await sb.from('question_picks').insert(todo.slice(i, i + 500).map(id => ({ question_id: id }))); if (r.error) throw r.error; }
       if (QS.pick) todo.forEach(id => QS.pick.add(id));
@@ -1387,11 +1397,21 @@ function renderChallenge(gid){
   const body = `<div class="ch1"><div class="ch-sub">${esc(names)}</div>
     <div class="ch-hero"><small>لعبوا اليوم</small><div class="ch-big"><b>${played}</b> <span>من ${n}</span></div><div class="ch-bar"><i style="width:${n ? played * 100 / n : 0}%"></i></div>
     ${left && !c.paused_at && ph === 'points' ? `<button class="btn ch-rem" data-act="ch-remind">🔔 ذكّر الباقين (${left})</button>` : ''}</div>
-    <p class="ch-meta">${esc(meta)}</p>
+    <p class="ch-meta">${esc(meta)}</p><div id="ch-warn"></div>
     ${rows.length ? `<div class="cp-list">${rows.map((x, i) => { const k = CST(x.id); return `<button class="cp-row${k.today ? '' : ' dim'}" data-act="ch-stu" data-id="${x.id}"><span class="cp-rk">${k.pts && i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b>${multi ? `<small class="ch-cls">${esc(x._c || '')}</small>` : ''}</span><span class="cp-pts">${k.pts}</span></button>`; }).join('')}</div>`
       : `<div class="cl-empty sm"><b>ما فيه طلاب بعد</b><small>شارك رمز الصف من ⋯</small></div>`}</div>`;
   view(String(c.title || 'التحدي').split('·').pop().trim(), body, 'home', `<button class="icon-btn" data-act="ch-more" aria-label="المزيد">${ic('more')}</button>`, '#/t/home');
+  chWarn(c);
 }
+/* v123: warn when the challenge has fewer than 4 questions in «أسئلتي», with a one-tap fix */
+async function chWarn(c){
+  let n = 0; try { n = await rpc('question_pool', { p_types: c.qtypes || ['curriculum', 'general', 'quick'], p_cu: c.curriculum_id || null, p_lessons: c.lessons && c.lessons.length ? c.lessons : null }); } catch(e){ return; }
+  const el = document.getElementById('ch-warn'); if (!el) return; if (n >= 4) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="ch-warn"><b>⚠️ ما فيه أسئلة كافية</b><small>الطلاب ما يقدرون يلعبون حتى تضيف أسئلة</small><button class="btn" data-act="ch-fill">أضف الأسئلة الجاهزة</button></div>`;
+}
+ACTS['ch-fill'] = async t => { const c = chComps()[0]; if (!c) return;
+  CC.qtypes = (c.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.cu = c.curriculum_id || ''; CC.lessons = (c.lessons || []).slice(); CC.lastPd = 0;
+  await ACTS['cf-addready'](t); await chWarn(c); };
 const chComps = () => (CL.allComps || []).filter(k => (k.group_id || k.id) === CL.chg);
 const chStudents = () => chComps().flatMap(k => CL.students[k.class_id] || []);
 ACTS['ch-remind'] = () => { const ks = chComps(), c = ks[0]; if (!c) return;
@@ -2215,6 +2235,8 @@ ACTS['cp-try'] = async t => {
 };
 ACTS['cf-preview'] = () => { LS.del('mc_demoq'); themePreview(CC.style || 'mid'); };
 function themePreview(th){
+  /* v123: full screen (no phone frame: iOS sized the iframe wrong) with a ✕ that returns here */
+  LS.set('mc_pvback', location.hash || '#/t/home'); location.hash = '#/p/' + th; return;
   const old = document.getElementById('pvw'); if (old) old.remove();
   const w = document.createElement('div'); w.id = 'pvw'; w.className = 'pvw';
   const seg = () => CF_STYLES.map(x => `<button type="button" class="${x[0] === th ? 'on' : ''}" data-v="${x[0]}">${x[1]}</button>`).join('');
@@ -4344,10 +4366,11 @@ function studentRoute(){
 function route(){
   setTimeout(applyMode, 0);
   const h = location.hash || '#/s';
+  if (h.indexOf('#/p/') !== 0) pvClose(false);
   if (/access_token=|error_description=|type=recovery/.test(h)) return authReturn();
   if (h.indexOf('#/t') === 0) teacherRoute();
   else if (h.indexOf('#/j/') === 0) studentJoin(decodeURIComponent(h.slice(4)));
-  else if (h.indexOf('#/p/') === 0) { document.documentElement.classList.add('embed'); demoStart(h.slice(4)); }
+  else if (h.indexOf('#/p/') === 0) { if (window.top !== window) document.documentElement.classList.add('embed'); else pvClose(true); demoStart(h.slice(4)); }
   else if (h.indexOf('#/c/') === 0) { S.preCode = decodeURIComponent(h.slice(4)); LS.del('mc_token'); S.token = null; history.replaceState(null, '', '#/s'); studentLogin(); }
   else studentRoute();
 }
