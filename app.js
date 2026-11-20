@@ -1004,7 +1004,7 @@ async function teacherRoute(){
       T.avatar = (r.data && r.data.avatar_url) || '';
       T.settings = (r.data && r.data.settings) || {};
     }
-    if (page === 'classes' || page === 'comps') { CL.tab = page; await tClasses(); }
+    if (page === 'classes' || page === 'comps') { CL.tab = page; CL.cur = null; await tClasses(); }
     else if (page === 'new') await tNew();
     else if (page === 'join') tJoin();
     else if (page === 'class') await tClass(parts[1]);
@@ -1336,6 +1336,9 @@ function renderClasses(){
   const cl = CL.tab !== 'comps';
   const more = cl ? `<button class="icon-btn" data-act="c-more" aria-label="المزيد">${ic('more')}</button>` : '';
   const onNew = location.hash.indexOf('#/t/new') === 0;
+  const cur = cl && CL.cur && !CL.sel && CL.byId[CL.cur];
+  if (cl && CL.cur && !cur && !CL.sel) { CL.cur = null; return location.replace('#/t/classes'); }
+  if (cur) { view(cur.name, classPage(cur), 'classes', `<button class="icon-btn" data-act="c-pmore" aria-label="المزيد">${ic('more')}</button>`, '#/t/classes'); if (CL.addFocus) { const i = document.querySelector('.cp1 .cl-add1 input'); CL.addFocus = null; if (i) i.focus(); } return; }
   view(cl ? 'الصفوف' : onNew && T.compEdit ? 'تحدي جديد' : 'التحديات', (cl ? classesList() : compsPanel()) + selBar(), cl ? 'classes' : onNew ? 'new' : 'home', more, cl || onNew ? undefined : '#/t/home');
   cfAuto(); cfUpdate(); cfLessons();
   if (CL.addFocus) { const i = document.querySelector(`.cls[data-cid="${CL.addFocus}"] .cl-add1 input`); CL.addFocus = null; if (i) i.focus(); }
@@ -1344,10 +1347,33 @@ ACTS['c-tab'] = t => { T.compEdit = null; go('#/t/' + t.dataset.t); };
 function classesList(){
   const top = CL.sel ? '' : `<button class="btn cl-add" data-act="aw-start">${ic('plus')} إضافة طلبة</button><div class="cl-newc"><button class="link" data-act="t-add-class">＋ صف جديد</button></div><input type="file" id="awimg" accept="image/*" class="hide" data-change="aw-img"><input type="file" id="awxl" accept=".xlsx,.xls,.csv" class="hide" data-change="aw-xl"><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
   const arch = CL.archived && CL.archived.length && !CL.sel ? `<a class="cl-arch cl-arch-l" href="#/t/archive">${ic('layers')} الصفوف المؤرشفة (${CL.archived.length})<span class="grow"></span>${ic('back')}</a>` : '';
+  if (!CL.sel) return `<button class="btn cp-newc" data-act="t-add-class">＋ صف جديد</button>` + (CL.classes.length ? `<div class="cp-tiles">${CL.classes.map(c => { const st0 = CL.students[c.id] || [], comp = CL.comps[c.id], p = st0.filter(x => CST(x.id).today).length;
+      return `<button class="cp-tile" data-act="c-open" data-id="${c.id}"><b>${esc(c.name)}</b><small>${st0.length} طالب</small>${comp ? `<small class="cp-pl">لعب اليوم ${p}</small>` : ''}</button>`; }).join('')}</div>` : `<div class="cl-empty sm"><b>ما عندك صفوف بعد</b><small>اضغط «صف جديد» واكتب اسمه، وبعدها شارك الرمز مع الطلاب.</small></div>`) + arch + `<input type="file" id="awimg" accept="image/*" class="hide" data-change="aw-img"><input type="file" id="awxl" accept=".xlsx,.xls,.csv" class="hide" data-change="aw-xl"><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
   if (!CL.classes.length) return top + `<div class="cl-empty">${ic('users')}<b>لا يوجد طلبة بعد</b><small>اضغط «إضافة طلبة» فوق، وصوّر كشف الأسماء أو الصقه، وخلال دقيقة يصير الصف جاهز.</small></div>` + arch;
   return top + CL.classes.map(classSection).join('') + arch;
 }
 const CST = id => CL.stat[id] || { pts: 0, rounds: 0, today: false };
+/* simple class page (v98): big code + one share button, new students, ranked list, add row; rest under ⋯ */
+function classPage(c){
+  const st0 = CL.students[c.id] || [], comp = CL.comps[c.id];
+  const nw = st0.filter(x => x.approved === false), ok = st0.filter(x => x.approved !== false);
+  const st = ok.slice().sort((a, b) => comp ? CST(b.id).pts - CST(a.id).pts || a.name.localeCompare(b.name, 'ar') : a.name.localeCompare(b.name, 'ar'));
+  const box = c.self_join ? `<div class="cp-code"><small>الطلاب يدخلون بهذا الرمز</small><b dir="ltr">${esc(fmtCode(c.join_code || ''))}</b><button class="btn cp-share" data-act="c-share">شارك الرمز</button></div>`
+    : st0.length ? `<div class="cp-code"><small>كل طالب له رمز دخول خاص</small><button class="btn cp-share" data-act="c-send">شارك رموز الطلاب</button></div>` : '';
+  return `<div class="cp1" data-cid="${c.id}">${box}<div class="cp-list">` +
+    nw.map(x => `<div class="cp-row"><span class="grow"><b>${esc(x.name)}</b> <span class="cn-tag">جديد</span></span><button class="cn-ok" data-act="s-approve" data-id="${x.id}" aria-label="موافقة">✓</button><button class="cn-no" data-act="s-reject" data-id="${x.id}" aria-label="حذف">✕</button></div>`).join('') +
+    st.map((x, i) => { const k = CST(x.id), dim = comp && !k.today; return `<button class="cp-row${dim ? ' dim' : ''}" data-act="s-card" data-id="${x.id}"><span class="cp-rk">${i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b></span>${comp ? `<span class="cp-pts">${k.pts}</span>` : ''}</button>`; }).join('') +
+    `<form class="cl-add1 cp-add" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="اكتب اسم طالب" autocomplete="off" enterkeyhint="done"><button class="btn sm" type="submit">إضافة</button></form></div></div>`;
+}
+ACTS['c-open'] = t => go('#/t/class/' + t.dataset.id);
+ACTS['c-pmore'] = () => { const el = document.querySelector('.cp1[data-cid]'); if (el) ACTS['c-cmore'](el); };
+ACTS['c-share'] = t => { const c = ctx(t); if (!c) return; const link = joinLink(c.join_code);
+  const msg = `انضم لتحدي «${c.name}» في تحدّي الدقيقة 🎯\nرمز الصف: ${fmtCode(c.join_code || '')}\nأو اضغط الرابط:\n${link}`;
+  sheet('شارك الرمز', [
+    { act: 'c-share-wa', attrs: `data-v="${esc(msg)}"`, icon: 'send', label: 'واتساب' },
+    { act: 'm-run', attrs: `data-a="c-joinshow" data-cid="${c.id}"`, icon: 'eye', label: 'اعرض على الشاشة' },
+    { act: 'copy', attrs: `data-v="${esc(link)}"`, icon: 'layers', label: 'نسخ الرابط' }]); };
+ACTS['c-share-wa'] = t => { closeModals(); window.open('https://wa.me/?text=' + encodeURIComponent(t.dataset.v), '_blank'); };
 function classSection(c){
   const st0 = CL.students[c.id] || [], open = CL.open.has(c.id), comp = CL.comps[c.id];
   const ph = comp ? phaseOf(comp) : null;
@@ -1512,30 +1538,36 @@ ACTS['s-card'] = async t => {
   if (t.classList.contains('open')) { t.classList.remove('open'); t.style.transform = ''; t.dataset.off = 0; return; }
   const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return;
   const comp = CL.comps[c.id];
-  const ini = s.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
-  modal(`<div class="st-card" data-cid="${c.id}"><div class="st-top"><div class="avatar big-av">${esc(ini)}</div><div><b>${esc(s.name)}</b><div class="sub">${esc(c.name)} · رقم ${esc(s.student_no) || '—'}</div>${s.phone ? `<a class="sub" href="tel:${esc(s.phone)}" dir="ltr" style="color:var(--primary);text-decoration:none">${ic('send')} ${esc(s.phone)}</a>` : ''}</div></div>
-    <button class="code-pill eye big-pill" data-act="c-eye" data-code="${esc(s.code)}"><span>••••••</span>${ic('eye')}</button>
-    <div class="stats" id="st-stats"><div class="stat"><b>…</b><span>النقاط</span></div><div class="stat"><b>…</b><span>الترتيب</span></div><div class="stat"><b>…</b><span>الجولات</span></div><div class="stat"><b>…</b><span>نسبة الصحيح</span></div></div>
-    <div class="sub center" id="st-today">${comp ? esc(comp.title) + ' · ' + PHASE_AR[phaseOf(comp)] : 'لا توجد مسابقة نشطة'}</div>
-    <div class="st-acts"><button class="btn soft" data-act="s-edit" data-id="${s.id}">${ic('edit')} تعديل البيانات</button>
-    <button class="btn" data-act="s-wa" data-id="${s.id}" style="background:linear-gradient(180deg,#4FD394,#1FA971);box-shadow:0 5px 0 #0E6A45">${ic('send')} إرسال الرمز واتساب</button>
-    <div class="row"><button class="btn soft" data-act="copy" data-v="${esc(s.code)}">نسخ رمز الدخول</button><button class="btn soft" data-act="t-regen" data-id="${s.id}">${ic('refresh')} رمز جديد</button></div>
-    <button class="btn soft" data-act="s-msg" data-id="${s.id}">${ic('mail')} إرسال رسالة</button>
-    <button class="btn soft" data-act="t-del-student" data-id="${s.id}" style="color:#B3122A">${ic('trash')} حذف</button></div></div>`);
-  try {
-    const rs = await rpc('teacher_class_results', { p_class: c.id });
-    const sorted = rs.slice().sort((x, y) => y.pts - x.pts);
-    const idx = sorted.findIndex(r => (r.id && r.id === s.id) || (r.name === s.name && String(r.student_no) === String(s.student_no)));
-    const r = sorted[idx]; const box = document.getElementById('st-stats'); if (!box || !r) return;
-    const acc = r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) + '%' : '—';
-    box.innerHTML = `<div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? idx + 1 : '—'}</b><span>الترتيب من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>نسبة الصحيح</span></div>`;
-    if (comp) document.getElementById('st-today').innerHTML += r.played_today ? ' · <b style="color:#168A5B">لعب اليوم ✓</b>' : ' · <b style="color:#8a5a00">لم يلعب اليوم</b>';
-    const g = s.gender, who = g === 'f' ? 'ابنتكم' : g === 'm' ? 'ابنكم' : 'ابنكم/ابنتكم';
-    ST_PARENT = { phone: s.phone, msg: `السلام عليكم ولي أمر ${s.name}\nهذا ملخص مشاركة ${who} في «تحدّي الدقيقة»${comp ? ' (' + comp.title + ')' : ''} بصف ${c.name}:\n• النقاط: ${r.pts}\n• الترتيب: ${r.pts ? (idx + 1) + ' من ' + sorted.length : '—'}\n• الجولات: ${r.rounds}\n• دقة الإجابات: ${acc}\nشكراً لمتابعتكم وتشجيعكم 🌟\n${T.name ? 'المعلم/ـة: ' + T.name : ''}` };
-    const acts = document.querySelector('.st-acts');
-    if (acts && !acts.querySelector('[data-act="s-parent"]')) acts.insertAdjacentHTML('afterbegin', `<button class="btn soft" data-act="s-parent">${ic('send')} إرسال ملخص لولي الأمر</button>`);
-  } catch(e){}
+  modal(st1Html(c, s));
 };
+/* student sheet: same order as the class page list; ‹ › or swipe moves between names without closing */
+function st1Order(c){ const comp = CL.comps[c.id], st0 = CL.students[c.id] || [];
+  return st0.filter(x => x.approved === false).concat(st0.filter(x => x.approved !== false).sort((a, b) => comp ? CST(b.id).pts - CST(a.id).pts || a.name.localeCompare(b.name, 'ar') : a.name.localeCompare(b.name, 'ar'))); }
+function st1Html(c, s){
+  const comp = CL.comps[c.id], ord = st1Order(c), i = ord.findIndex(x => x.id === s.id);
+  const ranked = ord.filter(x => x.approved !== false), k = CST(s.id), rk = ranked.findIndex(x => x.id === s.id) + 1;
+  const pv = ord[i - 1], nx = ord[i + 1];
+  return `<div class="st1" data-cid="${c.id}" data-id="${s.id}"><div class="st1-h"><b>${esc(s.name)}</b><button class="icon-btn" data-act="s-more" data-id="${s.id}" aria-label="المزيد">${ic('more')}</button></div>
+    ${comp ? `<div class="st1-stats"><div><b>${k.pts}</b><small>نقطة</small></div><div><b>${k.pts && rk ? rk : '—'}</b><small>المركز</small></div></div><div class="st1-today ${k.today ? 'on' : ''}">${k.today ? 'لعب اليوم ✓' : 'ما لعب اليوم'}</div>` : ''}
+    <button class="btn cp-share" data-act="s-wa" data-id="${s.id}">أرسل له رمز الدخول</button>
+    <div class="st1-nav"><button class="icon-btn" data-act="s-go" data-id="${pv ? pv.id : ''}" ${pv ? '' : 'disabled'} aria-label="السابق">→</button><small>${i + 1} من ${ord.length}</small><button class="icon-btn" data-act="s-go" data-id="${nx ? nx.id : ''}" ${nx ? '' : 'disabled'} aria-label="التالي">←</button></div></div>`;
+}
+ACTS['s-go'] = t => { const c = ctx(t), id = t.dataset.id, s = id && (CL.students[c.id] || []).find(x => x.id === id); const el = document.querySelector('.st1'); if (!s || !el) return; el.outerHTML = st1Html(c, s); };
+(() => { let x0 = null, y0 = 0;
+  document.addEventListener('touchstart', e => { const el = e.target.closest && e.target.closest('.st1'); x0 = el ? e.touches[0].clientX : null; y0 = el ? e.touches[0].clientY : 0; }, { passive: true });
+  document.addEventListener('touchend', e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+    const b = document.querySelectorAll('.st1-nav [data-act="s-go"]')[dx > 0 ? 1 : 0]; if (b && !b.disabled) ACTS['s-go'](b); }, { passive: true });
+})();
+ACTS['s-more'] = t => { const c = ctx(t), id = t.dataset.id, s = (CL.students[c.id] || []).find(x => x.id === id); if (!s) return; closeModals();
+  const A = `data-id="${id}" data-cid="${c.id}"`;
+  setTimeout(() => sheet(s.name, [
+    { act: 's-edit', attrs: A, icon: 'edit', label: 'تعديل البيانات' },
+    { act: 'copy', attrs: `data-v="${esc(s.code)}"`, icon: 'layers', label: 'نسخ رمز الدخول (' + esc(s.code) + ')' },
+    { act: 's-msg', attrs: A, icon: 'mail', label: 'إرسال رسالة' },
+    { act: 't-regen', attrs: A, icon: 'refresh', label: 'رمز جديد' },
+    null,
+    { act: 't-del-student', attrs: A, icon: 'trash', label: 'حذف', danger: true }]), 30); };
 ACTS['s-edit'] = t => {
   const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return;
   closeModals();
@@ -1751,7 +1783,7 @@ ACTS['t-multi-confirm'] = async t => {
 };
 
 /* ---- class helpers ---- */
-async function tClass(id){ if (id) CL.open.add(id); CL.tab = 'classes'; location.replace('#/t/classes'); }
+async function tClass(id){ CL.tab = 'classes'; CL.cur = id || null; if (!id) return location.replace('#/t/classes'); await tClasses(); }
 ACTS['t-upload'] = t => { ctx(t); document.getElementById('xl').click(); };
 function joinLink(code){ return code ? location.origin + location.pathname + '#/j/' + code : ''; }
 ACTS['copy'] = async t => {
