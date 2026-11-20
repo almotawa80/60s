@@ -1672,8 +1672,16 @@ function cpPast(){
   const by = {}, order = []; (CL.past || []).forEach(k => { if (!by[k.group_id]) { by[k.group_id] = []; order.push(k.group_id); } by[k.group_id].push(k); });
   if (!order.length) return '';
   return `<details class="cp-past"><summary>المسابقات السابقة <em>${order.length}</em></summary><div class="qsubs">${order.map(gid => { const g = by[gid], c = g[0];
-    return `<a class="qsub" href="#/t/results/${c.class_id}/${c.id}"><span class="qsub-ic" style="--c:#8E8E93">${ic('trophy')}</span><span class="grow"><b>${esc(c.title)}</b><small>${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.end_date))} · ${g.map(x => esc((CL.byId[x.class_id] || {}).name || '')).filter(Boolean).join('، ')}</small></span><i>‹</i></a>`; }).join('')}</div></details>`;
+    return `<div class="cpp-row"><a class="qsub" href="#/t/results/${c.class_id}/${c.id}"><span class="qsub-ic" style="--c:#8E8E93">${ic('trophy')}</span><span class="grow"><b>${esc(c.title)}</b><small>${esc(fmtDate(c.start_date))} ← ${esc(fmtDate(c.end_date))} · ${g.map(x => esc((CL.byId[x.class_id] || {}).name || '')).filter(Boolean).join('، ')}</small></span><i>‹</i></a><button class="cpp-del" data-act="cp-del-past" data-g="${esc(gid)}" aria-label="حذف نهائي">${ic('trash')}</button></div>`; }).join('')}</div></details>`;
 }
+ACTS['cp-del-past'] = async t => {
+  const gid = t.dataset.g, k = (CL.past || []).find(x => x.group_id === gid); if (!k) return;
+  if (!await ask(`حذف «${k.title}» نهائياً؟ تنحذف المسابقة وكل نتائجها وجولات الطلبة فيها، وما يمكن استرجاعها.`, { danger: true, ok: 'حذف نهائي' })) return;
+  const { error } = await sb.from('competitions').delete().eq('group_id', gid).eq('status', 'finished');
+  if (error) return toast(errMsg(error));
+  Object.keys(PCACHE).forEach(h => { if (h.indexOf('#/t/results') === 0) delete PCACHE[h]; });
+  toast('تم حذف المسابقة نهائياً'); await tClasses();
+};
 ACTS['cp-pause'] = async t => {
   if (!await ask('إيقاف المسابقة مؤقتاً؟ الطلبة ما يقدرون يلعبون الجولة الرسمية حتى تستأنفها، والنقاط تبقى محفوظة. عند الاستئناف تتأخر المواعيد بعدد أيام الإيقاف.', { danger: false, ok: 'إيقاف مؤقت' })) return;
   const { error } = await sb.from('competitions').update({ paused_at: new Date().toISOString() }).eq('group_id', t.dataset.g).eq('status', 'active');

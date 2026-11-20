@@ -1822,3 +1822,7 @@ a.qsub{text-decoration:none}
 .cf2-more .set-f{margin-top:8px}
 body.wide.dark .cf2-les{background:#000}
 .cf2-box .tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px}.cf2-box .tabs button{white-space:nowrap}
+.cpp-row{display:flex;align-items:center;border-bottom:1px solid var(--line)}.cpp-row:last-child{border-bottom:0}
+.cpp-row .qsub{flex:1;min-width:0;border-bottom:0}
+.cpp-del{flex:0 0 44px;height:44px;margin-inline-end:6px;border:0;border-radius:12px;background:transparent;color:#FF3B30;display:grid;place-items:center}
+.cpp-del:active{background:rgba(255,59,48,.12)}.cpp-del .ico{width:20px;height:20px}
