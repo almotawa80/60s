@@ -2584,17 +2584,21 @@ function q4LesSheet(i){
   const c = CU.list.find(x => x.id === g.cu), P = QS.pick || new Set();
   const qs = QS.glob.filter(q => q.curriculum_id === g.cu && (q.lesson || NO_LESSON) === g.l); QS.les4 = { i, ids: qs.map(q => q.id) };
   const html = `<div class="q4-sh"><div class="q4-shh"><span class="e">${SUBJ_EMOJI[c.subject] || '📘'}</span><h3>${g.l === NO_LESSON ? 'أسئلة عامة' : esc(g.l)}</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
-    <p class="p3-note" style="text-align:start">${esc(c.subject)} · ${esc(q4Gr(c))} · ${qs.length} سؤال. طفّي أي سؤال ما تبيه.</p>
-    <div class="p3-rows">${qs.map(q => { const on = P.has(q.id); return `<button class="p3-row q4-q${on ? '' : ' off'}" data-act="q4-q" data-id="${q.id}"><span class="grow">${esc(q.body)}<small>${esc(q.options[q.correct_index] || '')}</small></span><span class="p3-sw${on ? ' on' : ''}"></span></button>`; }).join('')}</div>
+    <p class="p3-note" style="text-align:start">${esc(c.subject)} · ${esc(q4Gr(c))} · ${qs.length} سؤال. اضغط أي سؤال تطفيه أو تشغّله، تقدر أكثر من واحد.</p>
+    <div class="q4-qs">${qs.map(q => { const on = P.has(q.id); return `<button class="q4-qt${on ? ' added' : ''}" data-act="q4-q" data-id="${q.id}"><b>${esc(q.body)}</b><small>${esc(q.options[q.correct_index] || '')}</small></button>`; }).join('')}</div>
+    ${qs.some(q => !P.has(q.id)) ? `<button class="q4-all" data-act="q4-qall" data-on="1">✓ شغّل كل الأسئلة</button>` : ''}
+    <button class="p3-big" data-act="q4-done">تم ✓</button>
     <button class="q4-del" data-act="q4-rm">شيل الدرس</button></div>`;
   const open = document.querySelector('.modal .q4-sh');
   if (open) open.outerHTML = html; else { closeModals(); modal(html); }
 }
 ACTS['q4-les'] = t => q4LesSheet(+t.dataset.i);
 ACTS['q4-q'] = async t => { const id = t.dataset.id, on = !(QS.pick && QS.pick.has(id));
-  t.classList.toggle('off', !on); t.querySelector('.p3-sw').classList.toggle('on', on); haptic();
-  if (!await qPickSet([id], on)) { t.classList.toggle('off', on); t.querySelector('.p3-sw').classList.toggle('on', !on); return; }
+  t.classList.toggle('added', on); haptic();
+  if (!await qPickSet([id], on)) { t.classList.toggle('added', !on); return; }
   renderQuestionsKeepModal(); };
+ACTS['q4-qall'] = async t => { const L = QS.les4; if (!L) return; t.setAttribute('aria-busy', 'true');
+  if (await qPickSet(L.ids, true)) { renderQuestionsKeepModal(); q4LesSheet(L.i); } else t.removeAttribute('aria-busy'); };
 ACTS['q4-rm'] = async () => { const L = QS.les4; if (!L) return;
   if (await qPickSet(L.ids, false)) { closeModals(); renderQuestions(); toast('انشال الدرس'); } };
 /* add one question, like the preview: question, right answer, wrong ones filled in */
@@ -4107,7 +4111,7 @@ function jnRender(step){
   JN.step = step;
   const i = JN.info, head = `<div class="hero jn-h">${LOGO}<p>صف <b>${esc(i.class)}</b>${i.teacher ? ' · ' + esc(i.teacher) : ''}</p></div>`;
   let b = '';
-  if (step === 'list') b = `<div class="card col"><b class="jn-q">اختر اسمك</b><div class="jn-names">${i.names.map(n => `<button class="jn-n${n.taken ? ' off' : ''}" ${n.taken ? 'disabled' : `data-act="jn-pick" data-id="${n.id}"`}>${esc(n.name)}${n.taken ? ' 🔒' : ''}</button>`).join('')}</div>
+  if (step === 'list') b = `<div class="card col"><b class="jn-q">اختر اسمك</b><div class="jn-names">${i.names.map(n => `<button class="jn-n${n.taken ? ' off' : ''}" data-act="${n.taken ? 'jn-locked' : 'jn-pick'}" data-id="${n.id}">${esc(n.name)}${n.taken ? ' 🔒' : ''}</button>`).join('')}</div>
     <button class="link" data-act="jn-form">اسمي مو موجود ‹</button></div>`;
   else if (step === 'form') b = `<form class="card col" data-form="jn-next"><b class="jn-q">وش اسمك؟</b>
     <div class="field"><label for="jn-f">اسمك الأول</label><input class="input jn-in" id="jn-f" name="first" required maxlength="25" autocomplete="off" value="${esc(JN.first)}"></div>
@@ -4119,6 +4123,19 @@ function jnRender(step){
   $app.querySelectorAll('.jn-in').forEach(el => el.addEventListener('input', () => { const v = el.value.replace(/[^ء-ي ]/g, '').replace(/\s{2,}/g, ' '); if (v !== el.value) el.value = v; }));
   const f = document.getElementById('jn-f'); if (f && !f.value) setTimeout(() => f.focus(), 60);
 }
+ACTS['jn-locked'] = t => { const n = JN.info.names.find(x => x.id === t.dataset.id); if (!n) return; JN.lock = n;
+  modal(`<form class="col" data-form="jn-unlock"><h3>هذا اسمك؟</h3><p class="sub">«${esc(n.name)}» دخل من جهاز ثاني. اكتب رمزك الخاص عشان تدخل من هذا الجهاز.</p>
+    <input class="input jn-code" name="code" maxlength="6" autocomplete="off" autocapitalize="characters" dir="ltr" placeholder="ABC123" required>
+    <div id="jlerr"></div><button class="btn" type="submit">ادخل</button>
+    <p class="sub center">ما تعرف رمزك؟ اسأل معلمك، يلقاه في صفحة الصف عند اسمك.</p></form>`);
+  setTimeout(() => { const i = document.querySelector('.jn-code'); if (i) i.focus(); }, 60); };
+ACTS['jn-unlock'] = async f => { const code = f.code.value.toUpperCase().replace(/[^A-Z0-9]/g, ''), box = document.getElementById('jlerr'), btn = f.querySelector('[type=submit]');
+  if (code.length < 6) { box.innerHTML = '<div class="err">اكتب الرمز كامل (6 خانات)</div>'; return; }
+  btn.disabled = true;
+  try { const r = await rpc('student_login', { p_code: code });
+    if (!r.student || r.student.id !== JN.lock.id) { box.innerHTML = '<div class="err" role="alert">هذا الرمز مو لهذا الاسم</div>'; btn.disabled = false; return; }
+    closeModals(); profAdd({ token: r.token, name: r.student.name, cls: r.class && r.class.name, code }); history.replaceState(null, '', '#/s'); loadHome();
+  } catch(e){ box.innerHTML = '<div class="err" role="alert">' + esc(errMsg(e)) + '</div>'; btn.disabled = false; } };
 ACTS['jn-form'] = () => { JN.pick = null; jnRender('form'); };
 ACTS['jn-list'] = () => { JN.pick = null; jnRender('list'); };
 ACTS['jn-pick'] = t => { const n = JN.info.names.find(x => x.id === t.dataset.id); if (!n) return; JN.pick = n.id; JN.name = n.name; jnRender('confirm'); };
@@ -4140,7 +4157,10 @@ ACTS['j-go'] = () => { location.hash = '#/s'; };
 
 function studentRoute(){
   document.body.classList.remove('wide');
-  if (S.token) loadHome(); else studentLogin();
+  if (S.token) return loadHome();
+  if (profs().length) return studentLogin();
+  // a signed-in teacher with no student on this device goes straight to his home
+  sb.auth.getSession().then(r => { if (r && r.data && r.data.session && !S.token && /^#\/s?$|^$/.test(location.hash)) location.hash = '#/t'; else if (!S.token) studentLogin(); }, () => studentLogin());
 }
 function route(){
   setTimeout(applyMode, 0);
