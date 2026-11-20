@@ -2577,18 +2577,19 @@ function q3Home(){
   if (!mine.some(g => g.cu === T.qf.cu3)) T.qf.cu3 = mine.length ? mine[0].cu : '';
   const total = own + mine.reduce((a, g) => a + g.n, 0), days = Math.floor(total / QPD);
   const tiles = mine.map((g, i) => { const c = cuOf(g.cu); return `<button class="q4-mt${QS.new3 === g.cu + '|' + g.l ? ' new' : ''}" data-act="q4-les" data-i="${i}"><span class="e">${SUBJ_EMOJI[c.subject] || '📘'}</span><b>${g.l === NO_LESSON ? 'أسئلة عامة' : esc(g.l)}</b><small>${esc(q4Gr(c))} · ${g.n} سؤال</small></button>`; }).join('')
-    + `<button class="q4-mt self" data-act="q-own3"><span class="e">✍️</span><b>أسئلتي</b><small>${own} سؤال</small></button>`;
+    + (own ? `<button class="q4-mt self" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own} سؤال</small></button>` : '');
   QS.new3 = null;
   const subs = q4Subjects(), mySub = new Set(mine.map(g => cuOf(g.cu).subject));
   const bank = subs.sort((x, y) => mySub.has(y.s) - mySub.has(x.s)).map(x => `<button class="q4-st${mySub.has(x.s) ? ' mine' : ''}" data-act="q4-subj" data-s="${esc(x.s)}"><span class="e">${SUBJ_EMOJI[x.s] || '📘'}</span>${esc(x.s)}<small>${x.n} درس</small></button>`).join('');
+  const ownAll = QS.list.filter(q => q.status === 'approved' || q.status === 'draft').length;
+  const ownTile = ownAll ? `<button class="q4-st${own ? ' mine' : ''}" data-act="q4-own"><span class="e">✍️</span>أسئلتي الخاصة<small>${own} من ${ownAll} شغّالة</small></button>` : '';
   return `<div class="q4">
     <div class="q4-lbl"><b>أسئلتي</b><small>تطلع لطلابك في التحديات</small></div>
     <div class="q4-mine">${tiles}</div>
     ${total ? `<div class="q4-days">عندك ${total} سؤال، تكفي ${daysAr(days)} 👍</div>` : `<div class="q4-days low">اختر دروس من البنك تحت، أو أضف أسئلتك</div>`}
-    ${nd ? `<button class="p3-ghost" data-act="t-qs" data-v="draft">⏳ ${nd} تنتظر مراجعتك ‹</button>` : ''}
     <button class="p3-big" data-act="q3-add">＋ أضف سؤال</button>
     <div class="q4-lbl"><b>بنك الأسئلة</b><small>اضغط المادة واختر الدروس</small></div>
-    <div class="q4-bank">${bank || '<p class="p3-note">ما فيه أسئلة جاهزة لصفوفك بعد.</p>'}</div></div>`;
+    <div class="q4-bank">${ownTile}${bank || (ownTile ? '' : '<p class="p3-note">ما فيه أسئلة جاهزة لصفوفك بعد.</p>')}</div></div>`;
 }
 const q4Gr = c => c.grade ? (c.stage === 'university' ? 'سنة ' + c.grade : (GRADES[c.grade - 1] || c.grade)).replace(/^ال/, '') : (STAGE_AR[c.stage] || '');
 // curricula that fit the teacher's classes (grade from the class name, else the whole stage)
@@ -2644,6 +2645,28 @@ function q4LesSheet(i){
   if (open) open.outerHTML = html; else { closeModals(); modal(html); }
 }
 ACTS['q4-les'] = t => q4LesSheet(+t.dataset.i);
+/* own questions: same squares as a lesson; on = approved (plays in challenges), off = draft */
+function q4OwnSheet(){
+  const qs = QS.list.filter(q => q.status === 'approved' || q.status === 'draft');
+  const html = `<div class="q4-sh"><div class="q4-shh"><span class="e">✍️</span><h3>أسئلتي الخاصة</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
+    <p class="p3-note" style="text-align:start">${qs.length} سؤال. اضغط أي سؤال تطفيه أو تشغّله.</p>
+    <div class="q4-qs">${qs.map(q => `<button class="q4-qt${q.status === 'approved' ? ' added' : ''}" data-act="q4-ownq" data-id="${q.id}"><b>${esc(q.body)}</b><small>${esc((q.options || [])[q.correct_index] || '')}</small></button>`).join('')}</div>
+    ${qs.some(q => q.status !== 'approved') ? `<button class="q4-all" data-act="q4-ownall" data-on="1">✓ شغّل كل الأسئلة</button>` : `<button class="q4-all" data-act="q4-ownall" data-on="0">إيقاف الكل</button>`}
+    <button class="p3-big" data-act="q4-done">تم ✓</button>
+    <button class="q4-del" data-act="q-own3">تعديل أسئلتي ‹</button></div>`;
+  const open = document.querySelector('.modal .q4-sh');
+  if (open) open.outerHTML = html; else { closeModals(); modal(html); }
+}
+async function qOwnSet(ids, on){
+  const { error } = await sb.from('questions').update({ status: on ? 'approved' : 'draft' }).in('id', ids);
+  if (error) { toast(errMsg(error)); return false; }
+  QS.list.forEach(q => { if (ids.includes(q.id)) q.status = on ? 'approved' : 'draft'; }); return true;
+}
+ACTS['q4-own'] = () => q4OwnSheet();
+ACTS['q4-ownq'] = async t => { const id = t.dataset.id, on = !t.classList.contains('added'); t.classList.toggle('added', on); haptic();
+  if (!await qOwnSet([id], on)) { t.classList.toggle('added', !on); return; } renderQuestionsKeepModal(); };
+ACTS['q4-ownall'] = async t => { const on = t.dataset.on === '1', ids = QS.list.filter(q => q.status === (on ? 'draft' : 'approved')).map(q => q.id); if (!ids.length) return;
+  t.setAttribute('aria-busy', 'true'); if (await qOwnSet(ids, on)) { renderQuestionsKeepModal(); q4OwnSheet(); } else t.removeAttribute('aria-busy'); };
 ACTS['q4-q'] = async t => { const id = t.dataset.id, on = !(QS.pick && QS.pick.has(id));
   t.classList.toggle('added', on); haptic();
   if (!await qPickSet([id], on)) { t.classList.toggle('added', !on); return; }
@@ -2693,7 +2716,7 @@ ACTS['q-sw3'] = async t => {
 };
 ACTS['q-les3'] = t => { const l = (QS.les3 || [])[+t.dataset.i], c = CU.list.find(x => x.id === T.qf.cu3); if (l == null || !c) return;
   Object.assign(T.qf, { status: 'global', g: 'curriculum', gs: c.subject, gcu: c.id, gl: l, from3: true }); QS.open = null; renderQuestions(); scrollTo(0, 0); };
-ACTS['q-own3'] = () => { Object.assign(T.qf, { subj: '__list', cu: '', from3: true }); renderQuestions(); scrollTo(0, 0); };
+ACTS['q-own3'] = () => { closeModals(); Object.assign(T.qf, { subj: '__list', cu: '', from3: true }); renderQuestions(); scrollTo(0, 0); };
 ACTS['q-bank3'] = () => { Object.assign(T.qf, { status: 'global', g: '', gs: '', gcu: '', gl: null, from3: true }); renderQuestions(); scrollTo(0, 0); };
 ACTS['q-home3'] = () => { Object.assign(T.qf, { status: 'approved', subj: '', cu: '', g: '', gs: '', gcu: '', gl: null, from3: false }); QS.searchOn = false; QS.q = ''; renderQuestions(); scrollTo(0, 0); };
 ACTS['t-q-search'] = () => { QS.searchOn = !QS.searchOn; if (!QS.searchOn) { QS.q = ''; T.qf.level = 'all'; T.qf.type = 'all'; } renderQuestions(); if (QS.searchOn) setTimeout(() => { const i = document.querySelector('.q-q'); if (i) i.focus(); }, 60); };
