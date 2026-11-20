@@ -95,6 +95,7 @@ const ICON = {
 const ic = n => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + ICON[n] + '</svg>';
 const LOGO = '<div class="logo" aria-hidden="true"><img src="icon-512.png" alt=""></div>';
 const LETTERS = ['أ','ب','ج','د'];
+const SHAPES = ['▲','◆','●','■'];
 function setTheme(t){ document.body.dataset.theme = t || 'mid'; }
 function fmtDate(s){
   try { return new Date(s + 'T00:00:00').toLocaleDateString('ar-KW-u-nu-latn', { day: 'numeric', month: 'long' }); } catch(e){ return s; }
@@ -300,6 +301,8 @@ function renderHome(){
   } else if (ph === 'upcoming') {
     head = '<div class="phase"><b>تبدأ المسابقة ' + esc(fmtDate(c.start_date)) + '</b></div>';
     rest = '<p class="muted">جهّز نفسك: درّب نفسك الآن بلا نقاط حتى موعد البداية.</p>';
+  } else if (ph === 'points' && !h.in_progress_attempt) {
+    return renderHomeP();
   } else if (ph === 'points') {
     head = '<div class="phase"><b>مرحلة جمع النقاط</b><span class="chip warn">' + (c.days_left_points > 0 ? 'تنتهي بعد ' + c.days_left_points + ' يوم' : 'آخر يوم') + '</span></div>';
     if (h.in_progress_attempt) main = '<button class="btn accent" data-act="s-start" data-kind="official">' + ic('play') + ' أكمل جولتك</button>';
@@ -330,6 +333,30 @@ function renderHome(){
     '<button data-act="s-badges">' + ic('star') + '<span>شاراتي</span></button></div></div>';
   startCountdown();
   if ((ph === 'knockout' || ph === 'finished') && !S.demo) loadKo();
+}
+/* redesigned student home (points phase): one huge play button */
+function renderHomeP(){
+  const h = S.home, th = document.body.dataset.theme || 'mid', size = h.class.size || 0;
+  const days = h.streak || 0, up = S.upMsg; S.upMsg = null;
+  const pills = '<div class="sp-pills"><span class="sp-pill">مركزك ' + (h.rank || '-') + ' من ' + size + '</span>' + (days ? '<span class="sp-pill"><span class="flame">🔥</span> ' + days + (days === 1 ? ' يوم' : days === 2 ? ' يومين' : ' أيام') + '</span>' : '') + '</div>';
+  let mid;
+  if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo">🎉</div><b>أحسنت! رجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
+    '<p class="sp-sub">الجولة الجاية بعد <b id="cd">' + cdText() + '</b></p></div>';
+  else mid = (h.rank > 1 && h.gap != null ? '<div class="sp-rival" id="rival">' + (h.gap > 0 ? 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى اللي فوقك 👀' : 'أنت متعادل مع اللي فوقك، جولة وحدة تكفي! 👀') + '</div>' : h.rank === 1 && h.total_points ? '<div class="sp-rival">أنت الأول 🏆 حافظ عليها</div>' : '') +
+    '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>' +
+    (days ? '<p class="sp-sub">لا تطفي الشعلة 🔥</p>' : '');
+  $app.innerHTML = '<div class="sh sp pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
+    '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
+    '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
+    '<button class="avatar av-btn" data-act="s-menu" aria-label="القائمة">' + esc((h.student.name || '?').trim().charAt(0)) + '</button></div></div>' +
+    pills + '<div class="sp-mid">' + mid + '</div>' +
+    '<div class="sp-low"><button class="link" data-act="s-leaders">🏆 الترتيب</button><button class="link" data-act="s-start" data-kind="practice">تدرّب ‹</button>' +
+    (h.wrong_count ? '<button class="link" data-act="s-start" data-kind="review">أخطائي (' + h.wrong_count + ')</button>' : '') + '<button class="link" data-act="s-badges">⭐ شاراتي</button></div></div>';
+  startCountdown();
+  if (!h.played_today && h.rank > 1 && h.gap > 0 && !S.demo) rpc('class_leaderboard', { p_token: S.token }).then(lb => {
+    const rows = Array.isArray(lb) ? lb : (lb && lb.rows) || [], me = rows.find(r => r.is_me), above = me && rows.filter(r => r.rank < me.rank).sort((a, b) => b.rank - a.rank)[0];
+    const el = document.getElementById('rival'); if (el && above && above.name) el.innerHTML = 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى ' + esc(String(above.name).split(' ')[0]) + ' 👀';
+  }).catch(() => {});
 }
 /* knockout bracket (one head-to-head round per day after the points phase) + honor board */
 async function loadKo(){
@@ -566,6 +593,8 @@ ACTS['s-start'] = async (t) => {
     const st = await rpc('start_attempt', { p_token: S.token, p_kind: t.dataset.kind });
     if (S.gen !== gen) return;
     if (st.finished) { toast('أنهيت هذه الجولة'); return loadHome(); }
+    if (st.position === 1 && st.seconds_left >= 14) await countIn(gen);
+    if (S.gen !== gen) return;
     showQuestion(st);
   } catch(e){
     if (S.gen !== gen) return;
@@ -575,6 +604,15 @@ ACTS['s-start'] = async (t) => {
     else if (/already_played|official_not_open/.test(String(e.message || ''))) loadHome();
   } finally { S.starting = false; }
 };
+/* 3-2-1 before the round */
+function countIn(gen){
+  const th = document.body.dataset.theme || 'mid';
+  $app.innerHTML = '<div class="sh pv-' + th + ' cin"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div><div class="cin-n" id="cin" role="status">3</div><p class="cin-t">استعد!</p></div>';
+  return new Promise(res => { let n = 3; FX.tick && FX.tick();
+    const step = () => { if (S.gen !== gen) return res(); n--; const el = document.getElementById('cin'); if (n <= 0 || !el) return res();
+      el.textContent = n; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; FX.tick && FX.tick(); setTimeout(step, 800); };
+    setTimeout(step, 800); });
+}
 /* themed backdrops for the question screen (kids / mid / uni) */
 const PV_BG = {
   kids: '<i class="cl c1"></i><i class="cl c2"></i><i class="cl c3"></i>' +
@@ -615,7 +653,7 @@ function showQuestion(st){
     '<div class="timer' + (st.position === st.total ? ' last' : '') + '" id="timer"><div class="tfill" id="tfill"></div><svg viewBox="0 0 116 116" aria-hidden="true"><circle class="bg" cx="58" cy="58" r="48"/><circle class="fg" id="tfg" cx="58" cy="58" r="48" stroke-dasharray="301.6" stroke-dashoffset="0"/></svg>' +
     '<div class="num"><span id="tnum">' + Math.ceil(st.seconds_left) + '</span><small>ثانية</small></div></div></div>' +
     '<div class="pv-panel"><div class="qbox' + (q.image ? ' has-img' : '') + '">' + (q.image ? '<img class="q-img" src="' + esc(q.image) + '" alt="' + esc(q.image_alt || 'صورة مرفقة بالسؤال') + '">' : '') + '<span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
-    '<div class="opts' + (long ? ' long' : '') + '">' + q.options.map((o, i) => '<button class="opt" data-act="s-answer" data-idx="' + i + '"><span class="letter">' + LETTERS[i] + '</span><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
+    '<div class="opts kc' + (long ? ' long' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="s-answer" data-idx="' + i + '"><span class="letter shp" aria-hidden="true">' + SHAPES[i] + '</span><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
   runTimer(st.seconds_left);
 }
 function runTimer(secs){
@@ -703,7 +741,7 @@ async function showResult(sm){
   const cc = sm ? sm.correct_count : 0, lose = cc <= 1, win = cc >= 3, perfect = cc === 4;
   if (lose) await FX.explode();
   setTimeout(() => { if (win) FX.win(perfect); else if (!lose) FX.meh(); }, 250);
-  const head = perfect ? 'مثالي! 🏆' : win ? 'فوز رائع!' : lose ? 'انتهت الجولة' : 'أحسنت';
+  const head = perfect ? 'مثالي! 🏆' : 'خلصت! 🎉';
   const sub = perfect ? '٤ من ٤، لا يُهزم!' : win ? 'أداء ممتاز، استمر!' : lose ? 'لا بأس، جرّب التدريب وعد أقوى' : 'قريب من القمة، حاول غداً';
   const stars = [0, 1, 2, 3].map(i => '<span class="star-s' + (i < cc ? ' on' : '') + '" style="animation-delay:' + (0.5 + i * 0.25) + 's">' + ic('star') + '</span>').join('');
   let rankRow = '';
@@ -711,6 +749,7 @@ async function showResult(sm){
     const d = sm.rank_before - sm.rank_after;
     const delta = d > 0 ? '<span class="up">▲ صعدت ' + d + '</span>' : d < 0 ? '<span class="down">▼ نزلت ' + (-d) + '</span>' : '<span class="muted">بلا تغيير</span>';
     rankRow = '<div class="r"><span>ترتيبي الجديد</span><b>' + sm.rank_after + ' ' + delta + '</b></div>';
+    if (d > 0) S.upMsg = '⬆ صعدت ' + (d === 1 ? 'مركز' : d === 2 ? 'مركزين' : d + ' مراكز') + '!';
   }
  const L4 = (S.log || []).slice(-4), answered = L4.length ? L4.filter(x => x.x != null).length : (sm ? sm.correct_count : 0);
   const toAr = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
@@ -722,9 +761,8 @@ async function showResult(sm){
     '<div class="stars-row">' + stars + '</div>' +
     '<div class="center"><div class="big" id="bigpts">0</div><div class="muted">نقاط هذه الجولة</div></div>' +
     '<div class="rows card"><div class="r"><span>أجبت عن</span><b>' + toAr(answered) + ' من ٤</b></div><div class="r"><span>الإجابات الصحيحة</span><b>' + toAr(sm ? sm.correct_count : 0) + ' من ٤</b></div>' + rankRow + '</div>' +
-    '<button class="btn" data-act="s-reload">العودة للرئيسية</button>' +
-    (sm && sm.kind === 'official' ? '<button class="btn ghost" data-act="s-leaders">' + ic('trophy') + ' عرض الترتيب</button>' : '') +
-    ((S.log || []).some(x => !x.ok) && !S.demo ? '<button class="btn ghost" data-act="s-start" data-kind="review">تدرّب على أخطائك</button>' : '') +
+    (S.upMsg ? '<div class="s-up">' + S.upMsg + '</div>' : '') +
+    '<button class="btn" data-act="s-reload">تم</button>' +
     reviewHtml() + '</div></div>';
   const target = sm ? sm.total_points : 0, el = document.getElementById('bigpts'), t0 = performance.now();
   if (FX.reduce()) { if (el) el.textContent = target; } else (function roll(t){ const k = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - k, 3); if (el) el.textContent = Math.round(target * e); if (k < 1) requestAnimationFrame(roll); })(t0);

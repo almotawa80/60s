@@ -2042,3 +2042,35 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
 .cn-ok{background:#1FA971}.cn-no{background:#E5484D}
 .cn-tag{font-size:11px;font-weight:700;background:var(--primary);color:#fff;border-radius:8px;padding:1px 6px;vertical-align:middle}
 .jr-code{font-size:20px;letter-spacing:2px;color:var(--ink);margin-inline-start:4px}
+/* phase 4: student home (points) + round */
+.sp{display:flex;flex-direction:column;min-height:100dvh}
+.sp-pills{display:flex;justify-content:space-between;gap:8px;padding:0 20px;position:relative;z-index:1}
+.sp-pill{background:var(--card);color:var(--ink);border-radius:99px;padding:8px 14px;font-weight:800;font-size:15px;display:inline-flex;gap:6px;align-items:center;box-shadow:0 3px 10px rgba(0,0,0,.08)}
+.flame{display:inline-block;animation:spfl 1.2s ease-in-out infinite alternate;transform-origin:50% 90%}
+@keyframes spfl{to{transform:scale(1.2) rotate(-5deg)}}
+.sp-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:16px 20px;position:relative;z-index:1}
+.sp-rival{background:var(--card);color:var(--ink);border-radius:18px;padding:12px 16px;text-align:center;font-weight:800;font-size:17px;box-shadow:0 3px 10px rgba(0,0,0,.08)}
+.sp-rival b{color:var(--primary)}
+.sp-play{width:min(62vw,240px);height:min(62vw,240px);border-radius:50%;border:0;cursor:pointer;background:radial-gradient(circle at 35% 30%,#FFD15C,#F5A524 60%,#D9840B);color:#3A2200;font:inherit;font-size:30px;font-weight:900;display:grid;place-items:center;box-shadow:0 10px 0 #9A5B05,0 0 0 10px rgba(255,255,255,.25);animation:sppulse 1.8s ease-in-out infinite}
+.sp-play small{display:block;font-size:14px;font-weight:700}
+.sp-play:active{transform:translateY(6px);box-shadow:0 4px 0 #9A5B05}
+@keyframes sppulse{50%{box-shadow:0 10px 0 #9A5B05,0 0 0 24px rgba(255,255,255,.08)}}
+.sp-sub{font-weight:700;text-align:center;margin:0;background:var(--card);color:var(--ink);border-radius:99px;padding:6px 14px}
+.sp-done{display:flex;flex-direction:column;align-items:center;gap:10px;background:var(--card);color:var(--ink);border-radius:24px;padding:24px 20px;width:100%;max-width:360px;text-align:center}
+.sp-done>b{font-size:26px}.sp-done .sp-sub{background:var(--soft)}
+.sp-emo{font-size:64px;line-height:1}
+.s-up{background:#1FA971;color:#fff;border-radius:99px;padding:6px 16px;font-weight:900;font-size:17px;animation:pop3d .5s ease-out;align-self:center}
+.sp-low{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;padding:10px 20px calc(24px + env(safe-area-inset-bottom));position:relative;z-index:1}
+.sp-low .link{background:var(--card);color:var(--ink);border:0;border-radius:99px;padding:8px 14px;font:inherit;font-weight:700;text-decoration:none;font-size:15px}
+.cin{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh}
+.cin-n{font-size:140px;font-weight:900;line-height:1;color:var(--primary);position:relative;z-index:1;animation:cinpop .8s ease-out;text-shadow:0 6px 0 rgba(0,0,0,.12)}
+.cin-t{font-size:24px;font-weight:900;position:relative;z-index:1;background:var(--card);color:var(--ink);border-radius:99px;padding:6px 18px}
+@keyframes cinpop{from{transform:scale(1.7);opacity:0}}
+/* fixed colour + shape per option */
+html body[data-theme] .pv .opts.kc .opt.oc0:not(.good):not(.bad){background:#E21B3C!important;border-color:#B5132E!important;color:#fff!important;box-shadow:0 5px 0 #8F0F24!important}
+html body[data-theme] .pv .opts.kc .opt.oc1:not(.good):not(.bad){background:#1368CE!important;border-color:#0E52A3!important;color:#fff!important;box-shadow:0 5px 0 #0B3F7D!important}
+html body[data-theme] .pv .opts.kc .opt.oc2:not(.good):not(.bad){background:#D89E00!important;border-color:#B38300!important;color:#fff!important;box-shadow:0 5px 0 #8A6500!important}
+html body[data-theme] .pv .opts.kc .opt.oc3:not(.good):not(.bad){background:#26890C!important;border-color:#1E6E09!important;color:#fff!important;box-shadow:0 5px 0 #165207!important}
+html body[data-theme] .pv .opts.kc .opt .letter.shp{display:inline-flex!important;align-items:center;justify-content:center;width:30px;height:30px;flex:none;background:transparent!important;box-shadow:none!important;color:#fff!important;font-size:24px;border:0!important}
+html body[data-theme] .pv .opts.kc .opt.good .letter.shp,html body[data-theme] .pv .opts.kc .opt.bad .letter.shp{color:#fff!important}
+@media (prefers-reduced-motion:reduce){.flame,.sp-play,.cin-n{animation:none}}
