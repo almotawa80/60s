@@ -2615,3 +2615,12 @@ html body:not(.wide) .sh.pvx .s-me-av.em{background:#2C2C2E!important;font-size:
 .s-avg button{aspect-ratio:1;min-width:0;border-radius:20px;background:#2C2C2E;border:3px solid transparent;font-size:32px;display:grid;place-items:center;cursor:pointer}
 .s-avg button.on{border-color:#C8102E;background:color-mix(in srgb,#C8102E 18%,#2C2C2E)}
 .lbx-em{font-size:1.5em;line-height:1}.lbx-ea{font-size:22px;flex:none}
+/* v153 prizes */
+.nw .pz-row{margin:10px 0 0}
+.ce1 .pz-row{margin-top:2px}
+.pz-sh .pz-n{color:var(--muted);font-weight:700;font-size:14px;margin:-4px 0 12px}
+.pz-f{display:flex;align-items:center;gap:10px;margin-bottom:10px}.pz-f span{font-size:26px}.pz-f .input{flex:1}
+.pz-sh .btn{width:100%;margin-top:4px}.pz-del{display:block;margin:10px auto 0;color:var(--muted)}
+.sp-prize{display:flex;flex-direction:column;gap:4px;background:#1C1C1E;border:1.5px solid rgba(245,183,43,.45);border-radius:18px;padding:10px 14px;text-align:center;font-weight:800;font-size:15px;color:#F5F5F7}
+.sp-prize b{color:#F5B72B}
+.rs2-pz{margin-top:8px;display:flex;flex-direction:column;gap:2px;font-size:14px;font-weight:700;opacity:.95}

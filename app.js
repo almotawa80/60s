@@ -344,6 +344,7 @@ function renderHomeP(){
   if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo">🎉</div><b>أحسنت! رجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
     '<p class="sp-sub">الجولة الجاية بعد <b id="cd">' + cdText() + '</b></p></div>';
   else mid = (h.rank > 1 && h.gap != null ? '<div class="sp-rival" id="rival">' + (h.gap > 0 ? 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى اللي فوقك 👀' : 'أنت متعادل مع اللي فوقك، جولة وحدة تكفي! 👀') + '</div>' : h.rank === 1 && h.total_points ? '<div class="sp-rival">أنت الأول 🏆 حافظ عليها</div>' : '') +
+    pzLine((h.competition || {}).prizes, 'sp-prize') +
     '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>' +
     (days ? '<p class="sp-sub">لا تطفي الشعلة 🔥</p>' : '');
   $app.innerHTML = '<div class="sh sp pvx">' +
@@ -1228,6 +1229,21 @@ ACTS['ob-open'] = () => obStart();
 ACTS['ob-cardx'] = async () => { await saveSettings({ obCard: 1 }); rerender(); };
 /* ---- «تحدي جديد»: who → subject → how long → ready (one question per screen) ---- */
 const NW = { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, poll: null };
+/* v153 prizes: optional text for 1st/2nd/3rd (competitions.prizes text[]); the app only shows it, the teacher hands it over */
+const PZ_MD = ['🥇', '🥈', '🥉'], PZ_AR = ['الأول', 'الثاني', 'الثالث'];
+const pzVal = a => a && a.some(Boolean) ? { prizes: a.map(x => x || '') } : {};
+function pzRow(a, w){ const on = a && a.some(Boolean);
+  return `<button type="button" class="ce1-row pz-row" data-act="pz-open" data-w="${w}"><span class="ce1-e">🎁</span><span class="grow"><b>${on ? 'الجائزة' : 'جائزة؟'}</b><small>${on ? esc(a.map((x, i) => x ? PZ_MD[i] + ' ' + x : '').filter(Boolean).join(' · ')) : 'اختياري، مثل قسيمة أو درع'}</small></span><span class="ce1-ch">←</span></button>`; }
+function pzLine(a, cls){ if (!a || !a.some(Boolean)) return '';
+  return `<div class="${cls}">${a.map((x, i) => x ? `<span>${PZ_MD[i]} جائزة ${PZ_AR[i]}: <b>${esc(x)}</b></span>` : '').join('')}</div>`; }
+ACTS['pz-open'] = t => { const w = t.dataset.w, a = (w === 'nw' ? NW.prizes : CC.prizes) || [];
+  modal(`<form class="aw-sheet pz-sh" data-form="pz-save" data-w="${w}"><h3>🎁 الجائزة</h3><p class="pz-n">اكتب الجائزة، وتطلع للطلاب فوق زر «العب». أنت تسلّمها بنفسك.</p>
+    ${PZ_MD.map((m, i) => `<label class="pz-f"><span>${m}</span><input class="input" name="p${i}" maxlength="60" value="${esc(a[i] || '')}" placeholder="جائزة ${PZ_AR[i]}${i ? ' (اختياري)' : ''}"></label>`).join('')}
+    <button class="btn" type="submit">حفظ</button>${a.some(Boolean) ? '<button type="button" class="link pz-del" data-act="pz-del" data-w="' + w + '">بدون جائزة</button>' : ''}</form>`); };
+function pzSet(w, v){ if (w === 'nw') NW.prizes = v; else CC.prizes = v; closeModals();
+  const el = document.querySelector(`.pz-row[data-w="${w}"]`); if (el) el.outerHTML = pzRow(v, w); }
+ACTS['pz-save'] = f => { const v = [0, 1, 2].map(i => f['p' + i].value.replace(/\s+/g, ' ').trim()); pzSet(f.dataset.w, v.some(Boolean) ? v : null); };
+ACTS['pz-del'] = t => pzSet(t.dataset.w, null);
 const SUBJ_EMOJI = { 'الرياضيات': '📐', 'التربية الإسلامية': '🕌', 'اللغة العربية': '📖', 'العلوم': '🔬', 'اللغة الإنجليزية': '🔤', 'الاجتماعيات': '🗺️', 'الحاسوب': '💻' };
 function nwGrade(c){ const n = (c && c.name) || ''; for (let i = GRADES.length - 1; i >= 0; i--) if (n.indexOf(GRADES[i]) >= 0) return i + 1; const m = n.match(/\d+/); return m ? Number(m[0]) : null; }
 async function tNew(fresh){
@@ -1264,7 +1280,7 @@ function nwRender(){
   if (st === 3) {
     const end = addDays(todayKW(), NW.days - 1);
     b = `<h2 class="nw-q">كم يوم؟</h2><div class="nw-days">${[[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']].map(d => `<button class="${NW.days === d[0] ? 'on' : ''}" data-act="nw-days" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>
-      <p class="nw-note">يبدأ اليوم وينتهي ${esc(fmtDay(end))}</p><div class="nw-sp"></div><button class="btn nw-go" data-act="nw-start">ابدأ التحدي 🚀</button>`;
+      <p class="nw-note">يبدأ اليوم وينتهي ${esc(fmtDay(end))}</p>${pzRow(NW.prizes, 'nw')}<div class="nw-sp"></div><button class="btn nw-go" data-act="nw-start">ابدأ التحدي 🚀</button>`;
   }
   if (st === 4) {
     const m = NW.made || [];
@@ -1321,7 +1337,7 @@ ACTS['nw-start'] = async t => {
     if (busy.length) { const r = await sb.from('competitions').update({ status: 'finished' }).in('class_id', busy).eq('status', 'active'); if (r.error) throw r.error; }
     const qtypes = NW.cu ? ['curriculum', 'general', 'quick'] : ['general', 'quick'];
     const r = await sb.from('competitions').insert(cs.map(c => ({ class_id: c.id, group_id: gid, title, start_date: today, points_end_date: sp.points_end_date, end_date: sp.end_date,
-      group_size: 6, qualifiers: 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: NW.lessons || null })));
+      group_size: 6, qualifiers: 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: NW.lessons || null }, pzVal(NW.prizes))));
     if (r.error) throw r.error;
     NW.made = [];
     for (const c of cs) { let code = c.join_code; if (!c.self_join || !code) code = await rpc('set_self_join', { p_class: c.id, p_on: true }); NW.made.push({ c, code }); }
@@ -2241,6 +2257,7 @@ function compForm(){
 }
 /* edit an existing challenge (v116): name, duration, lessons; the rest in «المزيد» (in-form overlays so the fields stay in the form) */
 function compEditForm(v){
+  if (CC.pzFor !== v.group_id) { CC.pzFor = v.group_id; CC.prizes = v.prizes && v.prizes.length ? v.prizes.slice() : null; }
   return `<form class="col cf cf2 ce1" data-form="cp-save">
     <input class="input ce1-n" id="cf-title" name="title" value="${esc(v.title)}" required maxlength="80" aria-label="اسم التحدي">
     <div class="ce1-q">كم مدته؟</div>
@@ -2248,6 +2265,7 @@ function compEditForm(v){
     <div class="cf2-end" id="cf-end"></div>
     <div class="ce1-q">الأسئلة</div>
     <button type="button" class="ce1-row" data-act="ce-open" data-p="les"><span class="ce1-e">📖</span><span class="grow"><b id="ce-lb">كل الدروس</b><small id="ce-ls"></small></span><span class="ce1-ch">←</span></button>
+    ${pzRow(CC.prizes, 'cc')}
     <button type="button" class="ce1-more" data-act="ce-open" data-p="more">المزيد ⋯</button>
     <button class="btn cf2-go ce1-save" type="submit">حفظ</button>
     <div class="ce1-sh" id="ce-les"><div class="ce1-card"><div class="ce1-h"><b>من أي مادة؟</b><button type="button" class="ce1-x" data-act="ce-close" aria-label="إغلاق">✕</button></div>
@@ -2462,6 +2480,7 @@ ACTS['cp-save'] = async f => {
   const p = { title: f.title.value.trim() || 'مسابقة تحدّي الدقيقة', start_date: f.start_date.value, points_end_date: f.points_end_date.value, end_date: f.end_date.value,
     group_size: Number(f.group_size.value), qualifiers: Number(f.qualifiers.value), round_window_hours: Number(f.round_window_hours.value),
     curriculum_id: CC.cu || null, difficulty: CC.diff || 'normal', qtypes: CC.qtypes, lessons: CC.cu && CC.lessons && CC.lessons.length ? CC.lessons : null };
+  if (CC.prizes || (CL.allComps || []).some(c => c.group_id === T.compEdit && c.prizes)) p.prizes = CC.prizes && CC.prizes.some(Boolean) ? CC.prizes : null;
   if (!(p.start_date <= p.points_end_date && p.points_end_date <= p.end_date)) return toast('تحقق من ترتيب التواريخ');
   const isNew = T.compEdit === 'new', gid = isNew ? crypto.randomUUID() : T.compEdit;
   const inGroup = isNew ? [] : CL.allComps.filter(c => c.group_id === gid);
@@ -3793,7 +3812,7 @@ async function tResults(classId, compId){
   RS.rows = res.flat(); RS.all = false; RS.id = id; RS.classes = classes;
   RS.name = (classes.find(c => c.id === id) || {}).name || '';
   RS.ko = null; RS.k = null;
-  if (comp) { const { data: kk } = await sb.from('competitions').select('id,group_id,title,status,start_date,end_date,curriculum_id,lessons,difficulty').eq('id', RS.comp || comp.id).maybeSingle(); RS.k = kk || null; }
+  if (comp) { const { data: kk } = await sb.from('competitions').select('*').eq('id', RS.comp || comp.id).maybeSingle(); RS.k = kk || null; }
   if (comp && !RS.comp) { const { data: kc } = await sb.from('competitions').select('id,start_date,points_end_date,end_date,status').eq('id', comp.id).maybeSingle(); if (kc && phaseOf(kc) === 'finished') autoPraise(id, kc.id, RS.rows); }
   { try { const b = await (RS.comp ? rpc('teacher_comp_bracket', { p_class: id, p_comp: RS.comp }) : rpc('teacher_bracket', { p_class: id })); if (b && b.size && b.rounds.length && b.today >= b.rounds[0].day) RS.ko = b; } catch(e){} }
   renderResults();
@@ -3828,7 +3847,7 @@ function renderResults(){
   const k = RS.k || {}, past = k.status === 'finished', top = top3[0];
   const hero = `<div class="rs2-hero"><div class="rs2-t">${esc(String(RS.title || '').split('·').pop().trim())}</div>
     <div class="rs2-s">${esc(RS.name)}${k.start_date ? ' · ' + esc(fmtDate(k.start_date)) + ' ← ' + esc(fmtDate(k.end_date)) : ''}${past ? ' · انتهى' : ''}</div>
-    ${top ? `<div class="rs2-win">🏆 <b>${esc(top.name)}</b><span>${top.pts} نقطة</span></div>` : ''}</div>`;
+    ${top ? `<div class="rs2-win">🏆 <b>${esc(top.name)}</b><span>${top.pts} نقطة</span></div>` : ''}${pzLine(k.prizes, 'rs2-pz')}</div>`;
   const nums = any ? `<div class="rs2-nums"><div><b>${n}</b><span>طالب</span></div><div><b>${past ? rows.filter(r => r.rounds).length : played}</b><span>${past ? 'شاركوا' : 'لعبوا اليوم'}</span></div><div><b>${tr ? Math.round(tc * 100 / (tr * 4)) + '%' : '—'}</b><span>إجابات صح</span></div></div>` : '';
   const body = chips + hero + nums + ko +
     (!n ? `<div class="rs-empty">${ic('users')}<div><b>لا يوجد طلبة في هذا الصف</b></div></div>` :
@@ -3847,7 +3866,7 @@ ACTS['r-again'] = async () => {
   const { data } = await sb.from('competitions').select('class_id').eq('group_id', k.group_id);
   const days = cfDays(k.start_date, k.end_date) + 1;
   Object.assign(NW, { keep: true, step: 3, multi: false, cls: [...new Set((data || []).map(x => x.class_id))], cu: k.curriculum_id || null,
-    subj: String(k.title || '').split('·').pop().trim() || 'منوعة', days: days > 21 ? 30 : days > 10 ? 14 : 7, made: null, lessons: k.lessons && k.lessons.length ? k.lessons : null, diff: k.difficulty || null });
+    subj: String(k.title || '').split('·').pop().trim() || 'منوعة', days: days > 21 ? 30 : days > 10 ? 14 : 7, made: null, prizes: k.prizes && k.prizes.length ? k.prizes.slice() : null, lessons: k.lessons && k.lessons.length ? k.lessons : null, diff: k.difficulty || null });
   go('#/t/new');
 };
 ACTS['r-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tResults.apply(null, RS.args || [RS.id, RS.comp]).catch(() => renderResults()); };
