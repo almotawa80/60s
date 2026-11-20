@@ -644,6 +644,7 @@ function shell(title, body, active, top, back){
     `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}">${ic(n[2])}<span>${n[1]}</span></a>`).join('')}</nav>`;
 }
 const NAVI = { prev: 0 };
+const PCACHE = {}; // last rendered teacher page per hash, shown instantly while fresh data loads
 /* appearance: light / dark / auto */
 const MQ = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
 function applyMode(){
@@ -658,8 +659,19 @@ function modeSeg(){ const m = LS.get('mc_mode') || 'auto'; return `<div class="t
 ACTS['set-mode'] = t => { LS.set('mc_mode', t.dataset.v); applyMode(); t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const v = document.getElementById('mode-val'); if (v) v.textContent = MODE_AR[t.dataset.v]; };
 function view(title, body, active, top, back){
   applyMode();
+  if (location.hash.indexOf('#/t') === 0 && body.indexOf('<div class="spin"></div>') !== 0) PCACHE[location.hash] = { title, body, top, back };
+  const i0 = NAV.findIndex(n => n[0] === active), i = Math.max(0, i0);
+  const nav = $app.querySelector(':scope > .t-nav'), oldTop = $app.querySelector(':scope > .t-top'), oldBody = $app.querySelector(':scope > .t-body');
+  if (nav && oldTop && oldBody) {
+    // keep the tab bar on screen; swap only the header and the page
+    const tmp = document.createElement('div'); tmp.innerHTML = shell(title, body, active, top, back);
+    oldTop.replaceWith(tmp.querySelector('.t-top')); oldBody.replaceWith(tmp.querySelector('.t-body'));
+    nav.querySelectorAll('a').forEach((a, j) => a.classList.toggle('on', j === i0));
+    const lens = nav.querySelector('.lens'); if (lens) { lens.style.opacity = i0 < 0 ? '0' : ''; lens.style.setProperty('--i', i); }
+    NAVI.prev = i; window.scrollTo(0, 0); return;
+  }
   $app.innerHTML = shell(title, body, active, top, back); window.scrollTo(0, 0);
-  const i0 = NAV.findIndex(n => n[0] === active), i = Math.max(0, i0), lens = $app.querySelector('.lens');
+  const lens = $app.querySelector('.lens');
   if (lens && i0 < 0) lens.style.opacity = '0';
   if (lens) requestAnimationFrame(() => requestAnimationFrame(() => { lens.style.setProperty('--i', i); NAVI.prev = i; }));
 }
@@ -667,12 +679,15 @@ function view(title, body, active, top, back){
 (function(){
   let drag = null;
   const idxAt = (nav, x) => { const r = nav.getBoundingClientRect(), w = r.width / NAV.length; return Math.max(0, Math.min(NAV.length - 1, Math.floor((r.right - x) / w))); };
+  const reset = () => { if (drag && drag.lens) drag.lens.classList.remove('drag'); if (drag) drag.nav.querySelectorAll('a').forEach(el => el.classList.remove('hover')); drag = null; };
+  document.addEventListener('touchcancel', reset, { passive: true });
   document.addEventListener('touchstart', e => {
-    const nav = e.target.closest('.t-nav'); if (!nav) return;
+    reset();
+    const nav = e.target.closest && e.target.closest('.t-nav'); if (!nav || e.touches.length > 1) return;
     drag = { nav, lens: nav.querySelector('.lens'), x0: e.touches[0].clientX, moved: false };
   }, { passive: true });
   document.addEventListener('touchmove', e => {
-    if (!drag) return;
+    if (!drag || !drag.nav.isConnected || !drag.lens) { drag = null; return; }
     const x = e.touches[0].clientX; if (Math.abs(x - drag.x0) > 6) drag.moved = true;
     if (!drag.moved) return;
     e.preventDefault();
@@ -683,7 +698,7 @@ function view(title, body, active, top, back){
   document.addEventListener('touchend', e => {
     if (!drag) return;
     const d = drag; drag = null;
-    if (!d.moved) return;
+    if (!d.moved || !d.lens) return;
     const k = idxAt(d.nav, e.changedTouches[0].clientX);
     d.lens.classList.remove('drag'); d.lens.style.setProperty('--i', k);
     d.nav.querySelectorAll('a').forEach(el => el.classList.remove('hover'));
@@ -765,7 +780,8 @@ async function teacherRoute(){
   T.user = data.session.user;
   const parts = location.hash.replace(/^#\/t\/?/, '').split('/');
   const page = parts[0] || 'home';
-  view('', '<div class="spin"></div>', page);
+  const cached = PCACHE[location.hash];
+  if (cached) view(cached.title, cached.body, page, cached.top, cached.back); else view('', '<div class="spin"></div>', page);
   try {
     if (!T.name) {
       const r = await sb.from('teachers').select('display_name,avatar_url,settings').eq('id', T.user.id).maybeSingle();
@@ -2947,6 +2963,7 @@ document.addEventListener('touchend', () => {
 });
 sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') setTimeout(() => { if (!document.getElementById('np')) newPassword(); }, 400); if (ev === 'SIGNED_OUT' && location.hash.indexOf('#/t') === 0) teacherAuth(); });
 route();
+setTimeout(() => { if (document.body.classList.contains('wide')) XL().catch(() => {}); }, 3000);
 if ('serviceWorker' in navigator) {
   let reloaded = false, had = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -2962,4 +2979,3 @@ if ('serviceWorker' in navigator) {
   }).catch(() => {});
 }
 })();
-addEventListener('load', () => setTimeout(() => { if (document.body.classList.contains('wide')) XL().catch(() => {}); }, 3000));
