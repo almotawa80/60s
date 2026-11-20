@@ -79,6 +79,12 @@ const ICON = {
   mute:'<path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M22 9l-6 6M16 9l6 6"/>',
   image:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
   camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',
+  archive:'<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  grip:'<path d="M5 8h14M5 12h14M5 16h14"/>',
   share:'<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>',
   star:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3z"/>'
 };
@@ -156,7 +162,7 @@ ACTS['close-modal'] = () => closeModals();
 /* ======================================================
    STUDENT
    ====================================================== */
-const S = { token: LS.get('mc_token'), home: null, cur: null, locked: false, timer: null };
+const S = { token: LS.get('mc_token') || (() => { try { return sessionStorage.getItem('mc_token'); } catch(e){ return null; } })(), home: null, cur: null, locked: false, timer: null };
 
 function studentLogin(){
   stopTimer();
@@ -202,7 +208,7 @@ ACTS['s-login'] = async () => {
     loadHome();
   } catch(e){ box.innerHTML = '<div class="err">' + esc(errMsg(e)) + '</div>'; }
 };
-ACTS['s-logout'] = () => { LS.del('mc_token'); S.token = null; S.home = null; studentLogin(); };
+ACTS['s-logout'] = () => { LS.del('mc_token'); try { sessionStorage.removeItem('mc_token'); } catch(e){} S.token = null; S.home = null; studentLogin(); };
 
 async function loadHome(){
   stopTimer();
@@ -216,7 +222,24 @@ async function loadHome(){
   }
   setTheme(S.home.class.style); LS.set('mc_theme', S.home.class.style || 'mid');
   renderHome();
+  rpc('student_prefs', { p_token: S.token }).then(p => {
+    S.prefs = p || {};
+    if (p && p.remember === false && LS.get('mc_token')) { try { sessionStorage.setItem('mc_token', S.token); } catch(e){} LS.del('mc_token'); }
+    bellBadge();
+  }).catch(() => {});
 }
+function bellBadge(){ const b = document.querySelector('.s-bell .bdg'), n = (S.prefs && S.prefs.unread) || 0; if (b) { b.textContent = n > 9 ? '9+' : n; b.style.display = n ? '' : 'none'; } }
+ACTS['s-msgs'] = async () => {
+  if (S.demo) return toast('رسائل المعلم تظهر في المسابقة الفعلية');
+  const m = modal('<h3>' + ic('bell') + ' رسائل المعلم/ـة</h3><div class="spin"></div>');
+  try {
+    const l = await rpc('student_messages', { p_token: S.token });
+    if (S.prefs) S.prefs.unread = 0; bellBadge();
+    const EM = { encourage: '💪', praise: '🌟', advice: '💡' };
+    m.querySelector('.modal').innerHTML = '<h3>' + ic('bell') + ' رسائل المعلم/ـة</h3>' + (l.length ? '<div class="s-msgs">' + l.map(x => '<div class="s-msg' + (x.new ? ' new' : '') + '"><span class="em">' + (EM[x.kind] || '✉️') + '</span><div class="grow">' + esc(x.body) + '<small>' + esc(fmtDate(String(x.at).slice(0, 10))) + '</small></div></div>').join('') + '</div>' : '<p class="muted center">ما فيه رسائل بعد. كمّل لعب وبتوصلك رسائل من معلمك 💌</p>') +
+      '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button>';
+  } catch(e){ m.remove(); toast(errMsg(e)); }
+};
 ACTS['s-reload'] = () => S.demo ? renderHome() : loadHome();
 
 function renderHome(){
@@ -248,7 +271,8 @@ function renderHome(){
   if (si >= 0) body = '<div class="ph-strip">' + steps.map((x, i) => '<span class="' + (i < si ? 'done' : i === si ? 'cur' : '') + '">' + x[1] + '</span>').join('<i></i>') + '</div>' + body;
   $app.innerHTML = '<div class="sh pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
     '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋' + (h.streak ? ' <span class="streak" title="أيام متتالية">🔥 ' + h.streak + '</span>' : '') + '</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
-    '<button class="avatar av-btn" data-act="s-menu" aria-label="القائمة">' + esc((h.student.name || '?').trim().charAt(0)) + '</button></div>' +
+    '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
+    '<button class="avatar av-btn" data-act="s-menu" aria-label="القائمة">' + esc((h.student.name || '?').trim().charAt(0)) + '</button></div></div>' +
     '<div class="quick q2">' +
     '<button data-act="s-badges">' + ic('star') + '<span>شاراتي</span></button>' +
     '<button data-act="s-leaders">' + ic('trophy') + '<span>المتصدرون</span></button></div>' +
@@ -289,7 +313,12 @@ ACTS['s-badges'] = () => {
   const b = (S.home && S.home.badges) || [], n = b.filter(x => x.on).length;
   modal('<h3>شاراتي <span class="sub">(' + n + ' من ' + b.length + ')</span></h3><div class="bdg-grid">' + b.map(x => { const d = BADGES[x.k] || ['⭐', x.k, '']; return '<div class="bdg ' + (x.on ? 'on' : '') + '"><span class="bdg-i">' + d[0] + '</span><b>' + d[1] + '</b><small>' + d[2] + (x.k === 'practice10' && !x.on ? ' (' + (x.n || 0) + '/10)' : '') + '</small></div>'; }).join('') + '</div>' +
     (S.home && S.home.streak ? '<p class="center sub" style="margin-top:12px">🔥 سلسلتك الحالية: ' + S.home.streak + ' يوم متتالي</p>' : '') +
+    (S.prefs && S.prefs.rename ? '<button class="btn soft" style="margin-top:14px" data-act="s-rename">' + ic('edit') + ' تعديل اسمي</button>' : '') +
     '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button>');
+};
+ACTS['s-rename'] = async () => {
+  const v = await ask('اكتب اسمك الثلاثي', { input: S.home.student.name, ok: 'حفظ', danger: false }); if (v == null) return;
+  try { const r = await rpc('student_rename', { p_token: S.token, p_name: v }); S.home.student.name = r.name; closeModals(); renderHome(); bellBadge(); toast('تم تعديل اسمك'); } catch(e){ toast(errMsg(e)); }
 };
 function cdText(){ const day = 864e5, k = 3 * 36e5, now = Date.now(), next = Math.floor((now + k) / day) * day + day - k, d = Math.max(0, next - now); const p = x => String(x).padStart(2, '0'); return p(Math.floor(d / 36e5)) + ':' + p(Math.floor(d % 36e5 / 6e4)) + ':' + p(Math.floor(d % 6e4 / 1e3)); }
 function startCountdown(){ clearInterval(S.cdT); const el = document.getElementById('cd'); if (!el) return; S.cdT = setInterval(() => { const e = document.getElementById('cd'); if (!e) return clearInterval(S.cdT); const t = cdText(); e.textContent = t; if (t === '00:00:00') { clearInterval(S.cdT); setTimeout(() => S.demo ? null : loadHome(), 1500); } }, 1000); }
@@ -309,6 +338,8 @@ ACTS['s-profile'] = () => { closeModals();
   modal('<h3>ملفي</h3><div class="rows card">' +
     '<div class="r"><span>الاسم</span><b>' + esc(h.student.name) + '</b></div>' +
     '<div class="r"><span>الصف</span><b>' + esc(h.class.name) + '</b></div>' +
+    (S.prefs && S.prefs.teacher && S.prefs.teacher.name ? '<div class="r"><span>المعلم/ـة</span><b>' + esc([S.prefs.teacher.title, S.prefs.teacher.name].filter(Boolean).join(' ')) + '</b></div>' : '') +
+    (S.prefs && S.prefs.teacher && (S.prefs.teacher.subject || S.prefs.teacher.school) ? '<div class="r"><span>' + (S.prefs.teacher.subject ? 'المادة' : 'المدرسة') + '</span><b>' + esc([S.prefs.teacher.subject, S.prefs.teacher.school].filter(Boolean).join(' · ')) + '</b></div>' : '') +
     (LS.get('mc_code') ? '<div class="r"><span>رمز الدخول</span><button class="code-pill" data-act="copy" data-v="' + esc(LS.get('mc_code')) + '">' + esc(LS.get('mc_code')) + ' ' + ic('layers') + '</button></div>' : '') +
     '<div class="r"><span>مجموع النقاط</span><b>' + h.total_points + '</b></div>' +
     '<div class="r"><span>الترتيب في الصف</span><b>' + (h.rank || '-') + ' من ' + h.class.size + '</b></div></div>' +
@@ -319,20 +350,21 @@ ACTS['s-leaders'] = async () => {
   const m = modal('<h3>المتصدرون</h3><div class="spin"></div>');
   try {
     const res = await rpc('class_leaderboard', { p_token: S.token });
-    const hidden = res && res.hidden, rows = hidden ? res.rows : res;
+    const hidden = res && res.hidden, hp = !!(res && res.hide_pts), rows = res && res.rows ? res.rows : res;
     m.querySelector('.modal').classList.add('lbx-m');
-    m.querySelector('.modal').innerHTML = leadersHtml(rows, hidden);
+    m.querySelector('.modal').innerHTML = leadersHtml(rows, hidden, hp);
   } catch(e){ m.remove(); toast(errMsg(e)); }
 };
 
-function leadersHtml(rows, hidden){
+function leadersHtml(rows, hidden, hp){
+  const P = r => hp && !r.is_me ? '' : r.points;
   const th = document.body.dataset.theme || 'mid';
   const on = rows.filter(r => r.points > 0), zero = rows.filter(r => !(r.points > 0)), me = rows.find(r => r.is_me);
   const ini = n => esc(String(n || '?').trim().split(/\s+/)[0]);
   const top = on.slice(0, 3), rest = on.slice(3), max = Math.max(1, ...on.map(r => r.points));
   const pod = top.length && !hidden ? '<div class="lbx-pod">' + [1, 0, 2].map(i => { const r = top[i]; if (!r) return '<div class="lbx-pd empty"></div>';
-      return '<div class="lbx-pd p' + (i + 1) + (r.is_me ? ' me' : '') + '"><div class="lbx-av">' + (i === 0 ? '<span class="lbx-crown">👑</span>' : '') + ini(r.name).charAt(0) + '<span class="lbx-md">' + (i + 1) + '</span></div><b>' + ini(r.name) + '</b><span class="lbx-pts">' + r.points + '</span><div class="lbx-step"></div></div>'; }).join('') + '</div>' : '';
-  const list = (hidden ? on : rest).map(r => '<div class="lbx-r' + (r.is_me ? ' me' : '') + '"><span class="lbx-no">' + r.rank + '</span><span class="lbx-nm">' + esc(r.name) + (r.is_me ? ' <small>(أنت)</small>' : '') + '<i><u style="width:' + Math.round(r.points * 100 / max) + '%"></u></i></span><b>' + r.points + '</b></div>').join('');
+      return '<div class="lbx-pd p' + (i + 1) + (r.is_me ? ' me' : '') + '"><div class="lbx-av">' + (i === 0 ? '<span class="lbx-crown">👑</span>' : '') + ini(r.name).charAt(0) + '<span class="lbx-md">' + (i + 1) + '</span></div><b>' + ini(r.name) + '</b><span class="lbx-pts">' + P(r) + '</span><div class="lbx-step"></div></div>'; }).join('') + '</div>' : '';
+  const list = (hidden ? on : rest).map(r => '<div class="lbx-r' + (r.is_me ? ' me' : '') + '"><span class="lbx-no">' + r.rank + '</span><span class="lbx-nm">' + esc(r.name) + (r.is_me ? ' <small>(أنت)</small>' : '') + (hp ? '' : '<i><u style="width:' + Math.round(r.points * 100 / max) + '%"></u></i>') + '</span><b>' + P(r) + '</b></div>').join('');
   const meZero = me && !(me.points > 0);
   return '<div class="lbx pv-' + th + '"><div class="lbx-top"><h3>🏆 المتصدرون</h3><span>' + esc(S.home.class.name) + '</span><button class="lbx-x" data-act="close-modal" aria-label="إغلاق">' + ic('x') + '</button></div>' +
     (hidden ? '<div class="lbx-hid">الترتيب مخفي حتى نهاية المسابقة 🤫<small>هذا ترتيبك أنت فقط</small></div>' : '') +
@@ -561,16 +593,16 @@ async function submit(idx){
   const st = S.cur;
   try {
     const res = await rpc('submit_answer', { p_token: S.token, p_attempt: st.attempt_id, p_position: st.position, p_chosen: idx });
-    const r = res.result;
-    (S.log = S.log || []).push({ q: st.question.body, o: st.question.options, c: r.correct_index, x: idx, ok: !!r.correct });
+    const r = res.result, ci = r.correct_index != null ? r.correct_index : (r.correct ? idx : null);
+    (S.log = S.log || []).push({ q: st.question.body, o: st.question.options, c: ci, x: idx, ok: !!r.correct });
     const btns = $app.querySelectorAll('.opt');
     btns.forEach((b, i) => {
       b.disabled = true;
-      if (i === r.correct_index) b.classList.add('good');
+      if (i === ci) b.classList.add('good');
       else if (i === idx) b.classList.add('bad');
       else b.classList.add('dim');
     });
-    if (r.correct) FX.correct(btns[r.correct_index], r.points); else FX.wrong(idx != null ? btns[idx] : null, idx == null || r.timeout);
+    if (r.correct) FX.correct(btns[ci], r.points); else FX.wrong(idx != null ? btns[idx] : null, idx == null || r.timeout);
     const pop = document.getElementById('pop');
     if (pop) {
       pop.className = 'pts-pop ' + (r.correct ? 'good' : 'bad');
@@ -592,10 +624,11 @@ async function submit(idx){
 function reviewHtml(){
   const L = S.log || []; if (!L.length) return '';
   return '<div class="rv"><b class="rv-h">مراجعة إجاباتك</b>' + L.map((x, i) => '<div class="rv-i ' + (x.ok ? 'ok' : 'no') + '"><span class="rv-n">' + (x.ok ? '✓' : '✗') + '</span><div><div class="rv-q">' + esc(x.q) + '</div>' +
-    (x.ok ? '<div class="rv-a good">' + esc(x.o[x.c]) + '</div>' : '<div class="rv-a good">الصحيحة: ' + esc(x.o[x.c]) + '</div><div class="rv-a bad">' + (x.x == null ? 'انتهى الوقت' : 'إجابتك: ' + esc(x.o[x.x])) + '</div>') + '</div></div>').join('') + '</div>';
+    (x.ok ? '<div class="rv-a good">' + esc(x.o[x.c]) + '</div>' : (x.c != null ? '<div class="rv-a good">الصحيحة: ' + esc(x.o[x.c]) + '</div>' : '') + '<div class="rv-a bad">' + (x.x == null ? 'انتهى الوقت' : 'إجابتك: ' + esc(x.o[x.x])) + '</div>') + '</div></div>').join('') + '</div>';
 }
 async function showResult(sm){
   stopTimer();
+  if (sm && Array.isArray(sm.review) && S.log) { const L = S.log.slice(-sm.review.length); sm.review.forEach((v, i) => { if (L[i] && L[i].c == null) L[i].c = v.c; }); }
   const cc = sm ? sm.correct_count : 0, lose = cc <= 1, win = cc >= 3, perfect = cc === 4;
   if (lose) await FX.explode();
   setTimeout(() => { if (win) FX.win(perfect); else if (!lose) FX.meh(); }, 250);
@@ -651,13 +684,75 @@ function applyMode(){
   const m = LS.get('mc_mode') || 'auto';
   const dark = m === 'dark' || (m === 'auto' && MQ && MQ.matches);
   document.body.classList.toggle('dark', dark);
+  applyLook();
   const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = dark && document.body.classList.contains('wide') ? '#000000' : '#C8102E';
 }
 if (MQ && MQ.addEventListener) MQ.addEventListener('change', applyMode);
 const MODE_AR = { light: 'فاتح', dark: 'داكن', auto: 'تلقائي' };
 function modeSeg(){ const m = LS.get('mc_mode') || 'auto'; return `<div class="tabs mode-seg">${['light', 'dark', 'auto'].map(k => `<button type="button" class="${m === k ? 'on' : ''}" data-act="set-mode" data-v="${k}">${ic(k === 'light' ? 'sun' : k === 'dark' ? 'moon' : 'gear')} ${MODE_AR[k]}</button>`).join('')}</div>`; }
 ACTS['set-mode'] = t => { LS.set('mc_mode', t.dataset.v); applyMode(); t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const v = document.getElementById('mode-val'); if (v) v.textContent = MODE_AR[t.dataset.v]; };
+/* iOS-style push navigation: sub pages slide in, back slides out, swipe back from anywhere */
+const NS = { stack: [], cur: null, keepY: null, swipe: false };
+function snapLayer(html, y, cls){
+  const r = $app.getBoundingClientRect();
+  const L = document.createElement('div'); L.className = 'pg-layer ' + (cls || '');
+  L.innerHTML = `<div class="pg-in" style="left:${r.left}px;width:${r.width}px"><div class="pg-sc" style="transform:translateY(${-y}px)">${html}</div></div>`;
+  document.body.appendChild(L);
+  const tt = L.querySelector('.pg-sc > .t-top'); if (tt && y > 0) { const c = tt.cloneNode(true); c.classList.add('pg-tt'); L.firstChild.prepend(c); }
+  return L;
+}
+const pageEls = () => [...$app.querySelectorAll(':scope > .t-top, :scope > .t-body')];
 function view(title, body, active, top, back){
+  const h = location.hash, prev = NS.cur, first = h !== prev;
+  if (first && body.indexOf('<div class="spin"></div>') === 0) {
+    if ((!NS.pend || NS.pend.h !== h) && $app.querySelector(':scope > .t-body')) NS.pend = { h, html: pageEls().map(e => e.outerHTML).join(''), y: scrollY };
+    return viewRaw(title, body, active, top, back);
+  }
+  const pend = NS.pend && NS.pend.h === h ? NS.pend : null; NS.pend = null;
+  let mode = null, oldHtml = pend ? pend.html : '', oldY = pend ? pend.y : scrollY;
+  if (first && prev != null && (pend || $app.querySelector(':scope > .t-body')) && h.indexOf('#/t') === 0) {
+    const tp = NS.stack[NS.stack.length - 1];
+    if (tp && tp.h === h) mode = 'pop';
+    else if (back) mode = 'push';
+    else NS.stack = [];
+    if (mode && !pend) oldHtml = pageEls().map(e => e.outerHTML).join('');
+    if (mode === 'push') NS.stack.push({ h: prev, html: oldHtml, y: oldY });
+  }
+  const keep = !first ? (NS.keepY != null ? NS.keepY : scrollY) : null; NS.keepY = null;
+  if (!first && NS.anim) {
+    const cur = pageEls().map(e => getComputedStyle(e).transform);
+    viewRaw(title, body, active, top, back); window.scrollTo(0, keep);
+    pageEls().forEach((e, i) => { e.style.transition = 'none'; e.style.transform = cur[i] && cur[i] !== 'none' ? cur[i] : ''; });
+    requestAnimationFrame(() => requestAnimationFrame(() => pageEls().forEach(e => { e.style.transition = 'transform .25s cubic-bezier(.2,.8,.2,1)'; e.style.transform = ''; })));
+    return;
+  }
+  viewRaw(title, body, active, top, back);
+  NS.cur = h;
+  if (keep != null) window.scrollTo(0, keep);
+  if (mode === 'pop') { const e = NS.stack.pop(); window.scrollTo(0, e.y); }
+  if (NS.swipe) { NS.swipe = false; document.querySelectorAll('.pg-layer').forEach(x => x.remove()); $app.classList.remove('pg-anim'); return; }
+  if (!mode || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const els = pageEls(), W = $app.offsetWidth;
+  if (mode === 'push') {
+    const L = snapLayer(oldHtml, oldY, 'under');
+    els.forEach(e => { e.style.transition = 'none'; e.style.transform = `translateX(${-W}px)`; });
+    $app.classList.add('pg-anim');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      els.forEach(e => { e.style.transition = 'transform .34s cubic-bezier(.2,.8,.2,1)'; e.style.transform = ''; });
+      L.firstChild.style.transition = 'transform .34s cubic-bezier(.2,.8,.2,1)'; L.firstChild.style.transform = `translateX(${W * .3}px)`; L.classList.add('dim');
+    }));
+    NS.anim = true; setTimeout(() => { L.remove(); pageEls().forEach(e => { e.style.transition = ''; e.style.transform = ''; }); $app.classList.remove('pg-anim'); NS.anim = false; }, 380);
+  } else {
+    const L = snapLayer(oldHtml, oldY, 'over');
+    els.forEach(e => { e.style.transition = 'none'; e.style.transform = `translateX(${W * .3}px)`; });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      els.forEach(e => { e.style.transition = 'transform .3s cubic-bezier(.2,.8,.2,1)'; e.style.transform = ''; });
+      L.firstChild.style.transition = 'transform .3s cubic-bezier(.2,.8,.2,1)'; L.firstChild.style.transform = `translateX(${-W}px)`;
+    }));
+    NS.anim = true; setTimeout(() => { L.remove(); pageEls().forEach(e => { e.style.transition = ''; e.style.transform = ''; }); NS.anim = false; }, 340);
+  }
+}
+function viewRaw(title, body, active, top, back){
   applyMode();
   // a slow page that finishes loading after the user already moved to another tab must not take over the screen
   if (location.hash.indexOf('#/t') === 0) {
@@ -804,6 +899,15 @@ async function teacherRoute(){
     else if (page === 'settings') await tSettings();
     else if (page === 'qset') await tQSet();
     else if (page === 'rset') tRSet();
+    else if (page === 'account') await tAccount();
+    else if (page === 'opt') tOpt(parts[1]);
+    else if (page === 'tb') tTB();
+    else if (page === 'sset') tSSet();
+    else if (page === 'entry') await tEntry();
+    else if (page === 'appear') tAppear();
+    else if (page === 'msgtpl') tMsgTpl();
+    else if (page === 'export') await tExport();
+    else if (page === 'archive') await tArchive();
     else await tHome();
   } catch(e){
     view('', `<div class="err">${esc(errMsg(e))}</div><button class="btn" data-act="t-retry">إعادة المحاولة</button>`, page);
@@ -1030,7 +1134,7 @@ function classSection(c){
   const never = comp && ph !== 'upcoming' ? st0.filter(x => !CST(x.id).rounds) : [];
   let body = '';
   if (open) {
-    const link = joinLink(c.join_code), sort = CL.sort[c.id] || 'no', q = CL.q[c.id] || '';
+    const link = joinLink(c.join_code), q = CL.q[c.id] || ''; let sort = CL.sort[c.id] || SG('stu_sort') || 'no'; if (sort === 'pts' && !comp) sort = 'no';
     let st = st0.map((x, i) => Object.assign({ _i: i + 1 }, x));
     if (sort === 'name') st.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
     if (sort === 'pts') st.sort((a, b) => CST(b.id).pts - CST(a.id).pts);
@@ -1047,7 +1151,7 @@ function classSection(c){
       (st.length ? `<div class="sw-list">${st.map(x => { const k = CST(x.id), hide = q && !(x.name + ' ' + (x.student_no || '')).includes(q); return `<div class="sw-row${hide ? ' hide' : ''}" data-n="${esc(x.name + ' ' + (x.student_no || ''))}"><div class="sw-act">
           <div class="sw-r"><button class="del" data-act="t-del-student" data-id="${x.id}"><i>${ic('trash')}</i><span>حذف</span></button></div>
           <div class="sw-l"><button class="rg" data-act="t-regen" data-id="${x.id}"><i>${ic('refresh')}</i><span>رمز جديد</span></button><button class="wa" data-act="s-wa" data-id="${x.id}"><i>${ic('send')}</i><span>واتساب</span></button></div></div>
-        <div class="sw-main" data-act="s-card" data-id="${x.id}">${selS ? `<span class="selmark">${ic(CL.sel.ids.has(x.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${sort === 'pts' && comp ? '' : x._i}</span>`}<div class="grow"><b>${esc(x.name)}${k.today ? '<i class="cl-dot" title="لعب اليوم"></i>' : ''}</b><div class="sub">${esc(x.student_no) || '—'}${comp ? ` · ${k.pts} نقطة` : ''}${x.gender === 'f' ? ' · طالبة' : x.gender === 'm' ? ' · طالب' : ''}</div></div>
+        <div class="sw-main" data-act="s-card" data-id="${x.id}">${selS ? `<span class="selmark">${ic(CL.sel.ids.has(x.id) ? 'checkc' : 'circle')}</span>` : `<span class="sw-n">${sort === 'pts' && comp ? '' : x._i}</span>`}<div class="grow"><b>${esc(fmtStu(x.name))}${k.today ? '<i class="cl-dot" title="لعب اليوم"></i>' : ''}</b><div class="sub">${esc(x.student_no) || '—'}${comp ? ` · ${k.pts} نقطة` : ''}${x.gender === 'f' ? ' · طالبة' : x.gender === 'm' ? ' · طالب' : ''}</div></div>
         ${selS ? '' : `<button class="cl-wa" data-act="s-wa" data-id="${x.id}" aria-label="إرسال الرمز واتساب">${ic('send')}</button>`}</div></div>`; }).join('')}</div>`
         : `<div class="cl-empty sm"><b>لا يوجد طلبة في ${esc(c.name)}</b><small>صوّر كشف الأسماء أو الصقه، أو اكتب الأسماء واحداً واحداً تحت.</small><button class="btn" data-act="aw-start" data-cid="${c.id}">${ic('plus')} إضافة طلبة</button></div>`) +
       (CL.sel ? '' : `<form class="cl-add1" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="طالب" autocomplete="off" enterkeyhint="done"><button class="btn sm" type="submit">إضافة</button></form>`) + '</div>';
@@ -1129,8 +1233,11 @@ function selBar(){
   if (!CL.sel || CL.tab !== 'classes') return '';
   const n = CL.sel.ids.size, isC = CL.sel.type === 'classes';
   return `<div class="sel-bar"><button class="link" data-act="sel-cancel">إلغاء</button><b>${n ? `تم تحديد ${n}` : isC ? 'حدد الصفوف' : 'حدد الطلبة'}</b><button class="link" data-act="sel-all">الكل</button>
-    <div class="sel-acts">${!isC ? `<button class="btn sm soft" data-act="sel-move" ${n && CL.classes.length > 1 ? '' : 'disabled'}>${ic('layers')} نقل</button><button class="btn sm soft" data-act="sel-export" ${n ? '' : 'disabled'}>${ic('download')} تصدير</button>` : ''}<button class="btn sm danger" data-act="sel-del" ${n ? '' : 'disabled'}>${ic('trash')} حذف</button></div></div>`;
+    <div class="sel-acts">${!isC ? `<button class="btn sm soft" data-act="sel-move" ${n && CL.classes.length > 1 ? '' : 'disabled'}>${ic('layers')} نقل</button><button class="btn sm soft" data-act="sel-export" ${n ? '' : 'disabled'}>${ic('download')} تصدير</button><button class="btn sm soft" data-act="sel-msg" ${n ? '' : 'disabled'}>${ic('mail')} رسالة</button>` : ''}<button class="btn sm danger" data-act="sel-del" ${n ? '' : 'disabled'}>${ic('trash')} حذف</button></div></div>`;
 }
+const clStu = (c, s) => { const l = (CL.students[c.id] || []).slice().sort((a, b) => CST(b.id).pts - CST(a.id).pts); const p = CST(s.id).pts; return { id: s.id, name: s.name, pts: p, rank: p ? l.findIndex(x => x.id === s.id) + 1 : '—', cls: c.name }; };
+ACTS['s-msg'] = t => { const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (s) msgSend([clStu(c, s)]); };
+ACTS['sel-msg'] = () => { const c = CL.byId[CL.sel.cid] || CL.classes.find(x => x.id === CL.sel.cid); if (!c) return; msgSend((CL.students[c.id] || []).filter(s => CL.sel.ids.has(s.id)).map(s => clStu(c, s))); };
 ACTS['sel-del'] = async () => {
   const ids = [...CL.sel.ids], isC = CL.sel.type === 'classes';
   if (!await ask(isC ? `حذف ${ids.length} صف مع طلبتها ونتائجها نهائياً؟` : `حذف ${ids.length} طالب/ـة ونتائجهم نهائياً؟`)) return;
@@ -1177,6 +1284,7 @@ ACTS['s-card'] = async t => {
     <div class="st-acts"><button class="btn soft" data-act="s-edit" data-id="${s.id}">${ic('edit')} تعديل البيانات</button>
     <button class="btn" data-act="s-wa" data-id="${s.id}" style="background:linear-gradient(180deg,#4FD394,#1FA971);box-shadow:0 5px 0 #0E6A45">${ic('send')} إرسال الرمز واتساب</button>
     <div class="row"><button class="btn soft" data-act="copy" data-v="${esc(s.code)}">نسخ الرمز</button><button class="btn soft" data-act="t-regen" data-id="${s.id}">${ic('refresh')} رمز جديد</button></div>
+    <button class="btn soft" data-act="s-msg" data-id="${s.id}">${ic('mail')} إرسال رسالة</button>
     <button class="btn soft" data-act="t-del-student" data-id="${s.id}" style="color:#B3122A">${ic('trash')} حذف</button></div></div>`);
   try {
     const rs = await rpc('teacher_class_results', { p_class: c.id });
@@ -1294,7 +1402,7 @@ const genderSeg = (name, cur, opts) => `<div class="tabs seg-g">${opts.map(x => 
 const NC_ST = [['primary', 'ابتدائي', [1, 2, 3, 4, 5]], ['middle', 'متوسط', [6, 7, 8, 9]], ['secondary', 'ثانوي', [10, 11, 12]], ['university', 'جامعة', [1, 2, 3, 4]]];
 const UNI_Y = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة'];
 const NC = {};
-function ncName(){ if (NC.custom) return NC.custom; if (!NC.grade) return ''; const g = NC.stage === 'university' ? 'السنة ' + UNI_Y[NC.grade - 1] : GRADES[NC.grade - 1]; return g + (NC.sec ? ' / ' + NC.sec : ''); }
+function ncName(){ if (NC.custom) return NC.custom; return cnameOf(NC.stage, NC.grade, NC.sec); }
 function ncHtml(){
   const st = NC_ST.find(x => x[0] === NC.stage), last = (T.settings || {}).lastStage;
   const chip = (act, v, label, on, big) => `<button type="button" class="nc2-c${big ? ' big' : ''}${on ? ' on' : ''}" data-act="${act}" data-v="${v}">${label}</button>`;
@@ -1302,13 +1410,13 @@ function ncHtml(){
   return `<div class="nc2"><h3>صف جديد</h3>
     <div class="nc2-s"><div class="nc2-l">المرحلة ${last && last === NC.stage ? '<small>✓ آخر مرحلة اخترتها</small>' : ''}</div><div class="nc2-g4">${NC_ST.map(x => chip('nc2-st', x[0], x[1], x[0] === NC.stage, 1)).join('')}</div></div>
     ${st ? `<div class="nc2-s"><div class="nc2-l">${NC.stage === 'university' ? 'السنة' : 'الصف'}</div><div class="nc2-gr" style="--n:${st[2].length > 5 ? 5 : st[2].length}">${st[2].map((g, k) => chip('nc2-gr', g, NC.stage === 'university' ? UNI_Y[k] : GRADES[g - 1], g === NC.grade)).join('')}</div></div>` : ''}
-    <div class="nc2-s"><div class="nc2-l">الشعبة</div><div class="nc2-gr" style="--n:5">${['أ', 'ب', 'ج', 'د', 'هـ'].map(x => chip('nc2-sec', x, x, x === NC.sec)).join('')}</div></div>
+    <div class="nc2-s"><div class="nc2-l">الشعبة</div><div class="nc2-gr" style="--n:${Math.min(5, secList().length)}">${secList().map(x => chip('nc2-sec', x, x, x === NC.sec)).join('')}</div></div>
     <div class="nc2-s"><div class="nc2-l">الطلبة</div><div class="nc2-g3">${[['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']].map(x => chip('nc2-gd', x[0], x[1], x[0] === NC.g, 1)).join('')}</div></div>
     <div class="nc2-name">${NC.editing ? `<input class="input" id="nc2-in" value="${esc(name)}" maxlength="60" placeholder="مثال: السادس / 1">` : `<div class="grow"><small>اسم الصف</small><b>${name ? esc(name) : '<span class="muted">اختر الصف</span>'}</b></div><button type="button" class="nc2-pen" data-act="nc2-edit" aria-label="تعديل الاسم">${ic('edit')}</button>`}</div>
     <button class="btn" data-act="nc2-save" ${name || NC.editing ? '' : 'disabled'}>إنشاء الصف</button></div>`;
 }
 function ncRender(){ const m = document.querySelector('.nc2'); if (m) { m.outerHTML = ncHtml(); if (NC.editing) { const i = document.getElementById('nc2-in'); if (i) { i.focus(); i.select(); } } } }
-ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { stage: (T.settings || {}).lastStage || 'primary', grade: null, sec: '', g: '', custom: '', editing: false }); modal(ncHtml()); };
+ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { stage: SG('def_stage') || (T.settings || {}).lastStage || 'primary', grade: null, sec: '', g: SG('def_gender') || '', custom: '', editing: false }); modal(ncHtml()); };
 ACTS['nc2-st'] = t => { if (NC.stage !== t.dataset.v) NC.grade = null; NC.stage = t.dataset.v; NC.custom = ''; ncRender(); };
 ACTS['nc2-gr'] = t => { NC.grade = Number(t.dataset.v); NC.custom = ''; ncRender(); };
 ACTS['nc2-sec'] = t => { NC.sec = NC.sec === t.dataset.v ? '' : t.dataset.v; NC.custom = ''; ncRender(); };
@@ -1582,6 +1690,7 @@ ACTS['cp-edit'] = async t => {
 ACTS['cp-cancel'] = () => { T.compEdit = null; renderClasses(); };
 ACTS['cp-end'] = async t => {
   if (!await ask('إنهاء هذه المسابقة لكل صفوفها؟ تبقى النتائج محفوظة.')) return;
+  if (SG('msg_auto')) { const ks = (CL.allComps || []).filter(k => k.group_id === t.dataset.g); for (const k of ks) { try { const rs = await rpc('teacher_class_results', { p_class: k.class_id }); await autoPraise(k.class_id, k.id, rs.map(r => Object.assign({ cls: (CL.byId[k.class_id] || {}).name || '' }, r))); } catch(e){} } }
   const { error } = await sb.from('competitions').update({ status: 'finished' }).eq('group_id', t.dataset.g);
   if (error) return toast(errMsg(error)); await tClasses();
 };
@@ -2535,6 +2644,7 @@ async function tResults(classId){
   RS.rows = res.flat(); RS.all = false; RS.id = id; RS.classes = classes;
   RS.name = (classes.find(c => c.id === id) || {}).name || '';
   RS.ko = null;
+  if (comp) { const { data: kc } = await sb.from('competitions').select('id,start_date,points_end_date,end_date,status').eq('id', comp.id).maybeSingle(); if (kc && phaseOf(kc) === 'finished') autoPraise(id, kc.id, RS.rows); }
   { try { const b = await rpc('teacher_bracket', { p_class: id }); if (b && b.size && b.rounds.length && b.today >= b.rounds[0].day) RS.ko = b; } catch(e){} }
   renderResults();
 }
@@ -2573,9 +2683,13 @@ function renderResults(){
      <div class="tabs rs-seg">${sorts.map(x => `<button class="${RS.sort === x[0] ? 'on' : ''}" data-act="r-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
      <div class="rl-grp" id="r-list">${items || '<div class="set-row center muted">لا يوجد طلبة.</div>'}</div>
      <div class="set-f center">${list.length} من ${n} · النقطة الخضراء: لعب اليوم</div>`;
-  view(RS.title || 'النتائج', body, 'comps', `<button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, '#/t/comps');
+  view(RS.title || 'النتائج', body, 'comps', `<button class="icon-btn" data-act="r-msg-all" aria-label="رسالة للصف">${ic('mail')}</button><button class="icon-btn" data-act="t-res-export" aria-label="تنزيل Excel">${ic('download')}</button>`, '#/t/comps');
 }
 ACTS['r-cls'] = t => go('#/t/results/' + t.dataset.id);
+const rsRank = r => { const l = RS.rows.filter(x => x.cls === r.cls); return r.r || (l.slice().sort((x, y) => y.pts - x.pts).indexOf(r) + 1); };
+const rsStu = r => ({ id: r.id, name: r.name, pts: r.pts, rank: r.pts ? rsRank(r) : '—', cls: r.cls });
+ACTS['r-msg'] = t => { const r = RS.rows.find(x => x.id === t.dataset.id); if (r) msgSend([rsStu(r)]); };
+ACTS['r-msg-all'] = () => msgSend(RS.rows.filter(r => r.id).map(rsStu));
 ACTS['r-sort'] = t => { RS.sort = t.dataset.v; renderResults(); };
 document.addEventListener('input', e => {
   if (e.target.id !== 'r-q') return;
@@ -2590,7 +2704,8 @@ ACTS['r-open'] = t => {
   modal(`<div class="st-card"><div class="st-top"><div class="avatar big-av">${esc(ini)}</div><div><b>${esc(r.name)}</b><div class="sub">${esc(r.cls)} · رقم ${esc(r.student_no) || '—'}</div></div></div>
     <div class="stats"><div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? sorted.indexOf(r) + 1 : '—'}</b><span>في صفه من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>الدقة</span></div></div>
     <div class="sub center">${r.correct} إجابة صحيحة من ${r.rounds * 4} · ${r.played_today ? '<b style="color:#168A5B">لعب اليوم ✓</b>' : '<b style="color:#8a5a00">لم يلعب اليوم</b>'}</div>
-    <button class="btn" style="margin-top:14px" data-act="r-report" data-id="${r.id}" data-name="${esc(r.name)}" data-cls="${esc(r.cls)}">تقرير المستوى المفصّل</button></div>`);
+    <button class="btn" style="margin-top:14px" data-act="r-report" data-id="${r.id}" data-name="${esc(r.name)}" data-cls="${esc(r.cls)}">تقرير المستوى المفصّل</button>
+    <button class="btn soft" style="margin-top:8px" data-act="r-msg" data-id="${r.id}">${ic('mail')} إرسال رسالة</button></div>`);
 };
 const LV_AR = { easy: 'السهلة', medium: 'المتوسطة', hard: 'الصعبة' };
 /* pick the gendered form: 'راجعي/راجع' (f/m), 'الطالب/ـة', 'له/ا' */
@@ -2688,31 +2803,400 @@ ACTS['t-res-export'] = async () => { await XL();
   XLSX.utils.book_append_sheet(wb, ws, 'النتائج'); XLSX.writeFile(wb, 'نتائج-' + RS.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };
 
-/* ---- settings ---- */
-async function tSettings(){
-  const url = location.origin + location.pathname;
-  const ini = (T.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
-  const row = (act, icon, color, label, val, extra) => `<button class="set-row" data-act="${act}" ${extra || ''}><span class="set-ic" style="background:${color}">${ic(icon)}</span><span class="grow">${label}</span>${val ? `<span class="set-val">${val}</span>` : ''}<span class="set-chev">${ic('back')}</span></button>`;
-  const grp = (title, rows, foot) => `${title ? `<div class="set-h">${title}</div>` : ''}<div class="set-grp">${rows.join('')}</div>${foot ? `<div class="set-f">${foot}</div>` : ''}`;
-  view('الإعدادات',
-    `<button class="set-profile" data-act="st-profile">${avatarHtml('big-av')}<div class="grow"><b>${esc(T.name)}</b><div class="sub" dir="ltr" style="text-align:right">${esc(T.user.email || '')}</div></div><span class="set-chev">${ic('back')}</span></button>` +
-    grp('المسابقة', [row('go-qset', 'help', '#C8102E', 'إعدادات الأسئلة', 'المناهج والصعوبة'), row('go-rset', 'chart', '#FF9500', 'إعدادات النتائج', 'النقاط والترتيب')]) +
-    grp('المظهر', [row('st-mode', 'moon', '#5856D6', 'الوضع', `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>`)]) +
-    grp('الطلبة', [
-      row('st-share-students', 'send', '#1FA971', 'رابط دخول الطلبة', 'مشاركة'),
-      row('copy', 'layers', '#F26B1D', 'نسخ الرابط', '', `data-v="${esc(url)}"`)
-    ], 'يدخل الطلبة من هذا الرابط بالرمز المكون من 6 خانات.') +
-    grp('التطبيق', [
-      row('st-install', 'download', '#2F80ED', 'تثبيت التطبيق على الشاشة الرئيسية'),
-      row('st-invite', 'star', '#F5B72B', 'دعوة زميل/ـة لاستخدام التطبيق')
-    ]) +
-    grp('البيانات', [
-      row('st-export', 'download', '#14A89B', 'تصدير كل بياناتي Excel'),
-      row('st-privacy', 'check', '#9B51E0', 'الخصوصية')
-    ]) +
-    grp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
-    `<div class="set-f center">تحدّي الدقيقة · الإصدار 0.2</div>`, 'settings');
+/* ===== settings v2: Apple-style rows, switches, number wheel, choice pages ===== */
+const SDEF = { scoring: 'speed', pts_auto: true, pts_e: 15, pts_m: 30, pts_h: 45, speed_pct: 50, pen_pct: 25, lb: 'all', lb_n: 10, lb_pts: true, lb_me: true, names: 'full',
+  q_src: 'all', norep: false, shuffle: false, show_ans: 'each', difficulty: 'normal', sec_style: 'letters', sec_n: 5, cname: 'slash', def_stage: '', def_gender: '',
+  stu_name: 'tri_fam', stu_sort: 'no', remember: true, rename: false, prof_title: '', school: '', prof_subject: '', msg_auto: false };
+const SG = k => { const v = (T.settings || {})[k]; return v === undefined || v === null ? SDEF[k] : v; };
+const sRow = o => `<button class="set-row${o.dim ? ' dim' : ''}${o.cls ? ' ' + o.cls : ''}" data-act="${o.act}" ${o.attrs || ''}>${o.icon ? `<span class="set-ic" style="background:${o.color}">${ic(o.icon)}</span>` : ''}<span class="grow${o.sub ? ' rl-txt' : ''}">${o.sub ? `<b>${o.label}</b><small>${o.sub}</small>` : o.label}</span>${o.val != null && o.val !== '' ? `<span class="set-val">${o.val}</span>` : ''}${o.noChev ? '' : `<span class="set-chev">${ic('back')}</span>`}</button>`;
+const swRow = o => { const on = o.on != null ? o.on : !!SG(o.k); return `<button class="set-row" data-act="${o.act || 'sw-tog'}" data-k="${o.k}" ${o.re ? 'data-re="1"' : ''} ${o.attrs || ''} role="switch" aria-checked="${on}">${o.icon ? `<span class="set-ic" style="background:${o.color}">${ic(o.icon)}</span>` : ''}<span class="grow${o.sub ? ' rl-txt' : ''}">${o.sub ? `<b>${o.label}</b><small>${o.sub}</small>` : o.label}</span><span class="ios-sw${on ? ' on' : ''}"><i></i></span></button>`; };
+const sGrp = (title, rows, foot) => `${title ? `<div class="set-h">${title}</div>` : ''}<div class="set-grp">${rows.filter(Boolean).join('')}</div>${foot ? `<div class="set-f">${foot}</div>` : ''}`;
+function rerender(){ NS.keepY = scrollY; teacherRoute(); }
+function haptic(){ try { if (LS.get('mc_vib') === '1' && navigator.vibrate) navigator.vibrate(6); } catch(e){} }
+ACTS['sw-tog'] = async t => {
+  const k = t.dataset.k, on = !t.querySelector('.ios-sw').classList.contains('on');
+  t.querySelector('.ios-sw').classList.toggle('on', on); t.setAttribute('aria-checked', on); haptic();
+  await saveSettings({ [k]: on });
+  if (t.dataset.re) rerender();
+};
+/* number wheel */
+function pickNum(o){
+  return new Promise(res => {
+    const vals = []; for (let v = o.min; v <= o.max + 1e-9; v += o.step) vals.push(Math.round(v * 100) / 100);
+    const fmt = o.fmt || (v => String(v));
+    let idx = Math.max(0, vals.indexOf(o.value)); if (vals.indexOf(o.value) < 0) idx = vals.reduce((b, v, i) => Math.abs(v - o.value) < Math.abs(vals[b] - o.value) ? i : b, 0);
+    const m = modal(`<div class="np"><div class="np-top"><button type="button" class="link" data-np="0">إلغاء</button><b>${esc(o.title)}</b><button type="button" class="link np-ok" data-np="1">تم</button></div>
+      <div class="np-wheel"><div class="np-band"></div><div class="np-list">${vals.map((v, i) => `<div class="np-i${i === idx ? ' on' : ''}">${esc(fmt(v))}</div>`).join('')}</div></div>${o.hint ? `<div class="set-f center">${esc(o.hint)}</div>` : ''}</div>`);
+    m.classList.add('np-back');
+    const list = m.querySelector('.np-list'), H = 44, items = [...list.children];
+    requestAnimationFrame(() => { list.scrollTop = idx * H; });
+    let raf = 0;
+    list.addEventListener('scroll', () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { const i = Math.max(0, Math.min(vals.length - 1, Math.round(list.scrollTop / H))); if (i !== idx) { items[idx].classList.remove('on'); items[i].classList.add('on'); idx = i; haptic(); } }); }, { passive: true });
+    items.forEach((el, i) => el.addEventListener('click', () => list.scrollTo({ top: i * H, behavior: 'smooth' })));
+    const done = v => { m.remove(); res(v); };
+    m.addEventListener('click', e => { const b = e.target.closest('[data-np]'); if (b) done(b.dataset.np === '1' ? vals[idx] : null); else if (e.target === m) res(null); });
+  });
 }
+const NUMS = {
+  pts_e: { t: 'نقاط السؤال السهل', min: 0, max: 100, step: 5 }, pts_m: { t: 'نقاط السؤال المتوسط', min: 0, max: 100, step: 5 }, pts_h: { t: 'نقاط السؤال الصعب', min: 0, max: 100, step: 5 },
+  speed_pct: { t: 'مكافأة السرعة', min: 0, max: 100, step: 10, fmt: v => 'لين ' + v + '%', hint: 'نسبة من نقاط السؤال لمن يجاوب فوراً، وتقل مع الوقت' },
+  pen_pct: { t: 'خصم الإجابة الخاطئة', min: 0, max: 100, step: 5, fmt: v => v + '%', hint: 'نسبة من نقاط السؤال تنخصم عند الخطأ' },
+  lb_n: { t: 'عدد المتصدرين', min: 3, max: 20, step: 1 }, sec_n: { t: 'عدد الشعب', min: 1, max: 15, step: 1 }
+};
+const numVal = k => (NUMS[k].fmt || String)(SG(k));
+const numRow = (k, label, dim) => sRow({ act: 'num-pick', attrs: `data-k="${k}"${dim ? ' data-dim="1"' : ''}`, label, val: numVal(k), dim });
+ACTS['num-pick'] = async t => {
+  const k = t.dataset.k, N = NUMS[k];
+  if (t.dataset.dim) return toast('أطفئ «تلقائي» عشان تعدّل النقاط');
+  const v = await pickNum({ title: N.t, min: N.min, max: N.max, step: N.step, value: SG(k), fmt: N.fmt, hint: N.hint });
+  if (v == null || v === SG(k)) return;
+  await saveSettings({ [k]: v }); rerender();
+};
+/* choice pages (#/t/opt/<key>) */
+const DIFF_ALL = () => DIFF.map(d => [d[0], d[1], d[2]]);
+const OPTS = {
+  difficulty: { t: 'صعوبة الجولة', back: '#/t/qset', o: DIFF_ALL, foot: 'كل جولة فيها 4 أسئلة. «حسب مستوى الطالب» تصعّب الأسئلة لمن يجاوب صح وتسهّلها لمن يغلط.' },
+  q_src: { t: 'مصدر الأسئلة', back: '#/t/qset', o: () => [['all', 'أسئلتي + البنك العام', 'إذا خلصت أسئلتك تكمل من البنك'], ['mine', 'أسئلتي فقط', 'لازم يكون عندك أسئلة معتمدة كافية']] },
+  show_ans: { t: 'إظهار الإجابة الصحيحة', back: '#/t/qset', o: () => [['each', 'بعد كل سؤال', ''], ['end', 'بنهاية الجولة', 'تظهر في مراجعة الإجابات'], ['never', 'لا تظهر', 'يعرف الطالب بس إذا كانت إجابته صح أو خطأ']] },
+  scoring: { t: 'طريقة الحساب', back: '#/t/rset', o: () => [['speed', 'الصحة والسرعة', 'نقاط السؤال + مكافأة لمن يجاوب أسرع'], ['correct', 'الصحة فقط', 'نقاط السؤال بدون مكافأة سرعة'], ['penalty', 'مع خصم للخطأ', 'مثل الأول، والخاطئة تخصم (الجولة ما تنزل تحت الصفر)']] },
+  lb: { t: 'لوحة المتصدرين', back: '#/t/rset', o: () => [['all', 'كاملة', 'يشوف الطالب ترتيب كل الصف'], ['top', 'أفضل عدد', 'تحدد العدد من صفحة النتائج'], ['hidden', 'مخفية حتى النهاية', 'يشوف ترتيبه بس لين تنتهي المسابقة']], get: () => SG('lb') === 'top10' ? 'top' : SG('lb') },
+  names: { t: 'أسماء الطلبة في اللوحة', back: '#/t/rset', o: () => [['full', 'الاسم كاملاً', 'محمد أحمد العلي'], ['first_fam', 'الأول وحرف العائلة', 'محمد ع.'], ['first', 'الاسم الأول فقط', 'محمد']] },
+  prof_title: { t: 'اللقب', back: '#/t/account', o: () => [['', 'بدون', ''], ['أ.', 'أ.', ''], ['أستاذ', 'أستاذ', ''], ['أستاذة', 'أستاذة', ''], ['د.', 'د.', '']] },
+  prof_subject: { t: 'المادة', back: '#/t/account', o: () => [['', 'بدون', '']].concat(SUBJECTS.filter(s => s !== 'عام' && s !== 'أخرى').map(s => [s, s, ''])) },
+  sec_style: { t: 'تسمية الشعب', back: '#/t/sset', o: () => [['letters', 'حروف', 'أ، ب، ج'], ['numbers', 'أرقام', '1، 2، 3']] },
+  cname: { t: 'صيغة اسم الصف', back: '#/t/sset', o: () => [['slash', 'السادس / أ', ''], ['short', '6أ', ''], ['long', 'الصف السادس - أ', '']].map(x => [x[0], cnameDemo(x[0]), '']) },
+  def_stage: { t: 'المرحلة الافتراضية', back: '#/t/sset', o: () => [['', 'آخر مرحلة اخترتها', '']].concat(Object.keys(STAGE_AR).map(k => [k, STAGE_AR[k], ''])) },
+  def_gender: { t: 'نوع الصف الافتراضي', back: '#/t/sset', o: () => [['', 'بدون', 'تختاره كل مرة'], ['m', 'بنين', ''], ['f', 'بنات', ''], ['mix', 'مختلط', '']] },
+  stu_name: { t: 'عرض أسماء الطلبة', back: '#/t/sset', o: () => [['tri_fam', 'ثلاثي مع العائلة', 'محمد أحمد علي العلي'], ['tri', 'ثلاثي بدون العائلة', 'محمد أحمد علي'], ['first_fam', 'الأول وحرف العائلة', 'محمد ع.'], ['first', 'الاسم الأول فقط', 'محمد']] },
+  stu_sort: { t: 'ترتيب قائمة الطلبة', back: '#/t/sset', o: () => [['no', 'حسب الإضافة', ''], ['name', 'أبجدي', ''], ['pts', 'حسب النقاط', 'أثناء المسابقة']] }
+};
+const optGet = k => OPTS[k].get ? OPTS[k].get() : String(SG(k));
+const optLabel = k => { const x = OPTS[k].o().find(o => o[0] === optGet(k)); return x ? x[1] : ''; };
+const optRow = (k, label, extra) => sRow(Object.assign({ act: 'go', attrs: `data-h="#/t/opt/${k}"`, label, val: esc(optLabel(k)) }, extra || {}));
+ACTS['go'] = t => go(t.dataset.h);
+function tOpt(k){
+  const O = OPTS[k]; if (!O) return go('#/t/settings');
+  const cur = optGet(k);
+  view(O.t, sGrp('', O.o().map(x => `<button class="set-row radio" data-act="opt-pick" data-k="${k}" data-v="${esc(x[0])}"><span class="grow rl-txt"><b>${esc(x[1])}</b>${x[2] ? `<small>${esc(x[2])}</small>` : ''}</span><span class="tick ${cur === x[0] ? 'on' : ''}">${ic('check')}</span></button>`), O.foot), 'settings', '', O.back);
+}
+ACTS['opt-pick'] = async t => {
+  const k = t.dataset.k; t.parentElement.querySelectorAll('.tick').forEach(x => x.classList.toggle('on', x.parentElement === t)); haptic();
+  await saveSettings({ [k]: t.dataset.v });
+};
+const tName = () => (SG('prof_title') ? SG('prof_title') + ' ' : '') + (T.name || '');
+const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+
+/* ---- main settings ---- */
+async function tSettings(){
+  const sub = [SG('prof_subject'), SG('school')].filter(Boolean).join(' · ');
+  view('الإعدادات',
+    `<button class="set-profile" data-act="go" data-h="#/t/account">${avatarHtml('big-av')}<div class="grow"><b>${esc(tName())}</b><div class="sub">${sub ? esc(sub) : `<span dir="ltr">${esc(T.user.email || '')}</span>`}</div></div><span class="set-chev">${ic('back')}</span></button>` +
+    sGrp('المسابقة', [sRow({ act: 'go', attrs: 'data-h="#/t/qset"', icon: 'help', color: '#C8102E', label: 'إعدادات الأسئلة', val: esc(optLabel('difficulty')) }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/rset"', icon: 'chart', color: '#FF9500', label: 'إعدادات النتائج', val: esc(optLabel('scoring')) })]) +
+    sGrp('الطلبة', [sRow({ act: 'go', attrs: 'data-h="#/t/sset"', icon: 'users', color: '#1FA971', label: 'الطلبة والصفوف' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/msgtpl"', icon: 'mail', color: '#2F80ED', label: 'قوالب الرسائل', val: 'تشجيع · تقدير · توصية' })]) +
+    sGrp('المظهر', [sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر', val: `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>` })]) +
+    sGrp('التطبيق', [
+      isStandalone() ? '' : sRow({ act: 'st-install', icon: 'download', color: '#2F80ED', label: 'تثبيت التطبيق على الشاشة الرئيسية' }),
+      sRow({ act: 'st-invite', icon: 'star', color: '#F5B72B', label: 'دعوة زميل/ـة' }),
+      sRow({ act: 'st-feedback', icon: 'send', color: '#14A89B', label: 'اقتراح أو مشكلة' }),
+      sRow({ act: 'st-about', icon: 'info', color: '#8E8E93', label: 'عن التطبيق', val: 'الإصدار ' + APP_VER })]) +
+    sGrp('البيانات', [
+      sRow({ act: 'go', attrs: 'data-h="#/t/export"', icon: 'download', color: '#14A89B', label: 'تصدير البيانات', val: 'Excel · PDF' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/archive"', icon: 'archive', color: '#A2845E', label: 'الصفوف المؤرشفة' }),
+      sRow({ act: 'st-newyear', icon: 'refresh', color: '#FF9500', label: 'بدء سنة دراسية جديدة' }),
+      sRow({ act: 'st-privacy', icon: 'lock', color: '#9B51E0', label: 'الخصوصية' })]) +
+    sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
+    `<div class="set-f center">تحدّي الدقيقة · الإصدار ${APP_VER}</div>`, 'settings');
+}
+const APP_VER = '0.3';
+ACTS['st-about'] = () => modal(`<h3>عن التطبيق</h3><div class="col"><p><b>تحدّي الدقيقة</b> · الإصدار ${APP_VER}</p><div class="set-grp">
+  ${['إعدادات بأسلوب الآيفون مع رجوع بالسحب', 'نقاط حسب مستوى السؤال ومكافأة سرعة بالنسبة', 'ترتيب معايير التعادل بالسحب', 'رسائل تشجيع وتقدير وتوصية للطلبة', 'خلط الخيارات وعدم تكرار الأسئلة'].map(x => `<div class="set-row"><span class="tick on">${ic('check')}</span><span class="grow">${x}</span></div>`).join('')}</div></div>`);
+ACTS['st-feedback'] = () => modal(`<h3>اقتراح أو مشكلة</h3><form class="col" data-form="st-feedback-send"><textarea class="input" name="b" rows="5" maxlength="2000" required placeholder="اكتب اقتراحك أو المشكلة اللي واجهتك..."></textarea><button class="btn" type="submit">${ic('send')} إرسال</button></form>`);
+ACTS['st-feedback-send'] = async f => {
+  const { error } = await sb.from('feedback').insert({ body: f.b.value.trim() });
+  if (error) return toast(errMsg(error)); closeModals(); toast('وصلنا، شكراً لك 🙏');
+};
+ACTS['st-newyear'] = async () => {
+  const { data, error } = await sb.from('classes').select('id').eq('archived', false); if (error) return toast(errMsg(error));
+  if (!data.length) return toast('ما فيه صفوف نشطة');
+  if (!await ask(`نؤرشف ${data.length} صف عشان تبدأ سنة جديدة؟ تبقى البيانات محفوظة وتقدر تسترجعها من «الصفوف المؤرشفة».`, { danger: false, ok: 'أرشفة الكل' })) return;
+  const r = await sb.from('classes').update({ archived: true }).eq('archived', false); if (r.error) return toast(errMsg(r.error));
+  toast('تمت أرشفة الصفوف، بالتوفيق في السنة الجديدة 🎉');
+};
+
+/* ---- account page ---- */
+async function tAccount(){
+  const prov = ((T.user.app_metadata || {}).provider) || 'email';
+  const PROV = { email: 'البريد الإلكتروني', google: 'Google', apple: 'Apple' };
+  view('حسابي', `<div class="acc-head"><button class="prof-av" data-act="av-menu" aria-label="تغيير الصورة">${avatarHtml('prof-big')}<span class="prof-cam">${ic('edit')}</span></button><b>${esc(tName())}</b><div class="sub" id="acc-stats">…</div></div>` +
+    sGrp('', [sRow({ act: 'st-name', label: 'الاسم', val: esc(T.name) }), optRow('prof_title', 'اللقب'),
+      sRow({ act: 'st-school', label: 'المدرسة', val: esc(SG('school')) || '<span class="muted">إضافة</span>' }), optRow('prof_subject', 'المادة')],
+      'المدرسة والمادة واللقب تظهر للطلبة في ملفهم.') +
+    sGrp('تسجيل الدخول', [`<div class="set-row"><span class="grow">طريقة الدخول</span><span class="set-val">${PROV[prov] || esc(prov)}</span></div>`,
+      `<div class="set-row"><span class="grow">البريد</span><span class="set-val" dir="ltr">${esc(T.user.email || '')}</span></div>`,
+      prov === 'email' ? sRow({ act: 'st-pass', label: 'تغيير كلمة المرور' }) : '']) +
+    sGrp('', [`<button class="set-row danger-row" data-act="st-del-acc"><span class="grow center">حذف الحساب</span></button>`], 'يحذف حسابك وكل صفوفك وطلبتك وأسئلتك نهائياً.'), 'settings', '', '#/t/settings');
+  try {
+    const [c, s, k] = await Promise.all([sb.from('classes').select('id', { count: 'exact', head: true }).eq('archived', false),
+      sb.from('students').select('id', { count: 'exact', head: true }), sb.from('competitions').select('id', { count: 'exact', head: true }).eq('status', 'active')]);
+    const el = document.getElementById('acc-stats');
+    if (el) el.textContent = `${c.count || 0} صفوف · ${s.count || 0} طالب · ${k.count || 0} مسابقة نشطة`;
+  } catch(e){}
+}
+ACTS['st-school'] = async () => { const v = await ask('اسم المدرسة', { input: SG('school'), placeholder: 'مثال: مدرسة الفيحاء', ok: 'حفظ', danger: false }); if (v == null) return; await saveSettings({ school: v.trim().slice(0, 80) }); rerender(); };
+ACTS['st-del-acc'] = async () => {
+  if (!await ask('بينحذف حسابك وكل بياناتك نهائياً وما تقدر ترجعها. اكتب «حذف» للتأكيد.', { input: '', require: 'حذف', ok: 'حذف الحساب', danger: true })) return;
+  try { await rpc('delete_my_account', {}); } catch(e){ return toast(errMsg(e)); }
+  try { await sb.auth.signOut(); } catch(e){}
+  T.name = null; T.settings = {}; location.hash = '#/t'; toast('تم حذف الحساب');
+};
+
+/* ---- question settings ---- */
+async function tQSet(){
+  const qt = SG('qtypes') || ['curriculum', 'general', 'quick'];
+  const QC = { curriculum: '#2F80ED', general: '#14A89B', quick: '#FF9500', memory: '#AF52DE' };
+  view('إعدادات الأسئلة',
+    sGrp('الجولة', [optRow('difficulty', 'صعوبة الجولة'), optRow('q_src', 'مصدر الأسئلة')], 'كل جولة فيها 4 أسئلة، ولكل سؤال 15 ثانية. الإعدادات تنطبق على كل مسابقة جديدة.') +
+    sGrp('أنواع الأسئلة', QTYPES.map(q => swRow({ act: 'qs-type', k: q[0], on: qt.includes(q[0]), icon: q[3], color: QC[q[0]], label: q[1], sub: q[2] })), 'اختر نوع واحد على الأقل، وتنسحب الأسئلة منها عشوائياً.') +
+    sGrp('أثناء اللعب', [swRow({ k: 'shuffle', label: 'خلط الخيارات', sub: 'ترتيب الخيارات يختلف لكل طالب' }), swRow({ k: 'norep', label: 'عدم تكرار الأسئلة المجابة صح' }), optRow('show_ans', 'إظهار الإجابة الصحيحة')]),
+    'settings', '', '#/t/settings');
+}
+ACTS['qs-type'] = async t => {
+  let v = (SG('qtypes') || ['curriculum', 'general', 'quick']).slice(); const k = t.dataset.k;
+  if (v.includes(k)) { if (v.length === 1) return toast('اختر نوع واحد على الأقل'); v = v.filter(x => x !== k); } else v.push(k);
+  t.querySelector('.ios-sw').classList.toggle('on', v.includes(k)); haptic();
+  await saveSettings({ qtypes: v });
+};
+
+/* ---- results settings ---- */
+function tRSet(){
+  const sc = SG('scoring'), auto = SG('pts_auto'), lb = optGet('lb');
+  const pe = auto ? 15 : SG('pts_e'), pm = auto ? 30 : SG('pts_m'), ph = auto ? 45 : SG('pts_h');
+  const maxR = Math.round((pe + 2 * pm + ph) * (sc === 'correct' ? 1 : 1 + SG('speed_pct') / 100));
+  const tbk = tbKeys();
+  view('إعدادات النتائج',
+    sGrp('حساب النقاط', [optRow('scoring', 'الطريقة'), swRow({ k: 'pts_auto', re: 1, label: 'تلقائي', sub: 'سهل 15 · متوسط 30 · صعب 45' }),
+      numRow('pts_e', 'سهل', auto), numRow('pts_m', 'متوسط', auto), numRow('pts_h', 'صعب', auto),
+      sc !== 'correct' ? numRow('speed_pct', 'مكافأة السرعة') : '', sc === 'penalty' ? numRow('pen_pct', 'خصم الخطأ') : ''],
+      `أعلى درجة بجولة «متوسط» تقريباً ${maxR} نقطة. التغيير يأثر على الجولات القادمة بس.`) +
+    sGrp('عند تساوي النقاط', [sRow({ act: 'go', attrs: 'data-h="#/t/tb"', label: 'ترتيب المعايير', val: esc(TBL[tbk[0]][0] + '، ثم ' + TBL[tbk[1]][0]) })]) +
+    sGrp('لوحة المتصدرين للطلبة', [optRow('lb', 'اللوحة'), lb === 'top' ? numRow('lb_n', 'عدد المتصدرين') : '',
+      swRow({ k: 'lb_pts', label: 'إظهار نقاط الطلبة الآخرين' }), swRow({ k: 'lb_me', label: 'إظهار ترتيب الطالب دائماً', sub: 'حتى لو مو من الأوائل' }), optRow('names', 'الأسماء في اللوحة')]),
+    'settings', '', '#/t/settings');
+}
+const TBL = { accuracy: ['الدقة', 'نسبة الإجابات الصحيحة'], speed: ['السرعة', 'متوسط زمن الإجابات الصحيحة'], rounds: ['المشاركة', 'عدد الجولات الرسمية'], last: ['آخر جولة', 'نقاط آخر جولة لعبها'] };
+function tbKeys(){
+  let a = (T.settings || {}).tb;
+  if (!Array.isArray(a) || a.length !== 4) { const f = (T.settings || {}).tiebreak || 'accuracy'; a = [f].concat(['accuracy', 'speed', 'rounds', 'last'].filter(x => x !== f)); }
+  return a;
+}
+function tTB(){
+  const a = tbKeys();
+  view('عند تساوي النقاط', `<div class="set-grp tb-list">${a.map((k, i) => `<div class="set-row tb-row" data-k="${k}"><span class="tb-n">${i + 1}</span><span class="grow rl-txt"><b>${TBL[k][0]}</b><small>${TBL[k][1]}</small></span><span class="drag-h" aria-label="اسحب للترتيب">${ic('grip')}</span></div>`).join('')}</div>
+    <div class="set-f">اسحب من المقبض لترتيب الأولوية. لو تساوى طالبين بالنقاط نقارن بالمعيار الأول، ولو تساووا فيه نروح للثاني وهكذا.</div>`, 'settings', '', '#/t/rset');
+}
+(function(){
+  let D = null;
+  document.addEventListener('pointerdown', e => {
+    const h = e.target.closest('.drag-h'); if (!h) return;
+    const row = h.closest('.tb-row'), list = row.parentElement, rows = [...list.children];
+    D = { row, list, rows, i0: rows.indexOf(row), y0: e.clientY, H: row.offsetHeight, to: rows.indexOf(row) };
+    row.classList.add('drag'); h.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  document.addEventListener('pointermove', e => {
+    if (!D) return;
+    const dy = e.clientY - D.y0, to = Math.max(0, Math.min(D.rows.length - 1, D.i0 + Math.round(dy / D.H)));
+    D.row.style.transform = `translateY(${dy}px)`;
+    if (to !== D.to) haptic(); D.to = to;
+    D.rows.forEach((r, i) => { if (r === D.row) return; let s = 0; if (D.i0 < to && i > D.i0 && i <= to) s = -D.H; if (D.i0 > to && i < D.i0 && i >= to) s = D.H; r.style.transform = s ? `translateY(${s}px)` : ''; });
+  });
+  const end = async () => {
+    if (!D) return; const d = D; D = null;
+    const keys = d.rows.map(r => r.dataset.k), k = keys.splice(d.i0, 1)[0]; keys.splice(d.to, 0, k);
+    d.rows.forEach(r => { r.style.transform = ''; r.classList.remove('drag'); });
+    if (d.to !== d.i0) { await saveSettings({ tb: keys }); tTB(); }
+  };
+  document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
+})();
+
+/* ---- students & classes ---- */
+const SEC_L = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح', 'ط', 'ي', 'ك', 'ل', 'م', 'ن', 'س'];
+const secList = () => { const n = SG('sec_n'); return SG('sec_style') === 'numbers' ? Array.from({ length: n }, (_, i) => String(i + 1)) : SEC_L.slice(0, n); };
+function cnameOf(stage, grade, sec, fmt){
+  if (!grade) return '';
+  fmt = fmt || SG('cname');
+  if (stage === 'university') return 'السنة ' + UNI_Y[grade - 1] + (sec ? ' / ' + sec : '');
+  const g = GRADES[grade - 1];
+  if (fmt === 'short') return grade + (sec ? (/^\d/.test(sec) ? '/' + sec : sec) : '');
+  if (fmt === 'long') return 'الصف ' + g + (sec ? ' - ' + sec : '');
+  return g + (sec ? ' / ' + sec : '');
+}
+const cnameDemo = f => cnameOf('primary', 6, SG('sec_style') === 'numbers' ? '1' : 'أ', f);
+function fmtStu(name, mode){
+  const w = String(name || '').trim().split(/\s+/).filter(Boolean); if (w.length < 2) return name || '';
+  mode = mode || SG('stu_name');
+  const ini = s => s.replace(/^ال/, '').charAt(0);
+  if (mode === 'first') return w[0];
+  if (mode === 'first_fam') return w[0] + ' ' + ini(w[w.length - 1]) + '.';
+  if (mode === 'tri') return w.slice(0, 3).join(' ');
+  return w.length > 4 ? w.slice(0, 3).concat(w[w.length - 1]).join(' ') : w.join(' ');
+}
+function tSSet(){
+  view('الطلبة والصفوف',
+    sGrp('الصفوف', [optRow('sec_style', 'تسمية الشعب'), numRow('sec_n', 'عدد الشعب المعروضة'), optRow('cname', 'صيغة اسم الصف'), optRow('def_stage', 'المرحلة الافتراضية'), optRow('def_gender', 'نوع الصف الافتراضي')],
+      'تنطبق على الصفوف الجديدة، والصفوف الحالية تبقى بأسمائها.') +
+    sGrp('أسماء الطلبة', [optRow('stu_name', 'عرض الاسم'), optRow('stu_sort', 'ترتيب القائمة')], 'طريقة عرض الأسماء لك أنت داخل التطبيق.') +
+    sGrp('دخول الطلبة', [sRow({ act: 'go', attrs: 'data-h="#/t/entry"', icon: 'share', color: '#1FA971', label: 'رابط الدخول', val: 'رابط · QR' }),
+      swRow({ k: 'remember', label: 'تذكّر الطالب على جهازه', sub: 'ما يحتاج يكتب الرمز كل مرة' }), swRow({ k: 'rename', label: 'السماح للطالب بتعديل اسمه' })]),
+    'settings', '', '#/t/settings');
+}
+async function tEntry(){
+  const url = location.origin + location.pathname;
+  view('رابط الدخول', `<div class="card col center entry-c"><div class="entry-qr" id="entry-qr"><div class="spin"></div></div><b dir="ltr" class="entry-u">${esc(url.replace(/^https?:\/\//, ''))}</b><p class="sub">يفتح الطالب الرابط أو يصوّر الرمز، ويدخل برمزه المكون من 6 خانات.</p>
+    <div class="row"><button class="btn" data-act="st-share-students">${ic('share')} مشاركة</button><button class="btn soft" data-act="copy" data-v="${esc(url)}">${ic('layers')} نسخ</button></div></div>`, 'settings', '', '#/t/sset');
+  try { await loadJs(QRJS, 'qrcode'); const el = document.getElementById('entry-qr'); if (el) el.innerHTML = qrSvg(url); } catch(e){ const el = document.getElementById('entry-qr'); if (el) el.innerHTML = ''; }
+}
+
+/* ---- appearance (this device) ---- */
+const ACCENTS = [['#C8102E', 'أحمر'], ['#2F6FED', 'أزرق'], ['#1E9E5A', 'أخضر'], ['#7B4BD6', 'بنفسجي'], ['#E8710A', 'برتقالي'], ['#0F9BA8', 'فيروزي']];
+const FONTS = [['s', 'صغير', .92], ['m', 'عادي', 1], ['l', 'كبير', 1.1]];
+function tAppear(){
+  const m = LS.get('mc_mode') || 'auto', fs = LS.get('mc_fs') || 'm', ac = LS.get('mc_accent') || ACCENTS[0][0];
+  view('المظهر',
+    sGrp('الوضع', ['light', 'dark', 'auto'].map(k => `<button class="set-row radio" data-act="ap-mode" data-v="${k}"><span class="set-ic" style="background:${k === 'light' ? '#FF9500' : k === 'dark' ? '#5856D6' : '#8E8E93'}">${ic(k === 'light' ? 'sun' : k === 'dark' ? 'moon' : 'gear')}</span><span class="grow">${MODE_AR[k]}</span><span class="tick ${m === k ? 'on' : ''}">${ic('check')}</span></button>`), '«تلقائي» يتبع وضع جهازك.') +
+    sGrp('حجم الخط', [`<div class="set-row"><div class="tabs fs-seg grow">${FONTS.map(f => `<button type="button" class="${fs === f[0] ? 'on' : ''}" data-act="ap-fs" data-v="${f[0]}" style="font-size:${Math.round(15 * f[2])}px">${f[1]}</button>`).join('')}</div></div>`]) +
+    sGrp('لون التطبيق', [`<div class="set-row ac-row">${ACCENTS.map(a => `<button type="button" class="ac-dot${ac === a[0] ? ' on' : ''}" data-act="ap-ac" data-v="${a[0]}" style="--c:${a[0]}" aria-label="${a[1]}"></button>`).join('')}</div>`]) +
+    sGrp('الإحساس', [swRow({ act: 'ap-ls', k: 'mc_tsnd', on: LS.get('mc_tsnd') === '1', label: 'الأصوات', sub: 'صوت خفيف عند الضغط' }), swRow({ act: 'ap-ls', k: 'mc_vib', on: LS.get('mc_vib') === '1', label: 'الاهتزاز', sub: 'في الأجهزة اللي تدعمه' })], 'إعدادات المظهر تنحفظ على هذا الجهاز بس.'),
+    'settings', '', '#/t/settings');
+}
+ACTS['ap-mode'] = t => { LS.set('mc_mode', t.dataset.v); applyMode(); t.parentElement.querySelectorAll('.tick').forEach(x => x.classList.toggle('on', x.parentElement === t)); haptic(); };
+ACTS['ap-fs'] = t => { LS.set('mc_fs', t.dataset.v); applyLook(); t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); haptic(); };
+ACTS['ap-ac'] = t => { LS.set('mc_accent', t.dataset.v); applyLook(); t.parentElement.querySelectorAll('.ac-dot').forEach(b => b.classList.toggle('on', b === t)); haptic(); };
+ACTS['ap-ls'] = t => { const on = !t.querySelector('.ios-sw').classList.contains('on'); LS.set(t.dataset.k, on ? '1' : '0'); t.querySelector('.ios-sw').classList.toggle('on', on); haptic(); if (on && t.dataset.k === 'mc_tsnd') tapSound(); };
+function applyLook(){
+  const wide = document.body.classList.contains('wide');
+  const f = FONTS.find(x => x[0] === (LS.get('mc_fs') || 'm')) || FONTS[1];
+  document.documentElement.style.zoom = wide && f[2] !== 1 ? f[2] : '';
+  const ac = LS.get('mc_accent');
+  if (wide && ac && ac !== ACCENTS[0][0]) { document.body.style.setProperty('--primary', ac); document.body.style.setProperty('--primary-dark', ac); }
+  else { document.body.style.removeProperty('--primary'); document.body.style.removeProperty('--primary-dark'); }
+}
+let _actx = null;
+function tapSound(){ try { _actx = _actx || new (window.AudioContext || window.webkitAudioContext)(); const o = _actx.createOscillator(), g = _actx.createGain(); o.frequency.value = 1400; g.gain.setValueAtTime(.05, _actx.currentTime); g.gain.exponentialRampToValueAtTime(.0001, _actx.currentTime + .05); o.connect(g).connect(_actx.destination); o.start(); o.stop(_actx.currentTime + .06); } catch(e){} }
+document.addEventListener('click', e => { if (!document.body.classList.contains('wide')) return; if (!e.target.closest('button,a,[data-act]')) return; if (LS.get('mc_tsnd') === '1') tapSound(); haptic(); }, true);
+
+/* ---- export / archive ---- */
+const EX = { scope: 'all', cls: '', comp: '', fmt: 'xlsx' };
+async function tExport(){
+  const [c, k] = await Promise.all([sb.from('classes').select('id,name,archived').order('created_at'), sb.from('competitions').select('id,group_id,class_id,title,status').order('created_at', { ascending: false })]);
+  if (c.error) throw c.error;
+  EX.classes = c.data; EX.comps = [];
+  const seen = new Set(); (k.data || []).forEach(x => { if (!seen.has(x.group_id)) { seen.add(x.group_id); EX.comps.push(x); } });
+  const radio = (v, label, extra) => `<button class="set-row radio" data-act="ex-scope" data-v="${v}"><span class="grow">${label}</span><span class="tick ${EX.scope === v ? 'on' : ''}">${ic('check')}</span></button>${EX.scope === v && extra ? extra : ''}`;
+  const sel = (id, list, val, lab) => `<label class="set-row"><span class="grow muted">${lab}</span><select class="ex-sel" id="${id}">${list.map(x => `<option value="${x.id}" ${val === x.id ? 'selected' : ''}>${esc(x.name || x.title)}</option>`).join('')}</select></label>`;
+  view('تصدير البيانات',
+    sGrp('ماذا تصدّر؟', [radio('all', 'كل البيانات'), radio('cls', 'صف معين', c.data.length ? sel('ex-cls', c.data, EX.cls, 'الصف') : ''), radio('comp', 'مسابقة معينة', EX.comps.length ? sel('ex-comp', EX.comps, EX.comp, 'المسابقة') : '')]) +
+    sGrp('الصيغة', [`<div class="set-row"><div class="tabs grow">${[['xlsx', 'Excel'], ['pdf', 'PDF']].map(f => `<button type="button" class="${EX.fmt === f[0] ? 'on' : ''}" data-act="ex-fmt" data-v="${f[0]}">${f[1]}</button>`).join('')}</div></div>`], 'PDF يفتح نافذة الطباعة، واختر «حفظ PDF».') +
+    `<button class="btn" data-act="ex-go">${ic('download')} تصدير</button>`, 'settings', '', '#/t/settings');
+}
+ACTS['ex-scope'] = t => { EX.scope = t.dataset.v; rerender(); };
+ACTS['ex-fmt'] = t => { EX.fmt = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); };
+ACTS['ex-go'] = async () => {
+  const cs = document.getElementById('ex-cls'), ks = document.getElementById('ex-comp'); if (cs) EX.cls = cs.value; if (ks) EX.comp = ks.value;
+  let classes = EX.classes.filter(c => !c.archived), title = 'كل البيانات';
+  if (EX.scope === 'cls') { classes = EX.classes.filter(c => c.id === (EX.cls || (EX.classes[0] || {}).id)); title = (classes[0] || {}).name || ''; }
+  if (EX.scope === 'comp') { const k = EX.comps.find(x => x.id === (EX.comp || (EX.comps[0] || {}).id)); if (!k) return toast('ما فيه مسابقات'); const { data } = await sb.from('competitions').select('class_id').eq('group_id', k.group_id); const ids = new Set((data || []).map(x => x.class_id)); classes = EX.classes.filter(c => ids.has(c.id)); title = k.title; }
+  if (!classes.length) return toast('ما فيه صفوف للتصدير');
+  toast('جارٍ تجهيز الملف...');
+  try {
+    const s = await sb.from('students').select('*').in('class_id', classes.map(c => c.id)).order('created_at'); if (s.error) throw s.error;
+    const res = await Promise.all(classes.map(x => rpc('teacher_class_results', { p_class: x.id }).catch(() => [])));
+    const byId = {}; classes.forEach(x => byId[x.id] = x.name);
+    const stu = [['الصف', 'الاسم', 'رقم الطالب', 'الرمز']].concat(s.data.map(x => [byId[x.class_id], x.name, x.student_no, x.code]));
+    const rs = [['الصف', 'الاسم', 'رقم الطالب', 'النقاط', 'الجولات', 'الصحيحة']].concat(res.flatMap((r, i) => r.slice().sort((a, b) => b.pts - a.pts).map(x => [classes[i].name, x.name, x.student_no, x.pts, x.rounds, x.correct])));
+    if (EX.fmt === 'pdf') return printTables(title, [['النتائج', rs], ['الطلبة', stu.map(r => r.slice(0, 3))]]);
+    await XL();
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(stu), 'الطلبة');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rs), 'النتائج');
+    XLSX.writeFile(wb, 'تحدي-الدقيقة-' + title.replace(/[\\\/?*\[\]:]/g, '-').slice(0, 40) + '.xlsx');
+  } catch(e){ toast(errMsg(e)); }
+};
+function printTables(title, tables){
+  let pa = document.getElementById('print-area'); if (!pa) { pa = document.createElement('div'); pa.id = 'print-area'; document.body.appendChild(pa); }
+  pa.innerHTML = `<div class="pt-doc"><h2>تحدّي الدقيقة · ${esc(title)}</h2>${tables.map(t => `<h3>${esc(t[0])}</h3><table class="pt"><thead><tr>${t[1][0].map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${t[1].slice(1).map(r => `<tr>${r.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`).join('')}</div>`;
+  setTimeout(() => window.print(), 50);
+}
+async function tArchive(){
+  const { data, error } = await sb.from('classes').select('id,name').eq('archived', true).order('created_at'); if (error) throw error;
+  view('الصفوف المؤرشفة', data.length ? sGrp('', data.map(c => `<div class="set-row"><span class="grow">${esc(c.name)}</span><button class="btn sm soft" data-act="ar-restore" data-id="${c.id}">استرجاع</button></div>`), 'الصفوف المؤرشفة ما تظهر بالقوائم، وبياناتها محفوظة.')
+    : `<div class="cl-empty sm"><b>ما فيه صفوف مؤرشفة</b><small>تقدر تؤرشف صف من قائمة الصفوف، أو تبدأ سنة جديدة من الإعدادات.</small></div>`, 'settings', '', '#/t/settings');
+}
+ACTS['ar-restore'] = async t => { const { error } = await sb.from('classes').update({ archived: false }).eq('id', t.dataset.id); if (error) return toast(errMsg(error)); toast('تم الاسترجاع'); rerender(); };
+
+/* ---- messages: templates + sending ---- */
+const MSG_K = { encourage: ['تشجيع', '#2F80ED', '💪'], praise: ['تقدير', '#E0A100', '🌟'], advice: ['توصية', '#1FA971', '💡'] };
+const MSG_DEF = {
+  encourage: ['يا {الاسم}، أنت قادر على الأفضل! جرّب جولة اليوم وخلّنا نشوف إبداعك 💪', 'بداية حلوة يا {الاسم}، استمر وكل يوم بتتحسن أكثر'],
+  praise: ['أحسنت يا {الاسم}! جمعت {النقاط} نقطة وترتيبك {الترتيب} في الصف 🌟', 'فخور فيك يا {الاسم}، أداؤك مميز في المسابقة 👏'],
+  advice: ['يا {الاسم}، راجع أخطاءك من «تدرّب على أخطائك» قبل الجولة القادمة', 'يا {الاسم}، اقرأ السؤال كامل قبل ما تختار، الدقة أهم من السرعة']
+};
+const tplList = k => (((T.settings || {}).msg_tpl || {})[k]) || MSG_DEF[k];
+const fillTpl = (s, st) => s.replace(/\{الاسم\}/g, fmtStu(st.name, 'first')).replace(/\{النقاط\}/g, st.pts != null ? st.pts : 0).replace(/\{الترتيب\}/g, st.rank || '—').replace(/\{الصف\}/g, st.cls || '');
+function tMsgTpl(){
+  view('قوالب الرسائل', Object.keys(MSG_K).map(k => sGrp(MSG_K[k][2] + ' ' + MSG_K[k][0], tplList(k).map((s, i) => sRow({ act: 'mt-edit', attrs: `data-k="${k}" data-i="${i}"`, label: `<span class="mt-txt">${esc(s)}</span>` }))
+      .concat(`<button class="set-row" data-act="mt-edit" data-k="${k}" data-i="-1"><span class="set-ic" style="background:#34C759">${ic('plus')}</span><span class="grow" style="color:var(--primary)">إضافة قالب</span></button>`))).join('') +
+    sGrp('تلقائي', [swRow({ k: 'msg_auto', label: 'تقدير تلقائي للثلاثة الأوائل', sub: 'يوصلهم أول قالب تقدير لما تنتهي المسابقة' })],
+      'تقدر تستخدم بالقوالب: {الاسم} و{النقاط} و{الترتيب} و{الصف}، وتتعبى تلقائياً لكل طالب.'), 'settings', '', '#/t/settings');
+}
+ACTS['mt-edit'] = t => {
+  const k = t.dataset.k, i = Number(t.dataset.i), s = i >= 0 ? tplList(k)[i] : '';
+  modal(`<h3>${i >= 0 ? 'تعديل قالب' : 'قالب جديد'} · ${MSG_K[k][0]}</h3><form class="col" data-form="mt-save" data-k="${k}" data-i="${i}"><textarea class="input" name="b" rows="4" maxlength="500" required>${esc(s)}</textarea>
+    <div class="lv-chips">${['{الاسم}', '{النقاط}', '{الترتيب}', '{الصف}'].map(x => `<button type="button" data-act="mt-ins" data-v="${x}">${x}</button>`).join('')}</div>
+    <button class="btn" type="submit">حفظ</button>${i >= 0 ? `<button type="button" class="btn soft" data-act="mt-del" data-k="${k}" data-i="${i}" style="color:#B3122A">${ic('trash')} حذف القالب</button>` : ''}</form>`);
+};
+ACTS['mt-ins'] = t => { const ta = t.closest('form').querySelector('textarea'), p = ta.selectionStart || ta.value.length; ta.value = ta.value.slice(0, p) + t.dataset.v + ta.value.slice(p); ta.focus(); };
+async function saveTpl(k, list){ const all = Object.assign({}, (T.settings || {}).msg_tpl || {}); all[k] = list; await saveSettings({ msg_tpl: all }); }
+ACTS['mt-save'] = async f => { const k = f.dataset.k, i = Number(f.dataset.i), l = tplList(k).slice(), v = f.b.value.trim(); if (!v) return; if (i >= 0) l[i] = v; else l.push(v); await saveTpl(k, l); closeModals(); rerender(); };
+ACTS['mt-del'] = async t => { const k = t.dataset.k, l = tplList(k).slice(); l.splice(Number(t.dataset.i), 1); await saveTpl(k, l); closeModals(); rerender(); };
+const MS = { to: [], kind: 'encourage', i: 0 };
+function msgSend(students){
+  if (!students.length) return toast('حدد طالب واحد على الأقل');
+  Object.assign(MS, { to: students, kind: MS.kind || 'encourage', i: 0 }); closeModals(); modal(msgHtml());
+}
+function msgHtml(){
+  const one = MS.to.length === 1, l = tplList(MS.kind), base = l[MS.i] != null ? l[MS.i] : '';
+  return `<div class="msg-s"><h3>${ic('mail')} رسالة ${one ? 'إلى ' + esc(fmtStu(MS.to[0].name)) : 'إلى ' + MS.to.length + ' طالب/ـة'}</h3>
+    <div class="tabs">${Object.keys(MSG_K).map(k => `<button type="button" class="${MS.kind === k ? 'on' : ''}" data-act="ms-kind" data-v="${k}">${MSG_K[k][2]} ${MSG_K[k][0]}</button>`).join('')}</div>
+    <div class="ms-tpls">${l.map((s, i) => `<button type="button" class="ms-tpl${MS.i === i ? ' on' : ''}" data-act="ms-tpl" data-i="${i}">${esc(one ? fillTpl(s, MS.to[0]) : s)}</button>`).join('')}</div>
+    <form class="col" data-form="ms-send"><textarea class="input" name="b" rows="3" maxlength="600" required>${esc(one ? fillTpl(base, MS.to[0]) : base)}</textarea>
+    ${one ? '' : '<small class="sub">{الاسم} و{النقاط} و{الترتيب} تتعبى لكل طالب.</small>'}<button class="btn" type="submit">${ic('send')} إرسال</button></form></div>`;
+}
+ACTS['ms-kind'] = t => { MS.kind = t.dataset.v; MS.i = 0; const m = document.querySelector('.msg-s'); if (m) m.outerHTML = msgHtml(); };
+ACTS['ms-tpl'] = t => { MS.i = Number(t.dataset.i); const m = document.querySelector('.msg-s'); if (m) m.outerHTML = msgHtml(); };
+ACTS['ms-send'] = async f => {
+  const b = f.b.value.trim(); if (!b) return;
+  const rows = MS.to.map(s => ({ student_id: s.id, kind: MS.kind, body: MS.to.length === 1 ? b : fillTpl(b, s) }));
+  const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
+  const { error } = await sb.from('messages').insert(rows); btn.disabled = false;
+  if (error) return toast(/relation|does not exist|schema cache/i.test(error.message || '') ? 'ميزة الرسائل تحتاج تحديث قاعدة البيانات أول' : errMsg(error));
+  closeModals(); toast(MS.to.length === 1 ? 'وصلت الرسالة ✓' : `وصلت الرسالة لـ ${MS.to.length} طالب/ـة ✓`);
+};
+async function autoPraise(classId, compId, rows){
+  try {
+    if (!SG('msg_auto') || !compId) return;
+    const done = (T.settings || {}).msg_done || []; if (done.includes(compId)) return;
+    const top = rows.filter(r => r.pts > 0 && r.id).sort((a, b) => (a.r || 99) - (b.r || 99) || b.pts - a.pts).slice(0, 3);
+    if (!top.length) return;
+    const tpl = tplList('praise')[0] || MSG_DEF.praise[0];
+    const { error } = await sb.from('messages').insert(top.map((r, i) => ({ student_id: r.id, kind: 'praise', body: fillTpl(tpl, { name: r.name, pts: r.pts, rank: r.r || i + 1, cls: r.cls }) })));
+    if (error) return;
+    await saveSettings({ msg_done: done.concat(compId).slice(-200) }); toast('وصل التقدير للثلاثة الأوائل 🌟');
+  } catch(e){}
+}
+
+/* ---- settings ---- */
 function avatarHtml(cls){
   const ini = (T.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
   return T.avatar ? `<img class="avatar av-img ${cls || ''}" src="${T.avatar}" alt="">` : `<div class="avatar ${cls || ''}">${esc(ini)}</div>`;
@@ -2729,7 +3213,7 @@ function profileSheet(){
     <div class="set-grp" style="width:100%"><button class="set-row" data-act="st-pass"><span class="set-ic" style="background:#8E8E93">${ic('gear')}</span><span class="grow">تغيير كلمة المرور</span><span class="set-chev">${ic('back')}</span></button></div>
     <input type="file" id="av-file" accept="image/*" class="hide" data-change="av-chosen"></div>`);
 }
-ACTS['st-profile'] = () => profileSheet();
+ACTS['st-profile'] = () => go('#/t/account');
 /* profile icon menu (every teacher screen) */
 ACTS['t-menu'] = () => {
   const it = (act, icon, color, label, attrs) => `<button class="sheet-i" data-act="${act}" ${attrs || ''}><span class="set-ic" style="background:${color}">${ic(icon)}</span><span class="grow">${label}</span></button>`;
@@ -2745,20 +3229,6 @@ ACTS['tm-go'] = t => { const a = t.dataset.a; closeModals(); setTimeout(() => AC
 ACTS['tm-settings'] = () => go('#/t/settings');
 ACTS['go-qset'] = () => go('#/t/qset');
 ACTS['go-rset'] = () => go('#/t/rset');
-/* ---- results settings ---- */
-const RSET = {
-  scoring: { t: 'حساب النقاط', o: [['speed', 'الصحة والسرعة', 'الصحيح 500 نقطة + حتى 500 حسب السرعة'], ['correct', 'الصحة فقط', 'كل إجابة صحيحة 1000 نقطة'], ['penalty', 'مع خصم للخطأ', 'مثل الأول، والخاطئة تخصم 250 نقطة (لا تقل الجولة عن صفر)']] },
-  tiebreak: { t: 'عند تساوي النقاط', o: [['accuracy', 'الأعلى دقة', 'نسبة الإجابات الصحيحة'], ['speed', 'الأسرع', 'متوسط زمن الإجابات الصحيحة'], ['rounds', 'الأكثر مشاركة', 'عدد الجولات الرسمية']] },
-  lb: { t: 'لوحة المتصدرين للطلبة', o: [['all', 'كاملة', 'يرى الطالب ترتيب كل الصف'], ['top10', 'أفضل 10', 'مع ترتيبه هو إن لم يكن منهم'], ['hidden', 'مخفية حتى النهاية', 'يرى ترتيبه فقط حتى تنتهي المسابقة']] },
-  names: { t: 'أسماء الطلبة في اللوحة', o: [['full', 'الاسم كاملاً', ''], ['first', 'الاسم الأول فقط', 'لخصوصية أكبر']] }
-};
-function tRSet(){
-  const st = T.settings || {};
-  const def = { scoring: 'speed', tiebreak: 'accuracy', lb: 'all', names: 'full' };
-  view('إعدادات النتائج', Object.keys(RSET).map(k => { const cur = st[k] || def[k];
-    return `<div class="set-h">${RSET[k].t}</div><div class="set-grp">${RSET[k].o.map(o => `<button class="set-row radio" data-act="rs-pick" data-k="${k}" data-v="${o[0]}"><span class="grow rl-txt"><b>${o[1]}</b>${o[2] ? `<small>${o[2]}</small>` : ''}</span><span class="tick ${cur === o[0] ? 'on' : ''}">${ic('check')}</span></button>`).join('')}</div>`; }).join('') +
-    `<div class="set-f">تُطبَّق على كل مسابقاتك. تغيير طريقة الحساب يؤثر على الجولات القادمة فقط، أما الترتيب والعرض فيتحدثان فوراً.</div>`, 'settings', '', '#/t/settings');
-}
 ACTS['rs-pick'] = async t => {
   await saveSettings({ [t.dataset.k]: t.dataset.v });
   t.parentElement.querySelectorAll('.tick').forEach(x => x.classList.toggle('on', x.parentElement === t));
@@ -2766,7 +3236,7 @@ ACTS['rs-pick'] = async t => {
 /* ---- question settings: curricula library + defaults ---- */
 const STAGE_AR = { primary: 'ابتدائي', middle: 'متوسط', secondary: 'ثانوي', university: 'جامعة' };
 const STAGE_GRADES = { primary: [1, 2, 3, 4, 5], middle: [6, 7, 8, 9], secondary: [10, 11, 12], university: [1, 2, 3, 4] };
-const DIFF = [['beginner', 'مبتدئ', '2 سهل · 2 متوسط'], ['normal', 'متوسط', '1 سهل · 2 متوسط · 1 صعب'], ['advanced', 'متقدم', '2 متوسط · 2 صعب']];
+const DIFF = [['beginner', 'مبتدئ', '2 سهل · 2 متوسط'], ['normal', 'متوسط', '1 سهل · 2 متوسط · 1 صعب'], ['advanced', 'متقدم', '2 متوسط · 2 صعب'], ['adaptive', 'حسب مستوى الطالب', 'تتغير الأسئلة حسب أداء كل طالب']];
 const CU = { list: [], loaded: false, form: null };
 async function loadCurricula(force){
   if (CU.loaded && !force) return CU.list;
@@ -2777,39 +3247,12 @@ function cuName(c){ if (!c) return ''; const g = c.grade ? (c.stage === 'univers
 function cuOptions(sel, emptyLabel){
   const subs = [...new Set(CU.list.map(c => c.subject))];
   return `<option value="">${emptyLabel || 'بدون منهج محدد'}</option>` + subs.map(s => `<optgroup label="${esc(s)}">${CU.list.filter(c => c.subject === s).map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${STAGE_AR[c.stage]} · ${gradeAr(c)}${c.title ? ' · ' + esc(c.title) : ''}${c.owner_id ? '' : ' (عام)'}</option>`).join('')}</optgroup>`).join(''); }
-async function tQSet(){
-  await loadCurricula(true);
-  const st = T.settings || {}, diff = st.difficulty || 'normal', qt = st.qtypes || ['curriculum', 'general', 'quick'];
-  const counts = {}; (await sb.from('questions').select('curriculum_id').not('curriculum_id', 'is', null)).data?.forEach(q => counts[q.curriculum_id] = (counts[q.curriculum_id] || 0) + 1);
-  const mine = CU.list.filter(c => c.owner_id), glob = CU.list.filter(c => !c.owner_id);
-  const cuRow = c => `<button class="set-row" data-act="cu-open" data-id="${c.id}"><span class="set-ic" style="background:${SUBJ_COLOR(c.subject)}">${esc(c.subject.slice(0, 1))}</span><span class="grow rl-txt"><b>${esc(c.subject)}${c.title ? ' · ' + esc(c.title) : ''}</b><small>${STAGE_AR[c.stage]}${c.grade ? ' · ' + (c.stage === 'university' ? 'السنة ' : 'الصف ') + c.grade : ''} · ${counts[c.id] || 0} سؤال</small></span><span class="set-chev">${ic('back')}</span></button>`;
-  const LVC = { 'سهل': 'e', 'متوسط': 'm', 'صعب': 'h' };
-  const dots = d => d[2].split(' · ').map(x => { const [n, l] = x.split(' '); return Array(+n).fill(`<i class="qd ${LVC[l]}">${l}</i>`).join(''); }).join('');
-  view('إعدادات الأسئلة',
-    `<div class="qs-intro">${ic('help')}<span>هذه الإعدادات تُطبَّق تلقائياً على كل <b>مسابقة جديدة</b>، وتقدر تغيّرها لكل مسابقة لحالها. كل جولة فيها <b>4 أسئلة</b>، ولكل سؤال <b>15 ثانية</b>.</span></div>
-     <div class="set-h">١. صعوبة الجولة</div>
-     <div class="set-grp">${DIFF.map(d => `<button class="set-row radio qs-row" data-act="qs-diff" data-v="${d[0]}"><span class="grow rl-txt"><b>${d[1]}</b><span class="qd-row">${dots(d)}</span></span><span class="tick ${diff === d[0] ? 'on' : ''}">${ic('check')}</span></button>`).join('')}</div>
-     <div class="set-f">يحدد كيف تتوزع الأسئلة الأربعة بين السهل والمتوسط والصعب.</div>
-     <div class="set-h">٢. أنواع الأسئلة</div>
-     <div class="set-grp">${QTYPES.map(q => `<button class="set-row radio" data-act="qs-type" data-v="${q[0]}"><span class="set-ic" style="background:${{ curriculum: '#2F80ED', general: '#14A89B', quick: '#FF9500', memory: '#AF52DE' }[q[0]]}">${ic(q[3])}</span><span class="grow rl-txt"><b>${q[1]}</b><small>${q[2]}</small></span><span class="tick sq ${qt.includes(q[0]) ? 'on' : ''}">${ic('check')}</span></button>`).join('')}</div>
-     <div class="set-f">اختر نوعاً أو أكثر، وتُسحب الأسئلة منها عشوائياً.</div>
-     <div class="set-h">٣. المناهج${qt.includes('curriculum') ? '' : ' <small>(تُستخدم مع نوع «المنهج»)</small>'}</div>
-     <div class="set-grp">${mine.map(cuRow).join('')}<button class="set-row" data-act="cu-add"><span class="set-ic" style="background:#34C759">${ic('plus')}</span><span class="grow" style="color:var(--primary)">إضافة منهج</span></button></div>
-     <div class="set-f">المنهج هو المادة والصف، مثل «الرياضيات · الصف الخامس». أضف أسئلته من صفحة الأسئلة، ثم اختره عند إنشاء المسابقة.</div>` +
-    (glob.length ? `<div class="set-h">مناهج جاهزة</div><div class="set-grp">${glob.map(cuRow).join('')}</div>` : ''), 'settings', '', '#/t/settings');
-}
 function SUBJ_COLOR(s){ const m = { 'اللغة العربية': '#C8102E', 'الرياضيات': '#2F80ED', 'العلوم': '#14A89B', 'التربية الإسلامية': '#1FA971', 'اللغة الإنجليزية': '#9B51E0', 'الاجتماعيات': '#F2994A', 'الحاسوب': '#5856D6' }; return m[s] || '#8E8E93'; }
 async function saveSettings(patch){
   T.settings = Object.assign({}, T.settings || {}, patch);
   const { error } = await sb.from('teachers').update({ settings: T.settings }).eq('id', T.user.id);
   if (error) toast(errMsg(error));
 }
-ACTS['qs-diff'] = async t => { await saveSettings({ difficulty: t.dataset.v }); t.parentElement.querySelectorAll('.tick').forEach(x => x.classList.toggle('on', x.parentElement === t)); };
-ACTS['qs-type'] = async t => {
-  let v = ((T.settings || {}).qtypes || ['curriculum', 'general', 'quick']).slice(); const k = t.dataset.v;
-  if (v.includes(k)) { if (v.length === 1) return toast('اختر نوعاً واحداً على الأقل'); v = v.filter(x => x !== k); } else v.push(k);
-  await saveSettings({ qtypes: v }); const k2 = t.querySelector('.tick'); if (k2) k2.classList.toggle('on'); else t.classList.toggle('on');
-};
 function cuForm(c){
   c = c || { subject: '', stage: 'primary', grade: null, title: '' }; CU.form = { stage: c.stage, grade: c.grade, subject: c.subject };
   const subjOpts = SUBJECTS.filter(s => s !== 'عام' && s !== 'أخرى');
@@ -2858,7 +3301,7 @@ ACTS['av-del'] = async () => {
   if (!await ask('حذف صورة الملف؟')) return;
   const { error } = await sb.from('teachers').update({ avatar_url: null }).eq('id', T.user.id);
   if (error) return toast(errMsg(error));
-  T.avatar = ''; closeModals(); tSettings(); toast('تم حذف الصورة');
+  T.avatar = ''; closeModals(); rerender(); toast('تم حذف الصورة');
 };
 ACTS['av-chosen'] = t => {
   const f = t.files && t.files[0]; if (!f) return;
@@ -2918,7 +3361,7 @@ ACTS['crop-save'] = async t => {
   const url = CROP.get();
   const { error } = await sb.from('teachers').update({ avatar_url: url }).eq('id', T.user.id);
   if (error) { t.disabled = false; return toast(errMsg(error)); }
-  T.avatar = url; closeModals(); tSettings(); toast('تم حفظ الصورة');
+  T.avatar = url; closeModals(); rerender(); toast('تم حفظ الصورة');
 };
 ACTS['st-name'] = () => modal(`<h3>الاسم</h3><form class="col" data-form="t-save-name"><div class="field"><input class="input" name="name" value="${esc(T.name)}" required maxlength="60"></div><p class="sub">يظهر هذا الاسم للطلبة في صفحة التسجيل الذاتي.</p><button class="btn" type="submit">حفظ</button></form>`);
 ACTS['st-pass'] = () => modal(`<h3>تغيير كلمة المرور</h3><form class="col" data-form="st-pass-save"><div class="field"><label for="np">كلمة المرور الجديدة</label><input class="input" id="np" name="p1" type="password" minlength="6" required dir="ltr"></div>
@@ -2958,7 +3401,7 @@ ACTS['t-save-name'] = async f => {
   const name = f.name.value.trim();
   const { error } = await sb.from('teachers').update({ display_name: name }).eq('id', T.user.id);
   if (error) return toast(errMsg(error));
-  T.name = name; closeModals(); toast('تم الحفظ'); if (location.hash.indexOf('settings') > 0) tSettings();
+  T.name = name; closeModals(); toast('تم الحفظ'); if (/settings|account/.test(location.hash)) rerender();
 };
 
 /* ======================================================
@@ -3057,31 +3500,62 @@ function goBack(){
   if (location.hash.indexOf('#/t/') === 0 && !/^#\/t\/(home)?$/.test(location.hash)) return history.back();
 }
 let G = null;
+const canSwipeBack = () => !!$app.querySelector(':scope > .t-top .back-btn') && !document.querySelector('.modal-back,.dlg-back');
+function backTarget(){ const tp = NS.stack[NS.stack.length - 1]; if (tp) return tp; const b = $app.querySelector(':scope > .t-top .back-btn'), h = b && b.getAttribute('href'), c = h && PCACHE[h]; return { h, html: c ? (() => { const d = document.createElement('div'); d.innerHTML = shell(c.title, c.body, '', c.top, c.back); return [...d.querySelectorAll('.t-top,.t-body')].map(e => e.outerHTML).join(''); })() : '', y: 0, nostack: true }; }
+function hScrollable(el){ for (; el && el !== document.body; el = el.parentElement) { if (el.scrollWidth > el.clientWidth + 2) { const o = getComputedStyle(el).overflowX; if (o === 'auto' || o === 'scroll') return true; } } return false; }
 document.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) { G = null; return; }
-  if (e.target.closest('.t-nav, .crop')) { G = null; return; }
+  if (e.target.closest('.t-nav, .crop, .drag-h, .np-list, input[type=range]')) { G = null; return; }
   const t = e.touches[0], row = e.target.closest('.sw-main');
   const rw = row ? row.parentElement : null;
-  G = { x: t.clientX, y: t.clientY, row, edge: !row && t.clientX > innerWidth - 28, dx: 0, lock: null,
+  const page = !row && canSwipeBack() && !hScrollable(e.target);
+  G = { x: t.clientX, y: t.clientY, t0: Date.now(), row, page, edge: !row && !page && t.clientX > innerWidth - 28, dx: 0, lock: null,
     base: row ? (Number(row.dataset.off) || 0) : 0,
     wr: rw ? rw.querySelector('.sw-r').offsetWidth + 22 : 0, wl: rw ? rw.querySelector('.sw-l').offsetWidth + 22 : 0 };
   if (!row) document.querySelectorAll('.sw-main.open').forEach(r => { if (!e.target.closest('.sw-act')) { r.classList.remove('open'); r.style.transform = ''; r.dataset.off = 0; } });
 }, { passive: true });
+function swipeBegin(){
+  const tp = backTarget(); G.tp = tp;
+  G.W = $app.offsetWidth; G.els = pageEls(); G.L = snapLayer(tp.html, tp.y, 'under dim');
+  G.L.firstChild.style.transform = `translateX(${G.W * .3}px)`;
+  $app.classList.add('pg-anim'); document.documentElement.classList.add('pg-lock');
+  G.els.forEach(el => { el.style.transition = 'none'; });
+}
 document.addEventListener('touchmove', e => {
   if (!G) return;
   const t = e.touches[0], dx = t.clientX - G.x, dy = t.clientY - G.y;
-  if (G.lock === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) G.lock = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+  if (G.lock === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    G.lock = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'x' : 'y';
+    if (G.page && G.lock === 'x' && dx < 0) swipeBegin(); else if (G.page) G.page = false;
+  }
   if (G.lock !== 'x') return;
   G.dx = dx;
   if (G.row) {
     e.preventDefault();
     const v = Math.max(-G.wr - 20, Math.min(G.wl + 20, G.base + dx));
     G.row.style.transition = 'none'; G.row.style.transform = `translateX(${v}px)`;
+  } else if (G.page && G.L) {
+    e.preventDefault();
+    const x = Math.min(0, dx), p = Math.min(1, -x / G.W);
+    G.els.forEach(el => { el.style.transform = `translateX(${x}px)`; });
+    G.L.firstChild.style.transform = `translateX(${G.W * .3 * (1 - p)}px)`; G.L.style.setProperty('--dim', String(.12 * (1 - p)));
   } else if (G.edge) {
     e.preventDefault();
     document.body.style.transform = `translateX(${Math.min(0, dx) * 0.35}px)`;
   }
 }, { passive: false });
+function swipeEnd(cancel){
+  const g = G, ease = 'cubic-bezier(.2,.8,.2,1)';
+  const v = g.dx / Math.max(1, Date.now() - g.t0), go2 = !cancel && (g.dx < -g.W * .33 || (v < -.5 && g.dx < -40));
+  g.els.forEach(el => { el.style.transition = `transform .24s ${ease}`; el.style.transform = go2 ? `translateX(${-g.W}px)` : ''; });
+  g.L.firstChild.style.transition = `transform .24s ${ease}`; g.L.firstChild.style.transform = go2 ? '' : `translateX(${g.W * .3}px)`;
+  g.L.style.transition = 'opacity .24s'; g.L.style.setProperty('--dim', go2 ? '0' : '.12');
+  setTimeout(() => {
+    document.documentElement.classList.remove('pg-lock');
+    if (go2) { NS.swipe = true; haptic(); const tp = g.tp; if (tp.nostack) { const b = $app.querySelector(':scope > .t-top .back-btn'); if (b && tp.h && tp.h !== location.hash) location.hash = tp.h; else { NS.swipe = false; g.L.remove(); $app.classList.remove('pg-anim'); if (b) b.click(); } } else location.hash = tp.h; }
+    else { g.L.remove(); g.els.forEach(el => { el.style.transition = ''; el.style.transform = ''; }); $app.classList.remove('pg-anim'); }
+  }, 250);
+}
 document.addEventListener('touchend', () => {
   if (!G) return;
   if (G.row) {
@@ -3089,6 +3563,8 @@ document.addEventListener('touchend', () => {
     const v = G.base + G.dx, off = v < -45 ? -G.wr : v > 45 ? G.wl : 0;
     document.querySelectorAll('.sw-main.open').forEach(x => { if (x !== r) { x.classList.remove('open'); x.style.transform = ''; x.dataset.off = 0; } });
     r.classList.toggle('open', off !== 0); r.dataset.off = off; r.style.transform = off ? `translateX(${off}px)` : '';
+  } else if (G.page && G.L) {
+    swipeEnd(false);
   } else if (G.edge) {
     document.body.style.transition = 'transform .2s'; document.body.style.transform = '';
     setTimeout(() => { document.body.style.transition = ''; }, 220);
@@ -3096,6 +3572,7 @@ document.addEventListener('touchend', () => {
   }
   G = null;
 });
+document.addEventListener('touchcancel', () => { if (G && G.page && G.L) swipeEnd(true); G = null; });
 sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') setTimeout(() => { if (!document.getElementById('np')) newPassword(); }, 400); if (ev === 'SIGNED_OUT' && location.hash.indexOf('#/t') === 0) teacherAuth(); });
 route();
 setTimeout(() => { if (document.body.classList.contains('wide')) XL().catch(() => {}); }, 3000);
