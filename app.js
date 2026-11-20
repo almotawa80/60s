@@ -1398,10 +1398,11 @@ function renderChallenge(gid){
     <div class="ch-hero"><small>لعبوا اليوم</small><div class="ch-big"><b>${played}</b> <span>من ${n}</span></div><div class="ch-bar"><i style="width:${n ? played * 100 / n : 0}%"></i></div>
     ${left && !c.paused_at && ph === 'points' ? `<button class="btn ch-rem" data-act="ch-remind">🔔 ذكّر الباقين (${left})</button>` : ''}</div>
     <div class="ch-acts">${[['cp-try', '🎮', 'جرّب'], ['ch-code', '🔗', 'الرمز'], ['ch-edit', '✏️', 'تعديل'], ['ch-det', '📊', 'التفاصيل']].map(o => `<button class="ch-a" data-act="ch-run" data-a="${o[0]}" data-g="${esc(gid)}"><span>${o[1]}</span>${o[2]}</button>`).join('')}</div>
+    <div class="ch-2">${c.paused_at ? `<button class="ch-b" data-act="cp-resume" data-g="${esc(gid)}">▶️ استئناف</button>` : `<button class="ch-b" data-act="cp-pause" data-g="${esc(gid)}">⏸ إيقاف مؤقت</button>`}<button class="ch-b end" data-act="cp-end" data-g="${esc(gid)}">🏁 إنهاء</button></div>
     <p class="ch-meta">${esc(meta)}</p><div id="ch-warn"></div>
     ${rows.length ? `<div class="cp-list">${rows.map((x, i) => { const k = CST(x.id); return `<button class="cp-row${k.today ? '' : ' dim'}" data-act="ch-stu" data-id="${x.id}"><span class="cp-rk">${k.pts && i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b>${multi ? `<small class="ch-cls">${esc(x._c || '')}</small>` : ''}</span><span class="cp-pts">${k.pts}</span></button>`; }).join('')}</div>`
       : `<div class="cl-empty sm"><b>ما فيه طلاب بعد</b><small>شارك رمز الصف من ⋯</small></div>`}</div>`;
-  view(String(c.title || 'التحدي').split('·').pop().trim(), body, 'home', `<button class="icon-btn" data-act="ch-more" aria-label="المزيد">${ic('more')}</button>`, '#/t/home');
+  view(String(c.title || 'التحدي').split('·').pop().trim(), body, 'home', '', '#/t/home');
   chWarn(c);
 }
 /* v123: warn when the challenge has fewer than 4 questions in «أسئلتي», with a one-tap fix */
@@ -2019,7 +2020,7 @@ ACTS['cp-del-past'] = async t => {
   toast('تم حذف المسابقة نهائياً'); await tClasses();
 };
 ACTS['cp-pause'] = async t => {
-  if (!await ask('إيقاف المسابقة مؤقتاً؟ الطلبة ما يقدرون يلعبون الجولة الرسمية حتى تستأنفها، والنقاط تبقى محفوظة. عند الاستئناف تتأخر المواعيد بعدد أيام الإيقاف.', { danger: false, ok: 'إيقاف مؤقت' })) return;
+  if (!await ask('الطلاب ما يلعبون لين تستأنفه، والنقاط تبقى.', { title: 'إيقاف التحدي؟', ok: 'إيقاف', cancel: 'لا', danger: false})) return;
   const { error } = await sb.from('competitions').update({ paused_at: new Date().toISOString() }).eq('group_id', t.dataset.g).eq('status', 'active');
   if (error) return toast(errMsg(error)); toast('تم إيقاف المسابقة مؤقتاً'); await tClasses();
 };
@@ -2059,7 +2060,7 @@ ACTS['cp-edit'] = async t => {
 };
 ACTS['cp-cancel'] = () => { T.compEdit = null; if (location.hash.indexOf('#/t/ch/') === 0) return renderClasses(); if (location.hash.indexOf('#/t/new') === 0) return go('#/t/home'); renderClasses(); };
 ACTS['cp-end'] = async t => {
-  if (!await ask('إنهاء هذه المسابقة؟ نتائجها وترتيبها يبقون محفوظين في «المسابقات السابقة». إذا تبي توقفها فترة استخدم «إيقاف مؤقت».', { ok: 'إنهاء' })) return;
+  if (!await ask('النتائج تبقى في «التحديات السابقة».', { title: 'إنهاء التحدي؟', ok: 'إنهاء', cancel: 'لا', danger: true})) return;
   if (SG('msg_auto')) { const ks = (CL.allComps || []).filter(k => k.group_id === t.dataset.g); for (const k of ks) { try { const rs = await rpc('teacher_class_results', { p_class: k.class_id }); await autoPraise(k.class_id, k.id, rs.map(r => Object.assign({ cls: (CL.byId[k.class_id] || {}).name || '' }, r))); } catch(e){} } }
   const { error } = await sb.from('competitions').update({ status: 'finished' }).eq('group_id', t.dataset.g);
   if (error) return toast(errMsg(error)); await tClasses();
