@@ -2301,6 +2301,12 @@ ACTS['qf-cu'] = t => { const d = document.getElementById('q-lsd'); if (d) d.inne
 ACTS['qf-c'] = t => { const f = t.closest('form'), i = Number(t.dataset.i); f.correct.value = i; const ce = document.getElementById('qf-cerr'); if (ce) ce.classList.add('hide');
   f.querySelectorAll('.qo').forEach((r, j) => { r.classList.toggle('on', j === i); r.querySelector('input').placeholder = j === i ? 'الإجابة الصحيحة' : 'خيار ' + LETTERS[j]; }); };
 /* suggest wrong answers without AI: nearby numbers, true/false, or answers of similar questions in the bank */
+const Q_NAMES = [
+  ['أبو بكر الصديق', 'عمر بن الخطاب', 'عثمان بن عفان', 'علي بن أبي طالب', 'زيد بن حارثة', 'بلال بن رباح', 'خالد بن الوليد', 'سعد بن أبي وقاص', 'الزبير بن العوام', 'طلحة بن عبيد الله', 'عبد الرحمن بن عوف', 'أبو عبيدة بن الجراح', 'مصعب بن عمير', 'حمزة بن عبد المطلب', 'أبو هريرة', 'عبد الله بن عباس', 'عبد الله بن مسعود', 'معاذ بن جبل', 'أنس بن مالك', 'سلمان الفارسي'],
+  ['آدم عليه السلام', 'نوح عليه السلام', 'إبراهيم عليه السلام', 'إسماعيل عليه السلام', 'إسحاق عليه السلام', 'يعقوب عليه السلام', 'يوسف عليه السلام', 'موسى عليه السلام', 'هارون عليه السلام', 'داود عليه السلام', 'سليمان عليه السلام', 'يونس عليه السلام', 'عيسى عليه السلام', 'هود عليه السلام', 'صالح عليه السلام', 'شعيب عليه السلام'],
+  ['آدم', 'نوح', 'إبراهيم', 'إسماعيل', 'إسحاق', 'يعقوب', 'يوسف', 'موسى', 'هارون', 'داود', 'سليمان', 'يونس', 'عيسى', 'هود', 'صالح', 'شعيب', 'لوط', 'زكريا', 'يحيى', 'أيوب'],
+  ['خديجة بنت خويلد', 'عائشة بنت أبي بكر', 'فاطمة الزهراء', 'حفصة بنت عمر', 'أم سلمة', 'سمية بنت خياط', 'أسماء بنت أبي بكر', 'آمنة بنت وهب', 'حليمة السعدية', 'زينب بنت جحش']
+];
 const QSTOP = new Set(['ما', 'من', 'هو', 'هي', 'في', 'كم', 'متى', 'اين', 'أين', 'هل', 'ماذا', 'لماذا', 'كيف', 'اي', 'أي', 'الى', 'على', 'عن', 'يسمى', 'تسمى', 'the', 'what', 'is', 'of', 'a']);
 function qSuggest(body, ans, n){
   n = n || 3; ans = String(ans || '').trim(); if (!ans) return [];
@@ -2318,7 +2324,13 @@ function qSuggest(body, ans, n){
   }
   const tf = { 'صح': 'خطأ', 'خطأ': 'صح', 'خطا': 'صح', 'نعم': 'لا', 'لا': 'نعم', 'صحيح': 'خطأ', 'true': 'false', 'false': 'true' };
   if (tf[ans.toLowerCase()]) return [tf[ans.toLowerCase()]];
-  // similar questions: share the opening words and other key words
+  // known name families: a person answer gets other people of the same kind
+  const an0 = qNorm(ans), who = /^(من|مَن)\s+(هو|هي|الذي|التي|اول|أول|اخر|آخر|اشهر|أشهر|القائل|قائل|الصحابي|الصحابية|النبي|الخليفة)/.test(qNorm(body)) || /^(who)\b/i.test(body.trim());
+  const islamic = /(صحاب|خليف|أسلم|اسلم|نبي|رسول|الأنبياء|الانبياء|الإسلام|الاسلام|غزو|هجر)/.test(body), named = /\s(بن|بنت)\s|^(أبو|ابو|أم|ام)\s/.test(ans);
+  const fam = Q_NAMES.find(g => g.some(x => qNorm(x) === an0)) || (who && (named || islamic)
+    ? (/\sبنت\s|^(أم|ام)\s/.test(ans) ? Q_NAMES[3] : /(نبي|الأنبياء|الانبياء)/.test(body) && !named && !/(صحاب|خليف|أسلم|اسلم)/.test(body) ? Q_NAMES[2] : Q_NAMES[0]) : null);
+  if (fam) return shuf(fam.filter(x => qNorm(x) !== an0)).slice(0, n);
+  // similar questions: share key words (not only the opening words)
   const toks = t => qNorm(t).split(' ').filter(w => w.length > 1);
   const qt = toks(body), key = qt.filter(w => !QSTOP.has(w)), head = qt.slice(0, 2).join(' ');
   const an = qNorm(ans), aw = an.split(' ').length;
@@ -2326,8 +2338,9 @@ function qSuggest(body, ans, n){
   QS.list.concat(QS.glob).forEach(q => {
     if (!q.options || q.options.length < 2) return;
     const t = toks(q.body), k2 = new Set(t.filter(w => !QSTOP.has(w)));
-    let sc = key.filter(w => k2.has(w)).length * 2 + (head && t.slice(0, 2).join(' ') === head ? 3 : 0);
-    if (sc < 3) return;
+    const kw = key.filter(w => k2.has(w)).length; if (!kw) return;
+    let sc = kw * 2 + (head && t.slice(0, 2).join(' ') === head ? 3 : 0);
+    if (sc < 4) return;
     q.options.forEach((o, i) => { const on = qNorm(o); if (!on || on === an || key.includes(on)) return;
       const w = Math.abs(on.split(' ').length - aw) <= 1 ? 1 : 0.4, v = sc * w * (i === q.correct_index ? 1.5 : 1);
       if ((score.get(o.trim()) || 0) < v) score.set(o.trim(), v); });
