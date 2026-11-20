@@ -1561,13 +1561,7 @@ ACTS['s-go'] = t => { const c = ctx(t), id = t.dataset.id, s = id && (CL.student
 })();
 ACTS['s-more'] = t => { const c = ctx(t), id = t.dataset.id, s = (CL.students[c.id] || []).find(x => x.id === id); if (!s) return; closeModals();
   const A = `data-id="${id}" data-cid="${c.id}"`;
-  setTimeout(() => sheet(s.name, [
-    { act: 's-edit', attrs: A, icon: 'edit', label: 'تعديل البيانات' },
-    { act: 'copy', attrs: `data-v="${esc(s.code)}"`, icon: 'layers', label: 'نسخ رمز الدخول (' + esc(s.code) + ')' },
-    { act: 's-msg', attrs: A, icon: 'mail', label: 'إرسال رسالة' },
-    { act: 't-regen', attrs: A, icon: 'refresh', label: 'رمز جديد' },
-    null,
-    { act: 't-del-student', attrs: A, icon: 'trash', label: 'حذف', danger: true }]), 30); };
+  setTimeout(() => modal(`<div class="st1" data-cid="${c.id}"><div class="st1-h"><b>${esc(s.name)}</b></div><div class="st1-opts">${[['s-edit', '✏️', 'تعديل الاسم'], ['s-msg', '✉️', 'رسالة'], ['t-regen', '🔄', 'رمز جديد'], ['t-del-student', '🗑️', 'حذف']].map(o => `<button class="st1-o" data-act="${o[0]}" ${A}><span class="e">${o[1]}</span><b>${o[2]}</b></button>`).join('')}</div></div>`), 30); };
 ACTS['s-edit'] = t => {
   const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return;
   closeModals();

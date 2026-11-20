@@ -2214,3 +2214,6 @@ html body[data-theme] .pv .opts.kc .opt .letter.shp{width:26px;height:26px;font-
 .st1-h{padding-inline-end:48px}
 .btn.cp-share{background:#1E9E57!important;background-image:none!important;box-shadow:0 5px 0 #146A39!important}
 .btn.cp-newc{font-size:19px!important;min-height:60px}
+.st1-opts{display:flex;flex-direction:column;gap:10px}
+.st1-o{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:0 18px;border:0;border-radius:18px;background:var(--soft);font:inherit;color:var(--ink);text-align:start;cursor:pointer}
+.st1-o .e{font-size:26px}.st1-o b{font-size:18px;font-weight:700}
