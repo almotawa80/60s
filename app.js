@@ -1302,11 +1302,12 @@ ACTS['pz-del'] = t => pzSet(t.dataset.w, null);
 const SUBJ_EMOJI = { 'الرياضيات': '📐', 'التربية الإسلامية': '🕌', 'اللغة العربية': '📖', 'العلوم': '🔬', 'اللغة الإنجليزية': '🔤', 'الاجتماعيات': '🗺️', 'الحاسوب': '💻' };
 function nwGrade(c){ const n = (c && c.name) || ''; for (let i = GRADES.length - 1; i >= 0; i--) if (n.indexOf(GRADES[i]) >= 0) return i + 1; const m = n.match(/\d+/); return m ? Number(m[0]) : null; }
 async function tNew(fresh){
-  if (fresh !== false && !NW.keep) Object.assign(NW, { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, diff: null, prizes: null }); NW.keep = false;
+  if (fresh !== false && !NW.keep) Object.assign(NW, { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, diff: null, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
   const [cl, cp] = await Promise.all([sb.from('classes').select('*').eq('archived', false).order('created_at'), sb.from('competitions').select('id,class_id').eq('status', 'active')]);
   if (cl.error) throw cl.error;
   NW.classes = cl.data; NW.busy = new Set((cp.data || []).map(c => c.class_id));
   await loadCurricula().catch(() => {});
+  { const rg = await sb.from('questions').select('qtype').or('owner_id.is.null,owner_id.eq.' + T.user.id).eq('status', 'approved').in('qtype', ['general', 'quick', 'memory']).limit(10000); NW.gen = {}; (rg.data || []).forEach(q => { NW.gen[q.qtype] = (NW.gen[q.qtype] || 0) + 1; }); }
   { const r = await sb.from('questions').select('curriculum_id').or('owner_id.is.null,owner_id.eq.' + T.user.id).eq('status', 'approved').not('curriculum_id', 'is', null).limit(10000); NW.glob = {}; (r.data || []).forEach(q => { NW.glob[q.curriculum_id] = (NW.glob[q.curriculum_id] || 0) + 1; }); }
   const free = NW.classes.filter(c => !NW.busy.has(c.id));
   if (NW.step === 1 && NW.classes.length === 1 && free.length === 1) { NW.cls = [free[0].id]; NW.step = 2; NW.skip1 = true; } else NW.skip1 = false;
@@ -1323,17 +1324,24 @@ function nwRender(){
       ${NW.multi ? `<button class="btn nw-go" data-act="nw-next" ${NW.cls.length ? '' : 'disabled'}>التالي (${NW.cls.length})</button>` : NW.classes.length > 1 ? `<button class="link nw-link" data-act="nw-multi">أكثر من صف؟</button>` : ''}`;
   }
   if (st === 2) {
+    /* v161: pick one or more: the teacher's subjects + general categories (Khalid) */
     const c = NW.classes.find(x => x.id === NW.cls[0]) || {}, g = nwGrade(c);
     const mine = CU.list.filter(x => x.owner_id && x.owner_id === T.user.id && NW.glob[x.id]);
     let cus = CU.list.filter(x => !x.owner_id && x.stage === (c.stage || 'primary') && NW.glob[x.id]);
     if (g) { const exact = cus.filter(x => x.grade === g); if (exact.length) cus = exact; }
     const bySub = {}; cus.forEach(x => { (bySub[x.subject] = bySub[x.subject] || []).push(x); });
-    const tiles = Object.keys(bySub).map(sb2 => { const xs = bySub[sb2]; return xs.length === 1 || g
-      ? `<button class="nw-tile" data-act="nw-subj" data-cu="${xs[0].id}" data-s="${esc(sb2)}"><span class="nw-e">${SUBJ_EMOJI[sb2] || '📚'}</span><b>${esc(sb2.replace(/^(اللغة|التربية) /, ''))}</b><small>${NW.glob[xs[0].id]} سؤال</small></button>`
-      : xs.map(x => `<button class="nw-tile" data-act="nw-subj" data-cu="${x.id}" data-s="${esc(sb2)}"><span class="nw-e">${SUBJ_EMOJI[sb2] || '📚'}</span><b>${esc(sb2.replace(/^(اللغة|التربية) /, ''))}</b><small>${esc(gradeAr(x))}</small></button>`).join(''); }).join('');
-    /* v160: the teacher's own subjects (made in «الأسئلة») too */
-    const tiles2 = tiles + mine.map(x => `<button class="nw-tile" data-act="nw-subj" data-cu="${x.id}" data-s="${esc(x.subject)}"><span class="nw-e">${SUBJ_EMOJI[x.subject] || '📚'}</span><b>${esc(String(x.subject).replace(/^(اللغة|التربية) /, ''))}</b><small>${NW.glob[x.id]} سؤال</small></button>`).join('');
-    b = `<h2 class="nw-q">عن أي مادة؟</h2><div class="nw-tiles">${tiles2}<button class="nw-tile" data-act="nw-subj" data-cu="" data-s="منوعة"><span class="nw-e">🌍</span><b>منوعة</b><small>ثقافة وسرعة بديهة</small></button></div>`;
+    const list = []; Object.keys(bySub).forEach(sb2 => { const xs = bySub[sb2]; (xs.length === 1 || g ? [xs[0]] : xs).forEach(x => list.push([x, xs.length === 1 || g ? NW.glob[x.id] + ' سؤال' : gradeAr(x)])); });
+    mine.forEach(x => list.push([x, NW.glob[x.id] + ' سؤال']));
+    const sel = NW.sel || (NW.sel = []);
+    const tile = (k, e, n, sm, off) => `<button class="nw-tile nw-mt${sel.includes(k) ? ' on' : ''}${off ? ' off' : ''}" data-act="nw-subj" data-k="${esc(k)}"${off ? ' disabled' : ''}><span class="nw-ck">${sel.includes(k) ? '✓' : ''}</span><span class="nw-e">${e}</span><b>${esc(n)}</b><small>${esc(sm)}</small></button>`;
+    const gen = NW.gen || {};
+    const mt = list.map(([x, sm]) => tile(x.id, SUBJ_EMOJI[x.subject] || '📚', String(x.subject).replace(/^(اللغة|التربية) /, ''), sm)).join('');
+    const gt = NW_GEN.map(o => tile(o[0], o[1], o[2], gen[o[0]] ? gen[o[0]] + ' سؤال' : 'قريباً', !gen[o[0]])).join('');
+    const names = sel.map(nwName).filter(Boolean);
+    b = `<h2 class="nw-q">عن أي مادة؟</h2><p class="nw-note">اختر وحدة أو أكثر</p>
+      ${mt ? `<div class="nw-lbl">موادي</div><div class="nw-tiles">${mt}</div>` : ''}<div class="nw-lbl">أسئلة عامة</div><div class="nw-tiles">${gt}</div>
+      <p class="nw-note">${names.length > 1 ? 'الأسئلة تجي خليط من: ' + esc(names.join('، ')) : ''}</p><div class="nw-sp"></div>
+      <button class="btn nw-go" data-act="nw-subj-next" ${sel.length ? '' : 'disabled'}>التالي${sel.length ? ' (' + sel.length + ')' : ''}</button>`;
   }
   if (st === 3) {
     const end = addDays(todayKW(), NW.days - 1);
@@ -1365,7 +1373,13 @@ ACTS['nw-cls-pick'] = t => { const id = t.dataset.id;
   NW.cls = [id]; NW.step = 2; nwRender(); };
 ACTS['nw-multi'] = () => { NW.multi = true; NW.cls = []; nwRender(); };
 ACTS['nw-next'] = () => { if (NW.cls.length) { NW.step = 2; nwRender(); } };
-ACTS['nw-subj'] = t => { NW.cu = t.dataset.cu || null; NW.subj = t.dataset.s; NW.step = 3; nwRender(); };
+const NW_GEN = [['general', '🌍', 'ثقافة عامة'], ['quick', '⚡', 'سرعة بديهة'], ['memory', '🧠', 'ذاكرة']];
+function nwName(k){ const o = NW_GEN.find(x => x[0] === k); if (o) return o[2]; const cu = CU.list.find(x => x.id === k); return cu ? String(cu.subject).replace(/^(اللغة|التربية) /, '') : ''; }
+ACTS['nw-subj'] = t => { const k = t.dataset.k, sel = NW.sel || (NW.sel = []); NW.sel = sel.includes(k) ? sel.filter(x => x !== k) : sel.concat(k); NW.lessons = null; nwRender(); };
+ACTS['nw-subj-next'] = () => { const sel = NW.sel || []; if (!sel.length) return;
+  const cus = sel.filter(k => !NW_GEN.some(o => o[0] === k));
+  NW.cus = cus; NW.cu = cus[0] || null; NW.gtypes = sel.filter(k => NW_GEN.some(o => o[0] === k));
+  NW.subj = sel.length === 1 ? nwName(sel[0]) : sel.length === 2 ? sel.map(nwName).join(' و') : 'منوعة'; NW.step = 3; nwRender(); };
 ACTS['nw-days'] = t => { NW.days = Number(t.dataset.d); nwRender(); };
 ACTS['nw-cls'] = async f => {
   const name = f.n.value.replace(/\s+/g, ' ').trim(), stg = (f.querySelector('[name=st]:checked') || {}).value || 'primary';
@@ -1385,7 +1399,9 @@ ACTS['nw-start'] = async t => {
     // questions: the chosen subject's ready questions go into «أسئلتي» so the challenge can use them
     {
       let qq = sb.from('questions').select('id').is('owner_id', null).eq('status', 'approved').limit(5000);
-      qq = NW.cu ? qq.eq('curriculum_id', NW.cu) : qq.in('qtype', ['general', 'quick']);
+      const cus = NW.cus || (NW.cu ? [NW.cu] : []), gts = NW.gtypes || (NW.cu ? [] : ['general', 'quick']);
+      const ors = (cus.length ? ['curriculum_id.in.(' + cus.join(',') + ')'] : []).concat(gts.length ? ['qtype.in.(' + gts.join(',') + ')'] : []);
+      qq = qq.or(ors.join(',') || 'qtype.in.(general,quick)');
       const [all, mine] = await Promise.all([qq, sb.from('question_picks').select('question_id').limit(20000)]);
       const have = new Set((mine.data || []).map(x => x.question_id)), todo = (all.data || []).map(x => x.id).filter(id => !have.has(id));
       for (let i = 0; i < todo.length; i += 500) { const r = await sb.from('question_picks').insert(todo.slice(i, i + 500).map(id => ({ question_id: id }))); if (r.error) throw r.error; }
@@ -1393,9 +1409,11 @@ ACTS['nw-start'] = async t => {
     }
     const busy = cs.filter(c => NW.busy.has(c.id)).map(c => c.id);
     if (busy.length) { const r = await sb.from('competitions').update({ status: 'finished' }).in('class_id', busy).eq('status', 'active'); if (r.error) throw r.error; }
-    const qtypes = NW.cu ? ['curriculum', 'general', 'quick'] : ['general', 'quick'];
+    const cus2 = NW.cus || (NW.cu ? [NW.cu] : []), gts2 = NW.gtypes || (NW.cu ? ['general', 'quick'] : ['general', 'quick']);
+    const qtypes = (cus2.length ? ['curriculum'] : []).concat(gts2.length ? gts2 : cus2.length ? [] : ['general', 'quick']);
+    const multi = cus2.length > 1 ? { curricula: cus2 } : {};
     const r = await sb.from('competitions').insert(cs.map(c => Object.assign({ class_id: c.id, group_id: gid, title, start_date: today, points_end_date: sp.points_end_date, end_date: sp.end_date,
-      group_size: 6, qualifiers: 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: NW.lessons || null }, pzVal(NW.prizes))));
+      group_size: 6, qualifiers: 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: cus2.length > 1 ? null : NW.lessons || null }, multi, pzVal(NW.prizes))));
     if (r.error) throw r.error;
     NW.made = [];
     for (const c of cs) { let code = c.join_code; if (!c.self_join || !code) code = await rpc('set_self_join', { p_class: c.id, p_on: true }); NW.made.push({ c, code }); }
@@ -3923,7 +3941,7 @@ ACTS['r-again'] = async () => {
   const k = RS.k; if (!k) return;
   const { data } = await sb.from('competitions').select('class_id').eq('group_id', k.group_id);
   const days = cfDays(k.start_date, k.end_date) + 1;
-  Object.assign(NW, { keep: true, step: 3, multi: false, cls: [...new Set((data || []).map(x => x.class_id))], cu: k.curriculum_id || null,
+  Object.assign(NW, { keep: true, step: 3, multi: false, cls: [...new Set((data || []).map(x => x.class_id))], cu: k.curriculum_id || null, cus: k.curricula && k.curricula.length ? k.curricula.slice() : k.curriculum_id ? [k.curriculum_id] : [], gtypes: (k.qtypes || ['general', 'quick']).filter(x => x !== 'curriculum'),
     subj: String(k.title || '').split('·').pop().trim() || 'منوعة', days: days > 21 ? 30 : days > 10 ? 14 : 7, made: null, prizes: k.prizes && k.prizes.length ? k.prizes.slice() : null, lessons: k.lessons && k.lessons.length ? k.lessons : null, diff: k.difficulty || null });
   go('#/t/new');
 };
