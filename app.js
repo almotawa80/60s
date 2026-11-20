@@ -1864,12 +1864,16 @@ const subjMark = s => SUBJ_MARK[s] || s.replace(/^(اللغة|التربية)\s+
 function qFolders(){
   const src = qStatusSrc(), cnt = {}; let none = 0;
   src.forEach(q => { const c = q.curriculum_id && CU.list.find(x => x.id === q.curriculum_id); if (c) cnt[c.subject] = (cnt[c.subject] || 0) + 1; else none++; });
-  const subs = [...new Set(SUBJ_MAIN.concat(CU.list.map(c => c.subject)))];
-  const stages = s => { const st = [...new Set(CU.list.filter(c => c.subject === s).map(c => STAGE_AR[c.stage]))]; return st.length ? st.join('، ') : 'أضف مرحلة'; };
-  return `<div class="qf-grid">${subs.map(s => `<button class="qf-tile${cnt[s] ? '' : ' empty'}" data-act="q-nav" data-s="${esc(s)}" style="--c:${SUBJ_COLOR(s)}"><span class="qf-ic">${esc(subjMark(s))}</span><b>${esc(s)}</b><small>${stages(s)}</small><em>${cnt[s] || 0}</em></button>`).join('')}
-    <button class="qf-tile${none ? '' : ' empty'}" data-act="q-nav" data-s="none" style="--c:#8E8E93"><span class="qf-ic">${ic('help')}</span><b>عام وسرعة بديهة</b><small>أسئلة بدون منهج</small><em>${none}</em></button>
-    <button class="qf-tile add" data-act="q-subj-add"><span class="qf-ic">${ic('plus')}</span><b>مادة أخرى</b><small>أضف مادة جديدة</small></button></div>
-    <button class="q-flat" data-act="q-nav" data-s="__list">عرض كل الأسئلة كقائمة</button>`;
+  const subs = [...new Set(SUBJ_MAIN.concat(CU.list.map(c => c.subject)))].filter(s => cnt[s]);
+  const stages = s => [...new Set(CU.list.filter(c => c.subject === s).map(c => STAGE_AR[c.stage]))].join('، ');
+  const row = (act, val, color, mark, name, sub, n) => `<button class="qsub" data-act="${act}" data-s="${esc(val)}" style="--c:${color}"><span class="qsub-ic">${mark}</span><span class="grow"><b>${esc(name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><em>${n}</em><i>‹</i></button>`;
+  return `<div class="qsubs">${subs.map(s => row('q-nav', s, SUBJ_COLOR(s), esc(subjMark(s)), s, stages(s), cnt[s])).join('')}${none ? row('q-nav', 'none', '#8E8E93', ic('help'), 'عام وسرعة بديهة', '', none) : ''}</div>
+    <div class="qsub-l"><button class="link" data-act="q-subj-pick">${ic('plus')} مادة أو صف جديد</button>${src.length > 5 ? '<button class="link" data-act="q-nav" data-s="__list">كل الأسئلة</button>' : ''}</div>`;
+}
+ACTS['q-subj-pick'] = () => sheet('اختر المادة', [...new Set(SUBJ_MAIN.concat(CU.list.map(c => c.subject)))].map(x => ({ act: 'm-run', attrs: `data-a="q-nav" data-s="${esc(x)}"`, icon: 'layers', label: esc(x) }))
+  .concat([null, { act: 'm-run', attrs: 'data-a="q-subj-add"', icon: 'plus', label: 'مادة أخرى' }]));
+function qEmpty(){
+  return `<div class="q-empty2"><div class="q-empty2-ic">📝</div><b>ما عندك أسئلة خاصة بعد</b><p>طلبتك يلعبون الحين من الأسئلة الجاهزة (${QS.glob.length} سؤالاً). أضف أسئلة من درسك بالزر فوق.</p><button class="btn soft" data-act="t-qs" data-v="global">تصفح الأسئلة الجاهزة</button></div>`;
 }
 function qSubjectView(subj){
   const src = qStatusSrc(), cnt = {}; src.forEach(q => { if (q.curriculum_id) cnt[q.curriculum_id] = (cnt[q.curriculum_id] || 0) + 1; });
@@ -1885,7 +1889,7 @@ function qListHtml(){
   if (ro && !QS.searchOn && !f.g) return qGroups();
   if (ro && !QS.searchOn && f.g === 'curriculum' && f.gs && !f.gcu) return qGlobGrades(f.gs);
   if (ro && !QS.searchOn && f.gcu && f.gl == null) return qGlobLessons(f.gcu);
-  if (!QS.list.length && !ro && !f.cu && !QS.searchOn) return `<p class="sub center q-start">ما عندك أسئلة بعد. اضغط «إضافة أسئلة» فوق، أو اختر مادة:</p>${qFolders()}`;
+  if (!QS.list.length && !ro && !f.cu && !f.subj && !QS.searchOn) return qEmpty();
   if (f.status === 'approved' && !QS.searchOn && !f.subj) return qFolders();
   const list = qFiltered();
   const head = f.status === 'approved' && !QS.searchOn && f.subj && !['none', '__list'].includes(f.subj) && !f.cu ? qSubjectView(f.subj) : '';
