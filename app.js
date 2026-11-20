@@ -2438,7 +2438,9 @@ async function tQuestions(){
   ]).then(r => { QS.pickOk = !!(r[3] && !r[3].error && r[3].data); QS.pick = new Set(((r[3] && r[3].data) || []).map(x => x.question_id)); QS.hid = new Set(); return r; });
   if (own.error) throw own.error;
   await loadCurricula(true).catch(() => {});
-  QS.list = own.data; QS.glob = glob.data || []; QS.globalCount = QS.glob.length;
+  const hd = await sb.from('question_hides').select('question_id').then(r => r, () => ({}));
+  QS.hidSet = new Set(((hd && hd.data) || []).map(x => x.question_id));
+  QS.list = own.data; QS.glob = (glob.data || []).filter(q => !QS.hidSet.has(q.id)); QS.globalCount = QS.glob.length;
   QS.stats = {}; (st || []).forEach(r => { QS.stats[r.question_id] = r; });
   qDupIndex();
   if (!QS.sel) QS.sel = new Set();
@@ -2784,31 +2786,123 @@ function q4Subjects(){
   const by = {}; list.forEach(c => { (by[c.subject] = by[c.subject] || { s: c.subject, cus: [], n: 0 }); by[c.subject].cus.push(c); by[c.subject].n += have[c.id].size; });
   return Object.values(by);
 }
+const q4Key = (cu, l) => cu + '|' + l;
+const q4LN = (cu, l) => l === NO_LESSON ? 'أسئلة عامة' : ((((T.settings || {}).lesName) || {})[q4Key(cu, l)] || l);
+const q4On = q => q.owner_id ? q.status === 'approved' : !!(QS.pick && QS.pick.has(q.id));
+function q4LesQs(cu, l){ return QS.glob.filter(q => q.curriculum_id === cu && (q.lesson || NO_LESSON) === l).concat(QS.list.filter(q => q.curriculum_id === cu && q.lesson === l && (q.status === 'approved' || q.status === 'draft'))); }
+function q4By(cu){
+  const by = {}; QS.glob.filter(q => q.curriculum_id === cu).forEach(q => { const l = q.lesson || NO_LESSON; (by[l] = by[l] || []).push(q); });
+  QS.list.filter(q => q.curriculum_id === cu && q.lesson && (q.status === 'approved' || q.status === 'draft')).forEach(q => { (by[q.lesson] = by[q.lesson] || []).push(q); });
+  ((((T.settings || {}).myLes) || {})[cu] || []).forEach(l => { if (!by[l]) by[l] = []; });
+  return by;
+}
+const q4Mine = (cu, l) => !QS.glob.some(q => q.curriculum_id === cu && (q.lesson || NO_LESSON) === l);
+function q4Open(html){ const open = document.querySelector('.modal .q4-sh'); if (open) open.outerHTML = html; else { closeModals(); modal(html); } }
 function q4SubjSheet(s){
   const x = q4Subjects().find(y => y.s === s); if (!x) return;
   x.cus.sort((a, b) => (a.grade || 0) - (b.grade || 0));
   const cu = x.cus.find(c => c.id === QS.subjCu) || x.cus[0]; QS.subjCu = cu.id; QS.subj3 = s;
-  const P = QS.pick || new Set(), by = {}; QS.glob.filter(q => q.curriculum_id === cu.id).forEach(q => { const l = q.lesson || NO_LESSON; (by[l] = by[l] || []).push(q); });
+  const by = q4By(cu.id), ed = !!QS.ed4;
   const les = Object.keys(by).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON)); QS.les3 = les;
-  const html = `<div class="q4-sh"><div class="q4-shh"><span class="e">${SUBJ_EMOJI[s] || '📘'}</span><h3>${esc(s)}</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><span class="e">${SUBJ_EMOJI[s] || '📘'}</span><h3>${esc(s)}</h3><button class="q4-ed${ed ? ' on' : ''}" data-act="q4-ed">${ed ? 'تم التعديل' : '✏️ تعديل'}</button><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
     ${x.cus.length > 1 ? `<div class="q4-chips">${x.cus.map(c => `<button class="${c.id === cu.id ? 'on' : ''}" data-act="q4-gr" data-id="${c.id}">${esc(q4Gr(c))}</button>`).join('')}</div>` : ''}
-    <div class="q4-les">${les.map((l, i) => { const on = by[l].some(q => P.has(q.id)); return `<button class="q4-lt${on ? ' added' : ''}" data-act="q4-tg" data-i="${i}"><b>${l === NO_LESSON ? 'أسئلة عامة' : esc(l)}</b><small>${by[l].length} سؤال</small></button>`; }).join('')}</div>
-    <p class="p3-note">اضغط أكثر من درس، كل واحد ينضاف لأسئلتك ✓</p>
-    ${les.some(l => !by[l].some(q => P.has(q.id))) ? `<button class="q4-all" data-act="q4-all">＋ أضف كل الدروس</button>` : ''}
-    <button class="p3-big" data-act="q4-done">تم ✓</button></div>`;
-  const open = document.querySelector('.modal .q4-sh');
-  if (open) open.outerHTML = html; else { closeModals(); modal(html); }
+    <div class="q4-les">${les.map((l, i) => { const on = !ed && by[l].some(q4On); return `<button class="q4-lt${on ? ' added' : ''}" data-act="${ed ? 'q4-led' : 'q4-tg'}" data-i="${i}">${ed ? '<span class="q4-pen">✏️</span>' : ''}<b>${esc(q4LN(cu.id, l))}</b><small>${by[l].length} سؤال</small>${q4Mine(cu.id, l) ? '<span class="q4-mine">درسك</span>' : ''}</button>`; }).join('')}${ed ? '<button class="q4-lt q4-add" data-act="q4-newl"><b>＋ درس جديد</b></button>' : ''}</div>
+    <p class="p3-note">${ed ? 'اضغط الدرس عشان تعدّل أسئلته أو تحذفه. التعديل عندك بس.' : 'اضغط أكثر من درس، كل واحد ينضاف لأسئلتك ✓'}</p>
+    ${!ed && les.some(l => !by[l].some(q4On)) ? `<button class="q4-all" data-act="q4-all">＋ أضف كل الدروس</button>` : ''}
+    <button class="p3-big" data-act="q4-done">تم ✓</button></div>`);
 }
+ACTS['q4-ed'] = () => { QS.ed4 = !QS.ed4; q4SubjSheet(QS.subj3); };
+async function q4SetOn(qs, on){
+  const bank = qs.filter(q => !q.owner_id).map(q => q.id), own = qs.filter(q => q.owner_id).map(q => q.id);
+  if (bank.length && !await qPickSet(bank, on)) return false;
+  if (own.length && !await qOwnSet(own, on)) return false;
+  return true;
+}
+async function q4SaveSettings(){ const { error } = await sb.from('teachers').update({ settings: T.settings }).eq('id', T.user.id); if (error) { toast(errMsg(error)); return false; } return true; }
+ACTS['q4-newl'] = async () => {
+  const v = await ask('', { title: 'درس جديد', input: '', placeholder: 'اسم الدرس', ok: 'إضافة', danger: false }); const n = (v || '').trim().slice(0, 80); if (!n) return;
+  const cu = QS.subjCu, by = q4By(cu); if (by[n]) return toast('فيه درس بنفس الاسم');
+  T.settings = T.settings || {}; const m = T.settings.myLes = T.settings.myLes || {}; (m[cu] = m[cu] || []).push(n);
+  if (!await q4SaveSettings()) return; q4LedSheet(n);
+};
+ACTS['q4-led'] = t => { const l = (QS.les3 || [])[+t.dataset.i]; if (l != null) q4LedSheet(l); };
+function q4LedSheet(l){
+  QS.led = l; const cu = QS.subjCu, qs = q4LesQs(cu, l);
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-back" aria-label="رجوع">→</button><h3>${esc(q4LN(cu, l))}</h3>${l === NO_LESSON ? '' : '<button class="q4-x" data-act="q4-ren" aria-label="تغيير الاسم">✏️</button>'}</div>
+    <div class="q4-ql">${qs.map(q => `<button class="q4-qr" data-act="q4-qe" data-id="${q.id}"><span class="grow"><b>${esc(q.body)}</b>${q.owner_id && !q4Mine(cu, l) ? '<small>عدّلته</small>' : ''}</span><i>✏️</i></button>`).join('') || '<p class="p3-note">ما فيه أسئلة بعد</p>'}</div>
+    <button class="q4-addq" data-act="q4-qe" data-id="">＋ أضف سؤال</button>
+    <button class="q4-del" data-act="q4-dell">حذف الدرس</button>
+    <button class="p3-big" data-act="q4-back">تم ✓</button></div>`);
+}
+ACTS['q4-back'] = () => q4SubjSheet(QS.subj3);
+ACTS['q4-ren'] = async () => {
+  const cu = QS.subjCu, l = QS.led, v = await ask('', { title: 'اسم الدرس', input: q4LN(cu, l), ok: 'حفظ', danger: false }); const n = (v || '').trim().slice(0, 80); if (!n || n === q4LN(cu, l)) return;
+  if (q4Mine(cu, l)) {
+    const ids = QS.list.filter(q => q.curriculum_id === cu && q.lesson === l).map(q => q.id);
+    if (ids.length) { const { error } = await sb.from('questions').update({ lesson: n }).in('id', ids); if (error) return toast(errMsg(error)); QS.list.forEach(q => { if (ids.includes(q.id)) q.lesson = n; }); }
+    const m = ((T.settings || {}).myLes || {})[cu]; if (m) { const i = m.indexOf(l); if (i >= 0) m[i] = n; await q4SaveSettings(); }
+    QS.led = n;
+  } else { T.settings = T.settings || {}; (T.settings.lesName = T.settings.lesName || {})[q4Key(cu, l)] = n; if (!await q4SaveSettings()) return; }
+  toast('تغيّر الاسم ✓'); renderQuestionsKeepModal(); q4LedSheet(QS.led);
+};
+ACTS['q4-dell'] = async () => {
+  const cu = QS.subjCu, l = QS.led, qs = q4LesQs(cu, l);
+  if (!await ask('ينشال من عندك بس.', { title: `حذف «${q4LN(cu, l)}»؟`, ok: 'حذف', danger: true })) return;
+  const bank = qs.filter(q => !q.owner_id).map(q => q.id), own = qs.filter(q => q.owner_id).map(q => q.id);
+  if (bank.length) { if (!await qPickSet(bank, false)) return; const { error } = await sb.from('question_hides').insert(bank.map(id => ({ question_id: id }))); if (error) return toast(errMsg(error)); }
+  if (own.length) { const { error } = await sb.from('questions').delete().in('id', own); if (error) return toast(errMsg(error)); }
+  const m = ((T.settings || {}).myLes || {})[cu]; if (m && m.includes(l)) { m.splice(m.indexOf(l), 1); await q4SaveSettings(); }
+  toast('انحذف الدرس'); await tQuestions(); q4SubjSheet(QS.subj3);
+};
+ACTS['q4-qe'] = t => q4QForm(t.dataset.id);
+function q4QForm(id){
+  const q = id ? (QS.glob.find(x => x.id === id) || QS.list.find(x => x.id === id)) : null; QS.qe = id || '';
+  const o = q ? q.options.slice() : ['', '', '', '']; while (o.length < 4) o.push(''); const ci = q ? q.correct_index : 0;
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-bl" aria-label="رجوع">→</button><h3>${q ? 'تعديل السؤال' : 'سؤال جديد'}</h3></div>
+    <form class="q4-qf" data-form="q4-qsave"><label for="q4b">السؤال</label><textarea class="input" id="q4b" name="b" required maxlength="400">${q ? esc(q.body) : ''}</textarea>
+    <label>الإجابات (اضغط الدائرة للصحيحة)</label>
+    ${o.slice(0, 4).map((v, j) => `<div class="q4-op"><button type="button" class="${j === ci ? 'ok' : ''}" data-act="q4-ok" data-j="${j}" aria-label="الإجابة الصحيحة">${j === ci ? '✓' : ''}</button><input class="input" name="o${j}" value="${esc(v)}" ${j < 2 ? 'required' : ''} maxlength="120"></div>`).join('')}
+    <input type="hidden" name="c" value="${ci}">
+    <p class="p3-note">التعديل عندك بس، وما يتغيّر عند المعلمين الثانيين.</p>
+    <button class="p3-big" type="submit">حفظ</button></form>
+    ${q ? '<button class="q4-del" data-act="q4-qdel">حذف السؤال</button>' : ''}</div>`);
+}
+ACTS['q4-bl'] = () => q4LedSheet(QS.led);
+ACTS['q4-ok'] = t => { const f = t.closest('form'); f.querySelectorAll('.q4-op button').forEach(b => { b.className = ''; b.textContent = ''; }); t.className = 'ok'; t.textContent = '✓'; f.c.value = t.dataset.j; };
+ACTS['q4-qsave'] = async f => {
+  const cu = QS.subjCu, l = QS.led, body = f.b.value.trim(), raw = [0, 1, 2, 3].map(j => f['o' + j].value.trim()), c = +f.c.value;
+  if (!raw[c]) return toast('اكتب الإجابة الصحيحة');
+  const opts = raw.filter(Boolean), ci = opts.indexOf(raw[c]); if (opts.length < 2) return toast('اكتب إجابتين على الأقل');
+  const old = QS.qe ? (QS.glob.find(x => x.id === QS.qe) || QS.list.find(x => x.id === QS.qe)) : null;
+  const btn = f.querySelector('[type=submit]'); btn.setAttribute('aria-busy', 'true');
+  let error;
+  if (old && old.owner_id) ({ error } = await sb.from('questions').update({ body, options: opts, correct_index: ci }).eq('id', old.id));
+  else {
+    const on = old ? q4On(old) : (q4LesQs(cu, l).some(q4On) || !q4LesQs(cu, l).length || q4Mine(cu, l));
+    ({ error } = await sb.from('questions').insert({ owner_id: T.user.id, status: on ? 'approved' : 'draft', source: 'teacher', qtype: 'curriculum', level: (old && old.level) || 'medium', body, options: opts, correct_index: ci, curriculum_id: cu, lesson: l === NO_LESSON ? null : l, image: (old && old.image) || null }));
+    if (!error && old) { await qPickSet([old.id], false); ({ error } = await sb.from('question_hides').insert({ question_id: old.id })); }
+  }
+  if (error) { btn.removeAttribute('aria-busy'); return toast(errMsg(error)); }
+  toast('انحفظ ✓'); await tQuestions(); q4LedSheet(l);
+};
+ACTS['q4-qdel'] = async () => {
+  const id = QS.qe, q = QS.glob.find(x => x.id === id) || QS.list.find(x => x.id === id); if (!q) return;
+  if (!await ask('ينشال من عندك بس.', { title: 'حذف السؤال؟', ok: 'حذف', danger: true })) return;
+  let error;
+  if (q.owner_id) ({ error } = await sb.from('questions').delete().eq('id', id));
+  else { if (!await qPickSet([id], false)) return; ({ error } = await sb.from('question_hides').insert({ question_id: id })); }
+  if (error) return toast(errMsg(error)); toast('انحذف السؤال'); await tQuestions(); q4LedSheet(QS.led);
+};
 ACTS['q4-all'] = async t => { const P = QS.pick || new Set(), ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && !P.has(q.id)).map(q => q.id); if (!ids.length) return;
   t.setAttribute('aria-busy', 'true'); if (await qPickSet(ids, true)) { renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast('انضافت كل الدروس ✓'); } else t.removeAttribute('aria-busy'); };
 ACTS['q4-done'] = () => { closeModals(); renderQuestions(); scrollTo(0, 0); };
-ACTS['q4-subj'] = t => { QS.subjCu = null; q4SubjSheet(t.dataset.s); };
+ACTS['q4-subj'] = t => { QS.subjCu = null; QS.ed4 = false; q4SubjSheet(t.dataset.s); };
 ACTS['q4-gr'] = t => { QS.subjCu = t.dataset.id; q4SubjSheet(QS.subj3); };
 ACTS['q4-tg'] = async t => {
   const l = (QS.les3 || [])[+t.dataset.i]; if (l == null) return;
-  const ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && (q.lesson || NO_LESSON) === l).map(q => q.id), on = !t.classList.contains('added');
+  const qs = q4LesQs(QS.subjCu, l), on = !t.classList.contains('added'); if (!qs.length) return toast('الدرس فاضي، اضغط «✏️ تعديل» وأضف أسئلة');
   t.classList.toggle('added', on); t.setAttribute('aria-busy', 'true'); haptic();
-  if (!await qPickSet(ids, on)) { t.classList.toggle('added', !on); t.removeAttribute('aria-busy'); return; }
+  if (!await q4SetOn(qs, on)) { t.classList.toggle('added', !on); t.removeAttribute('aria-busy'); return; }
   t.removeAttribute('aria-busy'); if (on) QS.new3 = QS.subjCu + '|' + l; renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast(on ? 'انضاف لأسئلتك ✓' : 'انشال من أسئلتك');
 };
 function q4LesSheet(i){
@@ -2827,7 +2921,7 @@ function q4LesSheet(i){
 ACTS['q4-les'] = t => q4LesSheet(+t.dataset.i);
 /* own questions: same squares as a lesson; on = approved (plays in challenges), off = draft */
 function q4OwnSheet(){
-  const qs = QS.list.filter(q => q.status === 'approved' || q.status === 'draft');
+  const qs = QS.list.filter(q => (q.status === 'approved' || q.status === 'draft') && !q.lesson);
   const html = `<div class="q4-sh"><div class="q4-shh"><span class="e">✍️</span><h3>أسئلتي الخاصة</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
     <p class="p3-note" style="text-align:start">${qs.length} سؤال. اضغط أي سؤال تطفيه أو تشغّله.</p>
     <div class="q4-qs">${qs.map(q => `<button class="q4-qt${q.status === 'approved' ? ' added' : ''}" data-act="q4-ownq" data-id="${q.id}"><b>${esc(q.body)}</b><small>${esc((q.options || [])[q.correct_index] || '')}</small></button>`).join('')}</div>

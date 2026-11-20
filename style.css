@@ -2425,3 +2425,19 @@ html.admmode .t-top,html.admmode .topbar{top:calc(46px + env(safe-area-inset-top
 .hv-list .hc-ring{width:58px;height:58px}.hv-list .hc-ring>div{width:46px;height:46px}.hv-list .hc-ring b{font-size:18px}.hv-list .hc-ring small{font-size:10px}
 .hv-list .hc-big{font-size:28px}.hv-list .hc-day{font-size:14px}
 .hv-list .hc-sub{display:none}
+/* lesson editing (per teacher) */
+.q4-ed{min-height:36px;padding:0 14px;border-radius:18px;border:0;background:var(--card);color:var(--ink);font:800 14px 'Cairo',system-ui,sans-serif;cursor:pointer;flex:none}
+.q4-ed.on{background:var(--ink);color:var(--bg)}
+.q4-pen{position:absolute;top:6px;left:8px;font-size:13px}
+.q4-mine{font-size:11px;font-weight:800;color:#C98A0B}
+.q4-lt.q4-add{background:none;border:2px dashed var(--line);color:var(--muted)}
+.q4-ql{background:var(--card);border-radius:18px;overflow:hidden}
+.q4-qr{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);font:inherit;text-align:start;cursor:pointer}
+.q4-qr:last-child{border-bottom:0}.q4-qr b{display:block;font-size:14.5px;font-weight:700;line-height:1.5}.q4-qr small{font-size:11.5px;font-weight:800;color:#C98A0B}.q4-qr i{font-style:normal;flex:none}
+.q4-addq{width:100%;min-height:50px;border-radius:16px;border:2px dashed var(--line);background:none;color:var(--muted);font:800 15px 'Cairo',system-ui,sans-serif;cursor:pointer}
+.q4-qf{display:flex;flex-direction:column;gap:8px}.q4-qf label{font-size:13px;font-weight:800;color:var(--muted)}
+.q4-qf textarea{min-height:80px;resize:none}
+.q4-op{display:flex;gap:8px;align-items:center}.q4-op .input{flex:1;min-width:0}
+.q4-op button{width:36px;height:36px;border-radius:50%;border:2px solid var(--muted);background:none;color:#fff;font-weight:900;flex:none;cursor:pointer}
+.q4-op button.ok{background:#1F9D55;border-color:#1F9D55}
+.q4-sh .q4-del{min-height:44px;font-size:15px;background:none}
