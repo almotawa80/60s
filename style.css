@@ -2576,3 +2576,10 @@ html body:not(.wide) .sh.pvx .sp-play:active{box-shadow:0 4px 0 #7A0A1C,0 0 0 14
 html body:not(.wide) .sh.pvx .bdg{background:#1C1C1E!important;border-color:transparent!important}
 html body:not(.wide) .sh.pvx .bdg.on{background:color-mix(in srgb,#C8102E 16%,#1C1C1E)!important;border:2px solid #C8102E!important}
 html body:not(.wide) .sh.pvx .s-me-av{background:#C8102E!important;color:#fff!important}
+html body:not(.wide) .modal{background:#1C1C1E!important;color:#F5F5F7}
+.s-prof{display:flex;flex-direction:column;gap:12px}.s-prof h3{margin:0}
+.sp-rows{background:#2C2C2E;border-radius:18px;overflow:hidden}
+.sp-rows .r{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.08)}.sp-rows .r:last-child{border-bottom:0}
+.sp-rows .r span{color:#98989F;font-weight:700}.sp-rows .r b{font-weight:800}
+.s-prof .code-pill{background:#1C1C1E!important;box-shadow:none!important}
+html body:not(.wide) .modal .btn.soft{background:#2C2C2E!important;color:#F5F5F7!important;box-shadow:none!important;border:0!important}

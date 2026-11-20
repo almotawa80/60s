@@ -442,17 +442,15 @@ ACTS['s-sound-row'] = t => { const on = FX.toggle(); t.innerHTML = ic(on ? 'soun
 ACTS['s-logout-ask'] = async () => { if (!await ask('تسجيل الخروج؟ ستحتاج رمزك للدخول مرة أخرى.')) return; closeModals(); ACTS['s-logout'](); };
 ACTS['s-profile'] = () => { closeModals();
   const h = S.home;
-  modal('<h3>ملفي</h3><div class="rows card">' +
+  const code = LS.get('mc_code');
+  modal('<div class="s-prof"><h3>ملفي</h3><div class="sp-rows">' +
     '<div class="r"><span>الاسم</span><b>' + esc(h.student.name) + '</b></div>' +
     '<div class="r"><span>الصف</span><b>' + esc(h.class.name) + '</b></div>' +
-    (S.prefs && S.prefs.teacher && S.prefs.teacher.name ? '<div class="r"><span>المعلم/ـة</span><b>' + esc([S.prefs.teacher.title, S.prefs.teacher.name].filter(Boolean).join(' ')) + '</b></div>' : '') +
-    (S.prefs && S.prefs.teacher && (S.prefs.teacher.subject || S.prefs.teacher.school) ? '<div class="r"><span>' + (S.prefs.teacher.subject ? 'المادة' : 'المدرسة') + '</span><b>' + esc([String(S.prefs.teacher.subject || '').split('|').join('، '), S.prefs.teacher.school].filter(Boolean).join(' · ')) + '</b></div>' : '') +
-    (LS.get('mc_code') ? '<div class="r"><span>رمز الدخول</span><button class="code-pill" data-act="copy" data-v="' + esc(LS.get('mc_code')) + '">' + esc(LS.get('mc_code')) + ' ' + ic('layers') + '</button></div>' : '') +
-    '<div class="r"><span>مجموع النقاط</span><b>' + h.total_points + '</b></div>' +
-    '<div class="r"><span>الترتيب في الصف</span><b>' + (h.rank || '-') + ' من ' + h.class.size + '</b></div></div>' +
-    (LS.get('mc_code') ? '<button class="btn soft" style="margin-top:14px" data-act="copy" data-v="' + esc(LS.get('mc_code')) + '">' + ic('layers') + ' نسخ رمز الدخول</button>' : '') +
-    (S.prefs && S.prefs.rename ? '<button class="btn soft" style="margin-top:8px" data-act="s-rename">' + ic('edit') + ' تعديل اسمي</button>' : '') +
-    '<button class="btn soft" style="margin-top:8px" data-act="close-modal">إغلاق</button>');
+    (code ? '<div class="r"><span>رمز الدخول</span><button class="code-pill" data-act="copy" data-v="' + esc(code) + '">' + esc(code) + ' ' + ic('layers') + '</button></div>' : '') +
+    '<div class="r"><span>نقاطي</span><b>' + (h.total_points || 0) + '</b></div>' +
+    (h.rank && h.total_points ? '<div class="r"><span>ترتيبي</span><b>' + h.rank + ' من ' + h.class.size + '</b></div>' : '') + '</div>' +
+    (S.prefs && S.prefs.rename ? '<button class="btn soft" data-act="s-rename">' + ic('edit') + ' تعديل اسمي</button>' : '') +
+    '<button class="btn" data-act="close-modal">تم</button></div>');
 };
 ACTS['s-leaders'] = async () => {
   if (S.demo) return toast('المتصدرون يظهرون في المسابقة الفعلية');
