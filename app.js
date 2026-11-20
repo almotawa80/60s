@@ -2054,7 +2054,7 @@ ACTS['cp-edit'] = async t => {
   T.compEdit = t.dataset.g;
   const g = CL.allComps.filter(c => c.group_id === T.compEdit);
   CC.sel = new Set(g.map(c => c.class_id));
-  const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (g[0].qtypes || first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = g[0].difficulty || 'normal'; CC.cu = g[0].curriculum_id || ''; CC.lessons = (g[0].lessons || []).slice(); CC.style = first.style || 'mid';
+  const first = CL.byId[g[0].class_id] || {}; CC.qtypes = (g[0].qtypes || first.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.diff = g[0].difficulty || 'normal'; CC.cu = g[0].curriculum_id || ''; CC.lessons = (g[0].lessons || []).slice(); CC.style = first.style || 'mid'; if (CC.cu && !CC.qtypes.includes('curriculum')) CC.qtypes = ['curriculum'].concat(CC.qtypes);
   renderClasses();
 };
 ACTS['cp-cancel'] = () => { T.compEdit = null; if (location.hash.indexOf('#/t/ch/') === 0) return renderClasses(); if (location.hash.indexOf('#/t/new') === 0) return go('#/t/home'); renderClasses(); };
@@ -2323,6 +2323,7 @@ ACTS['t-suggest'] = () => {
 };
 ACTS['cp-save'] = async f => {
   cpKeep();
+  if (CC.cu && CC.qtypes && !CC.qtypes.includes('curriculum')) CC.qtypes = ['curriculum'].concat(CC.qtypes);
   const ids = [...CC.sel];
   if (!ids.length) return toast('اختر صفاً واحداً على الأقل');
   const p = { title: f.title.value.trim() || 'مسابقة تحدّي الدقيقة', start_date: f.start_date.value, points_end_date: f.points_end_date.value, end_date: f.end_date.value,
