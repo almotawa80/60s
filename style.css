@@ -1801,3 +1801,24 @@ body.wide.dark .cp-paused{color:#FFB340}
 .cp-past[open]>summary::after{transform:rotate(90deg)}
 .cp-past>summary em{font-style:normal;font-size:12px;background:rgba(120,120,128,.14);border-radius:99px;padding:0 8px}
 a.qsub{text-decoration:none}
+/* competition setup: lessons as a tidy list, extra settings in labelled boxes */
+.cf2-les{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg)}
+.cf2-l{display:flex;align-items:center;gap:10px;width:100%;text-align:start;border:0;border-bottom:1px solid var(--line);background:transparent;padding:11px 12px;font:700 15px 'Cairo',system-ui,sans-serif;color:var(--ink)}
+.cf2-l:last-child{border-bottom:0}
+.cf2-l i{width:22px;height:22px;flex:0 0 22px;border-radius:7px;border:2px solid var(--line);display:grid;place-items:center;color:transparent}
+.cf2-l i .ico{width:14px;height:14px;stroke-width:3}
+.cf2-l.on i{background:var(--primary);border-color:var(--primary);color:#fff}
+.cf2-l em{font-style:normal;font-size:12.5px;font-weight:800;color:var(--muted);background:rgba(120,120,128,.12);border-radius:99px;padding:1px 9px}
+.cf2-l.all{font-weight:900}
+.cf2-more{order:0}
+.cf2-box{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
+.cf2-box:last-of-type{border-bottom:0}
+.cf2-bh{font-size:15px;font-weight:900;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.cf2-bh small{font-size:12px;font-weight:600;color:var(--muted)}
+.cf2-box .set-grp{box-shadow:none;border:1px solid var(--line)}
+.cf2-box .cf-qt{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cf2-box .cf-themes{margin:0}
+.cf2-box .cf-prev{align-self:center}
+.cf2-more .set-f{margin-top:8px}
+body.wide.dark .cf2-les{background:#000}
+.cf2-box .tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px}.cf2-box .tabs button{white-space:nowrap}

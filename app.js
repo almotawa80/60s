@@ -1740,21 +1740,18 @@ function compForm(){
     <section class="cf2-sec"><div class="cf2-q"><span>3</span>من أي أسئلة؟</div>
       <select class="input cf2-sel" name="cu" data-change="cp-cu">${cuOptions(CC.cu, 'كل الأسئلة المتاحة')}</select>
       <div class="cf-les" id="cf-les"></div><div class="cf-pool" id="cf-pool"></div></section>
-    <button class="btn cf2-go" type="submit">${isNew ? 'ابدأ المسابقة' : 'حفظ التعديلات'}</button>
     <details class="cf2-more"><summary>إعدادات إضافية <small>التواريخ، التصفيات، الصعوبة، شكل الواجهة</small></summary>
-      <div class="set-h">التواريخ</div>
-      <div class="set-grp">${date('start_date', 'بداية جمع النقاط', v.start_date)}${date('points_end_date', 'نهاية جمع النقاط', v.points_end_date)}${date('end_date', 'نهاية المسابقة', v.end_date)}</div>
-      <div class="set-h">التصفيات</div>
-      <div class="set-grp">${step('group_size', 'حجم المجموعة', v.group_size, 2, 40, 'عدد الطلبة في كل مجموعة')}${step('qualifiers', 'المتأهلون من كل صف', v.qualifiers, 2, 64, 'يدخلون مرحلة خروج المغلوب')}
-        <label class="set-row cf-row"><span class="grow">مدة كل دور</span><select class="cf-sel" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></label></div>
-      <div class="set-h">الصعوبة وأنواع الأسئلة</div>
-      <div class="set-grp"><div class="set-row cf-row cf-col"><span>مستوى الصعوبة</span><div class="tabs">${DIFF.map(d => `<button type="button" class="${CC.diff === d[0] ? 'on' : ''}" data-act="cp-diff" data-v="${d[0]}">${d[1]}</button>`).join('')}</div><small class="cf-hint" id="cp-diff-d">${(DIFF.find(d => d[0] === CC.diff) || DIFF[1])[2]}</small></div></div>
-      <div class="cf-qt">${QTYPES.map(q => `<button type="button" class="cf-chip ${CC.qtypes.includes(q[0]) ? 'on' : ''}" data-act="cp-qt" data-v="${q[0]}">${ic(q[3])}<span>${q[1]}</span></button>`).join('')}</div>
-      <div class="set-h">شكل واجهة الطلبة <small class="muted">يتحدد تلقائياً من مرحلة الصف</small></div>
+      <div class="cf2-box"><div class="cf2-bh">📅 التواريخ</div><div class="set-grp">${date('start_date', 'بداية جمع النقاط', v.start_date)}${date('points_end_date', 'نهاية جمع النقاط', v.points_end_date)}${date('end_date', 'نهاية المسابقة', v.end_date)}</div></div>
+      <div class="cf2-box"><div class="cf2-bh">🏆 التصفيات</div><div class="set-grp">${step('group_size', 'حجم المجموعة', v.group_size, 2, 40, 'عدد الطلبة في كل مجموعة')}${step('qualifiers', 'المتأهلون من كل صف', v.qualifiers, 2, 64, 'يدخلون مرحلة خروج المغلوب')}
+        <label class="set-row cf-row"><span class="grow">مدة كل دور</span><select class="cf-sel" name="round_window_hours">${opt(12, '12 ساعة')}${opt(24, 'يوم')}${opt(48, 'يومان')}${opt(72, '3 أيام')}</select></label></div></div>
+      <div class="cf2-box"><div class="cf2-bh">🎯 الصعوبة</div><div class="set-grp"><div class="set-row cf-row cf-col"><span>مستوى الصعوبة</span><div class="tabs">${DIFF.map(d => `<button type="button" class="${CC.diff === d[0] ? 'on' : ''}" data-act="cp-diff" data-v="${d[0]}">${d[1]}</button>`).join('')}</div><small class="cf-hint" id="cp-diff-d">${(DIFF.find(d => d[0] === CC.diff) || DIFF[1])[2]}</small></div></div></div>
+      <div class="cf2-box"><div class="cf2-bh">🧩 أنواع الأسئلة</div><div class="cf-qt">${QTYPES.map(q => `<button type="button" class="cf-chip ${CC.qtypes.includes(q[0]) ? 'on' : ''}" data-act="cp-qt" data-v="${q[0]}">${ic(q[3])}<span>${q[1]}</span></button>`).join('')}</div></div>
+      <div class="cf2-box"><div class="cf2-bh">🎨 شكل واجهة الطلبة <small>يتحدد تلقائياً من مرحلة الصف</small></div>
       <div class="cf-themes">${CF_STYLES.map(x => `<button type="button" class="cf-th ${CC.style === x[0] ? 'on' : ''}" data-act="cp-style" data-v="${x[0]}"><span class="cf-ph cf-ph-${x[0]}"><i class="t"></i><i class="q"></i><i class="o"></i><i class="o"></i><i class="o"></i></span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div>
-      <button type="button" class="btn sm soft cf-prev" data-act="cf-preview">${ic('play')} معاينة كما يراها الطالب</button>
+      <button type="button" class="btn sm soft cf-prev" data-act="cf-preview">${ic('play')} معاينة كما يراها الطالب</button></div>
       <div class="set-f">كل جولة: 4 أسئلة × 15 ثانية. جولة رسمية يومياً، والتدريب مفتوح.</div>
     </details>
+    <button class="btn cf2-go" type="submit">${isNew ? 'ابدأ المسابقة' : 'حفظ التعديلات'}</button>
     <button type="button" class="link cf2-cancel" data-act="cp-cancel">إلغاء</button></form>`;
 }
 /* simple setup helpers: duration presets, auto title, auto student-screen style */
@@ -1826,15 +1823,15 @@ const CFL = {};
 async function cfLessons(){
   const el = document.getElementById('cf-les'); if (!el) return;
   const cu = CC.cu; if (!cu) { el.innerHTML = ''; return; }
-  if (!CFL[cu]) { const r = await sb.from('questions').select('lesson').eq('curriculum_id', cu).eq('status', 'approved').not('lesson', 'is', null).limit(5000);
+  if (!CFL[cu]) { const r = await sb.from('questions').select('lesson').eq('curriculum_id', cu).eq('status', 'approved').not('lesson', 'is', null).order('created_at').limit(5000);
     const cnt = {}, order = []; (r.data || []).forEach(q => { if (!cnt[q.lesson]) order.push(q.lesson); cnt[q.lesson] = (cnt[q.lesson] || 0) + 1; }); CFL[cu] = order.map(l => [l, cnt[l]]); }
   const x = document.getElementById('cf-les'); if (!x || CC.cu !== cu) return;
   const ls = CFL[cu]; CC.lessons = (CC.lessons || []).filter(l => ls.some(y => y[0] === l));
   if (!ls.length) { x.innerHTML = ''; return; }
   const all = !CC.lessons.length;
-  x.innerHTML = `<div class="cf-les-h"><span>الدروس</span><small>${all ? 'كل الدروس' : CC.lessons.length + ' من ' + ls.length}</small></div><div class="cf-les-l">
-    <button type="button" class="cf-chip sm ${all ? 'on' : ''}" data-act="cp-les" data-l="">${ic('check')}<span>كل الدروس</span></button>
-    ${ls.map(([l, n]) => `<button type="button" class="cf-chip sm ${!all && CC.lessons.includes(l) ? 'on' : ''}" data-act="cp-les" data-l="${esc(l)}">${ic('check')}<span>${esc(l)}</span><em>${n}</em></button>`).join('')}</div>`;
+  x.innerHTML = `<div class="cf-les-h"><span>الدروس</span><small>${all ? 'كل الدروس' : CC.lessons.length + ' من ' + ls.length}</small></div><div class="cf2-les">
+    <button type="button" class="cf2-l all ${all ? 'on' : ''}" data-act="cp-les" data-l=""><i>${ic('check')}</i><span class="grow">كل الدروس</span><em>${ls.reduce((a, y) => a + y[1], 0)}</em></button>
+    ${ls.map(([l, n], i) => `<button type="button" class="cf2-l ${!all && CC.lessons.includes(l) ? 'on' : ''}" data-act="cp-les" data-l="${esc(l)}"><i>${ic('check')}</i><span class="grow">${esc(l)}</span><em>${n}</em></button>`).join('')}</div>`;
 }
 ACTS['cp-cu'] = t => { CC.cu = t.value; CC.lessons = []; cfLessons(); cfUpdate(); };
 ACTS['cp-les'] = t => { const l = t.dataset.l;
