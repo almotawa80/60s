@@ -2509,3 +2509,4 @@ html.admmode .t-top,html.admmode .topbar{top:calc(46px + env(safe-area-inset-top
 .opts.ord .opt.picked .shp{background:#fff;color:#222}
 html body[data-theme] .pv .opts.kc.tf .opt.oc0:not(.good):not(.bad){background:#1F9D55!important;border-color:#167A41!important;box-shadow:0 5px 0 #0F5A30!important}
 html body[data-theme] .pv .opts.kc.tf .opt.oc1:not(.good):not(.bad){background:#E5484D!important;border-color:#B5132E!important;box-shadow:0 5px 0 #8F0F24!important}
+.p3-seg button{white-space:nowrap;padding:0 6px;font-size:14px}

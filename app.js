@@ -3046,7 +3046,7 @@ ACTS['q3-add'] = async () => {
   const cu = CU.list.find(c => c.id === T.qf.cu3);
   modal(`<form class="p3-add" data-form="q3-save"><h3>سؤال جديد</h3>${cu ? `<p class="p3-sub">${esc(cu.subject)} · ${gradeAr(cu)}</p>` : ''}
     <input type="hidden" name="correct" value="0"><input type="hidden" name="tfm" value="0"><input type="hidden" name="tfa" value="">
-    <div class="p3-seg"><button type="button" class="on" data-act="q3-type" data-t="0">٤ خيارات</button><button type="button" data-act="q3-type" data-t="1">✅❌ صح أو خطأ</button><button type="button" data-act="q3-type" data-t="2">🔢 رتّب</button></div>
+    <div class="p3-seg"><button type="button" class="on" data-act="q3-type" data-t="0">٤ خيارات</button><button type="button" data-act="q3-type" data-t="1">صح أو خطأ</button><button type="button" data-act="q3-type" data-t="2">رتّب</button></div>
     <input class="p3-in" name="body" required maxlength="300" placeholder="اكتب السؤال" autocomplete="off">
     <div class="p3-tf"><p class="p3-sub">الجملة هذي…</p><div class="p3-tfb"><button type="button" class="t" data-act="q3-tfa" data-v="1">✅ صح</button><button type="button" class="f" data-act="q3-tfa" data-v="0">❌ خطأ</button></div></div>
     <div class="p3-or"><p class="p3-sub">اكتبها بالترتيب الصحيح، والتطبيق يخلطها للطالب</p>${[0, 1, 2, 3].map(i => `<div class="p3-orr"><b>${'١٢٣٤'[i]}</b><input class="p3-in" name="r${i}" maxlength="60" placeholder="${i < 3 ? 'مطلوب' : 'اختياري'}" autocomplete="off"></div>`).join('')}</div>
