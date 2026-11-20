@@ -2202,9 +2202,10 @@ const qNorm = s => String(s || '').replace(/[ً-ْـ]/g, '').replace(/[إأآ]/g
 async function tQuestions(){
   const [own, glob, st] = await Promise.all([
     sb.from('questions').select('*').eq('owner_id', T.user.id).order('created_at', { ascending: false }),
-    sb.from('questions').select('id,body,options,correct_index,level,qtype,curriculum_id,lesson,image').is('owner_id', null).eq('status', 'approved').limit(2000),
+    sb.from('questions').select('id,body,options,correct_index,level,qtype,curriculum_id,lesson,image').is('owner_id', null).eq('status', 'approved').limit(5000),
     rpc('question_stats', {}).catch(() => []),
-    sb.from('question_picks').select('question_id').then(r => r, () => ({}))
+    sb.from('question_picks').select('question_id').then(r => r, () => ({})),
+    sb.from('classes').select('name,stage').eq('archived', false).then(r => { QS.cls3 = r.data || []; }, () => {})
   ]).then(r => { QS.pickOk = !!(r[3] && !r[3].error && r[3].data); QS.pick = new Set(((r[3] && r[3].data) || []).map(x => x.question_id)); QS.hid = new Set(); return r; });
   if (own.error) throw own.error;
   await loadCurricula(true).catch(() => {});
@@ -2517,30 +2518,119 @@ function q3Cus(){
   return CU.list.filter(c => ids.has(c.id));
 }
 function q3Home(){
-  const cus = q3Cus(), P = QS.pick || new Set(), own = QS.list.filter(q => q.status === 'approved').length, nd = QS.list.filter(q => q.status === 'draft').length;
-  const add = `<button class="btn q3-add" data-act="t-q-add">＋ أضف سؤال</button>`;
-  const tail = `<div class="q3-links">${own ? `<button class="link" data-act="q-own3">أسئلتك الخاصة (${own}) ‹</button>` : ''}${nd ? `<button class="link" data-act="t-qs" data-v="draft">⏳ تنتظر مراجعتك (${nd}) ‹</button>` : ''}
-    <button class="link" data-act="q-bank3">تصفّح بنك الأسئلة ‹</button><button class="link" data-act="t-q-add-menu">طرق أخرى للإضافة ‹</button></div>`;
-  if (!cus.length) return add + `<div class="h-empty q3-empty"><div class="h-emo">📚</div><b>ما عندك أسئلة بعد</b><small>لما تبدأ تحدي، تنضاف أسئلة المادة الجاهزة لحالها.</small><a class="btn" href="#/t/new">ابدأ تحدي 🚀</a></div>` + tail;
-  let cu = cus.find(c => c.id === T.qf.cu3) || cus[0]; T.qf.cu3 = cu.id;
-  const tiles = cus.length > 1 ? `<div class="q3-tiles">${cus.map(c => `<button class="${c.id === cu.id ? 'on' : ''}" data-act="q-cu3" data-id="${c.id}"><span>${SUBJ_EMOJI && SUBJ_EMOJI[c.subject] || '📘'}</span><b>${esc(c.subject)}</b><small>${gradeAr(c)}</small></button>`).join('')}</div>` : '';
-  const qs = QS.glob.filter(q => q.curriculum_id === cu.id), by = {};
-  qs.forEach(q => { const l = q.lesson || NO_LESSON; (by[l] = by[l] || []).push(q); });
-  const les = Object.keys(by).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON));
-  const mineN = QS.list.filter(q => q.status === 'approved' && q.curriculum_id === cu.id).length;
-  const rows = les.map((l, i) => { const a = by[l], n = a.filter(q => P.has(q.id)).length, on = n > 0;
-    return `<div class="q3-row"><button class="q3-l" data-act="q-les3" data-i="${i}"><b>${l === NO_LESSON ? 'أسئلة عامة' : esc(l)}</b><small>${a.length} سؤال${on && n < a.length ? ` · مشغّل ${n}` : ''}</small></button>
-      <button class="q3-sw${on ? ' on' : ''}" role="switch" aria-checked="${on}" aria-label="${on ? 'إيقاف' : 'تشغيل'} الدرس" data-act="q-sw3" data-i="${i}" data-on="${on ? 0 : 1}"><i></i></button></div>`; }).join('');
-  QS.les3 = les;
-  return add + tiles + `<p class="q3-h">دروس ${esc(cu.subject)} · ${gradeAr(cu)}</p><div class="q3-list">${rows || '<div class="muted center">ما فيه دروس جاهزة لهذا الصف</div>'}</div>
-    ${mineN ? `<p class="q3-note">ومعها ${mineN} سؤال كتبتها أنت.</p>` : ''}<p class="q3-note">الدروس المشغّلة تطلع لطلابك في التحديات. طفّ اللي ما تبيه.</p>` + tail;
+  const P = QS.pick || new Set(), own = QS.list.filter(q => q.status === 'approved').length, nd = QS.list.filter(q => q.status === 'draft').length;
+  const cuOf = id => CU.list.find(c => c.id === id);
+  // chosen lessons = picked ready questions grouped by curriculum + lesson
+  const G = {}; QS.glob.forEach(q => { if (!P.has(q.id) || !q.curriculum_id) return; const k = q.curriculum_id + '|' + (q.lesson || NO_LESSON); (G[k] = G[k] || { cu: q.curriculum_id, l: q.lesson || NO_LESSON, n: 0 }).n++; });
+  const mine = Object.values(G).filter(g => cuOf(g.cu)); QS.mine3 = mine;
+  if (!mine.some(g => g.cu === T.qf.cu3)) T.qf.cu3 = mine.length ? mine[0].cu : '';
+  const total = own + mine.reduce((a, g) => a + g.n, 0), days = Math.floor(total / QPD);
+  const tiles = mine.map((g, i) => { const c = cuOf(g.cu); return `<button class="q4-mt${QS.new3 === g.cu + '|' + g.l ? ' new' : ''}" data-act="q4-les" data-i="${i}"><span class="e">${SUBJ_EMOJI[c.subject] || '📘'}</span><b>${g.l === NO_LESSON ? 'أسئلة عامة' : esc(g.l)}</b><small>${esc(q4Gr(c))} · ${g.n} سؤال</small></button>`; }).join('')
+    + `<button class="q4-mt self" data-act="q-own3"><span class="e">✍️</span><b>أسئلتي</b><small>${own} سؤال</small></button>`;
+  QS.new3 = null;
+  const subs = q4Subjects(), mySub = new Set(mine.map(g => cuOf(g.cu).subject));
+  const bank = subs.sort((x, y) => mySub.has(y.s) - mySub.has(x.s)).map(x => `<button class="q4-st${mySub.has(x.s) ? ' mine' : ''}" data-act="q4-subj" data-s="${esc(x.s)}"><span class="e">${SUBJ_EMOJI[x.s] || '📘'}</span>${esc(x.s)}<small>${x.n} درس</small></button>`).join('');
+  return `<div class="q4">
+    <div class="q4-lbl"><b>أسئلتي</b><small>تطلع لطلابك في التحديات</small></div>
+    <div class="q4-mine">${tiles}</div>
+    ${total ? `<div class="q4-days">عندك ${total} سؤال، تكفي ${daysAr(days)} 👍</div>` : `<div class="q4-days low">اختر دروس من البنك تحت، أو أضف أسئلتك</div>`}
+    ${nd ? `<button class="p3-ghost" data-act="t-qs" data-v="draft">⏳ ${nd} تنتظر مراجعتك ‹</button>` : ''}
+    <button class="p3-big" data-act="q3-add">＋ أضف سؤال</button>
+    <div class="q4-lbl"><b>بنك الأسئلة</b><small>اضغط المادة واختر الدروس</small></div>
+    <div class="q4-bank">${bank || '<p class="p3-note">ما فيه أسئلة جاهزة لصفوفك بعد.</p>'}</div></div>`;
 }
+const q4Gr = c => c.grade ? (c.stage === 'university' ? 'سنة ' + c.grade : (GRADES[c.grade - 1] || c.grade)).replace(/^ال/, '') : (STAGE_AR[c.stage] || '');
+// curricula that fit the teacher's classes (grade from the class name, else the whole stage)
+function q4Fit(){
+  const cls = QS.cls3 || []; if (!cls.length) return () => true;
+  const g = new Set(), st = new Set(); cls.forEach(c => { const n = nwGrade(c); if (n && c.stage) g.add(c.stage + '|' + n); else if (c.stage) st.add(c.stage); });
+  return c => g.has(c.stage + '|' + c.grade) || st.has(c.stage) || (!c.grade && [...g].some(k => k.startsWith(c.stage + '|')));
+}
+function q4Subjects(){
+  const fit = q4Fit(), have = {}; QS.glob.forEach(q => { if (q.curriculum_id) (have[q.curriculum_id] = have[q.curriculum_id] || new Set()).add(q.lesson || NO_LESSON); });
+  let list = CU.list.filter(c => have[c.id] && fit(c)); if (!list.length) list = CU.list.filter(c => have[c.id]);
+  const by = {}; list.forEach(c => { (by[c.subject] = by[c.subject] || { s: c.subject, cus: [], n: 0 }); by[c.subject].cus.push(c); by[c.subject].n += have[c.id].size; });
+  return Object.values(by);
+}
+function q4SubjSheet(s){
+  const x = q4Subjects().find(y => y.s === s); if (!x) return;
+  x.cus.sort((a, b) => (a.grade || 0) - (b.grade || 0));
+  const cu = x.cus.find(c => c.id === QS.subjCu) || x.cus[0]; QS.subjCu = cu.id; QS.subj3 = s;
+  const P = QS.pick || new Set(), by = {}; QS.glob.filter(q => q.curriculum_id === cu.id).forEach(q => { const l = q.lesson || NO_LESSON; (by[l] = by[l] || []).push(q); });
+  const les = Object.keys(by).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON)); QS.les3 = les;
+  const html = `<div class="q4-sh"><div class="q4-shh"><span class="e">${SUBJ_EMOJI[s] || '📘'}</span><h3>${esc(s)}</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
+    ${x.cus.length > 1 ? `<div class="q4-chips">${x.cus.map(c => `<button class="${c.id === cu.id ? 'on' : ''}" data-act="q4-gr" data-id="${c.id}">${esc(q4Gr(c))}</button>`).join('')}</div>` : ''}
+    <div class="q4-les">${les.map((l, i) => { const on = by[l].some(q => P.has(q.id)); return `<button class="q4-lt${on ? ' added' : ''}" data-act="q4-tg" data-i="${i}"><b>${l === NO_LESSON ? 'أسئلة عامة' : esc(l)}</b><small>${by[l].length} سؤال</small></button>`; }).join('')}</div>
+    <p class="p3-note">اضغط الدرس ينضاف لأسئلتك ✓</p></div>`;
+  const open = document.querySelector('.modal .q4-sh');
+  if (open) open.outerHTML = html; else { closeModals(); modal(html); }
+}
+ACTS['q4-subj'] = t => { QS.subjCu = null; q4SubjSheet(t.dataset.s); };
+ACTS['q4-gr'] = t => { QS.subjCu = t.dataset.id; q4SubjSheet(QS.subj3); };
+ACTS['q4-tg'] = async t => {
+  const l = (QS.les3 || [])[+t.dataset.i]; if (l == null) return;
+  const ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && (q.lesson || NO_LESSON) === l).map(q => q.id), on = !t.classList.contains('added');
+  t.classList.toggle('added', on); t.setAttribute('aria-busy', 'true'); haptic();
+  if (!await qPickSet(ids, on)) { t.classList.toggle('added', !on); t.removeAttribute('aria-busy'); return; }
+  if (on) { QS.new3 = QS.subjCu + '|' + l; closeModals(); renderQuestions(); scrollTo(0, 0); toast('انضاف لأسئلتك ✓'); }
+  else { t.removeAttribute('aria-busy'); renderQuestionsKeepModal(); toast('انشال من أسئلتك'); }
+};
+function q4LesSheet(i){
+  const g = (QS.mine3 || [])[i]; if (!g) return closeModals();
+  const c = CU.list.find(x => x.id === g.cu), P = QS.pick || new Set();
+  const qs = QS.glob.filter(q => q.curriculum_id === g.cu && (q.lesson || NO_LESSON) === g.l); QS.les4 = { i, ids: qs.map(q => q.id) };
+  const html = `<div class="q4-sh"><div class="q4-shh"><span class="e">${SUBJ_EMOJI[c.subject] || '📘'}</span><h3>${g.l === NO_LESSON ? 'أسئلة عامة' : esc(g.l)}</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
+    <p class="p3-note" style="text-align:start">${esc(c.subject)} · ${esc(q4Gr(c))} · ${qs.length} سؤال. طفّي أي سؤال ما تبيه.</p>
+    <div class="p3-rows">${qs.map(q => { const on = P.has(q.id); return `<button class="p3-row q4-q${on ? '' : ' off'}" data-act="q4-q" data-id="${q.id}"><span class="grow">${esc(q.body)}<small>${esc(q.options[q.correct_index] || '')}</small></span><span class="p3-sw${on ? ' on' : ''}"></span></button>`; }).join('')}</div>
+    <button class="q4-del" data-act="q4-rm">شيل الدرس</button></div>`;
+  const open = document.querySelector('.modal .q4-sh');
+  if (open) open.outerHTML = html; else { closeModals(); modal(html); }
+}
+ACTS['q4-les'] = t => q4LesSheet(+t.dataset.i);
+ACTS['q4-q'] = async t => { const id = t.dataset.id, on = !(QS.pick && QS.pick.has(id));
+  t.classList.toggle('off', !on); t.querySelector('.p3-sw').classList.toggle('on', on); haptic();
+  if (!await qPickSet([id], on)) { t.classList.toggle('off', on); t.querySelector('.p3-sw').classList.toggle('on', !on); return; }
+  renderQuestionsKeepModal(); };
+ACTS['q4-rm'] = async () => { const L = QS.les4; if (!L) return;
+  if (await qPickSet(L.ids, false)) { closeModals(); renderQuestions(); toast('انشال الدرس'); } };
+/* add one question, like the preview: question, right answer, wrong ones filled in */
+ACTS['q3-add'] = async () => {
+  await loadCurricula().catch(() => {});
+  const cu = CU.list.find(c => c.id === T.qf.cu3);
+  modal(`<form class="p3-add" data-form="q3-save"><h3>سؤال جديد</h3>${cu ? `<p class="p3-sub">${esc(cu.subject)} · ${gradeAr(cu)}</p>` : ''}
+    <input type="hidden" name="correct" value="0">
+    <input class="p3-in" name="body" required maxlength="300" placeholder="اكتب السؤال" autocomplete="off">
+    <input class="p3-in ok" name="o0" required maxlength="100" placeholder="الجواب الصحيح" autocomplete="off">
+    <p class="p3-sub">خيارات خاطئة (تنكتب لحالها، عدّلها إذا تبي)</p>
+    <div class="p3-rows">${[1, 2, 3].map(i => `<div class="p3-row"><input class="p3-wr" name="o${i}" required maxlength="100" placeholder="خيار خاطئ" autocomplete="off"><span class="p3-spark">✨</span></div>`).join('')}</div>
+    <button class="p3-big" type="submit">حفظ وأضف غيره</button>
+    <button type="button" class="p3-ghost" data-act="q3-more">طرق أخرى ‹</button>
+    <button type="button" class="p3-ghost muted" data-act="close-modal">خلصت</button></form>`);
+  setTimeout(() => { const b = document.querySelector('.p3-add [name=body]'); if (b) b.focus(); }, 60);
+};
+ACTS['q3-more'] = () => { closeModals(); ACTS['t-q-add-menu'](); };
+document.addEventListener('change', e => { const el = e.target; if (!el.closest || !el.closest('.p3-add')) return; if (el.name === 'o0' || el.name === 'body') { const f = el.form; if (f.o0.value.trim()) qfFillSug(f, false); } });
+ACTS['q3-save'] = async f => {
+  const btn = f.querySelector('[type=submit]'); if (btn.disabled) return;
+  const opts = [0, 1, 2, 3].map(i => f['o' + i].value.trim()), body = f.body.value.trim();
+  if (new Set(opts).size < 4) return toast('الخيارات لازم تكون مختلفة');
+  if ((QS.norm[qNorm(body)] || []).length) return toast('هذا السؤال موجود من قبل');
+  const o = opts.slice(); for (let i = 3; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; }
+  const cu = T.qf.cu3 || null;
+  btn.disabled = true;
+  const r = await sb.from('questions').insert({ owner_id: T.user.id, status: 'approved', source: 'teacher', qtype: cu ? 'curriculum' : 'general', level: 'medium', body, options: o, correct_index: o.indexOf(opts[0]), curriculum_id: cu, lesson: null }).select().single();
+  btn.disabled = false;
+  if (r.error) return toast(errMsg(r.error));
+  QS.list.unshift(r.data); qDupIndex();
+  f.reset(); [1, 2, 3].forEach(i => { delete f['o' + i].dataset.sug; f['o' + i].classList.remove('sug'); });
+  toast('انحفظ ✓ اكتب اللي بعده'); f.body.focus(); renderQuestionsKeepModal();
+};
 ACTS['q-cu3'] = t => { T.qf.cu3 = t.dataset.id; renderQuestions(); };
 ACTS['q-sw3'] = async t => {
   const l = (QS.les3 || [])[+t.dataset.i], on = t.dataset.on === '1'; if (l == null) return;
   const ids = QS.glob.filter(q => q.curriculum_id === T.qf.cu3 && (q.lesson || NO_LESSON) === l).map(q => q.id);
-  t.classList.toggle('on', on); haptic();
-  if (await qPickSet(ids, on)) renderQuestions(); else t.classList.toggle('on', !on);
+  const sw = t.querySelector('.p3-sw') || t; sw.classList.toggle('on', on); haptic();
+  if (await qPickSet(ids, on)) renderQuestions(); else sw.classList.toggle('on', !on);
 };
 ACTS['q-les3'] = t => { const l = (QS.les3 || [])[+t.dataset.i], c = CU.list.find(x => x.id === T.qf.cu3); if (l == null || !c) return;
   Object.assign(T.qf, { status: 'global', g: 'curriculum', gs: c.subject, gcu: c.id, gl: l, from3: true }); QS.open = null; renderQuestions(); scrollTo(0, 0); };
