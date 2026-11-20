@@ -195,25 +195,26 @@ function studentLogin(){
   const th = ['kids', 'mid', 'uni'].includes(LS.get('mc_theme')) ? LS.get('mc_theme') : 'mid';
   setTheme(th);
   document.body.classList.remove('wide');
-  $app.innerHTML = '<div class="sh sl pv-' + th + '"><div class="pv-bg" aria-hidden="true">' + (PV_BG[th] || '') + '</div>' +
+  $app.innerHTML = '<div class="sh sl sl-red pv-' + th + '">' +
     '<div class="hero">' + LOGO +
     '<h1>تحدّي الدقيقة</h1></div>' +
     '<div class="pad col">' + profPicker() +
     '<div class="col sl1"><b class="sl1-q">' + (profs().length ? 'لاعب جديد؟' : 'عندك رمز؟') + '</b>' +
     '<div class="code-wrap"><div class="code-boxes">' + '<div class="code-box"></div>'.repeat(6) + '</div>' +
-    '<input class="code-input" id="code" inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="6" aria-label="رمز الدخول"></div>' +
+    '<input class="code-input" id="code" inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="20" aria-label="رمز الدخول"></div>' +
+    '<button class="link sl1-p" data-act="s-paste">📋 لصق الرمز</button>' +
     '<div id="lerr"></div>' +
     '<button class="btn sl1-go" data-act="s-login">دخول</button><p class="sl1-h">الرمز تاخذه من معلمك</p></div>' +
     '<div class="center sl-t"><button class="link sl1-t" data-act="go-teacher">أنا معلم؟ <b>ادخل من هنا</b></button></div></div></div>';
   const inp = document.getElementById('code');
   const paint = v => $app.querySelectorAll('.code-box').forEach((el, i) => { el.textContent = v[i] || ''; el.classList.toggle('on', i === Math.min(v.length, 5)); });
   inp.addEventListener('input', () => {
-    inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    inp.value = normCode(inp.value).slice(0, 6);
     paint(inp.value);
     if (inp.value.length === 6) ACTS['s-login']();
   });
   paint('');
-  S.fill = v => { inp.value = String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); paint(inp.value); if (inp.value.length === 6) ACTS['s-login'](); };
+  S.fill = v => { const m = String(v || '').match(/#\/[jc]\/([A-Za-z0-9]+)/); inp.value = normCode(m ? m[1] : v).slice(0, 6); paint(inp.value); if (inp.value.length === 6) ACTS['s-login'](); };
   if (S.preCode) { const c = S.preCode; S.preCode = null; setTimeout(() => S.fill(c), 50); } else if (!profs().length) setTimeout(() => inp.focus(), 50);
 }
 ACTS['s-paste'] = async () => {

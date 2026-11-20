@@ -2348,3 +2348,11 @@ html body[data-theme] .play.pv .opts.kc .opt:nth-child(n){min-height:0!important
 .pw-eye{position:absolute;top:50%;left:6px;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:50%;background:transparent;font-size:20px;cursor:pointer;opacity:.55;filter:grayscale(1)}
 .pw-eye.on{opacity:1;filter:none}
 .st1-o.dng{color:#E5484D}
+/* v122 first screen: always the app's red, with a small «لصق الرمز» */
+html body .sh.sl.sl-red{background:radial-gradient(120% 80% at 50% 0%,#E0263F 0%,#B00D27 45%,#6E0717 100%)!important;color:#fff}
+html body .sl.sl-red .code-box{background:rgba(255,255,255,.14)!important;border:2px solid rgba(255,255,255,.35)!important;color:#fff!important}
+html body .sl.sl-red .code-box.on{border-color:#FFD34D!important;box-shadow:0 0 0 3px rgba(255,211,77,.3)!important}
+html body .sl.sl-red .sl1-go{background:#fff!important;color:#B00D27!important;box-shadow:0 6px 0 rgba(0,0,0,.25)!important}
+html body .sl.sl-red h1{color:#fff!important;text-shadow:0 2px 10px rgba(0,0,0,.25)}
+.sl1-p{color:#fff;font-weight:800;font-size:15px;opacity:.9;margin-top:-4px}
+html body .sl.sl-red .sl1-t,html body .sl.sl-red .sl1-t b{color:#fff!important}
