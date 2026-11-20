@@ -371,7 +371,7 @@ ACTS['s-profile'] = () => { closeModals();
     '<div class="r"><span>الاسم</span><b>' + esc(h.student.name) + '</b></div>' +
     '<div class="r"><span>الصف</span><b>' + esc(h.class.name) + '</b></div>' +
     (S.prefs && S.prefs.teacher && S.prefs.teacher.name ? '<div class="r"><span>المعلم/ـة</span><b>' + esc([S.prefs.teacher.title, S.prefs.teacher.name].filter(Boolean).join(' ')) + '</b></div>' : '') +
-    (S.prefs && S.prefs.teacher && (S.prefs.teacher.subject || S.prefs.teacher.school) ? '<div class="r"><span>' + (S.prefs.teacher.subject ? 'المادة' : 'المدرسة') + '</span><b>' + esc([S.prefs.teacher.subject, S.prefs.teacher.school].filter(Boolean).join(' · ')) + '</b></div>' : '') +
+    (S.prefs && S.prefs.teacher && (S.prefs.teacher.subject || S.prefs.teacher.school) ? '<div class="r"><span>' + (S.prefs.teacher.subject ? 'المادة' : 'المدرسة') + '</span><b>' + esc([String(S.prefs.teacher.subject || '').split('|').join('، '), S.prefs.teacher.school].filter(Boolean).join(' · ')) + '</b></div>' : '') +
     (LS.get('mc_code') ? '<div class="r"><span>رمز الدخول</span><button class="code-pill" data-act="copy" data-v="' + esc(LS.get('mc_code')) + '">' + esc(LS.get('mc_code')) + ' ' + ic('layers') + '</button></div>' : '') +
     '<div class="r"><span>مجموع النقاط</span><b>' + h.total_points + '</b></div>' +
     '<div class="r"><span>الترتيب في الصف</span><b>' + (h.rank || '-') + ' من ' + h.class.size + '</b></div></div>' +
@@ -2169,11 +2169,15 @@ const qGlobSubj = q => { const c = qGlobCu(q); return c ? c.subject : 'مناه�
 function qGroups(){
   if (!QS.glob.length) return '<div class="card center muted">لا توجد أسئلة جاهزة حالياً.</div>';
   const cnt = {}; QS.glob.filter(q => q.qtype === 'curriculum').forEach(q => { const s = qGlobSubj(q); cnt[s] = (cnt[s] || 0) + 1; });
-  const subs = [...new Set(SUBJ_MAIN.concat(Object.keys(cnt)))].filter(s => cnt[s]);
+  const all = [...new Set(SUBJ_MAIN.concat(Object.keys(cnt)))].filter(s => cnt[s]), my = mySubjects();
+  const subs = my.length ? all.filter(s => my.includes(s)) : all, other = my.length ? all.filter(s => !my.includes(s)) : [];
   const kinds = QG.filter(g => g[0] !== 'curriculum').map(g => [g, QS.glob.filter(q => q.qtype === g[0]).length]).filter(x => x[1]);
   const stages = s => [...new Set(QS.glob.filter(q => qGlobSubj(q) === s).map(q => { const c = qGlobCu(q); return c ? STAGE_AR[c.stage] : ''; }).filter(Boolean))].join('، ');
+  const subBtn = s => `<button class="qsub" data-act="q-gsubj" data-s="${esc(s)}" style="--c:${SUBJ_COLOR(s)}"><span class="qsub-ic">${esc(subjMark(s))}</span><span class="grow"><b>${esc(s)}</b>${stages(s) ? `<small>${stages(s)}</small>` : ''}</span><em>${cnt[s]}</em><i>‹</i></button>`;
   return `<p class="sub q-ro">مكتبة أسئلة جاهزة. تصفّحها وأضف منها ما تريد إلى «أسئلتي»، وما يدخل مسابقاتك إلا ما تضيفه.</p>
-    ${subs.length ? `<div class="qr-h">أسئلة المناهج</div><div class="qsubs">${subs.map(s => `<button class="qsub" data-act="q-gsubj" data-s="${esc(s)}" style="--c:${SUBJ_COLOR(s)}"><span class="qsub-ic">${esc(subjMark(s))}</span><span class="grow"><b>${esc(s)}</b>${stages(s) ? `<small>${stages(s)}</small>` : ''}</span><em>${cnt[s]}</em><i>‹</i></button>`).join('')}</div>` : ''}
+    ${subs.length ? `<div class="qr-h">${my.length ? 'موادي' : 'أسئلة المناهج'}</div><div class="qsubs">${subs.map(subBtn).join('')}</div>` : my.length ? '<div class="card center muted">ما فيه أسئلة جاهزة لموادك بعد.</div>' : ''}
+    ${other.length ? `<details class="q-other"><summary>مواد أخرى (${other.length})</summary><div class="qsubs">${other.map(subBtn).join('')}</div></details>` : ''}
+    ${!my.length && subs.length ? `<button class="q-mysub" data-act="go" data-h="#/t/opt/prof_subject">${ic('edit')} اختر موادك عشان تطلع أول</button>` : ''}
     ${kinds.length ? `<div class="qr-h">أسئلة عامة</div><div class="qsubs">${kinds.map(([g, n]) => `<button class="qsub" data-act="q-grp" data-g="${g[0]}" style="--c:${g[0] === 'quick' ? '#FF9500' : '#34C759'}"><span class="qsub-ic">${g[1]}</span><span class="grow"><b>${g[2]}</b></span><em>${n}</em><i>‹</i></button>`).join('')}</div>` : ''}`;
 }
 function qGlobGrades(subj){
@@ -3190,7 +3194,7 @@ const OPTS = {
   lb: { t: 'لوحة المتصدرين', back: '#/t/rset', o: () => [['all', 'كاملة', 'يشوف الطالب ترتيب كل الصف'], ['top', 'أفضل عدد', 'تحدد العدد من صفحة النتائج'], ['hidden', 'مخفية حتى النهاية', 'يشوف ترتيبه بس لين تنتهي المسابقة']], get: () => SG('lb') === 'top10' ? 'top' : SG('lb') },
   names: { t: 'أسماء الطلبة في اللوحة', back: '#/t/rset', o: () => [['full', 'الاسم كاملاً', 'محمد أحمد العلي'], ['first_fam', 'الأول وحرف العائلة', 'محمد ع.'], ['first', 'الاسم الأول فقط', 'محمد']] },
   prof_title: { t: 'اللقب', back: '#/t/account', o: () => [['', 'بدون', ''], ['أ.', 'أ.', ''], ['أستاذ', 'أستاذ', ''], ['أستاذة', 'أستاذة', ''], ['د.', 'د.', '']] },
-  prof_subject: { t: 'المادة', back: '#/t/account', o: () => [['', 'بدون', '']].concat(SUBJECTS.filter(s => s !== 'عام' && s !== 'أخرى').map(s => [s, s, ''])) },
+  prof_subject: { t: 'موادي', back: '#/t/account', multi: true, o: () => SUBJECTS.filter(s => s !== 'عام' && s !== 'أخرى').map(s => [s, s, '']), foot: 'تقدر تختار أكثر من مادة. موادك تطلع أول في «أسئلة جاهزة»، والباقي تحت «مواد أخرى».' },
   sec_style: { t: 'تسمية الشعب', back: '#/t/sset', o: () => [['letters', 'حروف', 'أ، ب، ج'], ['numbers', 'أرقام', '1، 2، 3']] },
   cname: { t: 'صيغة اسم الصف', back: '#/t/sset', o: () => [['slash', 'السادس / أ', ''], ['short', '6أ', ''], ['long', 'الصف السادس - أ', '']].map(x => [x[0], cnameDemo(x[0]), '']) },
   def_stage: { t: 'المرحلة الافتراضية', back: '#/t/sset', o: () => [['', 'آخر مرحلة اخترتها', '']].concat(Object.keys(STAGE_AR).map(k => [k, STAGE_AR[k], ''])) },
@@ -3199,16 +3203,21 @@ const OPTS = {
   stu_sort: { t: 'ترتيب قائمة الطلبة', back: '#/t/sset', o: () => [['no', 'حسب الإضافة', ''], ['name', 'أبجدي', ''], ['pts', 'حسب النقاط', 'أثناء المسابقة']] }
 };
 const optGet = k => OPTS[k].get ? OPTS[k].get() : String(SG(k));
-const optLabel = k => { const x = OPTS[k].o().find(o => o[0] === optGet(k)); return x ? x[1] : ''; };
+const mySubjects = () => String(SG('prof_subject') || '').split('|').filter(Boolean);
+const optLabel = k => { if (OPTS[k].multi) { const v = String(SG(k) || '').split('|').filter(Boolean); return v.length ? v.join('، ') : 'بدون'; } const x = OPTS[k].o().find(o => o[0] === optGet(k)); return x ? x[1] : ''; };
 const optRow = (k, label, extra) => sRow(Object.assign({ act: 'go', attrs: `data-h="#/t/opt/${k}"`, label, val: esc(optLabel(k)) }, extra || {}));
 ACTS['go'] = t => go(t.dataset.h);
 function tOpt(k){
   const O = OPTS[k]; if (!O) return go('#/t/settings');
-  const cur = optGet(k);
-  view(O.t, sGrp('', O.o().map(x => `<button class="set-row radio" data-act="opt-pick" data-k="${k}" data-v="${esc(x[0])}"><span class="grow rl-txt"><b>${esc(x[1])}</b>${x[2] ? `<small>${esc(x[2])}</small>` : ''}</span><span class="tick ${cur === x[0] ? 'on' : ''}">${ic('check')}</span></button>`), O.foot), 'settings', '', O.back);
+  const cur = optGet(k), curs = O.multi ? cur.split('|') : [cur];
+  view(O.t, sGrp('', O.o().map(x => `<button class="set-row radio" data-act="opt-pick" data-k="${k}" data-v="${esc(x[0])}"><span class="grow rl-txt"><b>${esc(x[1])}</b>${x[2] ? `<small>${esc(x[2])}</small>` : ''}</span><span class="tick ${curs.includes(x[0]) ? 'on' : ''}">${ic('check')}</span></button>`), O.foot), 'settings', '', O.back);
 }
 ACTS['opt-pick'] = async t => {
-  const k = t.dataset.k; t.parentElement.querySelectorAll('.tick').forEach(x => x.classList.toggle('on', x.parentElement === t)); haptic();
+  const k = t.dataset.k;
+  if (OPTS[k].multi) { const tk = t.querySelector('.tick'); tk.classList.toggle('on'); haptic();
+    const v = [...t.parentElement.querySelectorAll('[data-act="opt-pick"]')].filter(b => b.querySelector('.tick.on')).map(b => b.dataset.v).join('|');
+    return saveSettings({ [k]: v }); }
+  t.parentElement.querySelectorAll('.tick').forEach(x => x.classList.toggle('on', x.parentElement === t)); haptic();
   await saveSettings({ [k]: t.dataset.v });
 };
 const tName = () => (SG('prof_title') ? SG('prof_title') + ' ' : '') + (T.name || '');
@@ -3216,7 +3225,7 @@ const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: stan
 
 /* ---- main settings ---- */
 async function tSettings(){
-  const sub = [SG('prof_subject'), SG('school')].filter(Boolean).join(' · ');
+  const sub = [mySubjects().join('، '), SG('school')].filter(Boolean).join(' · ');
   view('الإعدادات',
     `<button class="set-profile" data-act="go" data-h="#/t/account">${avatarHtml('big-av')}<div class="grow"><b>${esc(tName())}</b><div class="sub">${sub ? esc(sub) : `<span dir="ltr">${esc(T.user.email || '')}</span>`}</div></div><span class="set-chev">${ic('back')}</span></button>` +
     sGrp('المسابقة', [sRow({ act: 'go', attrs: 'data-h="#/t/qset"', icon: 'help', color: '#C8102E', label: 'إعدادات الأسئلة', val: esc(optLabel('difficulty')) }),
@@ -3259,7 +3268,7 @@ async function tAccount(){
   const PROV = { email: 'البريد الإلكتروني', google: 'Google', apple: 'Apple' };
   view('حسابي', `<div class="acc-head"><button class="prof-av" data-act="av-menu" aria-label="تغيير الصورة">${avatarHtml('prof-big')}<span class="prof-cam">${ic('edit')}</span></button><b>${esc(tName())}</b><div class="sub" id="acc-stats">…</div></div>` +
     sGrp('', [sRow({ act: 'st-name', label: 'الاسم', val: esc(T.name) }), optRow('prof_title', 'اللقب'),
-      sRow({ act: 'st-school', label: 'المدرسة', val: esc(SG('school')) || '<span class="muted">إضافة</span>' }), optRow('prof_subject', 'المادة')],
+      sRow({ act: 'st-school', label: 'المدرسة', val: esc(SG('school')) || '<span class="muted">إضافة</span>' }), optRow('prof_subject', 'المواد')],
       'المدرسة والمادة واللقب تظهر للطلبة في ملفهم.') +
     sGrp('تسجيل الدخول', [`<div class="set-row"><span class="grow">طريقة الدخول</span><span class="set-val">${PROV[prov] || esc(prov)}</span></div>`,
       `<div class="set-row"><span class="grow">البريد</span><span class="set-val" dir="ltr">${esc(T.user.email || '')}</span></div>`,

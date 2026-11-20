@@ -1915,3 +1915,11 @@ body.dark :focus-visible{outline-color:#6CB6FF!important}
 .qi2-out{display:block;color:var(--muted);font-weight:700;font-size:12.5px}
 .qs-lh.in{color:#168A5B;display:flex;align-items:center;gap:6px}.qs-lh.in svg{width:15px;height:15px}
 .qs-lh.out{margin-top:18px}
+/* ready questions: other subjects collapsed */
+.q-other{margin-top:14px}
+.q-other>summary{list-style:none;cursor:pointer;padding:12px 4px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:6px}
+.q-other>summary::-webkit-details-marker{display:none}
+.q-other>summary::after{content:'‹';margin-inline-start:auto;transform:rotate(-90deg);transition:transform .2s}
+.q-other[open]>summary::after{transform:rotate(90deg)}
+.q-mysub{display:flex;align-items:center;gap:6px;margin:10px auto 0;background:none;border:0;color:var(--accent,#C8102E);font-weight:700;font-size:14px;min-height:44px}
+.q-mysub svg{width:16px;height:16px}
