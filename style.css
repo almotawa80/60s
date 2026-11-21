@@ -3130,3 +3130,13 @@ body.wide.dark .btn.danger,body.wide.dark .btn.dng-t{background:#2C2C2E!importan
 .ap-sq button span{font-size:13px;color:var(--muted);padding-bottom:8px}
 .ap-sq button.on{border-color:var(--primary)}
 .ap-sq button.on span{color:inherit;font-weight:700}
+/* v270 share card */
+.sh-btn{margin-top:10px}
+.bg2-sh{display:block;width:100%;min-height:48px;margin:0 0 10px;border-radius:18px;border:1px solid #3a3a3c;background:transparent;color:#F5C542;font:inherit;font-weight:800;font-size:16px;cursor:pointer}
+.wk-star.me{cursor:pointer}
+.sh-mo .sh-img{width:100%;max-width:300px;border-radius:18px;margin:8px auto;display:block;-webkit-touch-callout:default}
+.sh-mo .btn{display:block;text-decoration:none;margin-top:8px}
+.shl{max-width:420px;margin:0 auto;min-height:100dvh;box-sizing:border-box;padding:40px 20px 30px;display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center;color:#F5F5F7}
+.shl-m{font-size:72px;line-height:1}.shl h2{font-size:28px;font-weight:800;margin:0;text-wrap:balance}.shl p{color:#C7C7CC;margin:0;font-size:16px;line-height:1.7}
+.shl-st{width:100%;display:flex;flex-direction:column;gap:8px}.shl-st div{background:#1C1C1E;border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:center;font-size:15px;text-align:right}.shl-st b{color:#F5C542;font-size:18px;width:22px}
+.shl .btn{width:100%;display:flex;align-items:center;justify-content:center;box-sizing:border-box;text-decoration:none;margin-top:auto}.shl-s{color:#C7C7CC;font-size:14px;text-decoration:none}

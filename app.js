@@ -395,7 +395,7 @@ function lvlShow(xp){
   if (xp == null) return; const L = lvlOf(xp), el = document.getElementById('lvl');
   if (el) { el.hidden = false; el.textContent = '⚡ مستوى ' + L.n; }
   const k = 'mc_lvl_' + (S.home && S.home.student.id || ''), was = Number(LS.get(k) || 0);
-  if (was && L.n > was) setTimeout(() => { FX.win(false); modal('<div class="s-avs center"><div class="lvl-up">⚡' + L.n + '</div><h3>وصلت مستوى ' + L.n + '!</h3><p class="sub">صرت «' + L.name + '». كمّل وتوصل أبعد 🚀</p><button class="btn" data-act="close-modal">يلا!</button></div>'); }, 700);
+  if (was && L.n > was) setTimeout(() => { FX.win(false); modal('<div class="s-avs center"><div class="lvl-up">⚡' + L.n + '</div><h3>وصلت مستوى ' + L.n + '!</h3><p class="sub">صرت «' + L.name + '». كمّل وتوصل أبعد 🚀</p>' + shBtn('level', { n: L.n, d: 'صار «' + L.name + '»' }) + '<button class="btn soft" data-act="close-modal">يلا!</button></div>'); }, 700);
   LS.set(k, String(L.n));
 }
 ACTS['s-lvl'] = () => { const xp = (S.daily || {}).xp || 0, L = lvlOf(xp), pc = Math.round((xp - L.lo) / (L.hi - L.lo) * 100);
@@ -437,7 +437,7 @@ async function loadDaily(){
     const pc = Math.min(100, Math.round(g.played / g.size * 100)), done = g.played >= g.need;
     el.innerHTML = '<div class="goal"><div class="goal-t"><b>' + (done ? '⭐ الصف أخذ نجمة اليوم' : '🎯 باقي ' + (g.need - g.played) + ' ويأخذ الصف نجمة') + '</b><span>' + g.played + '/' + g.size + '</span></div>' +
       '<div class="goal-bar"><i style="width:' + pc + '%"></i>' + (done ? '' : '<em style="right:' + Math.round(g.need / g.size * 100) + '%"></em>') + '</div></div>' +
-      (sr ? '<div class="wk-star' + (me ? ' me' : '') + '"><span>' + (sr.av ? esc(sr.av) : '⭐') + '</span><div><small>⭐ نجم الأسبوع</small><b>' + (me ? 'أنت! تحسّنت ' + sr.up + ' نقطة' : esc(String(sr.name).split(' ')[0])) + '</b></div></div>' : '');
+      (sr ? '<div class="wk-star' + (me ? ' me" role="button" data-act="s-share" data-k="star' : '') + '"><span>' + (sr.av ? esc(sr.av) : '⭐') + '</span><div><small>⭐ نجم الأسبوع</small><b>' + (me ? 'أنت! تحسّنت ' + sr.up + ' نقطة' : esc(String(sr.name).split(' ')[0])) + '</b></div></div>' : '');
     if (done && !LS.get('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString())) { LS.set('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString(), '1'); setTimeout(() => FX.win(false), 400); }
   }
 }
@@ -525,7 +525,7 @@ function bgCheck(){ const h = S.home; if (!h || S.demo || !h.student || !h.stude
 function bgWin(won){
   document.querySelectorAll('.bg2-win').forEach(x => x.remove());
   const w = document.createElement('div'); w.className = 'bg2-win'; let left = won.slice();
-  w.innerHTML = '<div class="bg2-wb"><div class="bg2-stk"></div><div class="bg2-hint">اسحب يمين أو يسار ↔</div><div class="bg2-dots"></div><div class="bg2-two"><button class="g" data-w="see">شوف شاراتي</button><button class="r" data-w="ok">تم</button></div></div>';
+  w.innerHTML = '<div class="bg2-wb"><div class="bg2-stk"></div><div class="bg2-hint">اسحب يمين أو يسار ↔</div><div class="bg2-dots"></div><button class="bg2-sh" data-w="share">📤 شارك الشارة</button><div class="bg2-two"><button class="g" data-w="see">شوف شاراتي</button><button class="r" data-w="ok">تم</button></div></div>';
   document.body.appendChild(w);
   const stk = w.querySelector('.bg2-stk');
   stk.innerHTML = left.map(([b, l]) => '<div class="bg2-c"><small>كسبت شارة جديدة!</small><div class="bg2-glow">' + b.i + (b.t.length > 1 ? '<span class="bg2-lv ' + BG_LV[l - 1][0] + '">' + BG_LV[l - 1][1] + '</span>' : '') + '</div><h3>' + b.n + '</h3><p>' + b.d + '</p></div>').reverse().join('');
@@ -542,7 +542,7 @@ function bgWin(won){
       if (Math.abs(dx) > 80) { el.style.transform = 'translateX(' + (dx > 0 ? 500 : -500) + 'px) rotate(' + dx / 6 + 'deg)'; el.style.opacity = 0; setTimeout(() => { el.remove(); left.shift(); draw(); setTimeout(conf, 250); }, 220); }
       else el.style.transform = ''; }; };
   draw(); conf();
-  w.addEventListener('click', e => { const b = e.target.closest('[data-w]'); if (!b) return; w.remove(); if (b.dataset.w === 'see') ACTS['s-tab']({ dataset: { t: 'bd' } }); });
+  w.addEventListener('click', e => { const b = e.target.closest('[data-w]'); if (!b) return; if (b.dataset.w === 'share') { const cur = left[0]; if (cur) shareCard('badge', { n: cur[0].n, d: cur[0].d, i: cur[0].i }); return; } w.remove(); if (b.dataset.w === 'see') ACTS['s-tab']({ dataset: { t: 'bd' } }); });
 }
 ACTS['bg2-try'] = () => { const bs = bgVals(); bgWin([[bs[0], 1], [bs[2], 1], [bs[1], 1]]); };
 /* student bottom bar (v106): home · ranking · badges · me. Not shown during a round (the round replaces the page). */
@@ -1003,10 +1003,59 @@ async function showResult(sm){
     '<div class="center rs-st2"><div class="big" id="bigpts">0</div><div class="muted">نقاط هذه الجولة</div></div>' +
     (rankRow ? '<div class="rows card rs-st3">' + rankRow + '</div>' : '') +
     (S.upMsg ? '<div class="s-up">' + S.upMsg + '</div>' : '') +
+    (sm && sm.kind === 'official' && sm.rank_after >= 1 && sm.rank_after <= 3 ? shBtn('win', { r: sm.rank_after }) : sm && sm.kind !== 'practice' && perfect ? shBtn('perfect', { d: toAr(qn) + ' من ' + toAr(qn) + ' بدون ولا غلطة' }) : '') +
     reviewHtml() +
     '<button class="btn rv2-done" data-act="s-reload">تم</button></div></div>';
   const target = sm ? sm.total_points : 0, el = document.getElementById('bigpts'), t0 = performance.now();
   if (FX.reduce()) { if (el) el.textContent = target; } else setTimeout(() => { const t1 = performance.now(); (function roll(t){ const k = Math.min(1, Math.max(0, (t - t1) / 1000)), e = 1 - Math.pow(1 - k, 3); if (el) el.textContent = Math.round(target * e); if (k < 1) requestAnimationFrame(roll); })(t1); }, 1500);
+}
+
+/* ======================================================
+   SHARE CARD (v270, Khalid «الطلاب يسوقون»): first name + avatar + achievement → PNG → share sheet; link opens #/w/NAME
+   ====================================================== */
+const SHK = {
+  badge: (a) => [a.i || '⚡', 'شارة جديدة: ' + a.n, a.d || ''],
+  level: (a) => ['🎖', 'المستوى ' + a.n, a.d || ''],
+  star: () => ['🌟', 'نجم الأسبوع في الصف', 'أعلى تحسّن هالأسبوع'],
+  win: (a) => [a.r === 1 ? '🥇' : a.r === 2 ? '🥈' : '🥉', 'المركز ' + (['', 'الأول', 'الثاني', 'الثالث'][a.r] || a.r) + ' في الصف', a.d || ''],
+  perfect: (a) => ['💯', 'علامة كاملة اليوم', a.d || 'بدون ولا غلطة']
+};
+function shMe(){ const st = (S.home && S.home.student) || {}; return { n: String(st.name || '').trim().split(/\s+/)[0] || 'بطل', av: st.avatar || '🙂' }; }
+function shLink(n){ return location.origin + location.pathname + '#/w/' + encodeURIComponent(n); }
+function shDraw(kind, a){
+  const [icn, t1, t2] = SHK[kind](a || {}), me = shMe(), W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d'), F = getComputedStyle(document.body).fontFamily || 'system-ui', f = (w, s) => w + ' ' + s + 'px ' + F;
+  const g = x.createRadialGradient(W / 2, 0, 40, W / 2, 0, 1100); g.addColorStop(0, '#4a0914'); g.addColorStop(.6, '#000'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
+  x.fillStyle = '#1C1C1E'; x.beginPath(); x.arc(W / 2, 260, 150, 0, 7); x.fill(); x.lineWidth = 12; x.strokeStyle = '#F5C542'; x.stroke();
+  x.font = f(400, 170); x.fillText(me.av, W / 2, 272);
+  x.fillStyle = '#fff'; x.font = f(800, 84); x.fillText(me.n, W / 2, 500);
+  x.font = f(400, 230); x.fillText(icn, W / 2, 750);
+  x.fillStyle = '#F5C542'; x.font = f(800, 66); x.fillText(t1, W / 2, 960, W - 120);
+  if (t2) { x.fillStyle = '#C7C7CC'; x.font = f(500, 44); x.fillText(t2, W / 2, 1040, W - 120); }
+  x.fillStyle = '#2C2C2E'; x.fillRect(80, 1170, W - 160, 3);
+  x.textAlign = 'right'; x.fillStyle = '#fff'; x.font = f(800, 52); x.fillText('تحدّي', W - 90, 1250); const w1 = x.measureText('تحدّي ').width;
+  x.fillStyle = '#C8102E'; x.fillText('الدقيقة', W - 90 - w1, 1250);
+  x.textAlign = 'left'; x.fillStyle = '#C7C7CC'; x.font = f(500, 38); x.fillText('👈 جرّبها مع صفك', 90, 1250);
+  return { c, t1, me };
+}
+async function shareCard(kind, a){
+  const { c, t1, me } = shDraw(kind, a), url = shLink(me.n), text = me.n + ' ' + t1 + ' في «تحدّي الدقيقة» 🏆';
+  const blob = await new Promise(r => c.toBlob(r, 'image/png')), file = blob && new File([blob], 'tahaddi.png', { type: 'image/png' });
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], text: text + '\n' + url }); return; } catch(e){ if (e && e.name === 'AbortError') return; } }
+  const src = c.toDataURL('image/png');
+  modal('<div class="sh-mo center"><h3>📤 شارك إنجازك</h3><img class="sh-img" src="' + src + '" alt=""><p class="sub">اضغط على الصورة مطوّلاً واحفظها، أو أرسل الرابط</p><a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(text + '\n' + url) + '">💬 واتساب</a></div>');
+}
+ACTS['s-share'] = t => shareCard(t.dataset.k, { n: t.dataset.n, d: t.dataset.d, r: Number(t.dataset.r || 0) });
+function shBtn(kind, a, label){ a = a || {}; return '<button class="btn sh-btn" data-act="s-share" data-k="' + kind + '"' + (a.n != null ? ' data-n="' + esc(String(a.n)) + '"' : '') + (a.d ? ' data-d="' + esc(a.d) + '"' : '') + (a.r ? ' data-r="' + a.r + '"' : '') + '>' + (label || '📤 شارك إنجازك') + '</button>'; }
+/* landing page for people who open the shared link */
+function shLanding(n){
+  document.body.classList.remove('wide');
+  $app.innerHTML = '<div class="sh pvx"><div class="shl">' +
+    '<div class="shl-m">🏆</div><h2>' + (n ? esc(n) + ' يلعب «تحدّي الدقيقة»' : 'صفك كله يتحدى كل يوم') + '</h2>' +
+    '<p>جولة وحدة باليوم، دقيقة وحدة، أسئلة من المنهج. والصف كله يتنافس على الترتيب.</p>' +
+    '<div class="shl-st"><div><b>١</b>المعلم يسوي تحدي من الأسئلة الجاهزة</div><div><b>٢</b>يرسل رمز الصف للطلاب</div><div><b>٣</b>كل يوم دقيقة لعب ونقاط وشارات</div></div>' +
+    '<a class="btn" href="#/t">👨‍🏫 أنت معلم؟ سوّ تحدي لصفك مجاناً</a><a class="shl-s" href="#/s">عندك رمز من معلمك؟ ادخل من هنا</a></div></div>';
 }
 
 /* ======================================================
@@ -5271,6 +5320,7 @@ function route(){
   if (h.indexOf('#/t') === 0) teacherRoute();
   else if (h.indexOf('#/j/') === 0) studentJoin(decodeURIComponent(h.slice(4)));
   else if (h.indexOf('#/p/') === 0) { if (window.top !== window) document.documentElement.classList.add('embed'); else pvClose(true); demoStart(h.slice(4)); }
+  else if (h.indexOf('#/w/') === 0 || h === '#/w') shLanding(decodeURIComponent(h.slice(4)));
   else if (h.indexOf('#/c/') === 0) { S.preCode = decodeURIComponent(h.slice(4)); LS.del('mc_token'); S.token = null; history.replaceState(null, '', '#/s'); studentLogin(); }
   else studentRoute();
 }
