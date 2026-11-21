@@ -3052,8 +3052,9 @@ ACTS['rp-pdf'] = async t => { const d = RP.d; if (!d) return; const note = rpNot
   try {
     await loadScript(H2P); try { await document.fonts.ready; } catch(e){}
     await Promise.all([...page.querySelectorAll('img')].map(i => i.decode ? i.decode().catch(() => {}) : 0));
-    const w = html2pdf().set({ margin: 0, filename: file, image: { type: 'jpeg', quality: 0.96 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: [] } }).from(page);
-    const blob = await w.outputPdf('blob'), f = new File([blob], file, { type: 'application/pdf' });
+    const _sy = window.scrollY; window.scrollTo(0, 0);
+    const w = html2pdf().set({ margin: 0, filename: file, image: { type: 'jpeg', quality: 0.96 }, html2canvas: { scale: 2, scrollX: 0, scrollY: 0, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: [] } }).from(page);
+    const blob = await w.outputPdf('blob'), f = new File([blob], file, { type: 'application/pdf' }); window.scrollTo(0, _sy);
     closeModals();
     if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: file }); } catch(e){} }
     else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast('تم تنزيل التقرير'); }
@@ -5011,7 +5012,7 @@ ACTS['r-report-pdf'] = async t => {
   const file = 'تقرير-' + String(RS.lastName || 'طالب').replace(/[\\/:*?"<>|]/g, '-') + '.pdf';
   try {
     await loadScript(H2P);
-    await html2pdf().set({ margin: [8, 8, 10, 8], filename: file, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['css', 'avoid-all'] } }).from(page).save();
+    await html2pdf().set({ margin: [8, 8, 10, 8], filename: file, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, scrollX: 0, scrollY: 0, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['css', 'avoid-all'] } }).from(page).save();
     toast('تم تنزيل التقرير');
   } catch (e) {
     const pa = document.getElementById('print-area'); pa.innerHTML = ''; pa.appendChild(page.cloneNode(true)); window.print();
