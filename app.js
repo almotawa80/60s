@@ -1621,13 +1621,15 @@ function tCheckMail(email){
     ${gm ? '<a class="btn" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener">افتح Gmail</a>' : ol ? '<a class="btn" href="https://outlook.office.com/mail/" target="_blank" rel="noopener">افتح البريد</a>' : ''}
     <button class="btn ${gm || ol ? 'soft' : ''}" data-act="t-resend" id="t-resend">أعد إرسال الرسالة</button>
     <button class="btn ghost" data-act="t-mode" data-mode="in">فعّلت الحساب؟ سجّل الدخول</button></div>`;
+  tResendCd(document.getElementById('t-resend'));
   scrollTo(0, 0);
 }
 ACTS['t-resend'] = async t => { const email = T.authEmail; if (!email || t.disabled) return; t.disabled = true;
   const { error } = await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: location.origin + location.pathname } });
   if (error) { t.disabled = false; return toast(/rate|seconds|security/i.test(error.message || '') ? 'انتظر شوي وحاول مرة ثانية' : errMsg(error)); }
-  toast('أرسلناها مرة ثانية ✓'); let n = 60; t.textContent = 'أعد الإرسال بعد ' + n + ' ث';
-  const iv = setInterval(() => { n--; if (!document.body.contains(t)) return clearInterval(iv); if (n <= 0) { clearInterval(iv); t.disabled = false; t.textContent = 'أعد إرسال الرسالة'; } else t.textContent = 'أعد الإرسال بعد ' + n + ' ث'; }, 1000); };
+  toast('أرسلناها مرة ثانية ✓'); tResendCd(t); };
+function tResendCd(t){ if (!t) return; let n = 60; t.disabled = true; t.textContent = 'أعد الإرسال بعد ' + n + ' ث';
+  const iv = setInterval(() => { n--; if (!document.body.contains(t)) return clearInterval(iv); if (n <= 0) { clearInterval(iv); t.disabled = false; t.textContent = 'أعد إرسال الرسالة'; } else t.textContent = 'أعد الإرسال بعد ' + n + ' ث'; }, 1000); }
 ACTS['t-logout'] = async () => { await sb.auth.signOut(); T.user = null; teacherAuth(); };
 
 /* ---- admin: dashboard + support access (view only until «تفعيل الدعم») ---- */
