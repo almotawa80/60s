@@ -2140,10 +2140,15 @@ function ncHtml(){
     <details class="nc2-det"${NC.det || NC.sec || NC.g ? ' open' : ''}><summary>تفاصيل الصف <small class="sub">${[NC.sec ? 'الشعبة ' + esc(NC.sec) : '', NC.g ? { m: 'بنين', f: 'بنات', mix: 'مختلط' }[NC.g] : ''].filter(Boolean).join(' · ') || 'الشعبة ونوع الصف (اختياري)'}</small></summary>
     <div class="nc2-s"><div class="nc2-l">الشعبة</div><div class="nc2-gr" style="--n:${Math.min(5, secList().length)}">${secList().map(x => chip('nc2-sec', x, x, x === NC.sec)).join('')}</div></div>
     <div class="nc2-s"><div class="nc2-l">الطلبة</div><div class="nc2-g3">${[['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']].map(x => chip('nc2-gd', x[0], x[1], x[0] === NC.g, 1)).join('')}</div></div></details>
-    <div class="nc2-name">${NC.editing ? `<input class="input" id="nc2-in" value="${esc(name)}" maxlength="60" placeholder="مثال: السادس / 1">` : `<div class="grow"><small>اسم الصف</small><b>${name ? esc(name) : '<span class="muted">اختر الصف</span>'}</b></div><button type="button" class="nc2-pen" data-act="nc2-edit" aria-label="تعديل الاسم">${ic('edit')}</button>`}</div>
-    <button class="btn" data-act="nc2-save" ${name || NC.editing ? '' : 'disabled'}>إنشاء الصف</button></div>`;
+    <label class="nc2-name"><div class="grow"><small>اسم الصف</small><input class="nc2-inp" id="nc2-in" value="${esc(name)}" maxlength="60" placeholder="اختر الصف أو اكتب اسمه" autocomplete="off" enterkeyhint="done"></div></label>
+    <button class="btn" data-act="nc2-save" ${name ? '' : 'disabled'}>إنشاء الصف</button></div>`;
 }
 function ncRender(){ const m = document.querySelector('.nc2'); if (m) { m.outerHTML = ncHtml(); if (NC.editing) { const i = document.getElementById('nc2-in'); if (i) { i.focus(); i.select(); } } } }
+document.addEventListener('input', e => { if (e.target.id !== 'nc2-in') return; NC.custom = e.target.value.replace(/\s+/g, ' ').trim(); const b = document.querySelector('[data-act="nc2-save"]'); if (b) b.disabled = NC.custom.length < 2; });
+document.addEventListener('keydown', e => { if (e.target.id === 'nc2-in' && e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
+/* iOS keyboard: lift bottom sheets above it */
+if (window.visualViewport) { const kb = () => { const v = visualViewport, h = Math.max(0, window.innerHeight - v.height - v.offsetTop); document.documentElement.style.setProperty('--kb', h + 'px'); }; visualViewport.addEventListener('resize', kb); visualViewport.addEventListener('scroll', kb); }
+document.addEventListener('focusin', e => { const m = e.target.closest && e.target.closest('.modal'); if (m && /INPUT|TEXTAREA/.test(e.target.tagName)) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); });
 ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { det: false, stage: (() => { const m = myStages(), c = SG('def_stage') || (T.settings || {}).lastStage || 'primary'; return !m.length || m.includes(c) ? c : m[0]; })(), grade: null, sec: '', g: SG('def_gender') || '', custom: '', editing: false }); modal(ncHtml()); };
 ACTS['nc2-st'] = t => { if (NC.stage !== t.dataset.v) NC.grade = null; NC.stage = t.dataset.v; NC.custom = ''; ncRender(); };
 ACTS['nc2-gr'] = t => { NC.grade = Number(t.dataset.v); NC.custom = ''; ncRender(); };
