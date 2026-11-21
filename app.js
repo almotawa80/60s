@@ -344,14 +344,14 @@ function renderHome(){
   const th = document.body.dataset.theme || 'mid';
   const steps = [['points', 'جمع النقاط'], ['knockout', 'التصفيات'], ['finished', 'النهاية']], si = steps.findIndex(x => x[0] === ph);
   const strip = si >= 0 ? '<div class="ph-strip">' + steps.map((x, i) => '<span class="' + (i < si ? 'done' : i === si ? 'cur' : '') + '">' + x[1] + '</span>').join('<i></i>') + '</div>' : '';
-  $app.innerHTML = '<div class="sh pvx">' +
+  sPut('<div class="sh pvx">' +
     '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋' + (h.streak ? ' <span class="streak" title="أيام متتالية">🔥 ' + h.streak + '</span>' : '') + '</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
     '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
     '</div></div>' +
     '<div class="comp">' + strip + head + main + rest +
     '<div class="s-row2"><button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button>' +
     '</div></div>' +
-    '</div>' + sNav('home');
+    '</div>' + sNav('home'));
   startCountdown();
   if ((ph === 'knockout' || ph === 'finished') && !S.demo) loadKo();
 }
@@ -552,11 +552,21 @@ ACTS['bg2-try'] = () => { const bs = bgVals(); bgWin([[bs[0], 1], [bs[2], 1], [b
 const S_TABS = ['home', 'lb', 'ar', 'bd', 'me'];
 function lensMove(nav, i){ const l = nav && nav.querySelector('.lens'); if (!l) return; const cur = nav.dataset.cur != null ? nav.dataset.cur : String(l.style.getPropertyValue('--i')).trim(); nav.dataset.cur = String(i);
   if (cur !== String(i)) { l.classList.add('move'); nav.classList.remove('bump'); void nav.offsetWidth; nav.classList.add('bump'); clearTimeout(l._mv); l._mv = setTimeout(() => { l.classList.remove('move'); nav.classList.remove('bump'); }, 230); } l.style.setProperty('--i', i); }
+const S_LN = (() => { const f = d => '<svg class="nav-ln" viewBox="0 0 24 24" aria-hidden="true">' + d + '</svg>'; return {
+  home: f('<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'),
+  lb: f('<path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v4M8.5 20h7"/>'),
+  bd: f('<path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-.9z"/>'),
+  me: f('<circle cx="12" cy="8" r="4"/><path d="M4 20.5c1-4 4.2-6 8-6s7 2 8 6"/>') }; })();
+/* v306: keep the student tab bar node on screen between pages (no icon flicker), like the teacher bar */
+function sPut(html){ const old = $app.querySelector(':scope > .s-nav'); $app.innerHTML = html; const nw = $app.querySelector(':scope > .s-nav');
+  if (!old || !nw) return; const ob = old.querySelectorAll('button'), nb = nw.querySelectorAll('button'); if (ob.length !== nb.length) return; let k = 0;
+  nb.forEach((b, j) => { const on = b.classList.contains('on'); if (on) k = j; ob[j].classList.toggle('on', on); ob[j].classList.remove('hover'); if (on) ob[j].setAttribute('aria-current', 'page'); else ob[j].removeAttribute('aria-current'); });
+  nw.replaceWith(old); lensMove(old, k); }
 function sNav(cur){ const i = Math.max(0, S_TABS.indexOf(cur)), p = S.navPrev == null ? i : S.navPrev; S.navPrev = i;
   setTimeout(() => requestAnimationFrame(() => lensMove(document.querySelector('.s-nav'), i)), 20);
-  return '<nav class="s-nav"><span class="lens" style="--i:' + p + ';--n:5"></span>' + [['home', '🏠', 'صفّي'], ['lb', '🏆', 'الترتيب'], ['ar', '', 'الحلبة'], ['bd', '⭐', 'شاراتي'], ['me', '👤', 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + (x[0] === 'ar' ? ' s-ar' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (x[0] === 'ar' ? ' aria-label="الحلبة"' : '') + (cur === x[0] ? ' aria-current="page"' : '') + '>' + (x[0] === 'ar' ? '<span class="i sq">' + NAV_SQ + '</span>' : '<span class="i">' + x[1] + '</span>' + x[2]) + '</button>').join('') + '</nav>'; }
+  return '<nav class="s-nav"><span class="lens" style="--i:' + p + ';--n:5"></span>' + [['home', S_LN.home, 'صفّي'], ['lb', S_LN.lb, 'الترتيب'], ['ar', '', 'الحلبة'], ['bd', S_LN.bd, 'شاراتي'], ['me', S_LN.me, 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + (x[0] === 'ar' ? ' s-ar' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (x[0] === 'ar' ? ' aria-label="الحلبة"' : '') + (cur === x[0] ? ' aria-current="page"' : '') + '>' + (x[0] === 'ar' ? '<span class="i sq">' + NAV_SQ + '</span>' : x[1] + '<span>' + x[2] + '</span>') + '</button>').join('') + '</nav>'; }
 function sPage(t, body){ const th = document.body.dataset.theme || 'mid'; S.tab = t; closeModals(); stopTimer(); clearInterval(S.cdT);
-  $app.innerHTML = '<div class="sh s-tabpg pvx">' + body + '</div>' + sNav(t); scrollTo(0, 0); }
+  sPut('<div class="sh s-tabpg pvx">' + body + '</div>' + sNav(t)); scrollTo(0, 0); }
 /* ===== v275 الحلبة (public arena), phase 1: 60 levels on a stopwatch dial, duel vs a recorded round, tug of war =====
    Server: sql/arena.sql (arena_home / arena_start / arena_served / arena_answer). */
 const AR = { h: null, r: null, gen: 0, busy: false, tm: null, ot: 0, lock: false };
@@ -1384,7 +1394,7 @@ ACTS['nt-go'] = t => { closeModals(); go(t.dataset.h); };
 const navIc = n => n[0] === 'new' ? NAV_SQ : NAV_LN[n[0]] ? NAV_LN[n[0]] + nbHtml(n[0]) : ic(n[2]);
 
 function shell(title, body, active, top, back){
-  return `<div class="t-top"><div class="brand">${back ? (back.indexOf('act:') === 0 ? `<button class="icon-btn back-btn" data-act="${back.slice(4)}" aria-label="رجوع">${ic('back')}</button>` : `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>`) : LOGO_S}<span class="t-title">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-bell" data-act="t-bell" aria-label="الإشعارات">${ic('bell')}<em class="t-bell-n"${NT.n ? '' : ' hidden'}>${NT.n > 9 ? '9+' : NT.n}</em></button><button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
+  return `<div class="t-top"><div class="brand">${back ? (back.indexOf('act:') === 0 ? `<button class="icon-btn back-btn" data-act="${back.slice(4)}" aria-label="رجوع">${ic('back')}</button>` : `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>`) : LOGO_S}<span class="t-title${String(title).length > 19 ? ' t-xl' : String(title).length > 13 ? ' t-lg' : ''}">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-bell" data-act="t-bell" aria-label="الإشعارات">${ic('bell')}<em class="t-bell-n"${NT.n ? '' : ' hidden'}>${NT.n > 9 ? '9+' : NT.n}</em></button><button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
     `<div class="t-body">${body}</div>` +
     `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}${n[0] === 'new' ? ' t-sq' : ''}"${n[0] === 'new' ? ' aria-label="تحدي جديد"' : ''}>${navIc(n)}${n[0] === 'new' ? '' : `<span>${n[1]}</span>`}</a>`).join('')}</nav>` + (setTimeout(nbPending, 0) && '');
 }

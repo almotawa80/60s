@@ -3503,3 +3503,21 @@ html body .s-nav .i.sq img.nav-sq,html body .s-nav button.s-ar .i.sq img.nav-sq{
 html body .t-nav a.t-sq img.nav-sq{transition:filter .2s,opacity .2s,transform .25s cubic-bezier(.3,1.4,.5,1)}
 html body .t-nav a.t-sq:not(.on):not(.hover):not(:active) img.nav-sq{filter:grayscale(1) brightness(1.15);opacity:.55}
 html body .t-nav:has(.lens.drag) a.t-sq.on:not(.hover) img.nav-sq{filter:grayscale(1) brightness(1.15);opacity:.55}
+
+/* v306 (Khalid): student bar same style as teacher bar: line icons, active = red */
+html body .s-nav .nav-ln{width:23px;height:23px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s cubic-bezier(.3,1.4,.5,1)}
+html body .s-nav button{gap:2px;font-size:11.5px!important;font-weight:700;color:#AEAEB2}
+html body .s-nav button.on{color:#E5404F!important}
+html body .s-nav button.on .nav-ln{stroke-width:2.3}
+html body .s-nav button.hover .nav-ln{transform:scale(1.22)}
+html body .s-nav:has(.lens.drag) button.on:not(.hover){color:#AEAEB2!important}
+html body .s-nav:has(.lens.drag) button.hover{color:#E5404F!important}
+html body .s-nav button.s-ar{transform:none}
+/* v306: long page titles shrink and never get cut by the screen edge */
+html body .t-top .brand{min-width:0;flex:1 1 auto}
+html body .t-top .t-title{min-width:0;flex:1 1 auto;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+html body.wide .t-title.t-lg{font-size:24px}
+html body.wide .t-title.t-xl{font-size:19px}
+html body .t-top .t-acts{flex:none}
+/* v306: student bar frosted like the teacher bar */
+html body:not(.wide) .s-nav{background:rgba(28,28,30,.7)!important;-webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%);border:0!important;box-shadow:0 8px 28px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1),inset 0 1px 0 rgba(255,255,255,.12)!important;border-radius:26px}
