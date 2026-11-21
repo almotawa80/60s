@@ -1,0 +1,24 @@
+{
+  "name": "beat60s-mobile",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "غلاف Capacitor لتطبيق تحدّي الدقيقة في App Store: يحمّل beat60s.com مباشرة",
+  "scripts": {
+    "sync": "cap sync ios",
+    "ios": "cap open ios",
+    "assets": "capacitor-assets generate --ios --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000' --splashBackgroundColor '#000000' --splashBackgroundColorDark '#000000'"
+  },
+  "dependencies": {
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/ios": "8.5.3",
+    "@capacitor/keyboard": "8.0.5",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.3"
+  }
+}

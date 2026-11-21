@@ -404,9 +404,11 @@ function lvlShow(xp){
 ACTS['s-lvl'] = () => { const xp = (S.daily || {}).xp || 0, L = lvlOf(xp), pc = Math.round((xp - L.lo) / (L.hi - L.lo) * 100);
   modal('<div class="s-avs center"><div class="lvl-up">⚡' + L.n + '</div><h3>مستوى ' + L.n + ' · ' + L.name + '</h3><div class="goal-bar lvl-bar"><i style="width:' + pc + '%"></i></div><p class="sub">باقي ' + (L.hi - xp) + ' نقطة خبرة للمستوى ' + (L.n + 1) + '</p><p class="sub">كل إجابة صح = ١٠ · كل جولة = ٥، والتدريب يحسب بعد</p><button class="btn" data-act="close-modal">تمام</button></div>'); };
 /* v175 daily reminder at 4 PM (web push, sql/push.sql + edge function «push») */
+/* v318 App Store wrapper (mobile/, UA Beat60sApp): no web push / add-to-home prompts inside the native app */
+const isApp = () => /Beat60sApp/.test(navigator.userAgent);
 const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 function pushBtn(){
-  if (S.demo || !('serviceWorker' in navigator)) return '';
+  if (S.demo || isApp() || !('serviceWorker' in navigator)) return '';
   if (LS.get('mc_push') === '1' && window.Notification && Notification.permission === 'granted') return '';
   if (!('PushManager' in window) && !isIOS()) return '';
   return '<button class="sp-bell" data-act="s-push">🔔 فعّل الإشعارات: تذكير الجولة ورسائل معلمك</button>';
@@ -5128,7 +5130,7 @@ ACTS['opt-pick'] = async t => {
   await saveSettings({ [k]: t.dataset.v });
 };
 const tName = () => (SG('prof_title') ? SG('prof_title') + ' ' : '') + (T.name || '');
-const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const isStandalone = () => isApp() || (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
 
 /* ---- main settings ---- */
 async function tSettings(){
