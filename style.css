@@ -2755,3 +2755,12 @@ html body .pv.pvx .dots .dot.done.no{background:#FF453A!important}
 .sp-done .goal-t{font-size:13.5px;gap:8px}
 .sp-done .goal-bar{height:7px;margin:6px 0 2px;background:#1C1C1E}
 .sp-bell{font-size:13px}
+/* v181 pick students on the challenge page */
+.ch-lh{display:flex;justify-content:space-between;align-items:center;margin:14px 4px 6px}
+.ch-lh .link{font-weight:800;font-size:15px}
+.cp-list.picking .cp-row{cursor:pointer}
+.ch-ck{width:24px;height:24px;flex:none;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:13px;color:transparent}
+.cp-row.on .ch-ck{background:#C8102E;border-color:#C8102E;color:#fff}
+.cp-list.picking .cp-row.dim{opacity:1}
+.ch-sendbar{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));padding:10px 0;z-index:5}
+.ch-sendbar .btn{width:100%;box-shadow:0 6px 20px rgba(0,0,0,.35)}
