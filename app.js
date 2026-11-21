@@ -262,7 +262,9 @@ ACTS['s-logout'] = () => { profSave(profs().filter(p => p.token !== S.token)); L
 function qPer(cls){ const c = ((typeof CL !== 'undefined' && CL.classes) || []).find(x => x.name === cls); return (c ? c.stage === 'primary' : stageOf(cls) === 'p') ? 3 : 4; }
 /* stages the teacher teaches (account → المرحلة), as class.stage keys */
 function myStages(){ const K = ['primary', 'middle', 'secondary', 'university'], A = ['ابتدائي', 'متوسط', 'ثانوي', 'جامعة']; return String(SG('prof_stage') || '').split('|').map(v => K[A.indexOf(v)]).filter(Boolean); }
-function stOpts(all){ const m = myStages(); return m.length ? all.filter(x => m.includes(x[0])) : all; }
+function stOpts(all){ const m = myStages(); return m.length && !NC.allSt ? all.filter(x => m.includes(x[0])) : all; }
+/* a class in a stage the teacher hasn't listed → add it to his profile, so next time only his stages show */
+function learnStage(st){ const A = { primary: 'ابتدائي', middle: 'متوسط', secondary: 'ثانوي', university: 'جامعة' }; if (!A[st] || myStages().includes(st)) return; const cur = String(SG('prof_stage') || '').split('|').filter(Boolean); cur.push(A[st]); saveSettings({ prof_stage: cur.join('|') }); }
 function defStage(name){ const m = myStages(), g = { p: 'primary', m: 'middle', s: 'secondary' }[stageOf(name)]; if (m.length === 1) return m[0]; return !m.length || m.includes(g) ? g : m[0]; }
 function stageOf(name){
   const t = String(name || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
@@ -1516,7 +1518,7 @@ ACTS['nw-cls'] = async f => {
   const style = stg === 'primary' ? 'kids' : stg === 'university' ? 'uni' : 'mid';
   const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: stg, style }).select().single();
   if (error) return toast(errMsg(error));
-  NW.classes = [data]; NW.cls = [data.id]; NW.step = 2; NW.skip1 = false; nwRender();
+  learnStage(stg); NW.classes = [data]; NW.cls = [data.id]; NW.step = 2; NW.skip1 = false; nwRender();
 };
 ACTS['nw-start'] = async t => {
   if (NW.saving) return; NW.saving = true; t.setAttribute('aria-busy', 'true'); t.textContent = 'لحظة…';
@@ -2135,7 +2137,7 @@ function ncHtml(){
   const chip = (act, v, label, on, big) => `<button type="button" class="nc2-c${big ? ' big' : ''}${on ? ' on' : ''}" data-act="${act}" data-v="${v}">${label}</button>`;
   const name = ncName();
   return `<div class="nc2"><h3>صف جديد</h3>
-    ${sts.length > 1 ? `<div class="nc2-s"><div class="nc2-l">المرحلة ${last && last === NC.stage ? '<small>✓ آخر مرحلة اخترتها</small>' : ''}</div><div class="nc2-g4">${sts.map(x => chip('nc2-st', x[0], x[1], x[0] === NC.stage, 1)).join('')}</div></div>` : ''}
+    ${myStages().length && !NC.allSt ? `<button type="button" class="link nc2-all" data-act="nc2-all">مرحلة ثانية؟</button>` : ''}${sts.length > 1 ? `<div class="nc2-s"><div class="nc2-l">المرحلة ${last && last === NC.stage ? '<small>✓ آخر مرحلة اخترتها</small>' : ''}</div><div class="nc2-g4">${sts.map(x => chip('nc2-st', x[0], x[1], x[0] === NC.stage, 1)).join('')}</div></div>` : ''}
     ${st ? `<div class="nc2-s"><div class="nc2-l">${NC.stage === 'university' ? 'السنة' : 'الصف'}</div><div class="nc2-gr" style="--n:${st[2].length > 5 ? 5 : st[2].length}">${st[2].map((g, k) => chip('nc2-gr', g, NC.stage === 'university' ? UNI_Y[k] : GRADES[g - 1], g === NC.grade)).join('')}</div></div>` : ''}
     <details class="nc2-det"${NC.det || NC.sec || NC.g ? ' open' : ''}><summary>تفاصيل الصف <small class="sub">${[NC.sec ? 'الشعبة ' + esc(NC.sec) : '', NC.g ? { m: 'بنين', f: 'بنات', mix: 'مختلط' }[NC.g] : ''].filter(Boolean).join(' · ') || 'الشعبة ونوع الصف (اختياري)'}</small></summary>
     <div class="nc2-s"><div class="nc2-l">الشعبة</div><div class="nc2-gr" style="--n:${Math.min(5, secList().length)}">${secList().map(x => chip('nc2-sec', x, x, x === NC.sec)).join('')}</div></div>
@@ -2149,7 +2151,7 @@ document.addEventListener('keydown', e => { if (e.target.id === 'nc2-in' && e.ke
 /* iOS keyboard: lift bottom sheets above it */
 if (window.visualViewport) { const kb = () => { const v = visualViewport, h = Math.max(0, window.innerHeight - v.height - v.offsetTop); document.documentElement.style.setProperty('--kb', h + 'px'); }; visualViewport.addEventListener('resize', kb); visualViewport.addEventListener('scroll', kb); }
 document.addEventListener('focusin', e => { const m = e.target.closest && e.target.closest('.modal'); if (m && /INPUT|TEXTAREA/.test(e.target.tagName)) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); });
-ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { det: false, stage: (() => { const m = myStages(), c = SG('def_stage') || (T.settings || {}).lastStage || 'primary'; return !m.length || m.includes(c) ? c : m[0]; })(), grade: null, sec: '', g: SG('def_gender') || '', custom: '', editing: false }); modal(ncHtml()); };
+ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { allSt: false, det: false, stage: (() => { const m = myStages(), c = SG('def_stage') || (T.settings || {}).lastStage || 'primary'; return !m.length || m.includes(c) ? c : m[0]; })(), grade: null, sec: '', g: SG('def_gender') || '', custom: '', editing: false }); modal(ncHtml()); };
 ACTS['nc2-st'] = t => { if (NC.stage !== t.dataset.v) NC.grade = null; NC.stage = t.dataset.v; NC.custom = ''; ncRender(); };
 ACTS['nc2-gr'] = t => { NC.grade = Number(t.dataset.v); NC.custom = ''; ncRender(); };
 ACTS['nc2-sec'] = t => { NC.sec = NC.sec === t.dataset.v ? '' : t.dataset.v; NC.custom = ''; ncRender(); };
@@ -2157,6 +2159,7 @@ ACTS['nc2-gd'] = t => { NC.g = NC.g === t.dataset.v ? '' : t.dataset.v; ncRender
 document.addEventListener('change', e => { if (e.target.name !== 'start_date') return; const f = e.target.form, b = f && f.querySelector('.cf2-go'); if (b && /ابدأ المسابقة|جدولة المسابقة/.test(b.textContent)) b.textContent = e.target.value > todayKW() ? 'جدولة المسابقة' : 'ابدأ المسابقة'; });
 document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('nc2-det')) NC.det = e.target.open; }, true);
 ACTS['nc2-edit'] = () => { NC.editing = true; ncRender(); };
+ACTS['nc2-all'] = () => { NC.allSt = true; ncRender(); };
 ACTS['nc2-save'] = async t => {
   const inp = document.getElementById('nc2-in'); if (inp) NC.custom = inp.value.replace(/\s+/g, ' ').trim();
   const name = ncName(); if (name.length < 2) return toast('اختر الصف أو اكتب اسمه');
@@ -2166,6 +2169,7 @@ ACTS['nc2-save'] = async t => {
   const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: NC.stage, style, gender: NC.g || null }).select().single();
   if (error) { t.disabled = false; t.textContent = 'إنشاء الصف'; return toast(errMsg(error)); }
   if ((T.settings || {}).lastStage !== NC.stage) saveSettings({ lastStage: NC.stage });
+  learnStage(NC.stage);
   closeModals(); CL.open.add(data.id); CL.tab = 'classes';
   if (location.hash !== '#/t/classes') location.hash = '#/t/classes'; else await tClasses();
   setTimeout(() => ACTS['aw-start']({ dataset: { cid: data.id, made: data.name } }), location.hash === '#/t/classes' ? 50 : 700);
