@@ -959,7 +959,7 @@ ACTS['s-avs'] = async t => { const v = t.dataset.v != null ? t.dataset.v : S.avP
 ACTS['s-profile'] = () => { closeModals();
   const h = S.home;
   const code = LS.get('mc_code');
-  modal('<div class="s-prof"><h3>ملفي</h3><div class="sp-rows">' +
+  sPage('me', '<div class="s-pgc"><div class="rp2-top"><button class="icon-btn s-back" data-act="s-tab" data-t="me" aria-label="رجوع">' + ic('back') + '</button><h3>🪪 ملفي</h3></div><div class="s-prof s-prof-pg"><div class="sp-rows">' +
     '<div class="r"><span>الاسم</span><b>' + esc(h.student.name) + '</b></div>' +
     '<div class="r"><span>الصف</span><b>' + esc(h.class.name) + '</b></div>' +
     (S.prefs && S.prefs.teacher && S.prefs.teacher.name ? '<div class="r"><span>المعلم</span><b>' + esc([S.prefs.teacher.title, S.prefs.teacher.name].filter(Boolean).join(' ')) + '</b></div>' : '') +
@@ -969,7 +969,7 @@ ACTS['s-profile'] = () => { closeModals();
     '<div class="r"><span>نقاطي</span><b>' + (h.total_points || 0) + '</b></div>' +
     (h.rank && h.total_points ? '<div class="r"><span>ترتيبي</span><b>' + h.rank + ' من ' + h.class.size + '</b></div>' : '') + '</div>' +
     (S.prefs && S.prefs.rename ? '<button class="btn soft" data-act="s-rename">' + ic('edit') + ' تعديل اسمي</button>' : '') +
-    '<button class="btn" data-act="close-modal">تم</button></div>');
+    '</div></div>');
 };
 ACTS['s-leaders'] = async () => {
   if (S.demo) return toast('المتصدرون يظهرون في المسابقة الفعلية');
