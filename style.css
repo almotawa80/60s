@@ -3307,3 +3307,105 @@ body.wide.dark .btn.danger,body.wide.dark .btn.dng-t{background:#2C2C2E!importan
 .nt-i small{display:block;color:var(--muted,#C7C7CC);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nt-i em{font-style:normal;background:#C8102E;color:#fff;border-radius:10px;padding:6px 12px;font-size:13px;font-weight:700;flex:none}
 .nt-empty{text-align:center;color:var(--muted,#C7C7CC);padding:24px 0}
+
+/* ===== v275 الحلبة (public arena): dial + subject cards + duel ===== */
+.ar{position:relative;z-index:1;padding:16px 16px 0;display:flex;flex-direction:column;gap:10px}
+.ar-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ar-top .ar-nm{display:block;font-weight:900;font-size:19px;line-height:1.2}
+.ar-top small{font-size:12px;color:#98989F}
+.ar-on{display:flex;align-items:center;gap:7px;font-size:13px;color:#C7C7CC;background:#1C1C1E;border:1px solid #2C2C2E;border-radius:99px;padding:4px 11px;white-space:nowrap}
+.ar-on b{color:#F5F5F7}
+.ar-on i,.ar-pill i{width:8px;height:8px;border-radius:50%;background:#30D158;flex:none}
+.ar-on i{animation:arpl 1.6s infinite}
+@keyframes arpl{0%{box-shadow:0 0 0 0 rgba(48,209,88,.7)}70%{box-shadow:0 0 0 8px rgba(48,209,88,0)}100%{box-shadow:0 0 0 0 rgba(48,209,88,0)}}
+.ar-av{display:grid;place-items:center;border-radius:50%;background:#2C2C2E;color:#F5F5F7;font-weight:900;flex:none;width:44px;height:44px;font-size:24px;line-height:1}
+.ar-dial{position:relative;width:204px;max-width:100%;aspect-ratio:1;margin:0 auto}
+.ar-dial-svg{position:absolute;inset:0;width:100%;height:100%}
+.ar-core{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.ar-core .ar-av{width:50px;height:50px;font-size:28px;box-shadow:0 0 0 3px #000,0 0 0 5px #2C2C2E}
+.ar-lv{font-weight:900;font-size:12px;color:#F5B72B;margin-top:2px;line-height:1.1}.ar-lv b{font-size:17px}
+.ar-hand{transform-origin:118px 118px;transition:transform 1.4s cubic-bezier(.3,1.4,.5,1)}
+.ar-cur{animation:arbl 1.2s ease-in-out infinite}
+@keyframes arbl{50%{opacity:.35}}
+.ar-under{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;font-size:13px;color:#C7C7CC}
+.ar-under b{color:#F5F5F7}.ar-under .gate{color:#F5B72B}
+.ar-deck{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:14px calc(50% - 126px + 16px) 22px;scrollbar-width:none}
+.ar-deck::-webkit-scrollbar{display:none}
+.ar-card{position:relative;flex:none;width:252px;height:258px;border:0;border-radius:30px;overflow:hidden;cursor:pointer;color:#F5F5F7;font:inherit;text-align:start;padding:0;background:#2C2C2E;scroll-snap-align:center;box-shadow:0 7px 0 #141416,0 0 46px -8px var(--c);transition:transform .12s}
+.ar-card:active{transform:translateY(4px);box-shadow:0 3px 0 #141416,0 0 46px -8px var(--c)}
+.ar-card::before{content:"";position:absolute;top:0;left:0;width:196px;height:196px;border-radius:0 0 100% 0;background:var(--c)}
+.ar-art{position:absolute;inset:0;width:100%;height:100%}
+.ar-blk{animation:arfl 3.6s ease-in-out infinite}
+.ar-art>g:nth-child(2) .ar-blk{animation-delay:-1.2s}.ar-art>g:nth-child(3) .ar-blk{animation-delay:-2.4s}
+@keyframes arfl{50%{transform:translateY(-5px)}}
+.ar-pill{position:absolute;top:12px;inset-inline-start:12px;display:flex;align-items:center;gap:6px;background:#1C1C1E;border-radius:99px;padding:3px 10px;font-size:12px;font-weight:700}
+.ar-cn{position:absolute;inset-inline-start:16px;bottom:64px;font-weight:900;font-size:32px;line-height:1.1}
+.ar-cta{position:absolute;inset:auto 12px 12px 12px;height:44px;border-radius:16px;background:#C8102E;color:#fff;font-weight:900;font-size:19px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 5px 0 #8E0B21}
+.ar-cta svg{width:16px;height:16px}
+.ar-dots{display:flex;justify-content:center;gap:6px;margin-top:-10px}
+.ar-dots i{width:7px;height:7px;border-radius:50%;background:#3A3A3C;transition:width .2s}
+.ar-dots i.on{background:#F5F5F7;width:18px;border-radius:99px}
+/* finding an opponent */
+.ar-find{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;min-height:100dvh;padding:0 16px!important}
+.ar-find h2{margin:0;font-size:22px;font-weight:900}.ar-find p{margin:0;color:#98989F}
+.ar-radar{position:relative;width:170px;height:170px;display:grid;place-items:center}
+.ar-radar>i{position:absolute;inset:0;border-radius:50%;border:2px solid #2C2C2E}.ar-radar>i:nth-child(2){inset:26px}
+.ar-radar .sweep{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(200,16,46,.55),transparent 28%);animation:arsp 1.2s linear infinite}
+@keyframes arsp{to{transform:rotate(360deg)}}
+.ar-radar .ar-av{position:relative;width:72px;height:72px;font-size:40px;box-shadow:0 0 0 4px #000}
+/* VS */
+.ar-vs{position:fixed;inset:0;overflow:hidden;background:#000;color:#fff;z-index:5}
+.ar-vs .half{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:4px}
+.ar-vs .a{background:linear-gradient(165deg,#E0183A,#8E0B21);clip-path:polygon(0 0,100% 0,100% 43%,0 57%);justify-content:flex-start;padding-top:max(74px,calc(env(safe-area-inset-top) + 50px));animation:arsr .45s cubic-bezier(.2,1.2,.4,1) both}
+.ar-vs .b{background:linear-gradient(165deg,#0A84FF,#0B3F7D);clip-path:polygon(0 57%,100% 43%,100% 100%,0 100%);justify-content:flex-end;padding-bottom:max(74px,calc(env(safe-area-inset-bottom) + 60px));animation:arsl .45s .1s cubic-bezier(.2,1.2,.4,1) both}
+.ar-vs .half::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(-8deg,transparent 0 26px,rgba(255,255,255,.05) 26px 30px)}
+@keyframes arsr{from{transform:translateX(100%)}}
+@keyframes arsl{from{transform:translateX(-100%)}}
+.ar-vs .ar-av{position:relative;width:112px;height:112px;font-size:60px;background:rgba(0,0,0,.3);box-shadow:0 0 0 5px #fff,0 8px 0 5px rgba(0,0,0,.35);margin-bottom:12px}
+.ar-vs .b .ar-av{margin:12px 0 0}
+.ar-vs .half b{position:relative;font-weight:900;font-size:26px;line-height:1.2;text-shadow:0 3px 0 rgba(0,0,0,.35)}
+.ar-vs .half small{position:relative;font-size:14px;font-weight:700;background:rgba(0,0,0,.35);border-radius:99px;padding:2px 12px;color:#F5B72B}
+.ar-vs .mid{position:absolute;top:50%;left:50%;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;background:#000;display:grid;place-items:center;box-shadow:0 0 0 5px #000;animation:arni .5s .45s cubic-bezier(.2,1.6,.4,1) both}
+.ar-vs .mid svg{position:absolute;inset:0;width:100%;height:100%}
+#ar-cdr{transition:stroke-dashoffset .8s linear,stroke .2s}
+.ar-vs .num{position:relative;font-weight:900;font-size:54px;line-height:1}
+.ar-vs .num span{display:block;animation:arni .45s cubic-bezier(.2,1.6,.4,1)}.ar-vs .num .vs{font-size:38px}
+@keyframes arni{from{transform:scale(2.4);opacity:0}}
+.ar-vs .cap{position:absolute;inset:auto 0 max(22px,env(safe-area-inset-bottom)) 0;margin:0;text-align:center;font-size:14px;color:#DFE6FF}
+/* duel: tug of war above the app's normal question screen */
+.ar-round{position:relative}
+.ar-round .ar-x{position:absolute;top:max(8px,env(safe-area-inset-top));left:8px;width:30px!important;height:30px!important;opacity:.7;z-index:3}
+.ar-round .ar-x svg{width:16px;height:16px}
+.ar-round .ar-tug{padding-inline-end:38px}
+.ar-tug{display:flex;align-items:center;gap:8px;width:100%}
+.ar-tug .ar-av{width:40px;height:40px;font-size:22px;position:relative;z-index:1}
+.ar-ropew{position:relative;flex:1;display:flex;align-items:center}
+.ar-rope{position:relative;flex:1;height:14px;border-radius:99px;overflow:hidden;background:#0A84FF;box-shadow:inset 0 -3px 0 rgba(0,0,0,.3)}
+.ar-rope .mine{position:absolute;inset:0 0 0 auto;width:50%;background:#C8102E;transition:width .6s cubic-bezier(.3,1.5,.5,1)}
+.ar-ropew .knot{position:absolute;top:50%;width:26px;height:26px;margin:-13px -13px 0 0;right:50%;border-radius:50%;background:#fff;border:4px solid #000;z-index:2;transition:right .6s cubic-bezier(.3,1.5,.5,1)}
+.ar-sc{display:flex;justify-content:space-between;width:100%;font-size:13px;color:#C7C7CC;font-weight:700;margin-top:-6px}
+.ar-sc b{color:#F5F5F7}
+/* result */
+.ar-res{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;min-height:100dvh;padding:20px 16px!important}
+.ar-res h1{margin:0;font-size:28px;font-weight:900}
+.ar-gain{font-weight:900;font-size:64px;line-height:1;color:#F5B72B;font-variant-numeric:tabular-nums}
+.ar-gain small{font-size:20px;color:#C7C7CC;font-weight:700}
+.ar-rows{width:100%;background:#1C1C1E;border-radius:18px;padding:10px 14px;display:flex;flex-direction:column;gap:4px}
+.ar-rows div{display:flex;justify-content:space-between;font-size:15px;color:#C7C7CC}.ar-rows b{color:#F5F5F7}
+.ar-lvb{width:100%;display:flex;flex-direction:column;gap:5px}
+.ar-lvb .l{display:flex;justify-content:space-between;font-size:13px;color:#C7C7CC}.ar-lvb .l b{color:#F5B72B}
+.ar-lvb .segs{display:flex;gap:3px}
+.ar-lvb .segs i{flex:1;height:12px;border-radius:3px;background:#2C2C2E}
+.ar-lvb .segs i.f{background:#F5B72B;box-shadow:inset 0 -3px 0 #C98A0B}
+.ar-lvb .segs i.new{animation:arsg .4s both}
+@keyframes arsg{from{transform:scaleY(.2);background:#fff}}
+.ar-up{background:#1C1608;border:2px solid #F5B72B;color:#F5B72B;border-radius:14px;padding:8px;font-weight:900;width:100%}
+.ar-res .btn{width:100%}
+@media (prefers-reduced-motion:reduce){.ar-blk,.ar-cur,.ar-on i,.ar-radar .sweep,.ar-vs .half,.ar-vs .mid,.ar-vs .num span,.ar-lvb .segs i.new{animation:none}}
+/* centre tab «الحلبة»: the answer-squares icon keeps its colours and sits a little higher */
+html body .s-nav button.s-ar .i.sq .nav-sq{width:48px;height:48px;--nsq:#3A3A3C}
+html body .s-nav button.s-ar .nav-sq circle:nth-of-type(1){fill:#0A84FF!important}
+html body .s-nav button.s-ar .nav-sq circle:nth-of-type(2){fill:#FF453A!important}
+html body .s-nav button.s-ar .nav-sq circle:nth-of-type(3){fill:#30D158!important}
+html body .s-nav button.s-ar .nav-sq circle:nth-of-type(4){fill:#FFD60A!important}
+html body .s-nav button.s-ar{transform:translateY(-3px)}
