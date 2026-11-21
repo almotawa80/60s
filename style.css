@@ -2944,4 +2944,4 @@ body.wide.dark .t-nav .nb{box-shadow:0 0 0 2px #1C1C1E}
 .s-nav .i .nav-sq{width:28px;height:28px;display:block;--nsq:#48484A}
 /* v214: squares centred vertically in the bar, colour corners a bit bigger */
 html body .t-nav a.t-sq{align-self:stretch!important;justify-content:center!important;padding:0!important;margin:0!important}
-html body .t-nav a.t-sq .nav-sq{width:48px;height:48px}
+html body .t-nav a.t-sq .nav-sq{width:46px;height:46px}
