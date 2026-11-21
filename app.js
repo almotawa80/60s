@@ -546,7 +546,7 @@ function bgWin(won){
 }
 ACTS['bg2-try'] = () => { const bs = bgVals(); bgWin([[bs[0], 1], [bs[2], 1], [bs[1], 1]]); };
 /* student bottom bar (v106): home · ranking · badges · me. Not shown during a round (the round replaces the page). */
-function sNav(cur){ return '<nav class="s-nav">' + [['home', '🏠', 'الرئيسية'], ['lb', '🏆', 'الترتيب'], ['bd', '⭐', 'شاراتي'], ['me', '👤', 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (cur === x[0] ? ' aria-current="page"' : '') + '><span class="i">' + (x[0] === 'home' ? NAV_SQ : x[1]) + '</span>' + x[2] + '</button>').join('') + '</nav>'; }
+function sNav(cur){ return '<nav class="s-nav">' + [['home', '🏠', 'الرئيسية'], ['lb', '🏆', 'الترتيب'], ['bd', '⭐', 'شاراتي'], ['me', '👤', 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (x[0] === 'home' ? ' aria-label="الرئيسية"' : '') + (cur === x[0] ? ' aria-current="page"' : '') + '>' + (x[0] === 'home' ? '<span class="i sq">' + NAV_SQ + '</span>' : '<span class="i">' + x[1] + '</span>' + x[2]) + '</button>').join('') + '</nav>'; }
 function sPage(t, body){ const th = document.body.dataset.theme || 'mid'; S.tab = t; closeModals(); stopTimer(); clearInterval(S.cdT);
   $app.innerHTML = '<div class="sh s-tabpg pvx">' + body + '</div>' + sNav(t); scrollTo(0, 0); }
 ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
