@@ -632,7 +632,7 @@ const AR_COL = { r: ['#FF453A', '#B3261E'], b: ['#0A84FF', '#0A5FCC'], y: ['#FFD
 const AR_SUBJ = {
   'التربية الإسلامية': { n: 'إسلامية', c: 'g', b: ['moon', 'star', 'dome'] },
   'الاجتماعيات': { n: 'اجتماعيات', c: 'b', b: ['globe', 'pin', 'flag'] },
-  'عامة': { n: 'عامة', c: 'y', b: ['?', 'bulb', '!'] },
+  'عامة': { n: 'مخ وسرعة', c: 'y', b: ['?', 'bulb', '!'] },
   'اللغة العربية': { n: 'عربي', c: 'r', b: ['أ', 'ب', 'ت'] },
   'اللغة الإنجليزية': { n: 'إنجليزي', c: 'b', b: ['A', 'B', 'C'] },
   'الرياضيات': { n: 'رياضيات', c: 'y', b: ['+', '×', '='] },
@@ -843,19 +843,22 @@ function arTugHtml(){ const r = AR.r, h = AR.h || {}, s = arScore();
     '<div class="ar-sc"><span>أنت <b id="ar-m">' + s.m + '</b></span><span><b id="ar-o">' + s.o + '</b> ' + esc(r.opp.name || '') + '</span></div>'; }
 function arQ(){
   const r = AR.r, q = r.q, g = AR.gen; AR.lock = false; clearTimeout(AR.ot);
-  const long = q.options.some(o => String(o).length > 22);
+  const long = q.options.some(o => String(o).length > 22), isGame = !!(q.payload && q.payload.kind === 'game');
   $app.innerHTML = '<div class="play pv pvx ar-round"><button class="icon-btn pv-btn ar-x" data-act="ar-quit" aria-label="الخروج من الجولة">' + ic('x') + '</button>' + arTugHtml() +
     '<div class="pvx-tm" id="timer"><div class="pvx-bar"><i id="tfg"></i></div><span>السؤال ' + (r.pos + 1) + ' من ' + r.nq + ' · <b id="tnum">' + r.secs + '</b> ثانية</span></div>' +
     '<div class="pv-panel"><div class="qbox"><span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
-    '<div class="opts kc' + (long ? ' long' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="ar-ans" data-idx="' + i + '"><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div>' + arEmoHtml() + '</div>';
+    (isGame ? '<div class="mg" id="mg"></div></div>' : '<div class="opts kc' + (long ? ' long' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="ar-ans" data-idx="' + i + '"><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div>') + arEmoHtml() + '</div>';
   AR.q0 = performance.now();
+  /* memory mini-game inside the arena: same games as the class round, the result goes to arena_answer as 0 (won) / 1 (lost) */
+  MG.end = null; MG.tap = null;
+  if (isGame) { S.locked = false; MG.end = ok => { if (AR.lock || AR.gen !== g || AR.r !== r) return; AR.lock = true; AR.tm = null; arSubmit(ok ? 0 : 1); }; mgStart({ question: q, arena: true }); }
   (r.opp.emo || []).forEach(e => { if (e.pos === r.pos) setTimeout(() => { if (AR.gen !== g || AR.r !== r || r.pos !== e.pos || arMuted()) return; arBubble('ar-oav', e.k); }, Math.max(700, (e.t || 1) * 1000)); });
   rpc('arena_served', { p_token: S.token, p_round: r.round, p_pos: r.pos }).catch(() => {});
   const st = AR.tm = {}, end = performance.now() + r.secs * 1000, num = document.getElementById('tnum'), fg = document.getElementById('tfg'), box = document.getElementById('timer'); let shown = -1;
   const tick = () => { if (AR.tm !== st || AR.gen !== g) return; const left = Math.max(0, (end - performance.now()) / 1000), sec = Math.ceil(left);
     if (sec !== shown) { shown = sec; num.textContent = sec; if (sec <= 5 && sec > 0) { box.classList.add('hurry'); FX.tick && FX.tick(); } }
     fg.style.width = Math.min(100, left / r.secs * 100) + '%'; fg.classList.toggle('hurry', left <= 5);
-    if (left <= 0) { AR.tm = null; if (!AR.lock) { AR.lock = true; arSubmit(null); } return; }
+    if (left <= 0) { AR.tm = null; if (!AR.lock) { AR.lock = true; MG.end = null; MG.tap = null; arSubmit(null); } return; }
     requestAnimationFrame(tick); };
   tick();
   /* the recorded opponent answers at the moment they really answered */
@@ -866,8 +869,8 @@ ACTS['ar-now'] = t => { AR.now = true; t.disabled = true; };
 ACTS['ar-cancel'] = () => { AR.gen++; AR.busy = false; rpc('arena_leave', { p_token: S.token, p_round: null }).catch(() => {}); arHome(); };
 ACTS['ar-quit'] = async () => { if (!await ask('الجولة ما تنحسب لك.', { title: 'الخروج من الجولة؟', ok: 'خروج', cancel: 'أكمل الجولة', danger: true, safe: true })) return; AR.gen++; AR.tm = null; clearTimeout(AR.ot); if (AR.r) { AR.r.dead = true; rpc('arena_leave', { p_token: S.token, p_round: AR.r.round }).catch(() => {}); } arHome(); };
 async function arSubmit(idx){
-  const r = AR.r, g = AR.gen, pos = r.pos; AR.tm = null;
-  const btns = $app.querySelectorAll('.opt'); btns.forEach(b => { b.disabled = true; });
+  const r = AR.r, g = AR.gen, pos = r.pos; AR.tm = null; MG.end = null; MG.tap = null;
+  const btns = $app.querySelectorAll('.opt'), mgEl = document.getElementById('mg'); btns.forEach(b => { b.disabled = true; });
   try {
     const res = await rpc('arena_answer', { p_token: S.token, p_round: r.round, p_pos: pos, p_chosen: idx });
     if (AR.gen !== g) return;
@@ -876,7 +879,8 @@ async function arSubmit(idx){
     r.me[pos] = !!res.correct; clearTimeout(AR.ot);
     if (!r.live && r.op[pos] === undefined) { const oa = (r.opp.ans || [])[pos]; r.op[pos] = !!(oa && oa.ok); }
     arTug();
-    if (res.correct) FX.correct(btns[ci], 10 + (res.speed || 0), 1); else FX.wrong(idx != null ? btns[idx] : null, idx == null);
+    if (mgEl) { mgEl.classList.add(res.correct ? 'won' : 'lost'); if (res.correct) FX.correct(mgEl, 10 + (res.speed || 0), 1); else FX.wrong(null, idx == null); }
+    else if (res.correct) FX.correct(btns[ci], 10 + (res.speed || 0), 1); else FX.wrong(idx != null ? btns[idx] : null, idx == null);
     const pop = document.getElementById('pop'); if (pop) { pop.className = 'pts-pop ' + (res.correct ? 'good' : 'bad'); pop.textContent = res.correct ? '+' + (10 + (res.speed || 0)) + ' نقطة' : (idx == null ? 'انتهى الوقت' : ''); }
     setTimeout(() => { if (AR.gen !== g) return; if (res.summary) return arResult(res.summary); if (res.wait) return arWait(); r.pos = pos + 1; r.q = res.question; arQ(); }, res.correct ? 1200 : 2500);
   } catch(e){ if (AR.gen !== g) return; toast(errMsg(e)); arHome(); }
@@ -1232,10 +1236,10 @@ const mgSleep = ms => new Promise(r => setTimeout(r, ms));
 const mgPick = (n, k) => { const a = Array.from({ length: n }, (_, i) => i); for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, k); };
 const mgGrid = (n, cells) => '<div class="mg-grid" style="--n:' + n + '">' + Array.from({ length: cells || n * n }, (_, i) => '<button type="button" class="mg-c" data-act="mg-c" data-c="' + i + '" aria-label="مربع ' + (i + 1) + '"></button>').join('') + '</div>';
 function mgSay(t){ const e = $app.querySelector('.qbox > span'); if (e) e.textContent = t; }
-function mgEnd(ok){ if (S.locked) return; S.locked = true; MG.tap = null; stopTimer(); submit(ok ? 0 : 1); }
+function mgEnd(ok){ if (S.locked) return; if (MG.end) { const f = MG.end; MG.end = null; MG.tap = null; return f(ok); } S.locked = true; MG.tap = null; stopTimer(); submit(ok ? 0 : 1); }
 ACTS['mg-c'] = t => { if (S.locked || !MG.tap) return; haptic(); MG.tap(Number(t.dataset.c), t); };
 async function mgStart(st){
-  const p = st.question.payload, gen = S.gen, box = document.getElementById('mg'); MG.tap = null;
+  const p = st.question.payload, gen = S.gen, box = document.getElementById('mg'); MG.tap = null; if (!st.arena) MG.end = null;
   if (!box) return;
   const lv = Math.max(1, Number(p.lv) || 1), at = (arr) => arr[Math.min(arr.length, lv) - 1];
   const live = () => S.gen === gen && !S.locked && document.getElementById('mg') === box;
