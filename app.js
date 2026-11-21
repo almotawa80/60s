@@ -1516,7 +1516,7 @@ function subjList(c, extra){
   /* v239 (Khalid): only the teacher's own subjects (profile), others behind «مادة ثانية؟» */
   let hid = 0; { const my = mySubjects(); if (my.length && !NW.allSubj) { const f = cus.filter(x => my.includes(x.subject) || (extra || []).includes(x.id)); hid = new Set(cus.map(x => x.subject)).size - new Set(f.map(x => x.subject)).size; if (f.length) cus = f; else hid = 0; } }
   const bySub = {}; cus.forEach(x => { (bySub[x.subject] = bySub[x.subject] || []).push(x); });
-  const list = []; Object.keys(bySub).forEach(sb2 => { const xs = bySub[sb2]; (xs.length === 1 || g ? [xs[0]] : xs).forEach(x => list.push([x, xs.length === 1 || g ? glob[x.id] + ' سؤال' : gradeAr(x)])); });
+  const list = []; Object.keys(bySub).forEach(sb2 => { const xs = bySub[sb2]; (xs.length === 1 || g ? [xs[0]] : xs).forEach(x => list.push([x, xs.length === 1 || g ? (x.grade ? gradeAr(x) + ' · ' : '') + glob[x.id] + ' سؤال' : gradeAr(x)])); });
   mine.forEach(x => list.push([x, glob[x.id] + ' سؤال']));
   list.hid = hid;
   (extra || []).forEach(id => { if (!list.some(y => y[0].id === id)) { const x = CU.list.find(y => y.id === id); if (x) list.push([x, (glob[id] || 0) + ' سؤال']); } });
