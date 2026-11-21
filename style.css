@@ -3586,3 +3586,13 @@ html body .sl.sl-red .sl1-t b{color:#F5B72B!important}
 html body .pv.pvx .pv-panel .qbox{position:relative}
 html body .pv.pvx .qbox .pts-pop{top:auto;bottom:16px;font-size:22px;line-height:1.3;padding:0 12px}
 
+
+/* v339 (Khalid «نزل», preview PQoQpQ3kviibSuQnxrqmMe last option): the answer corners form the stopwatch, cut in 4, each piece its answer colour */
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord){--S:96px;--g:6px}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(n){border-radius:18px!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt .txt{position:relative;z-index:1}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt::before{width:var(--S)!important;height:var(--S)!important;border-radius:0!important;background:none no-repeat!important;background-size:var(--S)!important;background-position:calc(var(--S)*.02) calc(var(--S)*-.083)!important;top:auto!important;bottom:auto!important;left:auto!important;right:auto!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(1)::before{background-image:url(aw-r.png)!important;left:calc(var(--S)/-2 - var(--g)/2)!important;bottom:calc(var(--S)/-2 - var(--g)/2)!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(2)::before{background-image:url(aw-b.png)!important;right:calc(var(--S)/-2 - var(--g)/2)!important;bottom:calc(var(--S)/-2 - var(--g)/2)!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(3)::before{background-image:url(aw-y.png)!important;left:calc(var(--S)/-2 - var(--g)/2)!important;top:calc(var(--S)/-2 - var(--g)/2)!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(4)::before{background-image:url(aw-g.png)!important;right:calc(var(--S)/-2 - var(--g)/2)!important;top:calc(var(--S)/-2 - var(--g)/2)!important}
