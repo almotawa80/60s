@@ -630,7 +630,7 @@ function sPage(t, body){ const th = document.body.dataset.theme || 'mid'; { cons
 const AR = { h: null, r: null, gen: 0, busy: false, tm: null, ot: 0, lock: false };
 const AR_COL = { r: ['#FF453A', '#B3261E'], b: ['#0A84FF', '#0A5FCC'], y: ['#FFD60A', '#8F6B00'], g: ['#30D158', '#1B8A3A'] };
 const AR_SUBJ = {
-  'التربية الإسلامية': { n: 'إسلامية', c: 'g', b: ['moon', 'star', 'dome'] },
+  'التربية الإسلامية': { n: 'إسلامية', c: 'g', b: ['moon', 'book', 'dome'] },
   'الاجتماعيات': { n: 'اجتماعيات', c: 'b', b: ['globe', 'pin', 'flag'] },
   'عامة': { n: 'مخ وسرعة', c: 'y', b: ['?', 'bulb', '!'] },
   'اللغة العربية': { n: 'عربي', c: 'r', b: ['أ', 'ب', 'ت'] },
@@ -642,6 +642,7 @@ function arSubj(s, i){ return AR_SUBJ[s] || { n: s, c: 'rbyg'[(i || 0) % 4], b: 
 function arGlyph(g, ink){
   if (g === 'moon') return '<path d="M33 12a20 20 0 1 0 16 31A16.5 16.5 0 1 1 33 12z" fill="' + ink + '"/>';
   if (g === 'star') return '<path d="M30 9l5.2 6.3 8.1-.9-.9 8.1 6.3 5.2-6.3 5.2.9 8.1-8.1-.9L30 46.400l-5.2-6.3-8.1.9.9-8.1-6.3-5.2 6.3-5.2-.9-8.1 8.1.9z" fill="' + ink + '"/>';
+  if (g === 'book') return '<path d="M29 17c-5-3.500-11-4.500-17-4.500v29c6 0 12 1 17 4.500z" fill="' + ink + '"/><path d="M31 17c5-3.500 11-4.500 17-4.500v29c-6 0-12 1-17 4.500z" fill="' + ink + '"/>';
   if (g === 'dome') return '<path d="M30 9v6" stroke="' + ink + '" stroke-width="3" stroke-linecap="round"/><path d="M14 38c0-12 7-19 16-23 9 4 16 11 16 23z" fill="' + ink + '"/><rect x="11" y="38" width="38" height="9" rx="3" fill="' + ink + '"/>';
   if (g === 'globe') return '<circle cx="30" cy="30" r="18" fill="none" stroke="' + ink + '" stroke-width="4"/><path d="M12 30h36M30 12c-9 9-9 27 0 36M30 12c9 9 9 27 0 36" fill="none" stroke="' + ink + '" stroke-width="3"/>';
   if (g === 'pin') return '<path d="M30 10c-9 0-15 6.500-15 14.500C15 35 30 50 30 50s15-15 15-25.500C45 16.500 39 10 30 10z" fill="' + ink + '"/><circle cx="30" cy="24.500" r="6" fill="#fff"/>';
