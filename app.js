@@ -1355,7 +1355,7 @@ async function teacherRoute(){
     else if (page === 'ch') { CL.tab = 'comps'; CL.cur = null; await tClasses(); }
     else if (page === 'settings') await tSettings();
     else if (page === 'admin') await tAdmin();
-    else if (page === 'sg') tSetGroup(parts[1]);
+    else if (page === 'sg') parts[1] === 'st' ? tSSet() : tSetGroup(parts[1]);
     else if (page === 'qset' || page === 'rset' || page === 'rules') tRules();
     else if (page === 'account') await tAccount();
     else if (page === 'opt') tOpt(parts[1]);
@@ -4523,7 +4523,7 @@ const OPTS = {
   cname: { t: 'صيغة اسم الصف', back: '#/t/sset', o: () => [['slash', 'السادس / أ', ''], ['short', '6أ', ''], ['long', 'الصف السادس - أ', '']].map(x => [x[0], cnameDemo(x[0]), '']) },
   def_stage: { t: 'المرحلة الافتراضية', back: '#/t/sset', o: () => [['', 'آخر مرحلة اخترتها', '']].concat(Object.keys(STAGE_AR).map(k => [k, STAGE_AR[k], ''])) },
   def_gender: { t: 'نوع الصف الافتراضي', back: '#/t/sset', o: () => [['', 'بدون', 'تختاره كل مرة'], ['m', 'بنين', ''], ['f', 'بنات', ''], ['mix', 'مختلط', '']] },
-  stu_name: { t: 'عرض أسماء الطلبة', back: '#/t/sset', o: () => [['tri_fam', 'ثلاثي مع العائلة', 'محمد أحمد علي العلي'], ['tri', 'ثلاثي بدون العائلة', 'محمد أحمد علي'], ['first_fam', 'الأول وحرف العائلة', 'محمد ع.'], ['first', 'الاسم الأول فقط', 'محمد']] },
+  stu_name: { t: 'كيف تشوف أسماء طلابك', back: '#/t/sset', o: () => [['tri_fam', 'ثلاثي مع العائلة', 'محمد أحمد علي العلي'], ['tri', 'ثلاثي بدون العائلة', 'محمد أحمد علي'], ['first_fam', 'الأول وحرف العائلة', 'محمد ع.'], ['first', 'الاسم الأول فقط', 'محمد']] },
   stu_sort: { t: 'ترتيب قائمة الطلبة', back: '#/t/sset', o: () => [['no', 'حسب الإضافة', ''], ['name', 'أبجدي', ''], ['pts', 'حسب النقاط', 'أثناء المسابقة']] }
 };
 const optGet = k => OPTS[k].get ? OPTS[k].get() : String(SG(k));
@@ -4553,7 +4553,7 @@ async function tSettings(){
   view('الإعدادات',
     `<button class="set-profile" data-act="go" data-h="#/t/account">${avatarHtml('big-av')}<div class="grow"><b>${esc(tName())}</b><div class="sub">${sub ? esc(sub) : `<span dir="ltr">${esc(T.user.email || '')}</span>`}</div></div><span class="set-chev">${ic('back')}</span></button>` +
     sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/rules"', icon: 'trophy', color: '#C8102E', label: 'قواعد اللعب', val: 'النقاط · الترتيب' }),
-      sRow({ act: 'go', attrs: 'data-h="#/t/sg/st"', icon: 'users', color: '#1FA971', label: 'الطلاب', val: 'الصفوف · الرسائل' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/sset"', icon: 'users', color: '#1FA971', label: 'الطلاب والصفوف', val: 'الأسماء · الرسائل' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر', val: `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>` }),
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق', val: 'تثبيت · بيانات' }),
       ADM.st && ADM.st.is ? sRow({ act: 'go', attrs: 'data-h="#/t/admin"', icon: 'lock', color: '#30B0C7', label: 'المشرف', val: 'المعلمين · الدعم' }) : '']) +
@@ -4573,14 +4573,12 @@ function tSetGroup(k){
       sRow({ act: 'st-about', icon: 'info', color: '#8E8E93', label: 'عن التطبيق', val: 'الإصدار ' + APP_VER })]) +
       sGrp('البيانات', [
       sRow({ act: 'go', attrs: 'data-h="#/t/export"', icon: 'download', color: '#14A89B', label: 'تصدير البيانات', val: 'Excel · PDF' }),
-      sRow({ act: 'st-newyear', icon: 'refresh', color: '#FF9500', label: 'بدء سنة دراسية جديدة' }),
       sRow({ act: 'st-privacy', icon: 'lock', color: '#9B51E0', label: 'الخصوصية' })])]
   }, g = G[k] || G.ch;
   view(g[0], g[1], 'settings', '', '#/t/settings');
 }
 const APP_VER = '0.3';
-ACTS['st-about'] = () => modal(`<h3>عن التطبيق</h3><div class="col"><p><b>تحدّي الدقيقة</b> · الإصدار ${APP_VER}</p><div class="set-grp">
-  ${['إعدادات بأسلوب الآيفون مع رجوع بالسحب', 'نقاط حسب مستوى السؤال ومكافأة سرعة بالنسبة', 'ترتيب معايير التعادل بالسحب', 'رسائل تشجيع وتقدير وتوصية للطلبة', 'خلط الخيارات وعدم تكرار الأسئلة'].map(x => `<div class="set-row"><span class="tick on">${ic('check')}</span><span class="grow">${x}</span></div>`).join('')}</div></div>`);
+ACTS['st-about'] = () => modal(`<div class="aw-sheet"><h3>تحدّي الدقيقة</h3><p class="sub">الإصدار ${APP_VER} · تحديث ${String(document.querySelector('script[src*="app.js"]')?.src.split('v=')[1] || '')}</p></div>`);
 ACTS['st-feedback'] = () => modal(`<h3>اقتراح أو مشكلة</h3><form class="col" data-form="st-feedback-send"><textarea class="input" name="b" rows="5" maxlength="2000" required placeholder="اكتب اقتراحك أو المشكلة اللي واجهتك..."></textarea><button class="btn" type="submit">${ic('send')} إرسال</button></form>`);
 ACTS['st-feedback-send'] = async f => {
   const { error } = await sb.from('feedback').insert({ body: f.b.value.trim() });
@@ -4672,7 +4670,7 @@ function tRules(){
     `<div class="set-h">الترتيب عند الطلاب</div><div class="set-grp">
       <div class="rl2-row"><span>يشوف الطالب</span>${seg('lb', lb, [['all', 'كل الصف'], ['top', 'الأوائل بس'], ['hidden', 'ترتيبه بس']])}</div>
       ${lb === 'top' ? numRow('lb_n', 'عدد الأوائل') + swRow({ k: 'lb_me', label: 'يشوف ترتيبه دائماً', sub: 'حتى لو مو من الأوائل' }) : ''}
-      <div class="rl2-row"><span>الأسماء</span>${seg('names', nm, [['full', 'محمد أحمد العلي'], ['first_fam', 'محمد ع.'], ['first', 'محمد']])}</div>
+      <div class="rl2-row"><span>الأسماء عند الطلاب</span>${seg('names', nm, [['full', 'محمد أحمد العلي'], ['first_fam', 'محمد ع.'], ['first', 'محمد']])}</div>
       ${swRow({ k: 'lb_pts', label: 'إظهار نقاط الآخرين' })}
       ${sRow({ act: 'go', attrs: 'data-h="#/t/tb"', label: 'إذا تساووا بالنقاط', val: esc(TBL[tbk[0]][0] + '، ثم ' + TBL[tbk[1]][0]) })}
     </div>`,
@@ -4774,14 +4772,14 @@ function fmtStu(name, mode){
   if (mode === 'tri') return w.slice(0, 3).join(' ');
   return w.length > 4 ? w.slice(0, 3).concat(w[w.length - 1]).join(' ') : w.join(' ');
 }
+/* v266 (Khalid): one «الطلاب والصفوف» page; dead/old class settings removed */
 function tSSet(){
-  view('الطلبة والصفوف',
-    sGrp('الصفوف', [optRow('sec_style', 'تسمية الشعب'), numRow('sec_n', 'عدد الشعب المعروضة'), optRow('cname', 'صيغة اسم الصف'), optRow('def_stage', 'المرحلة الافتراضية'), optRow('def_gender', 'نوع الصف الافتراضي')],
-      'تنطبق على الصفوف الجديدة، والصفوف الحالية تبقى بأسمائها.') +
-    sGrp('أسماء الطلبة', [optRow('stu_name', 'عرض الاسم'), optRow('stu_sort', 'ترتيب القائمة')], 'طريقة عرض الأسماء لك أنت داخل التطبيق.') +
-    sGrp('دخول الطلبة', [sRow({ act: 'go', attrs: 'data-h="#/t/entry"', icon: 'share', color: '#1FA971', label: 'رابط الدخول', val: 'رابط · QR' }),
-      swRow({ k: 'remember', label: 'تذكّر الطالب على جهازه', sub: 'ما يحتاج يكتب الرمز كل مرة' }), swRow({ k: 'rename', label: 'السماح للطالب بتعديل اسمه' })]),
-    'settings', '', '#/t/sg/st');
+  view('الطلاب والصفوف',
+    sGrp('', [optRow('stu_name', 'كيف تشوف أسماء طلابك')], 'في صفحة الصف وصفحة التحدي عندك أنت. اللي يشوفه الطلاب من «قواعد اللعب».') +
+    sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/msgtpl"', icon: 'mail', color: '#2F80ED', label: 'قوالب الرسائل', val: 'تشجيع · تقدير · توصية' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/archive"', icon: 'archive', color: '#A2845E', label: 'الصفوف المؤرشفة' }),
+      sRow({ act: 'st-newyear', icon: 'refresh', color: '#FF9500', label: 'بدء سنة دراسية جديدة' })], '«سنة جديدة» يؤرشف كل صفوفك وتبقى نتائجها محفوظة.'),
+    'settings', '', '#/t/settings');
 }
 async function tEntry(){
   const url = location.origin + location.pathname;
@@ -4863,7 +4861,7 @@ function printTables(title, tables){
 async function tArchive(){
   const { data, error } = await sb.from('classes').select('id,name').eq('archived', true).order('created_at'); if (error) throw error;
   view('الصفوف المؤرشفة', data.length ? sGrp('', data.map(c => `<div class="set-row"><span class="grow">${esc(c.name)}</span><button class="btn sm soft" data-act="ar-restore" data-id="${c.id}">استرجاع</button></div>`), 'الصفوف المؤرشفة ما تظهر بالقوائم، وبياناتها محفوظة.')
-    : `<div class="cl-empty sm"><b>ما فيه صفوف مؤرشفة</b><small>تقدر تؤرشف صف من قائمة الصفوف، أو تبدأ سنة جديدة من الإعدادات.</small></div>`, 'settings', '', '#/t/sg/st');
+    : `<div class="cl-empty sm"><b>ما فيه صفوف مؤرشفة</b><small>تقدر تؤرشف صف من قائمة الصفوف، أو تبدأ سنة جديدة من الإعدادات.</small></div>`, 'settings', '', '#/t/sset');
 }
 ACTS['ar-restore'] = async t => { const { error } = await sb.from('classes').update({ archived: false }).eq('id', t.dataset.id); if (error) return toast(errMsg(error)); toast('تم الاسترجاع'); rerender(); };
 
@@ -4880,7 +4878,7 @@ function tMsgTpl(){
   view('قوالب الرسائل', Object.keys(MSG_K).map(k => sGrp(MSG_K[k][2] + ' ' + MSG_K[k][0], tplList(k).map((s, i) => sRow({ act: 'mt-edit', attrs: `data-k="${k}" data-i="${i}"`, label: `<span class="mt-txt">${esc(s)}</span>` }))
       .concat(`<button class="set-row" data-act="mt-edit" data-k="${k}" data-i="-1"><span class="set-ic" style="background:#34C759">${ic('plus')}</span><span class="grow" style="color:var(--primary)">إضافة قالب</span></button>`))).join('') +
     sGrp('تلقائي', [swRow({ k: 'msg_auto', label: 'تقدير تلقائي للثلاثة الأوائل', sub: 'يوصلهم أول قالب تقدير لما تنتهي المسابقة' })],
-      'تقدر تستخدم بالقوالب: {الاسم} و{النقاط} و{الترتيب} و{الصف}، وتتعبى تلقائياً لكل طالب.'), 'settings', '', '#/t/sg/st');
+      'تقدر تستخدم بالقوالب: {الاسم} و{النقاط} و{الترتيب} و{الصف}، وتتعبى تلقائياً لكل طالب.'), 'settings', '', '#/t/sset');
 }
 ACTS['mt-edit'] = t => {
   const k = t.dataset.k, i = Number(t.dataset.i), s = i >= 0 ? tplList(k)[i] : '';
