@@ -1646,7 +1646,7 @@ const OB = {};
 async function obStart(demo){
   if (document.getElementById('ob')) return;
   demo = demo === true;
-  Object.assign(OB, { demo, st: new Set(demo ? [] : String(SG('prof_stage') || '').split('|').filter(Boolean)), sj: new Set(demo ? [] : mySubjects()), gr: null, grs: [], secs: new Set(), sec: null, school: SG('school') || '', d: SG('district') || '', more: false, edit: false, redo: false, pts: 0, hasCls: false, code: '', cname: '' });
+  Object.assign(OB, { demo, st: new Set(demo ? [] : String(SG('prof_stage') || '').split('|').filter(Boolean)), sj: new Set(demo ? [] : mySubjects()), gr: null, grs: [], secs: new Set(), sec: null, made: null, school: SG('school') || '', d: SG('district') || '', more: false, edit: false, redo: false, pts: 0, hasCls: false, code: '', cname: '' });
   if (!demo) try { const r = await sb.from('classes').select('id').limit(1); OB.hasCls = !!(r.data && r.data.length); } catch(e){}
   obStep(1);
 }
