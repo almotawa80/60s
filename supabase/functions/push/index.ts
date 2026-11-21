@@ -51,7 +51,11 @@ Deno.serve(async (req) => {
   if (req.headers.get("x-cron") !== cfg.cron) return json({ error: "forbidden" }, 403);
   webpush.setVapidDetails(APP, cfg.pub, cfg.priv);
   let rows: any[] = [];
-  if (Array.isArray(body.msgs)) {
+  if (body.test) {
+    // manual check from SQL (x-cron): one test alert to every iPhone app device
+    const { data } = await db.from("push_subs").select("endpoint").like("endpoint", "apns:%");
+    rows = ((data || []) as any[]).map((r) => ({ ...r, title: "اهزم الدقيقة ⏱", body: "تجربة: الإشعارات شغّالة ✅", tag: "mc-test" }));
+  } else if (Array.isArray(body.msgs)) {
     const { data } = await db.rpc("push_msg_targets", { p_ids: body.msgs });
     rows = ((data || []) as any[]).map((r) => ({ ...r, tag: "mc-msg" }));
   } else {
