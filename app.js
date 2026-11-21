@@ -850,7 +850,7 @@ async function arSubmit(idx){
     if (!r.live && r.op[pos] === undefined) { const oa = (r.opp.ans || [])[pos]; r.op[pos] = !!(oa && oa.ok); }
     arTug();
     if (res.correct) FX.correct(btns[ci], 10 + (res.speed || 0), 1); else FX.wrong(idx != null ? btns[idx] : null, idx == null);
-    const pop = document.getElementById('pop'); if (pop) { pop.className = 'pts-pop ' + (res.correct ? 'good' : 'bad'); pop.textContent = res.correct ? '+' + (10 + (res.speed || 0)) + ' نقطة' : (idx == null ? 'انتهى الوقت، الإجابة الصحيحة بالأخضر' : 'الإجابة الصحيحة بالأخضر'); }
+    const pop = document.getElementById('pop'); if (pop) { pop.className = 'pts-pop ' + (res.correct ? 'good' : 'bad'); pop.textContent = res.correct ? '+' + (10 + (res.speed || 0)) + ' نقطة' : (idx == null ? 'انتهى الوقت' : ''); }
     setTimeout(() => { if (AR.gen !== g) return; if (res.summary) return arResult(res.summary); if (res.wait) return arWait(); r.pos = pos + 1; r.q = res.question; arQ(); }, res.correct ? 1200 : 2500);
   } catch(e){ if (AR.gen !== g) return; toast(errMsg(e)); arHome(); }
 }
@@ -1266,7 +1266,7 @@ async function submit(idx, seq){
     const pop = document.getElementById('pop');
     if (pop) {
       pop.className = 'pts-pop ' + (r.correct ? 'good' + (combo >= 2 ? ' combo' : '') : 'bad');
-      pop.textContent = r.correct ? '+' + r.points + ' نقطة' + comboTxt(combo) : (idx == null || r.timeout ? 'انتهى الوقت، الإجابة الصحيحة بالأخضر' : 'الإجابة الصحيحة بالأخضر');
+      pop.textContent = r.correct ? '+' + r.points + ' نقطة' + comboTxt(combo) : (idx == null || r.timeout ? 'انتهى الوقت' : '');
     }
     clearTimeout(S.nextT);
     S.nextT = setTimeout(() => {
