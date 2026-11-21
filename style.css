@@ -2915,3 +2915,7 @@ html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(1)::bef
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(2)::before{bottom:-32px;right:-32px}
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(3)::before{top:-32px!important;left:-32px}
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(4)::before{top:-32px!important;right:-32px}
+/* v208: 3-2-1 like a start light: 3 red, 2 yellow, 1 green */
+html body .cin-n[data-n="3"]{color:#FF453A!important;text-shadow:0 0 40px rgba(255,69,58,.45)}
+html body .cin-n[data-n="2"]{color:#FFD60A!important;text-shadow:0 0 40px rgba(255,214,10,.4)}
+html body .cin-n[data-n="1"]{color:#30D158!important;text-shadow:0 0 40px rgba(48,209,88,.45)}

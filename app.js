@@ -817,10 +817,10 @@ ACTS['s-start'] = async (t) => {
 /* 3-2-1 before the round */
 function countIn(gen, txt){
   const th = document.body.dataset.theme || 'mid';
-  $app.innerHTML = '<div class="sh pvx cin"><div class="cin-n" id="cin" role="status">3</div><p class="cin-t">' + (txt || 'استعد!') + '</p></div>';
+  $app.innerHTML = '<div class="sh pvx cin"><div class="cin-n" id="cin" data-n="3" role="status">3</div><p class="cin-t">' + (txt || 'استعد!') + '</p></div>';
   return new Promise(res => { let n = 3; FX.tick && FX.tick();
     const step = () => { if (S.gen !== gen) return res(); n--; const el = document.getElementById('cin'); if (n <= 0 || !el) return res();
-      el.textContent = n; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; FX.tick && FX.tick(); setTimeout(step, 800); };
+      el.textContent = n; el.dataset.n = n; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; FX.tick && FX.tick(); setTimeout(step, 800); };
     setTimeout(step, 800); });
 }
 /* themed backdrops for the question screen (kids / mid / uni) */
