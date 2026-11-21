@@ -362,7 +362,7 @@ function renderHomeP(){
   const pills = '<div class="sp-pills"><span class="sp-pill">مركزك ' + (h.rank || '-') + ' من ' + size + '</span>' + (days ? '<span class="sp-pill"><span class="flame">🔥</span> ' + days + (days === 1 ? ' يوم' : days === 2 ? ' يومين' : ' أيام') + '</span>' : '') + (sh.shields ? '<span class="sp-pill" title="الدرع يحمي سلسلتك يوم غياب">🛡' + (sh.shields > 1 ? ' ×' + sh.shields : '') + '</span>' : '') + '<button class="sp-pill sp-lvl" id="lvl" data-act="s-lvl" hidden></button></div>';
   if (sh.saved && !S.demo) { const k = 'mc_saved_' + (h.student.id || ''); if (LS.get(k) !== sh.saved) { LS.set(k, sh.saved); setTimeout(() => toast('🛡 درعك حمى سلسلتك!'), 600); } }
   let mid;
-  if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo" id="bx-emo">🎉</div><b id="bx-h">أحسنت! ارجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
+  if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo" id="bx-emo">🎉</div><b id="bx-h">أحسنت! حياك باجر، كمّل التحدي 💪</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
     '<div id="bx-act"></div><div class="sp-cd"><small>الجولة القادمة بعد</small><b id="cd">' + cdText() + '</b></div><div id="goal"></div>' + pushBtn() + '</div>';
   else {
     /* v183: one line above «العب», rotating daily between what applies (rival / leader, prize, streak) */
@@ -457,6 +457,7 @@ async function loadDaily(){
   const bx = d.box || {}, emo = document.getElementById('bx-emo'), hd = document.getElementById('bx-h'), act = document.getElementById('bx-act');
   if (bx.ready) { emo.innerHTML = '<span class="bx bx-ready">🎁</span>'; hd.textContent = 'صندوقك جاهز!'; act.innerHTML = '<button class="sp-open" data-act="s-box">افتح الصندوق</button>'; }
   else if (bx.locked) { emo.innerHTML = '<span class="bx bx-lock">🎁</span>'; hd.textContent = 'أحسنت! صندوقك ينفتح بكرة'; act.innerHTML = ''; }
+  else if (bx.left && S.home && S.home.played_today) act.innerHTML = '<p class="bx-note">🎁 صندوق هدية بعد ' + (bx.left === 1 ? 'يوم لعب واحد' : bx.left === 2 ? 'يومين لعب' : bx.left + ' أيام لعب') + '</p>';
   const g = d.goal, el = document.getElementById('goal');
   const sr = d.star, me = sr && sr.id === S.home.student.id;
   if (g && g.size > 1 && el) {
