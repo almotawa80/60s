@@ -3000,3 +3000,7 @@ html body .s-nav:has(.lens.drag) button.on:not(.hover){color:#AEAEB2}
 html body .s-nav:has(.lens.drag) button.hover{color:#fff}
 html body .s-nav:has(.lens.drag) button.on:not(.hover) .nav-sq circle{fill:#7C7C80}
 .t-nav a,.s-nav button{transition:color .2s}
+/* v224: bar reacts — grows a touch while the finger is on it, springs on tab change */
+html body .t-nav,html body .s-nav{transition:scale .35s cubic-bezier(.3,1.5,.45,1)}
+html body .t-nav:has(.lens.drag),html body .s-nav:has(.lens.drag){scale:1.025 1.04}
+@keyframes navBump{0%{scale:1}25%{scale:1.05 .92}55%{scale:.98 1.04}80%{scale:1.01 .99}100%{scale:1}}

@@ -547,7 +547,8 @@ function bgWin(won){
 ACTS['bg2-try'] = () => { const bs = bgVals(); bgWin([[bs[0], 1], [bs[2], 1], [bs[1], 1]]); };
 /* student bottom bar (v106): home · ranking · badges · me. Not shown during a round (the round replaces the page). */
 const S_TABS = ['home', 'lb', 'bd', 'me'];
-function lensMove(nav, i){ const l = nav && nav.querySelector('.lens'); if (!l) return; if (String(l.style.getPropertyValue('--i')) !== String(i)) { l.classList.add('move'); nav.classList.remove('bump'); void nav.offsetWidth; nav.classList.add('bump'); clearTimeout(l._mv); l._mv = setTimeout(() => l.classList.remove('move'), 520); } l.style.setProperty('--i', i); }
+function lensMove(nav, i){ const l = nav && nav.querySelector('.lens'); if (!l) return; const cur = nav.dataset.cur != null ? nav.dataset.cur : String(l.style.getPropertyValue('--i')).trim(); nav.dataset.cur = String(i);
+  if (cur !== String(i)) { l.classList.add('move'); nav.classList.remove('bump'); void nav.offsetWidth; nav.classList.add('bump'); clearTimeout(l._mv); l._mv = setTimeout(() => { l.classList.remove('move'); nav.classList.remove('bump'); }, 600); } l.style.setProperty('--i', i); }
 function sNav(cur){ const i = Math.max(0, S_TABS.indexOf(cur)), p = S.navPrev == null ? i : S.navPrev; S.navPrev = i;
   setTimeout(() => requestAnimationFrame(() => lensMove(document.querySelector('.s-nav'), i)), 20);
   return '<nav class="s-nav"><span class="lens" style="--i:' + p + ';--n:4"></span>' + [['home', '🏠', 'الرئيسية'], ['lb', '🏆', 'الترتيب'], ['bd', '⭐', 'شاراتي'], ['me', '👤', 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (x[0] === 'home' ? ' aria-label="الرئيسية"' : '') + (cur === x[0] ? ' aria-current="page"' : '') + '>' + (x[0] === 'home' ? '<span class="i sq">' + NAV_SQ + '</span>' : '<span class="i">' + x[1] + '</span>' + x[2]) + '</button>').join('') + '</nav>'; }
