@@ -259,7 +259,11 @@ ACTS['s-switch'] = () => { closeModals(); LS.del('mc_token'); S.token = null; S.
 ACTS['s-logout'] = () => { profSave(profs().filter(p => p.token !== S.token)); LS.del('mc_token'); try { sessionStorage.removeItem('mc_token'); } catch(e){} S.token = null; S.home = null; studentLogin(); };
 
 /* v184 stage «tone» from the class name (Kuwait: 1–5 primary, 6–9 intermediate, 10–12 secondary): font size + celebration length */
-function qPer(cls){ const ps = String(SG('prof_stage') || ''); return stageOf(cls) === 'p' && (!ps || ps.indexOf('ابتدائي') >= 0) ? 3 : 4; }
+function qPer(cls){ const c = ((typeof CL !== 'undefined' && CL.classes) || []).find(x => x.name === cls); return (c ? c.stage === 'primary' : stageOf(cls) === 'p') ? 3 : 4; }
+/* stages the teacher teaches (account → المرحلة), as class.stage keys */
+function myStages(){ const K = ['primary', 'middle', 'secondary', 'university'], A = ['ابتدائي', 'متوسط', 'ثانوي', 'جامعة']; return String(SG('prof_stage') || '').split('|').map(v => K[A.indexOf(v)]).filter(Boolean); }
+function stOpts(all){ const m = myStages(); return m.length ? all.filter(x => m.includes(x[0])) : all; }
+function defStage(name){ const m = myStages(), g = { p: 'primary', m: 'middle', s: 'secondary' }[stageOf(name)]; if (m.length === 1) return m[0]; return !m.length || m.includes(g) ? g : m[0]; }
 function stageOf(name){
   const t = String(name || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
   let g = Number((t.match(/\d+/) || [])[0]) || 0;
@@ -1455,7 +1459,7 @@ function nwRender(){
   let b = '';
   if (st === 1) {
     if (!NW.classes.length) b = `<h2 class="nw-q">اسم صفك؟</h2><form class="nw-col" data-form="nw-cls"><input class="nw-in" name="n" maxlength="40" placeholder="مثال: رابع أ" autocomplete="off" required>
-      <div class="nw-stg">${STAGES.map(x => `<label><input type="radio" name="st" value="${x[0]}" ${x[0] === 'primary' ? 'checked' : ''}><span>${x[1]}</span></label>`).join('')}</div><button class="btn nw-go" type="submit">التالي</button></form>`;
+      ${(() => { const o = stOpts(STAGES); return o.length > 1 ? `<div class="nw-stg">${o.map((x, i) => `<label><input type="radio" name="st" value="${x[0]}" ${i ? '' : 'checked'}><span>${x[1]}</span></label>`).join('')}</div>` : `<input type="hidden" name="st" value="${o[0][0]}">`; })()}<button class="btn nw-go" type="submit">التالي</button></form>`;
     else b = `<h2 class="nw-q">لمين التحدي؟</h2><div class="nw-tiles">${NW.classes.map(c => { const busy = NW.busy.has(c.id), on = NW.cls.includes(c.id); return `<button class="nw-tile${on ? ' on' : ''}${busy ? ' busy' : ''}" data-act="nw-cls-pick" data-id="${c.id}"><span class="nw-e">👥</span><b>${esc(c.name)}</b><small>${busy ? 'عنده تحدي الحين' : STAGE_AR[c.stage] || ''}</small></button>`; }).join('')}</div>
       ${NW.multi ? `<button class="btn nw-go" data-act="nw-next" ${NW.cls.length ? '' : 'disabled'}>التالي (${NW.cls.length})</button>` : NW.classes.length > 1 ? `<button class="link nw-link" data-act="nw-multi">أكثر من صف؟</button>` : ''}`;
   }
@@ -1507,7 +1511,7 @@ ACTS['nw-subj-next'] = () => { const sel = NW.sel || []; if (!sel.length) return
   NW.subj = sel.length === 1 ? nwName(sel[0]) : sel.length === 2 ? sel.map(nwName).join(' و') : 'منوعة'; NW.step = 3; nwRender(); };
 ACTS['nw-days'] = t => { NW.days = Number(t.dataset.d); nwRender(); };
 ACTS['nw-cls'] = async f => {
-  const name = f.n.value.replace(/\s+/g, ' ').trim(), stg = (f.querySelector('[name=st]:checked') || {}).value || 'primary';
+  const name = f.n.value.replace(/\s+/g, ' ').trim(), stg = (f.querySelector('[name=st]:checked') || f.querySelector('[name=st]') || {}).value || defStage(f.n.value);
   if (name.length < 2) return toast('اكتب اسم الصف');
   const style = stg === 'primary' ? 'kids' : stg === 'university' ? 'uni' : 'mid';
   const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: stg, style }).select().single();
@@ -2127,11 +2131,11 @@ const UNI_Y = ['الأولى', 'الثانية', 'الثالثة', 'الرابع
 const NC = {};
 function ncName(){ if (NC.custom) return NC.custom; return cnameOf(NC.stage, NC.grade, NC.sec); }
 function ncHtml(){
-  const st = NC_ST.find(x => x[0] === NC.stage), last = (T.settings || {}).lastStage;
+  const st = NC_ST.find(x => x[0] === NC.stage), last = (T.settings || {}).lastStage, sts = stOpts(NC_ST);
   const chip = (act, v, label, on, big) => `<button type="button" class="nc2-c${big ? ' big' : ''}${on ? ' on' : ''}" data-act="${act}" data-v="${v}">${label}</button>`;
   const name = ncName();
   return `<div class="nc2"><h3>صف جديد</h3>
-    <div class="nc2-s"><div class="nc2-l">المرحلة ${last && last === NC.stage ? '<small>✓ آخر مرحلة اخترتها</small>' : ''}</div><div class="nc2-g4">${NC_ST.map(x => chip('nc2-st', x[0], x[1], x[0] === NC.stage, 1)).join('')}</div></div>
+    ${sts.length > 1 ? `<div class="nc2-s"><div class="nc2-l">المرحلة ${last && last === NC.stage ? '<small>✓ آخر مرحلة اخترتها</small>' : ''}</div><div class="nc2-g4">${sts.map(x => chip('nc2-st', x[0], x[1], x[0] === NC.stage, 1)).join('')}</div></div>` : ''}
     ${st ? `<div class="nc2-s"><div class="nc2-l">${NC.stage === 'university' ? 'السنة' : 'الصف'}</div><div class="nc2-gr" style="--n:${st[2].length > 5 ? 5 : st[2].length}">${st[2].map((g, k) => chip('nc2-gr', g, NC.stage === 'university' ? UNI_Y[k] : GRADES[g - 1], g === NC.grade)).join('')}</div></div>` : ''}
     <details class="nc2-det"${NC.det || NC.sec || NC.g ? ' open' : ''}><summary>تفاصيل الصف <small class="sub">${[NC.sec ? 'الشعبة ' + esc(NC.sec) : '', NC.g ? { m: 'بنين', f: 'بنات', mix: 'مختلط' }[NC.g] : ''].filter(Boolean).join(' · ') || 'الشعبة ونوع الصف (اختياري)'}</small></summary>
     <div class="nc2-s"><div class="nc2-l">الشعبة</div><div class="nc2-gr" style="--n:${Math.min(5, secList().length)}">${secList().map(x => chip('nc2-sec', x, x, x === NC.sec)).join('')}</div></div>
@@ -2140,7 +2144,7 @@ function ncHtml(){
     <button class="btn" data-act="nc2-save" ${name || NC.editing ? '' : 'disabled'}>إنشاء الصف</button></div>`;
 }
 function ncRender(){ const m = document.querySelector('.nc2'); if (m) { m.outerHTML = ncHtml(); if (NC.editing) { const i = document.getElementById('nc2-in'); if (i) { i.focus(); i.select(); } } } }
-ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { det: false, stage: SG('def_stage') || (T.settings || {}).lastStage || 'primary', grade: null, sec: '', g: SG('def_gender') || '', custom: '', editing: false }); modal(ncHtml()); };
+ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { det: false, stage: (() => { const m = myStages(), c = SG('def_stage') || (T.settings || {}).lastStage || 'primary'; return !m.length || m.includes(c) ? c : m[0]; })(), grade: null, sec: '', g: SG('def_gender') || '', custom: '', editing: false }); modal(ncHtml()); };
 ACTS['nc2-st'] = t => { if (NC.stage !== t.dataset.v) NC.grade = null; NC.stage = t.dataset.v; NC.custom = ''; ncRender(); };
 ACTS['nc2-gr'] = t => { NC.grade = Number(t.dataset.v); NC.custom = ''; ncRender(); };
 ACTS['nc2-sec'] = t => { NC.sec = NC.sec === t.dataset.v ? '' : t.dataset.v; NC.custom = ''; ncRender(); };
@@ -2221,7 +2225,7 @@ ACTS['t-multi-confirm'] = async t => {
     for (const name of Object.keys(CK.multi)) {
       let id = byName[name];
       if (!id) {
-        const r = await sb.from('classes').insert({ teacher_id: T.user.id, name, style: 'mid' }).select().single();
+        const r = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: defStage(name), style: 'mid' }).select().single();
         if (r.error) throw r.error;
         id = r.data.id; made++;
       }
@@ -4023,7 +4027,7 @@ ACTS['aw-newcls'] = async t => {
   const v = await ask('اكتب اسم الصف', { title: 'صف جديد', input: '', placeholder: 'مثال: السادس / أ', ok: 'إنشاء' });
   const name = (v || '').trim(); if (name.length < 2) return;
   if (CL.classes.some(c => c.name.trim() === name)) return toast('يوجد صف بنفس الاسم');
-  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, style: 'mid' }).select().single();
+  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: defStage(name), style: 'mid' }).select().single();
   if (error) return toast(errMsg(error));
   CL.classes.push(data); CL.byId[data.id] = data; CL.students[data.id] = []; AW.pick = data.id; awPick(!!t.dataset.self);
 };
