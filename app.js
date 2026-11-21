@@ -343,7 +343,7 @@ function renderHomeP(){
   if (sh.saved && !S.demo) { const k = 'mc_saved_' + (h.student.id || ''); if (LS.get(k) !== sh.saved) { LS.set(k, sh.saved); setTimeout(() => toast('🛡 درعك حمى سلسلتك!'), 600); } }
   let mid;
   if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo" id="bx-emo">🎉</div><b id="bx-h">أحسنت! ارجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
-    '<div id="bx-act"></div><p class="sp-sub">الجولة القادمة بعد <b id="cd">' + cdText() + '</b></p></div><div id="goal"></div>';
+    '<div id="bx-act"></div><p class="sp-sub">الجولة القادمة بعد <b id="cd">' + cdText() + '</b></p>' + pushBtn() + '</div><div id="goal"></div>';
   else mid = (h.rank > 1 && h.gap != null ? '<div class="sp-rival" id="rival">' + (h.gap > 0 ? 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى اللي فوقك 👀' : 'أنت متعادل مع اللي فوقك، جولة وحدة تكفي! 👀') + '</div>' : h.rank === 1 && h.total_points ? '<div class="sp-rival">أنت الأول 🏆 حافظ عليها</div>' : '') +
     pzLine((h.competition || {}).prizes, 'sp-prize') +
     '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>' +
@@ -362,6 +362,29 @@ function renderHomeP(){
     const el = document.getElementById('rival'); if (el && above && above.name) el.innerHTML = 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى ' + esc(String(above.name).split(' ')[0]) + ' 👀';
   }).catch(() => {});
 }
+/* v175 daily reminder at 4 PM (web push, sql/push.sql + edge function «push») */
+const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function pushBtn(){
+  if (S.demo || !('serviceWorker' in navigator)) return '';
+  if (LS.get('mc_push') === '1' && window.Notification && Notification.permission === 'granted') return '';
+  if (!('PushManager' in window) && !isIOS()) return '';
+  return '<button class="sp-bell" data-act="s-push">🔔 ذكّرني بكرة الساعة ٤</button>';
+}
+const b64u = s => { const p = '='.repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+ACTS['s-push'] = async t => {
+  if (isIOS() && !isStandalone()) return modal('<div class="s-avs"><h3>🔔 عشان يوصلك التذكير</h3><p class="sub">على الآيفون لازم تضيف التطبيق للشاشة الرئيسية أول:</p><ol class="push-steps"><li>اضغط زر المشاركة <b>⬆︎</b> تحت</li><li>اختر <b>«إضافة إلى الشاشة الرئيسية»</b></li><li>افتح التطبيق من الأيقونة، واضغط «ذكّرني» مرة ثانية</li></ol><button class="btn" data-act="close-modal">تمام</button></div>');
+  if (!('PushManager' in window) || !window.Notification) return toast('جهازك ما يدعم التذكير');
+  t.disabled = true;
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { t.disabled = false; return toast('ما وافقت على الإشعارات، تقدر تغيرها من الإعدادات'); }
+    const key = await rpc('push_public_key'); if (!key) throw new Error('no_key');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(key) });
+    await rpc('student_push_sub', { p_token: S.token, p_sub: sub.toJSON() });
+    LS.set('mc_push', '1'); t.remove(); toast('تمام! نذكّرك الساعة ٤ إذا ما لعبت 🔔');
+  } catch(e){ t.disabled = false; toast('ما قدرنا نفعّل التذكير، جرّب بعدين'); }
+};
 /* v171 «صندوق بكرة» + «هدف الصف» (needs sql/box_goal.sql; silently absent before it) */
 async function loadDaily(){
   let d; try { d = await rpc('student_daily', { p_token: S.token }); } catch(e){ return; }

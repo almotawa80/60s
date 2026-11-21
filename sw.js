@@ -1,6 +1,6 @@
 // fast start: versioned files (?v=) and CDN libraries come from cache instantly;
 // pages are network-first with a short timeout, falling back to cache when slow or offline
-const CACHE = 'tahaddi-v174';
+const CACHE = 'tahaddi-v175';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(
   caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())
@@ -28,4 +28,14 @@ self.addEventListener('fetch', e => {
     fetch(r, { cache: 'no-cache' }).then(res => { put(r, res); clearTimeout(t); if (!done) { done = true; resolve(res); } })
       .catch(() => { clearTimeout(t); fallback().then(m => { if (!done) { done = true; resolve(m || Response.error()); } }); });
   }));
+});
+// v175 daily reminder (web push)
+self.addEventListener('push', e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'تحدّي الدقيقة', { body: d.body || 'باقي لك جولة اليوم', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'mc-daily', data: { url: d.url || './' }, lang: 'ar', dir: 'rtl' }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || './';
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => { for (const c of cs) { if ('focus' in c) return c.focus(); } return self.clients.openWindow(url); }));
 });

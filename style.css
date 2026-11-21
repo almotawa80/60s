@@ -2734,3 +2734,6 @@ html body .pv.pvx .dots .dot.done.no{background:#FF453A!important}
 .wk-star{display:flex;gap:10px;align-items:center;margin-top:10px;background:#1C1C1E;color:#F5F5F7;border-radius:18px;padding:10px 14px;width:100%;max-width:360px;box-sizing:border-box}
 .wk-star span{font-size:30px}.wk-star small{display:block;opacity:.7;font-size:12.5px}.wk-star b{font-size:16px}
 .wk-star.me{background:linear-gradient(135deg,#7a5a00,#1C1C1E);box-shadow:0 0 0 2px #F5B72B inset}
+/* v175 reminder */
+.sp-bell{border:0;background:transparent;color:inherit;opacity:.8;font:700 14px Cairo,system-ui,sans-serif;text-decoration:underline;cursor:pointer;padding:4px}
+.push-steps{text-align:start;line-height:2;margin:8px 0 16px;padding-inline-start:20px}
