@@ -3488,3 +3488,4 @@ html body:not(.wide)[data-theme] .input::placeholder{color:#8E8E93}
 .ar-fs{font-size:34px;font-weight:900;color:#F5F5F7;font-variant-numeric:tabular-nums;line-height:1}
 .ar-fs::after{content:" ث";font-size:15px;color:#98989F}
 .ar-find .ar-fx{width:auto;padding-inline:34px;margin-top:10px}
+.ar-find .ar-fnow{margin-top:10px}.ar-find .ar-fnow+.ar-fx{margin-top:0}
