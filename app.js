@@ -152,7 +152,7 @@ function ask(msg, o){
     const danger = o.danger != null ? o.danger : /حذف|إنهاء|الخروج/.test(msg);
     const el = document.createElement('div'); el.className = 'dlg-back';
     el.innerHTML = `<div class="dlg" role="alertdialog" aria-modal="true"><div class="dlg-b">${o.title ? `<b>${esc(o.title)}</b>` : ''}<p>${esc(msg).replace(/\n/g, '<br>')}</p>` +
-      (o.input != null ? `<input class="dlg-in" ${o.readonly ? 'readonly' : ''} dir="${o.dir || 'auto'}" value="${esc(o.input)}" placeholder="${esc(o.placeholder || '')}">` : '') +
+      (o.input != null ? `<input class="dlg-in" ${o.readonly ? 'readonly' : ''} ${o.email ? 'type="email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false"' : ''} dir="${o.dir || 'auto'}" value="${esc(o.input)}" placeholder="${esc(o.placeholder || '')}">` : '') +
       `</div><div class="dlg-a">${o.alert ? '' : `<button type="button" data-r="0">${esc(o.cancel || 'إلغاء')}</button>`}<button type="button" data-r="1" class="${danger ? 'dng' : 'pri'}">${esc(o.ok || (danger ? (/حذف/.test(msg) ? 'حذف' : 'متابعة') : 'متابعة'))}</button></div></div>`;
     const inp = el.querySelector('.dlg-in'), ok = el.querySelector('[data-r="1"]');
     const need = o.require;
@@ -1566,7 +1566,7 @@ function teacherAuth(){
 }
 ACTS['t-forgot'] = async () => {
   const cur = (document.getElementById('a-email') || {}).value || '';
-  const email = await ask('سنرسل رابطاً لتعيين كلمة مرور جديدة إلى بريدك.', { title: 'استعادة كلمة المرور', input: cur, placeholder: 'example@school.edu.kw', dir: 'ltr', ok: 'إرسال الرابط', danger: false });
+  const email = await ask('سنرسل رابطاً لتعيين كلمة مرور جديدة إلى بريدك.', { title: 'استعادة كلمة المرور', input: cur, placeholder: 'example@school.edu.kw', dir: 'ltr', email: true, ok: 'إرسال الرابط', danger: false });
   if (!email) return;
   const { error } = await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: location.origin + location.pathname });
   if (error) return toast('تعذّر إرسال الرابط: ' + errMsg(error));
