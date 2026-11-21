@@ -2908,3 +2908,4 @@ html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(1){bord
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(2){border-bottom-right-radius:10px!important}
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(3){border-top-left-radius:10px!important}
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(4){border-top-right-radius:10px!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord),html body[data-theme] .pv.pvx .opts.kc.long:not(.tf):not(.ord){gap:6px!important}
