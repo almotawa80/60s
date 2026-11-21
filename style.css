@@ -3585,3 +3585,10 @@ html body .sl.sl-red .sl1-t b{color:#F5B72B!important}
 /* v330: answer hint sits inside the question card (was overlapping the answers) */
 html body .pv.pvx .pv-panel .qbox{position:relative}
 html body .pv.pvx .qbox .pts-pop{top:auto;bottom:16px;font-size:22px;line-height:1.3;padding:0 12px}
+
+/* v335 (Khalid): centre of the answers = the app's golden stopwatch (like the tab bar), answers plain grey */
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord){position:relative;gap:10px!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt::before{display:none!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(n){border-radius:18px!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord)::after{content:"";position:absolute;left:50%;top:50%;width:72px;height:72px;transform:translate(-50%,-50%);border-radius:50%;background:#000 url(nav-watch.png?i=1) center/62px no-repeat;box-shadow:0 0 0 4px #000;pointer-events:none;z-index:2}
+html body[data-theme] .pv.pvx .opts.kc.answered::after,html body[data-theme] .pv.pvx .opts.kc:has(.good,.bad)::after{opacity:.35;transition:opacity .2s}
