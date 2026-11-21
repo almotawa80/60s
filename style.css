@@ -3568,3 +3568,7 @@ html body .sl.sl-red .sl1-t b{color:#F5B72B!important}
 .tb-list .tb-row:first-child{border-radius:14px 14px 0 0}.tb-list .tb-row:last-child{border-radius:0 0 14px 14px}
 .tb-row[data-act]{cursor:pointer}
 .tb-row .drag-h{color:#8E8E93}
+
+/* v326 level line (secondary/uni) */
+.lv-next{width:100%;max-width:300px;margin:2px auto 0}
+.lv-next .goal-t{font-size:14px;gap:8px}.lv-next .goal-bar{height:7px;margin:6px 0 2px}

@@ -455,7 +455,13 @@ async function loadDaily(){
   S.daily = d; if (d) lvlShow(d.xp);
   if (!d || !document.getElementById('bx-h')) return;
   const bx = d.box || {}, emo = document.getElementById('bx-emo'), hd = document.getElementById('bx-h'), act = document.getElementById('bx-act');
-  if (bx.ready) { emo.innerHTML = '<span class="bx bx-ready">🎁</span>'; hd.textContent = 'صندوقك جاهز!'; act.innerHTML = '<button class="sp-open" data-act="s-box">افتح الصندوق</button>'; }
+  const cst = (S.home && S.home.class && S.home.class.stage) || '', big = document.body.dataset.stage === 's' || /second|uni|ثانو|جامع/.test(cst);
+  if (big) { /* v326: secondary/university → level progress instead of the sticker box */
+    if (S.home && S.home.played_today && d.xp != null) { const L = lvlOf(d.xp), left = L.hi - d.xp, pc = Math.round((d.xp - L.lo) / (L.hi - L.lo) * 100);
+      emo.innerHTML = '<span class="bx">⚡</span>';
+      act.innerHTML = '<div class="lv-next"><div class="goal-t"><b>باقي ' + left + ' نقطة وتوصل المستوى ' + (L.n + 1) + '</b><span>م' + L.n + '</span></div><div class="goal-bar"><i style="width:' + pc + '%;background:#F5B72B"></i></div></div>'; }
+  }
+  else if (bx.ready) { emo.innerHTML = '<span class="bx bx-ready">🎁</span>'; hd.textContent = 'صندوقك جاهز!'; act.innerHTML = '<button class="sp-open" data-act="s-box">افتح الصندوق</button>'; }
   else if (bx.locked) { emo.innerHTML = '<span class="bx bx-lock">🎁</span>'; hd.textContent = 'أحسنت! صندوقك ينفتح بكرة'; act.innerHTML = ''; }
   else if (bx.left && S.home && S.home.played_today) act.innerHTML = '<p class="bx-note">🎁 صندوق هدية بعد ' + (bx.left === 1 ? 'يوم لعب واحد' : bx.left === 2 ? 'يومين لعب' : bx.left + ' أيام لعب') + '</p>';
   const g = d.goal, el = document.getElementById('goal');
