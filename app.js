@@ -1680,7 +1680,7 @@ function obStep(n){
     b = `<div class="obr-hero"><div class="obr-big">📲</div><h2>رمز صفك</h2><div class="obr-code" dir="ltr">${esc(fmtCode(OB.code))}</div><p>أرسله لطلابك في الواتساب. أول ما يدخلون يطلعون عندك.</p></div>
       <button class="btn obr-go" data-act="c-share-wa" data-v="${esc(msg)}">شارك الرمز</button><button class="btn soft" data-act="ob-close">خذني للرئيسية</button>`;
   }
-  if (n > 1 && n <= Q) b = b.replace(/<button class="btn( soft)? obr-go" data-act="ob-next"[^>]*>.*?<\/button>/, m => `<div class="obr-nav"><button class="btn soft obr-bk" data-act="ob-back" aria-label="رجوع">→</button>${m}</div>`);
+  if (n <= Q) b = b.replace(/<button class="btn( soft)? obr-go" data-act="ob-next"[^>]*>.*?<\/button>/, m => `<div class="obr-nav">${n > 1 ? '<button class="btn soft obr-bk" data-act="ob-back" aria-label="رجوع">→</button>' : ''}${m}</div>`);
   el.innerHTML = `${OB.demo ? '<button class="obr-demo" data-act="ob-close">تجربة · لا يُحفظ شي ✕</button>' : ''}<div class="ob-b obr">${head}${b}</div><div class="obr-pop" id="obr-pop"></div>`;
 }
 function obClasses(){ const secs = OB.secs.size ? [...OB.secs] : [''], seen = new Set(), out = [];
