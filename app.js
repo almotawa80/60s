@@ -2218,14 +2218,18 @@ ACTS['c-send'] = t => { const c = ctx(t), only = t.dataset.only;
     <div class="send-list">${st.map(x => `<button class="send-row ${CL.sent.has(x.id) ? 'sent' : ''}" data-act="s-wa" data-id="${x.id}"><span class="grow"><b>${esc(x.name)}</b><small>${CL.sent.has(x.id) ? 'فُتح واتساب ✓' : x.phone ? esc(x.phone) : 'بدون رقم: تختار المحادثة بنفسك'}</small></span><span class="send-ic">${ic(CL.sent.has(x.id) ? 'check' : 'send')}</span></button>`).join('')}</div>
     <div class="row"><button class="btn soft" data-act="t-print-codes">${ic('print')} طباعة البطاقات</button><button class="btn soft" data-act="t-export-codes">${ic('download')} تصدير Excel</button></div></div>`);
 };
+/* v250 (Khalid «يعور العين ومو مرتب»): class settings = calm grouped list, no red buttons; archive/delete live in ⋯ */
 ACTS['c-menu'] = t => {
-  const c = ctx(t);
-  modal(`<div class="col" data-cid="${c.id}"><h3>إعدادات ${esc(c.name)}</h3><form class="col" data-form="c-rename" data-cid="${c.id}"><div class="field"><label for="cr-n">اسم الصف</label><input class="input" id="cr-n" name="name" value="${esc(c.name)}" required></div><button class="btn sm" type="submit">حفظ الاسم</button></form>
-    <div class="field"><label>الطلبة</label><div class="cg">${genderSeg('cg', c.gender || '', [['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']])}</div><p class="sub">يُستخدم في صياغة التقارير للطلبة اللي ما حُدد جنسهم.</p></div>
-    <div class="row between card"><div><b>التسجيل الذاتي</b><div class="sub">رابط يسجل به الطلبة بأنفسهم</div></div><button class="btn sm ${c.self_join ? 'soft' : ''}" data-act="t-self" data-on="${c.self_join ? 0 : 1}">${c.self_join ? 'إيقاف' : 'تفعيل'}</button></div>
-    ${c.self_join ? `<div class="join-box" dir="ltr">${esc(joinLink(c.join_code))}</div><div class="row"><button class="btn sm" data-act="copy" data-v="${esc(joinLink(c.join_code))}">نسخ الرابط</button><button class="btn sm soft" data-act="c-joinshow">عرض بملء الشاشة</button></div>` : ''}
-    <div class="row" style="margin-top:6px"><button class="btn soft" data-act="c-archive">${ic('layers')} أرشفة</button><button class="btn danger" data-act="c-del">${ic('trash')} حذف الصف</button></div></div>`);
+  const c = ctx(t), on = !!c.self_join, lk = joinLink(c.join_code);
+  modal(`<div class="aw-sheet cm2" data-cid="${c.id}"><h3>إعدادات الصف</h3>
+    <div class="set-h">اسم الصف</div><div class="set-grp"><form data-form="c-rename" data-cid="${c.id}" class="cm2-name"><input id="cr-n" name="name" value="${esc(c.name)}" required autocomplete="off" enterkeyhint="done"></form></div>
+    <div class="set-h">الطلبة</div><div class="cg">${genderSeg('cg', c.gender || '', [['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']])}</div>
+    <div class="set-h">التسجيل بالرابط</div><div class="set-grp">
+      <button class="set-row" data-act="t-self" data-on="${on ? 0 : 1}" role="switch" aria-checked="${on}"><span class="grow rl-txt"><b>الطلبة يسجّلون بأنفسهم</b><small>بالرابط أو QR</small></span><span class="ios-sw${on ? ' on' : ''}"><i></i></span></button>
+      ${on ? `<button class="set-row" data-act="copy" data-v="${esc(lk)}"><span class="grow">نسخ الرابط</span><span class="cm2-v" dir="ltr">${esc(c.join_code || '')}</span></button><button class="set-row" data-act="c-joinshow"><span class="grow">عرض QR بملء الشاشة</span></button>` : ''}
+    </div></div>`);
 };
+document.addEventListener('change', e => { const i = e.target; if (i && i.id === 'cr-n' && i.form && i.value.trim()) i.form.requestSubmit(); });
 document.addEventListener('change', e => { const r = e.target.closest && e.target.closest('.cg input'); if (!r) return; const c = ctx(r);
   sb.from('classes').update({ gender: r.value || null }).eq('id', c.id).then(({ error }) => { if (error) return toast(errMsg(error)); c.gender = r.value; r.closest('.seg-g').querySelectorAll('label').forEach(l => l.classList.toggle('on', l.contains(r))); toast('تم الحفظ'); renderClasses(); }); });
 ACTS['c-archive'] = async t => { const c = ctx(t);
@@ -2256,7 +2260,7 @@ ACTS['c-del-all'] = async () => {
 };
 ACTS['c-rename'] = async f => {
   const { error } = await sb.from('classes').update({ name: f.name.value.trim() }).eq('id', f.dataset.cid);
-  if (error) return toast(errMsg(error)); closeModals(); toast('تم الحفظ'); await tClasses();
+  if (error) return toast(errMsg(error)); const c = CL.byId[f.dataset.cid]; if (c) c.name = f.name.value.trim(); if (document.activeElement) document.activeElement.blur(); toast('تم الحفظ'); await tClasses();
 };
 ACTS['c-style'] = async t => {
   const c = ctx(t);
@@ -2407,7 +2411,7 @@ ACTS['t-self'] = async t => {
   ctx(t);
   try {
     const code = await rpc('set_self_join', { p_class: CK.cls.id, p_on: t.dataset.on === '1' });
-    closeModals(); await tClasses(); if (t.dataset.on === '1') toast('تم التفعيل، الرابط في صفحة الصف');
+    const id = CK.cls.id; closeModals(); await tClasses(); toast(t.dataset.on === '1' ? 'تم التفعيل' : 'تم الإيقاف'); const el = document.querySelector(`[data-cid="${id}"]`); if (el) setTimeout(() => ACTS['c-menu'](el), 250);
   } catch(e){ toast(errMsg(e)); }
 };
 ACTS['t-sample-students'] = async () => { await XL();
