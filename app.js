@@ -1166,8 +1166,11 @@ function viewRaw(title, body, active, top, back){
   document.addEventListener('touchend', e => {
     if (!drag) return;
     const d = drag; drag = null;
-    if (d.lens) setTimeout(() => d.lens.classList.remove('drag', 'live'), d.moved ? 0 : 160);
+    if (d.lens) setTimeout(() => d.lens.classList.remove('drag', 'live'), d.moved ? 0 : 70);
     items(d.nav).forEach(el => el.classList.remove('hover'));
+    if (!d.moved && d.lens) { /* v257: tap → mark the tab at once, don't wait for the page to load */
+      const k = idxAt(d.nav, e.changedTouches[0].clientX); d.nav.dataset.cur = String(k); if (d.nav.classList.contains('t-nav')) NAVI.prev = k; else S.navPrev = k;
+      items(d.nav).forEach((el, j) => el.classList.toggle('on', j === k)); return; }
     if (!d.moved || !d.lens) return;
     const k = idxAt(d.nav, e.changedTouches[0].clientX); d.lens.style.setProperty('--i', k); d.nav.dataset.cur = String(k); if (d.nav.classList.contains('t-nav')) NAVI.prev = k; else S.navPrev = k;
     const el = items(d.nav)[k];
