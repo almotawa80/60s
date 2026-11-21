@@ -1383,13 +1383,19 @@ function ntItems(d){ const it = [], fn = x => fmtStu(x || '');
   (d.idle || []).forEach(x => it.push({ k: 'i:' + x.g + ':' + d.today, e: '😴', t: (x.n === 1 ? 'طالب ما لعب' : x.n + ' ما لعبوا') + ' من ٣ أيام', s: (x.names || []).map(fn).map(n => n.split(' ')[0]).join('، ') + (x.n > 3 ? ' وغيرهم' : ''), h: '#/t/ch/' + x.g, b: 'ذكّرهم' }));
   (d.yd || []).forEach(x => it.push({ k: 'y:' + x.g + ':' + d.yday, e: '📊', t: 'ملخص ' + (cfDays(d.yday, d.today) === 1 ? 'أمس' : 'آخر يوم دراسي') + ': لعب ' + x.p + ' من ' + x.n, s: x.title, h: '#/t/ch/' + x.g }));
   return it; }
-async function ntLoad(){ try { const d = await rpc('teacher_notices'); NT.items = ntItems(d || {}); } catch(e){ return; }
+async function ntLoad(){ try { const d = await rpc('teacher_notices'), del = ntDel(); NT.items = ntItems(d || {}).filter(x => del.indexOf(x.k) < 0); } catch(e){ return; }
   const seen = ntSeen(); NT.n = NT.items.filter(x => seen.indexOf(x.k) < 0).length;
   document.querySelectorAll('.t-bell-n').forEach(el => { el.hidden = !NT.n; el.textContent = NT.n > 9 ? '9+' : NT.n; }); }
-ACTS['t-bell'] = () => { const seen = ntSeen(), it = NT.items.slice().sort((a, b) => (seen.indexOf(a.k) >= 0) - (seen.indexOf(b.k) >= 0));
-  modal(`<div class="aw-sheet nt-sheet"><h3>الإشعارات</h3>${it.length ? it.map(x => `<button class="nt-i${seen.indexOf(x.k) < 0 ? ' new' : ''}" data-act="nt-go" data-h="${esc(x.h)}"><i>${x.e}</i><span class="grow"><b>${esc(x.t)}</b><small>${esc(x.s || '')}</small></span>${x.b ? `<em>${x.b}</em>` : ''}</button>`).join('') : '<div class="nt-empty">ما فيه شي جديد 👌</div>'}</div>`);
+const ntDel = () => { try { return JSON.parse(LS.get('mc_nt_del') || '[]'); } catch(e){ return []; } };
+function ntHide(keys){ try { LS.set('mc_nt_del', JSON.stringify(ntDel().concat(keys).slice(-200))); } catch(e){} NT.items = NT.items.filter(x => keys.indexOf(x.k) < 0); }
+function ntSheet(){ const seen = ntSeen(), it = NT.items.slice().sort((a, b) => (seen.indexOf(a.k) >= 0) - (seen.indexOf(b.k) >= 0));
+  const h = `<div class="aw-sheet nt-sheet"><div class="nt-hd"><h3>الإشعارات</h3>${it.length > 1 ? '<button class="nt-all" data-act="nt-clear">مسح الكل</button>' : ''}</div>${it.length ? it.map(x => `<div class="nt-r"><button class="nt-i${seen.indexOf(x.k) < 0 ? ' new' : ''}" data-act="nt-go" data-h="${esc(x.h)}"><i>${x.e}</i><span class="grow"><b>${esc(x.t)}</b><small>${esc(x.s || '')}</small></span>${x.b ? `<em>${x.b}</em>` : ''}</button><button class="nt-x" data-act="nt-del" data-k="${esc(x.k)}" aria-label="حذف الإشعار">✕</button></div>`).join('') : '<div class="nt-empty">ما فيه شي جديد 👌</div>'}</div>`;
+  const cur = document.querySelector('.nt-sheet'); if (cur) cur.outerHTML = h; else modal(h);
   try { LS.set('mc_nt_seen', JSON.stringify(seen.concat(NT.items.map(x => x.k).filter(k => seen.indexOf(k) < 0)).slice(-80))); } catch(e){}
-  NT.n = 0; document.querySelectorAll('.t-bell-n').forEach(el => { el.hidden = true; }); };
+  NT.n = 0; document.querySelectorAll('.t-bell-n').forEach(el => { el.hidden = true; }); }
+ACTS['t-bell'] = async () => { ntSheet(); await ntLoad(); if (document.querySelector('.nt-sheet')) ntSheet(); };
+ACTS['nt-del'] = t => { ntHide([t.dataset.k]); ntSheet(); };
+ACTS['nt-clear'] = () => { ntHide(NT.items.map(x => x.k)); ntSheet(); };
 ACTS['nt-go'] = t => { closeModals(); go(t.dataset.h); };
 const navIc = n => n[0] === 'new' ? NAV_SQ : NAV_LN[n[0]] ? NAV_LN[n[0]] + nbHtml(n[0]) : ic(n[2]);
 
@@ -3136,7 +3142,7 @@ function cpPast(){
 ACTS['cp-del-past'] = async t => {
   const gid = t.dataset.g, k = (CL.past || []).find(x => x.group_id === gid); if (!k) return;
   if (!await ask('يختفي من القائمة. نقاط الطلاب ومستوياتهم وتقاريرهم تبقى.', { title: `حذف «${k.title.split('·').pop().trim()}»؟`, danger: true, ok: 'حذف', cancel: 'لا' })) return;
-  const { error } = await sb.from('competitions').delete().eq('group_id', gid).eq('status', 'finished');
+  const { error } = await sb.from('competitions').delete().eq('group_id', gid).eq('status', 'finished'); if (!error) NT.items = NT.items.filter(x => x.k !== 'e:' + gid);
   if (error) return toast(errMsg(error));
   Object.keys(PCACHE).forEach(h => { if (h.indexOf('#/t/results') === 0) delete PCACHE[h]; });
   toast('تم حذف المسابقة نهائياً'); await tClasses();

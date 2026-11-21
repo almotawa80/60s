@@ -3521,3 +3521,8 @@ html body.wide .t-title.t-xl{font-size:19px}
 html body .t-top .t-acts{flex:none}
 /* v306: student bar frosted like the teacher bar */
 html body:not(.wide) .s-nav{background:rgba(28,28,30,.7)!important;-webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%);border:0!important;box-shadow:0 8px 28px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1),inset 0 1px 0 rgba(255,255,255,.12)!important;border-radius:26px}
+/* v309: delete notifications (one ✕ or «مسح الكل») */
+.nt-hd{display:flex;align-items:center;justify-content:space-between;gap:10px}.nt-hd h3{margin:0}
+.nt-all{background:none;border:0;color:#E5404F;font:inherit;font-weight:700;font-size:14px;padding:8px 4px;cursor:pointer}
+.nt-r{display:flex;align-items:center;gap:6px}.nt-r .nt-i{flex:1;min-width:0}
+.nt-x{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:var(--soft,#2C2C2E);color:var(--muted,#C7C7CC);font-size:14px;cursor:pointer}
