@@ -2939,3 +2939,6 @@ body.wide.dark .t-nav .nav-sq{--nsq:#48484A}
 .t-nav .nb{position:absolute;top:0;left:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#FF3B30;color:#fff;font-size:11px;font-style:normal;font-weight:900;line-height:18px;text-align:center;box-shadow:0 0 0 2px rgba(255,255,255,.9);pointer-events:none}
 body.wide.dark .t-nav .nb{box-shadow:0 0 0 2px #1C1C1E}
 .t-nav .nb[hidden]{display:none}
+
+/* v212 student «الرئيسية» = answer-squares logo */
+.s-nav .i .nav-sq{width:28px;height:28px;display:block;--nsq:#48484A}
