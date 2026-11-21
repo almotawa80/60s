@@ -2909,3 +2909,9 @@ html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(2){bord
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(3){border-top-left-radius:10px!important}
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(4){border-top-right-radius:10px!important}
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord),html body[data-theme] .pv.pvx .opts.kc.long:not(.tf):not(.ord){gap:6px!important}
+/* v207: bigger corner colours */
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt::before{width:64px!important;height:64px!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(1)::before{bottom:-32px;left:-32px}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(2)::before{bottom:-32px;right:-32px}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(3)::before{top:-32px!important;left:-32px}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(4)::before{top:-32px!important;right:-32px}
