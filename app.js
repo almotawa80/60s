@@ -455,9 +455,14 @@ ACTS['s-push'] = async t => {
   } catch(e){ t.disabled = false; toast('ما قدرنا نفعّل التذكير، جرّب بعدين'); }
 };
 /* v171 «صندوق بكرة» + «هدف الصف» (needs sql/box_goal.sql; silently absent before it) */
-async function loadDaily(){
-  let d; try { d = await rpc('student_daily', { p_token: S.token }); } catch(e){ return; }
-  S.daily = d; if (d) lvlShow(d.xp);
+async function loadDaily(){ /* v349: paint the last result at once (no flash on «صفّي»), then refresh */
+  const tk = S.token; if (S.daily && S.dailyTok === tk) dailyPaint(S.daily);
+  let d; try { d = await rpc('student_daily', { p_token: tk }); } catch(e){ return; }
+  if (S.token !== tk) return;
+  S.daily = d; S.dailyTok = tk; if (d) lvlShow(d.xp);
+  dailyPaint(d);
+}
+function dailyPaint(d){
   if (!d || !document.getElementById('bx-h')) return;
   const bx = d.box || {}, emo = document.getElementById('bx-emo'), hd = document.getElementById('bx-h'), act = document.getElementById('bx-act');
   const cst = (S.home && S.home.class && S.home.class.stage) || '', big = document.body.dataset.stage === 's' || /second|uni|ثانو|جامع/.test(cst);
@@ -485,6 +490,7 @@ function resLbl(tok){ let r = null; try { r = JSON.parse(LS.get(resKey(tok)) || 
 async function subjLoad(){
   const h = S.home, el = document.getElementById('my-subj'); if (!h || !el) return;
   const others = profSame(h.student.name).filter(p => p.token !== S.token); if (!others.length) return;
+  if (S.subjHtml && S.subjTok === S.token) el.innerHTML = S.subjHtml;
   const g = S.gen, hs = await Promise.all(others.map(p => rpc('student_home', { p_token: p.token }).then(x => ({ p, x })).catch(() => null)));
   if (S.gen !== g || !document.getElementById('my-subj')) return;
   const rows = [{ p: { token: S.token }, x: h, me: true }].concat(hs.filter(Boolean));
@@ -492,7 +498,7 @@ async function subjLoad(){
   const row = o => { const x = o.x, t = (x.competition && x.competition.title) || x.class.name, sub = x.class.name + (x.rank ? ' · مركزك ' + x.rank + ' من ' + (x.class.size || '-') : '');
     return '<div class="ms-r' + (o.me ? ' me' : '') + '"><div class="ms-t"><b>' + esc(t) + '</b><small>' + esc(sub) + '</small>' + (x.played_today ? '<em>' + resLbl(o.p.token) + '</em>' : '') + '</div>' +
       (x.played_today ? '<span class="ms-ok">✓</span>' : o.me ? '<span class="ms-here">هنا</span>' : '<button class="ms-play" data-act="s-subj" data-t="' + esc(o.p.token) + '">العب</button>') + '</div>'; };
-  el.innerHTML = '<div class="ms"><h3>موادي اليوم</h3>' + rows.map(row).join('') + '</div>';
+  el.innerHTML = S.subjHtml = '<div class="ms"><h3>موادي اليوم</h3>' + rows.map(row).join('') + '</div>'; S.subjTok = S.token;
 }
 ACTS['s-subj'] = t => { const p = profs().find(x => x.token === t.dataset.t); if (!p) return; S.token = p.token; LS.set('mc_token', p.token); if (p.code) LS.set('mc_code', p.code); loadHome(); };
 ACTS['s-box'] = async t => {
