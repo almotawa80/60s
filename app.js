@@ -2219,16 +2219,15 @@ ACTS['c-send'] = t => { const c = ctx(t), only = t.dataset.only;
     <div class="row"><button class="btn soft" data-act="t-print-codes">${ic('print')} طباعة البطاقات</button><button class="btn soft" data-act="t-export-codes">${ic('download')} تصدير Excel</button></div></div>`);
 };
 /* v250 (Khalid «يعور العين ومو مرتب»): class settings = calm grouped list, no red buttons; archive/delete live in ⋯ */
-ACTS['c-menu'] = t => {
-  const c = ctx(t), on = !!c.self_join, lk = joinLink(c.join_code);
-  modal(`<div class="aw-sheet cm2" data-cid="${c.id}"><h3>إعدادات الصف</h3>
+ACTS['c-menu'] = t => modal(cmHtml(ctx(t)));
+function cmHtml(c){ const on = !!c.self_join, lk = joinLink(c.join_code);
+  return (`<div class="aw-sheet cm2" data-cid="${c.id}"><h3>إعدادات الصف</h3>
     <div class="set-h">اسم الصف</div><div class="set-grp"><form data-form="c-rename" data-cid="${c.id}" class="cm2-name"><input id="cr-n" name="name" value="${esc(c.name)}" required autocomplete="off" enterkeyhint="done"></form></div>
     <div class="set-h">الطلبة</div><div class="cg">${genderSeg('cg', c.gender || '', [['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']])}</div>
     <div class="set-h">التسجيل بالرابط</div><div class="set-grp">
       <button class="set-row" data-act="t-self" data-on="${on ? 0 : 1}" role="switch" aria-checked="${on}"><span class="grow rl-txt"><b>الطلبة يسجّلون بأنفسهم</b><small>بالرابط أو QR</small></span><span class="ios-sw${on ? ' on' : ''}"><i></i></span></button>
       ${on ? `<button class="set-row" data-act="copy" data-v="${esc(lk)}"><span class="grow">نسخ الرابط</span><span class="cm2-v" dir="ltr">${esc(c.join_code || '')}</span></button><button class="set-row" data-act="c-joinshow"><span class="grow">عرض QR بملء الشاشة</span></button>` : ''}
-    </div></div>`);
-};
+    </div></div>`); }
 document.addEventListener('change', e => { const i = e.target; if (i && i.id === 'cr-n' && i.form && i.value.trim()) i.form.requestSubmit(); });
 document.addEventListener('change', e => { const r = e.target.closest && e.target.closest('.cg input'); if (!r) return; const c = ctx(r);
   sb.from('classes').update({ gender: r.value || null }).eq('id', c.id).then(({ error }) => { if (error) return toast(errMsg(error)); c.gender = r.value; r.closest('.seg-g').querySelectorAll('label').forEach(l => l.classList.toggle('on', l.contains(r))); toast('تم الحفظ'); renderClasses(); }); });
@@ -2413,7 +2412,9 @@ ACTS['t-self'] = async t => {
   ctx(t);
   try {
     const code = await rpc('set_self_join', { p_class: CK.cls.id, p_on: t.dataset.on === '1' });
-    const id = CK.cls.id; closeModals(); await tClasses(); toast(t.dataset.on === '1' ? 'تم التفعيل' : 'تم الإيقاف'); const el = document.querySelector(`[data-cid="${id}"]`); if (el) setTimeout(() => ACTS['c-menu'](el), 250);
+    const c = CK.cls, m = t.closest('.cm2'); c.self_join = t.dataset.on === '1'; if (code && typeof code === 'string') c.join_code = code;
+    if (m) { m.outerHTML = cmHtml(c); haptic(); return; } /* v254: stay in the sheet, no close/reopen */
+    closeModals(); await tClasses();
   } catch(e){ toast(errMsg(e)); }
 };
 ACTS['t-sample-students'] = async () => { await XL();
