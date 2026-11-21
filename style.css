@@ -3496,5 +3496,5 @@ html body:not(.wide)[data-theme] .input::placeholder{color:#8E8E93}
 .ar-wait{justify-content:flex-start}.ar-wait .spin{margin:60px auto 8px}.ar-wait h1{font-size:24px}.ar-wait p{margin:0;color:#98989F;text-align:center}
 /* v303 centre tab icon is an image (golden stopwatch) */
 img.nav-sq{object-fit:contain;-webkit-user-drag:none;user-select:none;pointer-events:none}
-html body .t-nav a.t-sq img.nav-sq{width:50px;height:50px}
-html body .s-nav .i.sq img.nav-sq,html body .s-nav button.s-ar .i.sq img.nav-sq{width:52px;height:52px}
+html body .t-nav a.t-sq img.nav-sq{width:42px;height:42px}
+html body .s-nav .i.sq img.nav-sq,html body .s-nav button.s-ar .i.sq img.nav-sq{width:42px;height:42px}
