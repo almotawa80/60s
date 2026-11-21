@@ -209,7 +209,7 @@ function studentLogin(){
     '<input class="code-input" id="code" inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="20" aria-label="رمز الدخول"></div>' +
     '<div id="lerr"></div>' +
     '<button class="btn sl1-go" data-act="s-login">دخول</button><p class="sl1-h">الرمز عند معلمك، أو في رسالة الواتساب</p></div>' +
-    '<div class="center sl-t"><button class="sl1-t" data-act="go-teacher">أنا معلم؟ <b>ادخل من هنا</b></button></div></div></div>';
+    '<div class="center sl-t"><button class="sl1-t" data-act="go-teacher">🍎 أنا معلم؟ <b>ادخل من هنا</b></button></div></div></div>';
   const inp = document.getElementById('code');
   const paint = v => $app.querySelectorAll('.code-box').forEach((el, i) => { el.textContent = v[i] || ''; el.classList.toggle('on', i === Math.min(v.length, 5)); });
   inp.addEventListener('input', () => {
