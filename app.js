@@ -2226,7 +2226,7 @@ function cmHtml(c){ const on = !!c.self_join, lk = joinLink(c.join_code);
     <div class="set-h">الطلبة</div><div class="cg">${genderSeg('cg', c.gender || '', [['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']])}</div>
     <div class="set-h">التسجيل بالرابط</div><div class="set-grp">
       <button class="set-row" data-act="t-self" data-on="${on ? 0 : 1}" role="switch" aria-checked="${on}"><span class="grow rl-txt"><b>الطلبة يسجّلون بأنفسهم</b><small>بالرابط أو QR</small></span><span class="ios-sw${on ? ' on' : ''}"><i></i></span></button>
-      ${on ? `<button class="set-row" data-act="copy" data-v="${esc(lk)}"><span class="grow">نسخ الرابط</span><span class="cm2-v" dir="ltr">${esc(c.join_code || '')}</span></button><button class="set-row" data-act="c-joinshow"><span class="grow">عرض QR بملء الشاشة</span></button>` : ''}
+      <button class="set-row${on ? '' : ' cm2-off'}" data-act="copy" data-v="${esc(lk)}" ${on ? '' : 'disabled'}><span class="grow">نسخ الرابط</span><span class="cm2-v" dir="ltr">${esc(c.join_code || '')}</span></button><button class="set-row${on ? '' : ' cm2-off'}" data-act="c-joinshow" ${on ? '' : 'disabled'}><span class="grow">عرض QR بملء الشاشة</span></button>
     </div></div>`); }
 document.addEventListener('change', e => { const i = e.target; if (i && i.id === 'cr-n' && i.form && i.value.trim()) i.form.requestSubmit(); });
 document.addEventListener('change', e => { const r = e.target.closest && e.target.closest('.cg input'); if (!r) return; const c = ctx(r);
