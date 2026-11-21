@@ -3539,3 +3539,22 @@ html body:not(.wide) .s-nav{background:rgba(28,28,30,.7)!important;-webkit-backd
 .ar-stg>div.on{border-color:#F5B72B;color:#fff}.ar-stg>div.done{color:#C7C7CC}
 .ar-stg .e{display:block;font-size:22px;line-height:1.25}.ar-stg b{display:block;font-size:14px;font-weight:800}.ar-stg small{display:block;font-size:11px}
 .ar-stg .here{color:#F5B72B;font-weight:800}
+
+/* v313 شاشة دخول المعلم: ألوان مريحة (أبيض على أسود، الأحمر للزر فقط) */
+.ta{min-height:100dvh;background:#000;color:#fff}
+.ta .hero h1{color:#fff!important;font-weight:800}
+.ta .hero p{color:#C7C7CC!important;font-size:16px}
+.ta .card{background:#1C1C1E!important;border:0!important;box-shadow:none!important;color:#fff}
+.ta .tabs{background:#2C2C2E!important;border-radius:12px;padding:3px;gap:0}
+.ta .tabs button{color:#C7C7CC!important;background:transparent!important;border-radius:10px;font-weight:700;box-shadow:none!important;min-height:40px}
+.ta .tabs button.on{background:#48484A!important;color:#fff!important}
+.ta .field label{color:#C7C7CC;font-weight:600}
+.ta .input{background:#2C2C2E!important;border:1.5px solid #3A3A3C!important;color:#fff!important;border-radius:14px;min-height:52px}
+.ta .input::placeholder{color:#8E8E93}
+.ta .input:focus{border-color:#8E8E93!important}
+.ta .sub{color:#8E8E93}
+.ta .link{color:#E5E5EA!important;text-decoration:none!important;font-weight:700;font-size:15px}
+.ta .link.forgot{color:#C7C7CC!important;font-size:14px}
+.ta .btn{background:#C8102E!important;color:#fff!important;box-shadow:0 5px 0 #8E0B21!important;border:0!important}
+.ta .btn.ghost{background:#2C2C2E!important;box-shadow:none!important}
+.ta .card,.ta .tabs button.on{background-image:none!important}
