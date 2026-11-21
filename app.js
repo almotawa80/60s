@@ -1815,7 +1815,8 @@ function obStep(n){
   const q = (t, sub) => `<div class="obr-q">${t}${sub ? `<small>${sub}</small>` : ''}</div>`;
   let b = '';
   if (n === 1) b = q('أي مراحل تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk">${OB_STAGES.map((v, i) => tile(OB.st.has(v), v, ['🎒', '📘', '🎓', '🏛️'][i])).join('')}</div><button class="btn obr-go" data-act="ob-next" ${OB.st.size ? '' : 'disabled'}>${OB.st.size ? `التالي (${OB.st.size} مختارة)` : 'اختر مرحلة أو أكثر'}</button>`;
-  if (n === 2) b = q('أي مواد تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk ${obSubjList().length > 11 ? 'g4' : 'g3'} obr-sm">${obSubjList().map(v => tile(OB.sj.has(v), v, SUBJ_EMOJI[v] || '📘')).join('')}<button class="ob-t" data-act="ob-other"><span class="e">✍️</span><b>أخرى</b></button></div><button class="btn obr-go" data-act="ob-next" ${OB.sj.size ? '' : 'disabled'}>${OB.sj.size ? `التالي (${OB.sj.size} مختارة)` : 'اختر مادة أو أكثر'}</button>`;
+  if (n === 2) b = q('أي مواد تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + (() => { const all = obSubjList(), cut = all.length > 9 && !OB.more, extra = [...OB.sj].filter(v => all.indexOf(v) < 0), sh = cut ? all.filter((v, i) => i < 8 || OB.sj.has(v)) : all;
+      return `<div class="ob-g obr-chk ${sh.length + extra.length > 11 ? 'g4' : 'g3'} obr-sm">${sh.concat(extra).map(v => tile(OB.sj.has(v), v, SUBJ_EMOJI[v] || '📘')).join('')}${cut ? `<button class="ob-t" data-act="ob-more"><span class="e">➕</span><b>مواد أخرى</b></button>` : `<button class="ob-t" data-act="ob-other"><span class="e">✍️</span><b>أخرى</b></button>`}</div>`; })() + `<button class="btn obr-go" data-act="ob-next" ${OB.sj.size ? '' : 'disabled'}>${OB.sj.size ? `التالي (${OB.sj.size} مختارة)` : 'اختر مادة أو أكثر'}</button>`;
   if (n === 3) { const gs = obGrades(), on = g => OB.grs.some(x => x.st === g.st && x.g === g.g); b = q('أي صفوف تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk${gs.length > 4 ? ' g3' : ''}">${gs.map((g, k) => `<button class="ob-t${on(g) ? ' on' : ''}" data-act="ob-gr" data-k="${k}"><b>${esc(g.l)}</b></button>`).join('')}</div><button class="btn obr-go" data-act="ob-next" ${OB.grs.length ? '' : 'disabled'}>${OB.grs.length ? `التالي (${OB.grs.length} مختارة)` : 'اختر صف أو أكثر'}</button>`; }
   if (n === 4) b = q('أي شعب؟', '<b class="obr-multi">☑️ اختر كل الشعب</b>') + `<div class="ob-g obr-chk g3">${secList().slice(0, 9).map(x => `<button class="ob-t obr-sec${OB.secs.has(x) ? ' on' : ''}" data-act="ob-sec" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div>${OB.secs.size ? `<button class="btn obr-go" data-act="ob-next">التالي (${OB.secs.size} مختارة)</button>` : `<button class="btn soft obr-go" data-act="ob-next">بدون شعبة</button>`}`;
   if (n === 5) {
@@ -1851,6 +1852,7 @@ function obAns(){
 }
 ACTS['ob-pick'] = t => { const v = t.dataset.v, set = OB.n === 1 ? OB.st : OB.sj; set.has(v) ? set.delete(v) : set.add(v); haptic(); obStep(OB.n); };
 ACTS['ob-next'] = () => obAns();
+ACTS['ob-more'] = () => { OB.more = true; obStep(2); };
 ACTS['ob-other'] = async () => { const v = await ask('اكتب اسم المادة', { title: 'مادة ثانية', input: '', placeholder: 'مثلاً: القرآن الكريم', ok: 'أضف', danger: false });
   const x = (v || '').trim().slice(0, 40); if (!x) return; OB.sj.add(x); obStep(2); };
 ACTS['ob-back'] = () => { if (OB.n > 1) { OB.edit = false; OB.redo = false; obStep(OB.n - 1); } };
