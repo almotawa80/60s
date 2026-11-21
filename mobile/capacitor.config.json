@@ -5,7 +5,11 @@
   "server": {
     "url": "https://beat60s.com/",
     "errorPath": "error.html",
-    "allowNavigation": ["beat60s.com", "*.beat60s.com", "*.supabase.co"]
+    "allowNavigation": [
+      "beat60s.com",
+      "*.beat60s.com",
+      "*.supabase.co"
+    ]
   },
   "ios": {
     "contentInset": "never",
@@ -15,8 +19,26 @@
     "appendUserAgent": "Beat60sApp/1 (iOS)"
   },
   "plugins": {
-    "SplashScreen": { "launchShowDuration": 0, "launchAutoHide": true, "backgroundColor": "#000000", "showSpinner": false, "splashFullScreen": true },
-    "StatusBar": { "style": "DARK", "backgroundColor": "#000000" },
-    "Keyboard": { "resizeOnFullScreen": true }
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true,
+      "backgroundColor": "#000000",
+      "showSpinner": false,
+      "splashFullScreen": true
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#000000"
+    },
+    "Keyboard": {
+      "resizeOnFullScreen": true
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
   }
 }
