@@ -3076,3 +3076,8 @@ html body.wide.dark .modal{background:#1C1C1E}
 .rl-sg button{flex:1;border:0;background:none;font:inherit;font-weight:700;font-size:13.5px;padding:7px 4px;border-radius:8px;color:var(--ink)}
 .rl-sg button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.15)}
 body.wide.dark .rl-sg button.on{background:#48484A}
+/* v245 select classes on the squares */
+.cp-selm .cp-tile{position:relative;border:2px solid transparent}
+.cp-selm .cp-tile.picked{border-color:#C8102E}
+.cp-ck{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:50%;border:2px solid #8E8E93;display:grid;place-items:center;font-size:14px;font-weight:900;color:#fff;box-sizing:border-box}
+.cp-tile.picked .cp-ck{background:#C8102E;border-color:#C8102E}

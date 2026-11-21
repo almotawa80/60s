@@ -1971,6 +1971,8 @@ function classesList(){
   const arch = CL.archived && CL.archived.length && !CL.sel ? `<a class="cl-arch cl-arch-l" href="#/t/archive">${ic('layers')} الصفوف المؤرشفة (${CL.archived.length})<span class="grow"></span>${ic('back')}</a>` : '';
   if (!CL.sel) return `<button class="btn cp-newc" data-act="t-add-class">＋ صف جديد</button>` + (CL.classes.length ? `<div class="cp-tiles">${CL.classes.map(c => { const st0 = CL.students[c.id] || [], comp = CL.comps[c.id], p = st0.filter(x => CST(x.id).today).length;
       return `<button class="cp-tile" data-act="c-open" data-id="${c.id}"><b>${esc(c.name)}</b><small>${st0.length} طالب</small>${comp ? `<small class="cp-pl">لعب اليوم ${p}</small>` : ''}</button>`; }).join('')}</div>` : `<div class="cl-empty sm"><b>ما عندك صفوف بعد</b><small>اضغط «صف جديد» واكتب اسمه، وبعدها شارك الرمز مع الطلاب.</small></div>`) + arch + `<input type="file" id="awimg" accept="image/*" class="hide" data-change="aw-img"><input type="file" id="awxl" accept=".xlsx,.xls,.csv" class="hide" data-change="aw-xl"><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
+  if (CL.sel.type === 'classes') return `<div class="cp-tiles cp-selm">${CL.classes.map(c => { const on = CL.sel.ids.has(c.id), st0 = CL.students[c.id] || [];
+    return `<button class="cp-tile${on ? ' picked' : ''}" data-act="c-pick" data-id="${c.id}" aria-pressed="${on}"><span class="cp-ck">${on ? '✓' : ''}</span><b>${esc(c.name)}</b><small>${st0.length} طالب</small></button>`; }).join('')}</div><div style="height:120px"></div>`;
   if (!CL.classes.length) return top + `<div class="cl-empty">${ic('users')}<b>لا يوجد طلبة بعد</b><small>اضغط «إضافة طلبة» فوق، وصوّر كشف الأسماء أو الصقه، وخلال دقيقة يصير الصف جاهز.</small></div>` + arch;
   return top + CL.classes.map(classSection).join('') + arch;
 }
@@ -2087,6 +2089,7 @@ ACTS['c-xl'] = () => { closeModals(); setTimeout(() => sheet('إضافة صفو�
 ACTS['c-cmore'] = t => { const c = ctx(t); const sq = (a, e, l, x) => `<button class="st1-o${x ? ' ' + x : ''}" data-act="m-run" data-a="${a}" data-cid="${c.id}"><span>${e}</span>${l}</button>`;
   modal(`<div class="aw-sheet"><h3>${esc(c.name)}</h3><div class="st1-opts">${sq('t-print-codes', '🖨️', 'طباعة البطاقات')}${sq('c-menu', '⚙️', 'إعدادات الصف')}${sq('c-promote', '🎓', 'ترقية للصف التالي')}${sq('t-export-codes', '📥', 'الرموز Excel')}${sq('c-archive', '📦', 'أرشفة الصف')}${sq('c-del', '🗑️', 'حذف الصف', 'dng')}</div></div>`); };
 ACTS['m-run'] = t => { closeModals(); const a2 = t.dataset.a; const fake = document.querySelector(`[data-cid="${t.dataset.cid}"]`) || t; setTimeout(() => ACTS[a2](fake.querySelector ? (fake.querySelector('.cls-head') || fake) : fake), 30); };
+ACTS['c-pick'] = t => { const id = t.dataset.id; CL.sel.ids.has(id) ? CL.sel.ids.delete(id) : CL.sel.ids.add(id); haptic(); const y = scrollY; renderClasses(); scrollTo(0, y); };
 ACTS['c-select'] = () => { CL.sel = { type: 'classes', ids: new Set() }; renderClasses(); };
 ACTS['s-select'] = t => { const c = ctx(t); CL.open.add(c.id); CL.sel = { type: 'students', cid: c.id, ids: new Set() }; renderClasses(); };
 ACTS['sel-cancel'] = () => { CL.sel = null; renderClasses(); };
