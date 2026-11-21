@@ -2465,6 +2465,7 @@ function compEditForm(v){
         <input type="hidden" name="points_end_date" value="${v.points_end_date}"><input type="hidden" name="end_date" value="${v.end_date}">
         <input type="hidden" name="group_size" value="${v.group_size || 6}"><input type="hidden" name="qualifiers" value="${v.qualifiers || 8}"><input type="hidden" name="round_window_hours" value="${v.round_window_hours || 24}">
       </div>
+      ${'remind_at' in v ? `<div class="set-grp cf3"><label class="cf3-r"><span class="grow">🔔 وقت التذكير<small>للي ما لعب، من الأحد للخميس</small></span><input class="cf3-time" type="time" name="remind_at" step="900" min="07:00" max="19:45" value="${esc(String(v.remind_at || '16:00').slice(0, 5))}"></label></div>` : ''}
       <div class="set-grp cf3">
         <button type="button" class="cf3-r" data-act="cf3-ko"><span class="grow">تصفيات في النهاية<small>الأوائل وجهاً لوجه</small></span><span class="ios-sw ${CC.ko ? 'on' : ''}" id="cf3-kosw"><i></i></span></button>
         <button type="button" class="cf3-r ${CC.ko ? '' : 'hide'}" id="cf3-qr" data-act="cf3-q"><span class="grow">عدد المتأهلين</span><b id="cf3-qv"></b><i>‹</i></button>
@@ -2678,6 +2679,7 @@ ACTS['cp-save'] = async f => {
     group_size: Number(f.group_size.value), qualifiers: Number(f.qualifiers.value), round_window_hours: Number(f.round_window_hours.value),
     curriculum_id: CC.cu || null, difficulty: CC.diff || 'normal', qtypes: CC.qtypes, lessons: CC.cu && CC.lessons && CC.lessons.length ? CC.lessons : null };
   if (CC.cus) { p.curricula = CC.cus.length > 1 ? CC.cus.slice() : null; p.curriculum_id = CC.cus[0] || null; if (CC.cus.length > 1) p.lessons = null; }
+  if (f.remind_at && f.remind_at.value) { const tm = f.remind_at.value.slice(0, 5); p.remind_at = tm < '07:00' ? '07:00' : tm > '19:45' ? '19:45' : tm; }
   if (CC.prizes || (CL.allComps || []).some(c => c.group_id === T.compEdit && c.prizes)) p.prizes = CC.prizes && CC.prizes.some(Boolean) ? CC.prizes : null;
   if (!(p.start_date <= p.points_end_date && p.points_end_date <= p.end_date)) return toast('تحقق من ترتيب التواريخ');
   const isNew = T.compEdit === 'new', gid = isNew ? crypto.randomUUID() : T.compEdit;

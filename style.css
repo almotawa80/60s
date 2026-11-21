@@ -2741,3 +2741,5 @@ html body .pv.pvx .dots .dot.done.no{background:#FF453A!important}
 .sp-lvl{border:0;font:inherit;color:inherit;cursor:pointer}
 .lvl-up{font-size:56px;font-weight:900;color:#F5B72B;line-height:1.1}
 .lvl-bar{margin:12px 0}
+/* v177 reminder time */
+.cf3-time{background:transparent;border:0;color:inherit;font:700 16px Cairo,system-ui,sans-serif;direction:ltr;min-width:96px;text-align:end}
