@@ -357,6 +357,7 @@ function renderHomeP(){
     '</div></div>' + sNav('home');
   startCountdown();
   if (!S.demo) loadDaily();
+  if (h.played_today && !S.demo && pushBtn() && !LS.get('mc_push_ask')) { LS.set('mc_push_ask', '1'); setTimeout(() => modal('<div class="s-avs center"><div class="lvl-up">🔔</div><h3>تبي نذكّرك؟</h3><p class="sub">نرسل لك تذكير وحد باليوم إذا ما لعبت، ورسائل معلمك توصلك على طول. وما فيه شي بالليل.</p><button class="btn" data-act="s-push">فعّل الإشعارات</button><button class="btn soft" data-act="close-modal">مو الحين</button></div>'), 1500); }
   if (!h.played_today && h.rank > 1 && h.gap > 0 && !S.demo) rpc('class_leaderboard', { p_token: S.token }).then(lb => {
     const rows = Array.isArray(lb) ? lb : (lb && lb.rows) || [], me = rows.find(r => r.is_me), above = me && rows.filter(r => r.rank < me.rank).sort((a, b) => b.rank - a.rank)[0];
     const el = document.getElementById('rival'); if (el && above && above.name) el.innerHTML = 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى ' + esc(String(above.name).split(' ')[0]) + ' 👀';
@@ -380,7 +381,7 @@ function pushBtn(){
   if (S.demo || !('serviceWorker' in navigator)) return '';
   if (LS.get('mc_push') === '1' && window.Notification && Notification.permission === 'granted') return '';
   if (!('PushManager' in window) && !isIOS()) return '';
-  return '<button class="sp-bell" data-act="s-push">🔔 ذكّرني بكرة الساعة ٤</button>';
+  return '<button class="sp-bell" data-act="s-push">🔔 فعّل الإشعارات: تذكير الجولة ورسائل معلمك</button>';
 }
 const b64u = s => { const p = '='.repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
 ACTS['s-push'] = async t => {
@@ -394,7 +395,7 @@ ACTS['s-push'] = async t => {
     const reg = await navigator.serviceWorker.ready;
     const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(key) });
     await rpc('student_push_sub', { p_token: S.token, p_sub: sub.toJSON() });
-    LS.set('mc_push', '1'); t.remove(); toast('تمام! نذكّرك الساعة ٤ إذا ما لعبت 🔔');
+    LS.set('mc_push', '1'); closeModals(); document.querySelectorAll('.sp-bell').forEach(b => b.remove()); toast('تمام! يوصلك التذكير ورسائل معلمك 🔔');
   } catch(e){ t.disabled = false; toast('ما قدرنا نفعّل التذكير، جرّب بعدين'); }
 };
 /* v171 «صندوق بكرة» + «هدف الصف» (needs sql/box_goal.sql; silently absent before it) */
