@@ -3279,7 +3279,7 @@ function q3Home(){
   return `<div class="q4">
     ${total ? `<div class="q4-days">عندك ${total} سؤال، تكفي ${daysAr(days)} ${days >= 7 ? '👍' : '⚠️'}</div>` : `<div class="q4-days low">اضغط مادة تحت وشغّل دروسها</div>`}
     <button class="p3-big" data-act="q3-add">＋ أضف سؤال</button>
-    <div class="q5-lbl">موادي</div>
+    <div class="q5-lbl">موادي</div><div class="q5-hint">✅ الدروس اللي تشغّلها هنا هي اللي تطلع للطلاب في التحدي</div>
     <div class="q5-sq">${sqMine.join('')}<button class="q5-sb q5-new" data-act="q5-newsubj"><span class="e">＋</span><b>مادة جديدة</b></button></div>
     ${sqOther.length ? `<div class="q5-lbl q5-oth">مواد أخرى</div><div class="q5-sq q5-oth-sq">${sqOther.join('')}</div>` : ''}</div>`;
 }
