@@ -259,6 +259,7 @@ ACTS['s-switch'] = () => { closeModals(); LS.del('mc_token'); S.token = null; S.
 ACTS['s-logout'] = () => { profSave(profs().filter(p => p.token !== S.token)); LS.del('mc_token'); try { sessionStorage.removeItem('mc_token'); } catch(e){} S.token = null; S.home = null; studentLogin(); };
 
 /* v184 stage «tone» from the class name (Kuwait: 1–5 primary, 6–9 intermediate, 10–12 secondary): font size + celebration length */
+function qPer(cls){ return stageOf(cls) === 'p' ? 3 : 4; }
 function stageOf(name){
   const t = String(name || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
   let g = Number((t.match(/\d+/) || [])[0]) || 0;
@@ -478,7 +479,7 @@ const BG2 = [
   { k: 'first', i: '🎯', n: 'أول جولة', d: 'أنهيت أول جولة رسمية', t: [1], u: 'جولة' },
   { k: 'practice', i: '🏋️', n: 'المتدرّب', d: 'جولات تدريب', t: [10, 25, 50], u: 'جولة' },
   { k: 'streak', i: '🔥', n: 'متتالي', d: 'أيام لعب وراء بعض', t: [3, 7, 30], u: 'يوم' },
-  { k: 'perfect', i: '💯', n: '4 من 4', d: 'جولة كل أسئلتها صح', t: [1, 5, 20], u: 'جولة' },
+  { k: 'perfect', i: '💯', n: 'كلها صح', d: 'جولة كل أسئلتها صح', t: [1, 5, 20], u: 'جولة' },
   { k: 'correct', i: '📚', n: 'المجتهد', d: 'إجابات صحيحة', t: [25, 100, 500], u: 'إجابة' }];
 const BG_LV = [['br', 'برونزي'], ['sv', 'فضي'], ['gd', 'ذهبي']];
 function bgVals(){ const h = S.home || {}, v = {}; ((h.badges) || []).forEach(x => {
@@ -845,10 +846,10 @@ function showQuestion(st){
     '<div class="pv-panel"><div class="qbox' + (q.image ? ' has-img' : '') + '">' + (q.image ? '<img class="q-img" src="' + esc(q.image) + '" alt="' + esc(q.image_alt || 'صورة مرفقة بالسؤال') + '">' : '') + '<span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
     (isOrd ? '<div class="ord-hint">اضغطها بالترتيب ١ ← ' + ['', '', '', '٣', '٤'][q.options.length] + '</div>' : '') +
     '<div class="opts kc' + (long ? ' long' : '') + (q.options.length === 2 ? ' tf' : '') + (isOrd ? ' ord' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="' + (isOrd ? 's-ord' : 's-answer') + '" data-idx="' + i + '">' + (isOrd || q.options.length === 2 ? '<span class="letter shp" aria-hidden="true">' + (isOrd ? '' : ['✓', '✗'][i]) + '</span>' : '') + '<span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
-  runTimer(st.seconds_left);
+  runTimer(st.seconds_left, st.secs);
 }
-function runTimer(secs){
-  const total = 15, end = performance.now() + secs * 1000;
+function runTimer(secs, tot){
+  const total = tot || 15, end = performance.now() + secs * 1000;
   const num = document.getElementById('tnum'), fg = document.getElementById('tfg');
   const state = { raf: 0 };
   S.timer = state;
@@ -956,11 +957,11 @@ function reviewHtml(){
 async function showResult(sm){
   stopTimer(); S.gen = (S.gen || 0) + 1; S.cur = null;
   if (sm && Array.isArray(sm.review) && S.log) { const L = S.log.slice(-sm.review.length); sm.review.forEach((v, i) => { if (L[i] && L[i].c == null) L[i].c = v.c; }); }
-  const cc = sm ? sm.correct_count : 0, lose = cc <= 1, win = cc >= 3, perfect = cc === 4;
+  const cc = sm ? sm.correct_count : 0, qn = (sm && sm.total) || 4, lose = cc <= 1, win = cc >= qn - 1, perfect = cc === qn;
   setTimeout(() => { if (win) FX.win(perfect); else FX.meh(); }, 250);
   const head = perfect ? 'مثالي! 🏆' : lose ? 'كل بطل يبدأ كذا 💪' : 'خلصت! 🎉';
-  const sub = perfect ? '٤ من ٤، لا يُهزم!' : win ? 'أداء ممتاز، استمر!' : lose ? 'تدرّب على أخطائك وارجع أقوى' : 'قريب من القمة، حاول بكرة';
-  const stars = [0, 1, 2, 3].map(i => '<span class="star-s' + (i < cc ? ' on' : '') + '" style="animation-delay:' + (0.5 + i * 0.25) + 's">' + ic('star') + '</span>').join('');
+  const sub = perfect ? (qn === 3 ? '٣ من ٣' : '٤ من ٤') + '، لا يُهزم!' : win ? 'أداء ممتاز، استمر!' : lose ? 'تدرّب على أخطائك وارجع أقوى' : 'قريب من القمة، حاول بكرة';
+  const stars = Array.from({ length: qn }, (_, i) => i).map(i => '<span class="star-s' + (i < cc ? ' on' : '') + '" style="animation-delay:' + (0.5 + i * 0.25) + 's">' + ic('star') + '</span>').join('');
   let rankRow = '';
   if (sm && sm.kind === 'official' && sm.rank_after) {
     const d = sm.rank_before - sm.rank_after;
@@ -968,7 +969,7 @@ async function showResult(sm){
     rankRow = '<div class="r"><span>ترتيبي الجديد</span><b>' + sm.rank_after + ' ' + delta + '</b></div>';
     if (d > 0) S.upMsg = '⬆ صعدت ' + (d === 1 ? 'مركز' : d === 2 ? 'مركزين' : d + ' مراكز') + '!';
   }
- const L4 = (S.log || []).slice(-4), answered = L4.length ? L4.filter(x => x.x != null).length : (sm ? sm.correct_count : 0);
+ const L4 = (S.log || []).slice(-qn), answered = L4.length ? L4.filter(x => x.x != null).length : (sm ? sm.correct_count : 0);
   const toAr = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
   const th = document.body.dataset.theme || 'mid';
   $app.innerHTML = '<div class="sh pvx">' +
@@ -4104,7 +4105,7 @@ async function tResults(classId, compId){
 }
 function renderResults(){
   const rows = RS.rows, n = rows.length;
-  const acc = r => r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) : -1;
+  const acc = r => r.rounds ? Math.round(r.correct * 100 / (r.rounds * qPer(r.cls))) : -1;
   const byPts = rows.slice().sort((x, y) => y.pts - x.pts);
   const rank = new Map(); let rk = 0, prev = null;
   byPts.forEach((r, i) => { if (r.pts !== prev) { rk = i + 1; prev = r.pts; } rank.set(r, rk); });
@@ -4169,11 +4170,11 @@ document.addEventListener('input', e => {
 ACTS['r-open'] = t => {
   const r = RS.rows.find(x => (x.cls + '|' + x.name + '|' + x.student_no) === t.dataset.k); if (!r) return;
   const sorted = RS.rows.filter(x => x.cls === r.cls).sort((x, y) => y.pts - x.pts);
-  const acc = r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) + '%' : '—';
+  const acc = r.rounds ? Math.round(r.correct * 100 / (r.rounds * qPer(r.cls))) + '%' : '—';
   const ini = r.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ');
   modal(`<div class="st-card"><div class="st-top"><div class="avatar big-av">${esc(ini)}</div><div><b>${esc(r.name)}</b><div class="sub">${esc(r.cls)} · رقم ${esc(r.student_no) || '—'}</div></div></div>
     <div class="stats"><div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? sorted.indexOf(r) + 1 : '—'}</b><span>في صفه من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>نسبة الصحيح</span></div></div>
-    <div class="sub center">${r.correct} إجابة صحيحة من ${r.rounds * 4} · ${r.played_today ? '<b style="color:#168A5B">لعب اليوم ✓</b>' : '<b style="color:#8a5a00">لم يلعب اليوم</b>'}</div>
+    <div class="sub center">${r.correct} إجابة صحيحة من ${r.rounds * qPer(r.cls)} · ${r.played_today ? '<b style="color:#168A5B">لعب اليوم ✓</b>' : '<b style="color:#8a5a00">لم يلعب اليوم</b>'}</div>
     <button class="btn" style="margin-top:14px" data-act="r-report" data-id="${r.id}" data-name="${esc(r.name)}" data-cls="${esc(r.cls)}">تقرير أداء الطالب</button><small class="sub center" style="display:block;margin-top:4px">${RS.comp ? 'يشمل جولات هذه المسابقة فقط' : 'يشمل جولات المسابقة الحالية'}</small>
     <button class="btn soft" style="margin-top:8px" data-act="r-msg" data-id="${r.id}">${ic('mail')} إرسال رسالة</button></div>`);
 };
@@ -4268,7 +4269,7 @@ ACTS['r-report-pdf'] = async t => {
 };
 ACTS['r-report-copy'] = () => { navigator.clipboard && navigator.clipboard.writeText(RS.lastText || ''); toast('تم النسخ'); };
 ACTS['t-res-export'] = async () => { await XL();
-  const rows = [['الصف', 'الاسم', 'رقم الطالب', 'النقاط', 'الجولات', 'الإجابات الصحيحة', 'نسبة الإجابات الصحيحة %', 'لعب اليوم']].concat(RS.rows.slice().sort((x, y) => y.pts - x.pts).map(r => [r.cls, r.name, r.student_no, r.pts, r.rounds, r.correct, r.rounds ? Math.round(r.correct * 100 / (r.rounds * 4)) : '', r.played_today ? 'نعم' : 'لا']));
+  const rows = [['الصف', 'الاسم', 'رقم الطالب', 'النقاط', 'الجولات', 'الإجابات الصحيحة', 'نسبة الإجابات الصحيحة %', 'لعب اليوم']].concat(RS.rows.slice().sort((x, y) => y.pts - x.pts).map(r => [r.cls, r.name, r.student_no, r.pts, r.rounds, r.correct, r.rounds ? Math.round(r.correct * 100 / (r.rounds * qPer(r.cls))) : '', r.played_today ? 'نعم' : 'لا']));
   const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'النتائج'); XLSX.writeFile(wb, 'نتائج-' + RS.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };

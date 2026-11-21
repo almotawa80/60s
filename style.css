@@ -2831,3 +2831,5 @@ body:not(.wide) .s-nav button{color:#AEAEB2;font-weight:700;font-size:13px}
 body:not(.wide) .s-nav .i{opacity:.75}
 body:not(.wide) .s-nav button.on{color:#fff}
 body:not(.wide) .s-nav button.on .i{opacity:1}
+/* v188: generic .ok/.no classes added padding to answered dots */
+html body .pv.pvx .dots .dot{padding:0!important;font-size:0!important;flex:none!important;box-sizing:border-box!important}
