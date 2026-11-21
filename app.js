@@ -2072,19 +2072,10 @@ function sheet(title, items){
   modal(`<div class="sheet">${title ? `<div class="sheet-t">${esc(title)}</div>` : ''}<div class="sheet-list">${items.map(x => x ? `<button class="sheet-i ${x.danger ? 'danger' : ''}" data-act="${x.act}" ${x.attrs || ''}>${ic(x.icon)}<span>${x.label}</span></button>` : '<div class="sheet-sep"></div>').join('')}</div>
     <button class="sheet-i sheet-cancel" data-act="close-modal">إلغاء</button></div>`);
 }
-/* v243 (Khalid 👍): classes ⋯ = 3 rows; Excel templates live inside «إضافة صفوف من Excel» */
-ACTS['c-more'] = () => sheet('الصفوف', [
-  { act: 'c-xl', icon: 'upload', label: 'إضافة صفوف من Excel' },
-  { act: 'm-run', attrs: 'data-a="c-select"', icon: 'check', label: 'تحديد صفوف' },
-  null,
-  { act: 'm-run', attrs: 'data-a="c-del-all"', icon: 'trash', label: 'حذف الصفوف', danger: true }
-]);
-ACTS['c-xl'] = () => { closeModals(); setTimeout(() => sheet('إضافة صفوف من Excel', [
-  { act: 'm-run', attrs: 'data-a="t-multi-up"', icon: 'upload', label: 'اختر ملف Excel' },
-  null,
-  { act: 'm-run', attrs: 'data-a="t-multi-sample"', icon: 'download', label: 'نموذج الصفوف' },
-  { act: 'm-run', attrs: 'data-a="t-sample-students"', icon: 'download', label: 'نموذج الطلبة' }
-]), 30); };
+/* v246 (Khalid screenshots): classes ⋯ = squares like the class ⋯ */
+const sqO = (a, e, l, x) => `<button class="st1-o${x ? ' ' + x : ''}" data-act="${a.indexOf(':') === 0 ? a.slice(1) : 'm-run'}" data-a="${a}"><span>${e}</span>${l}</button>`;
+ACTS['c-more'] = () => modal(`<div class="aw-sheet"><h3>الصفوف</h3><div class="st1-opts">${sqO('t-multi-up', '📤', 'إضافة من Excel')}${sqO(':c-xl', '📄', 'نموذج Excel')}${sqO('c-select', '☑️', 'تحديد صفوف')}${sqO('c-del-all', '🗑️', 'حذف الصفوف', 'dng')}</div></div>`);
+ACTS['c-xl'] = () => { closeModals(); setTimeout(() => modal(`<div class="aw-sheet"><h3>نموذج Excel</h3><div class="st1-opts">${sqO('t-multi-sample', '🏫', 'نموذج الصفوف')}${sqO('t-sample-students', '👥', 'نموذج الطلبة')}</div></div>`), 30); };
 /* v120: class ⋯ = six squares, like the student card */
 ACTS['c-cmore'] = t => { const c = ctx(t); const sq = (a, e, l, x) => `<button class="st1-o${x ? ' ' + x : ''}" data-act="m-run" data-a="${a}" data-cid="${c.id}"><span>${e}</span>${l}</button>`;
   modal(`<div class="aw-sheet"><h3>${esc(c.name)}</h3><div class="st1-opts">${sq('t-print-codes', '🖨️', 'طباعة البطاقات')}${sq('c-menu', '⚙️', 'إعدادات الصف')}${sq('c-promote', '🎓', 'ترقية للصف التالي')}${sq('t-export-codes', '📥', 'الرموز Excel')}${sq('c-archive', '📦', 'أرشفة الصف')}${sq('c-del', '🗑️', 'حذف الصف', 'dng')}</div></div>`); };
