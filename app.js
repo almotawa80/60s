@@ -1666,8 +1666,8 @@ function obStep(n){
     const row = (k, l, v) => `<button class="obr-row" data-act="ob-row" data-q="${k}"><span>${l}</span><b>${esc(v || '—')}</b><i>تعديل</i></button>`;
     const cn = obClasses().map(x => x.name).join('، ');
     b = `<div class="obr-hero"><div class="obr-stars">⭐${'⭐'.repeat(Q - 1)}</div><h2>مثالي! هذا ملفك 🏆</h2><p>اضغط على أي سطر تبي تعدله</p></div>
-      <div class="obr-sum">${row(1, 'المرحلة', [...OB.st].join('، '))}${row(2, 'المادة', [...OB.sj].join('، '))}${OB.hasCls ? '' : row(3, 'الصفوف', cn)}</div>
-      ${OB.more ? `<div class="obr-more"><label for="ob-school">المدرسة</label><input class="input ob-in" id="ob-school" maxlength="80" placeholder="اسم المدرسة" value="${esc(OB.school)}"><label>المنطقة</label><div class="ob-g g3">${OB_DIST.map(v => tile(OB.d === v, v, '', 'ob-dist')).join('')}</div></div>` : `<button class="btn soft" data-act="ob-more">المزيد ⋯ <small class="muted">المدرسة والمنطقة</small></button>`}
+      <div class="obr-sum">${row(1, 'المرحلة', [...OB.st].join('، '))}${row(2, 'المادة', [...OB.sj].join('، '))}</div>
+      ${OB.hasCls ? '' : `<div class="obr-cls"><span>صفوفك</span><div>${OB.grs.map((g, k) => `<button class="obr-cl" data-act="ob-grx" data-k="${k}">${esc(cnameOf(g.st, g.g, ''))} <i>✕</i></button>`).join('')}<button class="obr-cl add" data-act="ob-row" data-q="3">＋ أضف</button></div></div>`}
       <button class="btn obr-go" data-act="ob-finish">${OB.hasCls ? 'تمام 👍' : 'تمام، ادعُ طلابك 📲'}</button>`;
   }
   if (n === 6 && OB.made && OB.made.length > 1) {
@@ -1697,6 +1697,7 @@ ACTS['ob-back'] = () => { if (OB.n > 1) { OB.edit = false; OB.redo = false; obSt
 ACTS['ob-gr'] = t => { const g = obGrades()[+t.dataset.k]; if (!g) return; const i = OB.grs.findIndex(x => x.st === g.st && x.g === g.g); i >= 0 ? OB.grs.splice(i, 1) : OB.grs.push(g); haptic(); obStep(3); };
 ACTS['ob-sec'] = t => { const v = t.dataset.v || ''; if (!v) return obAns(); OB.secs.has(v) ? OB.secs.delete(v) : OB.secs.add(v); haptic(); obStep(4); };
 ACTS['ob-row'] = t => { const k = +t.dataset.q; OB.edit = k !== 1; OB.redo = k === 1; obStep(k); };
+ACTS['ob-grx'] = t => { if (OB.grs.length <= 1) return toast('لازم صف واحد على الأقل'); OB.grs.splice(+t.dataset.k, 1); haptic(); obStep(5); };
 ACTS['ob-more'] = () => { OB.more = true; obStep(5); };
 ACTS['ob-dist'] = t => { const sc = document.getElementById('ob-school'); if (sc) OB.school = sc.value; OB.d = OB.d === t.dataset.v ? '' : t.dataset.v; obStep(5); };
 document.addEventListener('input', e => { if (e.target.id === 'ob-school') OB.school = e.target.value; });

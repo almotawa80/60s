@@ -3424,3 +3424,9 @@ a.btn{text-decoration:none}
 .obr-cr{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border-radius:14px;padding:10px 12px}
 .obr-cr b{flex:1;text-align:start}
 .obr-cr span{font-weight:800;letter-spacing:1px}
+.obr-cls{width:100%;text-align:start}
+.obr-cls>span{display:block;font-size:13px;opacity:.75;margin:4px 4px 8px}
+.obr-cls>div{display:flex;flex-wrap:wrap;gap:8px}
+.obr-cl{border:0;border-radius:12px;padding:9px 12px;background:rgba(255,255,255,.12);color:inherit;font:inherit;font-weight:700;font-size:15px;cursor:pointer}
+.obr-cl i{font-style:normal;opacity:.6;margin-inline-start:4px;font-size:12px}
+.obr-cl.add{background:none;border:1.5px dashed rgba(255,255,255,.35)}
