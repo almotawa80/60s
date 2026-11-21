@@ -2919,3 +2919,11 @@ html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(4)::bef
 html body .cin-n[data-n="3"]{color:#FF453A!important;text-shadow:0 0 40px rgba(255,69,58,.45)}
 html body .cin-n[data-n="2"]{color:#FFD60A!important;text-shadow:0 0 40px rgba(255,214,10,.4)}
 html body .cin-n[data-n="1"]{color:#30D158!important;text-shadow:0 0 40px rgba(48,209,88,.45)}
+
+/* v210 centred small dialog (push prompt), like iOS system alerts */
+.modal-back.mid{align-items:center;padding:24px}
+.modal-back.mid .modal{max-width:320px;border-radius:22px;padding:26px 20px 18px;margin-bottom:0;animation:midIn .22s cubic-bezier(.2,.9,.3,1.2)}
+.modal-back.mid .modal-x{display:none}
+.modal-back.mid .lvl-up{font-size:44px;margin-bottom:4px}
+.modal-back.mid .btn{width:100%;margin-top:8px}
+@keyframes midIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
