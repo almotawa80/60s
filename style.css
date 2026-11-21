@@ -3484,3 +3484,7 @@ html body:not(.wide)[data-theme] .input,html body:not(.wide)[data-theme] select.
 html body:not(.wide)[data-theme] .input:focus{border-color:#C8102E}
 html body:not(.wide)[data-theme] .input::placeholder{color:#8E8E93}
 .jn-hint{color:#FF9F0A;font-size:14px;text-align:center;margin-top:-4px}
+/* v294 arena search: seconds counter + cancel */
+.ar-fs{font-size:34px;font-weight:900;color:#F5F5F7;font-variant-numeric:tabular-nums;line-height:1}
+.ar-fs::after{content:" ث";font-size:15px;color:#98989F}
+.ar-find .ar-fx{width:auto;padding-inline:34px;margin-top:10px}

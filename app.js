@@ -723,11 +723,18 @@ function arDraw(){
 ACTS['ar-play'] = async t => {
   if (AR.busy || S.demo) return; AR.busy = true; const g = ++AR.gen, s = t.dataset.s; stopTimer(); closeModals();
   const h = AR.h || {};
-  $app.innerHTML = '<div class="sh pvx ar-find"><div class="ar-radar"><i></i><i></i><span class="sweep"></span>' + arAv(h.avatar, h.nick, '', h.av) + '</div><h2>ندوّر لك خصم…</h2><p>' + esc(arSubj(s).n) + ' · قريب من مستواك</p></div>';
+  $app.innerHTML = '<div class="sh pvx ar-find"><div class="ar-radar"><i></i><i></i><span class="sweep"></span>' + arAv(h.avatar, h.nick, '', h.av) + '</div><h2>ندوّر لك خصم…</h2><p id="ar-fp">' + esc(arSubj(s).n) + ' · قريب من مستواك</p><b class="ar-fs" id="ar-fs">0</b><button class="btn ghost ar-fx" data-act="ar-cancel">إلغاء</button></div>';
   try {
-    const got = await Promise.all([rpc('arena_start', { p_token: S.token, p_subject: s }), new Promise(z => setTimeout(z, 3200 + Math.random() * 2300))]);
+    /* the search takes 10 to 25 seconds, like a real queue; the round is only created once it ends, so cancelling costs nothing */
+    const wait = 10000 + Math.random() * 15000, t0 = performance.now(), msgs = [esc(arSubj(s).n) + ' · قريب من مستواك', 'نطابق المستوى…', 'ندوّر بين اللاعبين…', 'قربنا…'];
+    await new Promise(z => { const iv = setInterval(() => { const el = performance.now() - t0, n = document.getElementById('ar-fs'), fp = document.getElementById('ar-fp');
+      if (AR.gen !== g || !n) { clearInterval(iv); return z(); }
+      n.textContent = Math.floor(el / 1000); fp.innerHTML = msgs[Math.min(msgs.length - 1, Math.floor(el / wait * msgs.length))];
+      if (el >= wait) { clearInterval(iv); z(); } }, 250); });
     if (AR.gen !== g) return;
-    { const hh = document.querySelector('.ar-find h2'); if (hh) { hh.textContent = 'لقينا لك خصم! ⚔️'; FX.tick && FX.tick(true); haptic(); await new Promise(z => setTimeout(z, 900)); if (AR.gen !== g) return; } }
+    const got = [await rpc('arena_start', { p_token: S.token, p_subject: s })];
+    if (AR.gen !== g) return;
+    { const hh = document.querySelector('.ar-find h2'), fp = document.getElementById('ar-fp'), fx = document.querySelector('.ar-fx'); if (hh) { hh.textContent = 'لقينا لك خصم! ⚔️'; if (fp) fp.textContent = (got[0].opp.name || '') + ' · مستوى ' + got[0].opp.lvl; if (fx) fx.remove(); FX.tick && FX.tick(true); haptic(); await new Promise(z => setTimeout(z, 1100)); if (AR.gen !== g) return; } }
     AR.r = Object.assign(got[0], { pos: 0, me: [], op: [], emoN: 3, q: got[0].question });
     await arVs(g); if (AR.gen !== g) return;
     arQ();
@@ -772,6 +779,7 @@ function arQ(){
   const oa = (r.opp.ans || [])[r.pos]; if (oa) AR.ot = setTimeout(() => { if (AR.gen !== g || r.op[r.pos] !== undefined) return; r.op[r.pos] = !!oa.ok; arTug(); }, Math.max(800, oa.t * 1000));
 }
 ACTS['ar-ans'] = t => { if (AR.lock) return; AR.lock = true; AR.tm = null; arSubmit(Number(t.dataset.idx)); };
+ACTS['ar-cancel'] = () => { AR.gen++; AR.busy = false; arHome(); };
 ACTS['ar-quit'] = async () => { if (!await ask('الجولة ما تنحسب لك.', { title: 'الخروج من الجولة؟', ok: 'خروج', cancel: 'أكمل الجولة', danger: true, safe: true })) return; AR.gen++; AR.tm = null; clearTimeout(AR.ot); arHome(); };
 async function arSubmit(idx){
   const r = AR.r, g = AR.gen, pos = r.pos; AR.tm = null;
