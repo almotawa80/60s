@@ -900,7 +900,7 @@ function arWait(){ const r = AR.r; r.waiting = true;
 function arResult(sm){
   const r = AR.r, g = ++AR.gen, b = sm.before, a = sm.after, SEG = 14, f0 = Math.round(b.into / b.need * SEG), f1 = sm.up ? SEG : Math.round(a.into / a.need * SEG);
   r.done = true;
-  const head = { win: 'فزت بالشدّة!', draw: 'تعادل!', lose: 'قربت، الجاية لك' }[sm.result];
+  const head = { win: 'فزت! 🏆', draw: 'تعادل!', lose: 'قربت، الجاية لك' }[sm.result];
   $app.innerHTML = '<div class="sh pvx ar-res">' + arTugHtml() + '<h1>' + head + '</h1>' +
     '<div class="ar-gain"><span id="ar-gn">+0</span> <small>نقطة</small></div>' +
     '<div class="ar-rows"><div><span>إجابات صح (' + sm.me + ' من ' + r.nq + ')</span><b>+' + sm.correct_pts + '</b></div><div><span>سرعة</span><b>+' + sm.speed_pts + '</b></div><div><span>' + { win: 'فوز', draw: 'تعادل', lose: 'مشاركة' }[sm.result] + '</span><b>+' + sm.bonus + '</b></div></div>' +
