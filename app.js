@@ -2067,17 +2067,19 @@ function sheet(title, items){
   modal(`<div class="sheet">${title ? `<div class="sheet-t">${esc(title)}</div>` : ''}<div class="sheet-list">${items.map(x => x ? `<button class="sheet-i ${x.danger ? 'danger' : ''}" data-act="${x.act}" ${x.attrs || ''}>${ic(x.icon)}<span>${x.label}</span></button>` : '<div class="sheet-sep"></div>').join('')}</div>
     <button class="sheet-i sheet-cancel" data-act="close-modal">إلغاء</button></div>`);
 }
+/* v243 (Khalid 👍): classes ⋯ = 3 rows; Excel templates live inside «إضافة صفوف من Excel» */
 ACTS['c-more'] = () => sheet('الصفوف', [
-  { act: 'm-run', attrs: 'data-a="t-multi-up"', icon: 'upload', label: 'رفع صفوف من Excel' },
-  { act: 'm-run', attrs: 'data-a="t-multi-sample"', icon: 'download', label: 'تنزيل نموذج الصفوف' },
-  { act: 'm-run', attrs: 'data-a="t-sample-students"', icon: 'download', label: 'تنزيل نموذج الطلبة' },
-  null,
-  { act: 'm-run', attrs: 'data-a="c-all"', icon: 'layers', label: CL.open.size ? 'طي كل الصفوف' : 'فتح كل الصفوف' },
+  { act: 'c-xl', icon: 'upload', label: 'إضافة صفوف من Excel' },
   { act: 'm-run', attrs: 'data-a="c-select"', icon: 'check', label: 'تحديد صفوف' },
-  { act: 'm-run', attrs: 'data-a="c-export-all"', icon: 'download', label: 'تصدير رموز كل الصفوف' },
   null,
-  { act: 'm-run', attrs: 'data-a="c-del-all"', icon: 'trash', label: 'حذف جميع الصفوف', danger: true }
+  { act: 'm-run', attrs: 'data-a="c-del-all"', icon: 'trash', label: 'حذف الصفوف', danger: true }
 ]);
+ACTS['c-xl'] = () => { closeModals(); setTimeout(() => sheet('إضافة صفوف من Excel', [
+  { act: 'm-run', attrs: 'data-a="t-multi-up"', icon: 'upload', label: 'اختر ملف Excel' },
+  null,
+  { act: 'm-run', attrs: 'data-a="t-multi-sample"', icon: 'download', label: 'نموذج الصفوف' },
+  { act: 'm-run', attrs: 'data-a="t-sample-students"', icon: 'download', label: 'نموذج الطلبة' }
+]), 30); };
 /* v120: class ⋯ = six squares, like the student card */
 ACTS['c-cmore'] = t => { const c = ctx(t); const sq = (a, e, l, x) => `<button class="st1-o${x ? ' ' + x : ''}" data-act="m-run" data-a="${a}" data-cid="${c.id}"><span>${e}</span>${l}</button>`;
   modal(`<div class="aw-sheet"><h3>${esc(c.name)}</h3><div class="st1-opts">${sq('t-print-codes', '🖨️', 'طباعة البطاقات')}${sq('c-menu', '⚙️', 'إعدادات الصف')}${sq('c-promote', '🎓', 'ترقية للصف التالي')}${sq('t-export-codes', '📥', 'الرموز Excel')}${sq('c-archive', '📦', 'أرشفة الصف')}${sq('c-del', '🗑️', 'حذف الصف', 'dng')}</div></div>`); };
