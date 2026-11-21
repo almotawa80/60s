@@ -1623,7 +1623,10 @@ function nwLesSheet(cu){ const ls = CFL[cu] || [], on = nwLesOn(cu), all = on.si
     <div class="nw-ls-list">${ls.map(([l], i) => `<button type="button" class="nw-ls-r${on.has(l) ? ' on' : ''}" data-act="nw-les-t" data-cu="${cu}" data-i="${i}"><span class="nw-ls-c">${ic('check')}</span><span class="grow">${esc(l)}</span><small>${i + 1}</small></button>`).join('')}</div>
     <button class="btn" data-act="nw-les-done" ${on.size ? '' : 'disabled'}>تم</button></div>`; }
 function nwLesSet(cu, set){ const ls = CFL[cu] || []; NW.les = NW.les || {}; NW.les[cu] = set.size === ls.length ? null : ls.map(x => x[0]).filter(l => set.has(l));
-  const m = document.querySelector('.nw-ls'); if (m) m.outerHTML = nwLesSheet(cu);
+  const m = document.querySelector('.nw-ls'); if (m) { /* v244: update in place so the sheet doesn't jump to the top */
+    const on = nwLesOn(cu); m.querySelectorAll('.nw-ls-r').forEach(r => { const x = ls[Number(r.dataset.i)]; r.classList.toggle('on', !!x && on.has(x[0])); });
+    const a = m.querySelector('.nw-ls-all'); if (a) a.textContent = on.size === ls.length ? 'إلغاء الكل' : 'الكل';
+    const d = m.querySelector('[data-act="nw-les-done"]'); if (d) d.disabled = !on.size; }
   const v = document.querySelector('[data-act="nw-les"][data-cu="' + cu + '"] .nw-v'), n = NW.les[cu] ? NW.les[cu].length : 0; if (v) v.textContent = n ? n + ' من ' + ls.length : 'كلها (' + ls.length + ')'; }
 /* lessons saved on the challenge: null if every chosen subject is «all», else the union (all lessons for untouched subjects) */
 function nwLesSave(cus){ const parts = cus.map(cu => nwLesGet(cu)); if (!parts.some(Boolean)) return null;
