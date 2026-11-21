@@ -2953,11 +2953,11 @@ body.wide.dark .t-nav a.t-sq:not(.on):not(.hover) .nav-sq circle{fill:#7C7C80}
 body.wide.dark .t-nav a.t-sq:not(.on):not(.hover) .nav-sq{--nsq:#48484A}
 /* v217: student home tab = squares only (no label), same height as icon+label, grey until selected */
 html body .s-nav .i.sq{filter:none!important;opacity:1!important}
-html body .s-nav .i.sq .nav-sq{width:44px;height:44px}
+html body .s-nav .i.sq .nav-sq{width:50px;height:50px}
 .s-nav .nav-sq circle{transition:fill .3s}
 .s-nav button:not(.on) .nav-sq circle{fill:#7C7C80}
 /* v217: student home tab = squares only (no label), same height as icon+label, grey until selected */
 html body .s-nav .i.sq{filter:none!important;opacity:1!important}
-html body .s-nav .i.sq .nav-sq{width:44px;height:44px}
+html body .s-nav .i.sq .nav-sq{width:50px;height:50px}
 .s-nav .nav-sq circle{transition:fill .3s}
 .s-nav button:not(.on) .nav-sq circle{fill:#7C7C80}
