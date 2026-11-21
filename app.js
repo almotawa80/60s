@@ -1369,7 +1369,7 @@ const NAV_LN = {"home": '<svg class="nav-ln" viewBox="0 0 24 24" aria-hidden="tr
 const NAV_SQ = '<img class="nav-sq" src="nav-watch.png?i=1" alt="" draggable="false" decoding="sync">';
 try { const _nw = new Image(); _nw.src = 'nav-watch.png?i=1'; window._nw = _nw; if (_nw.decode) _nw.decode().catch(() => {}); } catch (e) {}
 const NB = (() => { try { return JSON.parse(LS.get('mc_nb') || '{}') || {}; } catch (e) { return {}; } })();
-const nbHtml = k => (k === 'home' || k === 'classes') ? `<em class="nb" data-nb="${k}"${NB[k] ? '' : ' hidden'}>${NB[k] > 99 ? '99+' : (NB[k] || '')}</em>` : '';
+const nbHtml = k => (k === 'classes') ? `<em class="nb" data-nb="${k}"${NB[k] ? '' : ' hidden'}>${NB[k] > 99 ? '99+' : (NB[k] || '')}</em>` : '';
 function nbSet(k, n){ NB[k] = n || 0; LS.set('mc_nb', JSON.stringify(NB)); document.querySelectorAll('.nb[data-nb="' + k + '"]').forEach(e => { e.hidden = !NB[k]; e.textContent = NB[k] > 99 ? '99+' : (NB[k] || ''); }); }
 let NB_T = 0;
 function nbPending(){ if (Date.now() - NB_T < 60000 || !T.user) return; NB_T = Date.now(); ntLoad();
