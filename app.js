@@ -6211,5 +6211,9 @@ document.addEventListener('change', e => { const i = e.target; if (!i.closest ||
   addEventListener('click', e => { const b = e.target.closest && e.target.closest('.t-nav > a, .s-nav > button'); if (!b || !on) return; on = false;
     if ($app.querySelector('.s-back, :scope > .t-top .back-btn')) { e.preventDefault(); e.stopImmediatePropagation(); return goBack(); }
     if (scrollY < 10) return;
-    e.preventDefault(); e.stopImmediatePropagation(); scrollTo({ top: 0, behavior: 'smooth' }); }, true);
+    e.preventDefault(); e.stopImmediatePropagation(); upSlow(); }, true);
+  function upSlow(){ const y0 = scrollY, d = Math.min(900, 380 + y0 * .25), t0 = performance.now(); let stop = false;
+    const halt = () => { stop = true; }; addEventListener('touchstart', halt, { once: true, passive: true });
+    const f = t => { if (stop) return; const k = Math.min(1, (t - t0) / d), e2 = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; scrollTo(0, Math.round(y0 * (1 - e2))); if (k < 1) requestAnimationFrame(f); else removeEventListener('touchstart', halt); };
+    requestAnimationFrame(f); }
 })();
