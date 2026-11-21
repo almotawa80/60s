@@ -1128,12 +1128,12 @@ function viewRaw(title, body, active, top, back){
     const tmp = document.createElement('div'); tmp.innerHTML = shell(title, body, active, top, back);
     oldTop.replaceWith(tmp.querySelector('.t-top')); oldBody.replaceWith(tmp.querySelector('.t-body'));
     nav.querySelectorAll('a').forEach((a, j) => a.classList.toggle('on', j === i0));
-    const lens = nav.querySelector('.lens'); if (lens) { lens.style.opacity = i0 < 0 || active === 'new' ? '0' : ''; lens.style.setProperty('--i', i); }
+    const lens = nav.querySelector('.lens'); if (lens) { lens.style.opacity = i0 < 0 ? '0' : ''; lens.style.setProperty('--i', i); }
     NAVI.prev = i; window.scrollTo(0, 0); return;
   }
   $app.innerHTML = shell(title, body, active, top, back); window.scrollTo(0, 0);
   const lens = $app.querySelector('.lens');
-  if (lens && (i0 < 0 || active === 'new')) lens.style.opacity = '0';
+  if (lens && i0 < 0) lens.style.opacity = '0';
   if (lens) requestAnimationFrame(() => requestAnimationFrame(() => { lens.style.setProperty('--i', i); NAVI.prev = i; }));
 }
 /* liquid-glass lens: drag across the tab bar */

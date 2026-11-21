@@ -2945,3 +2945,9 @@ body.wide.dark .t-nav .nb{box-shadow:0 0 0 2px #1C1C1E}
 /* v214: squares centred vertically in the bar, colour corners a bit bigger */
 html body .t-nav a.t-sq{align-self:stretch!important;justify-content:center!important;padding:0!important;margin:0!important}
 html body .t-nav a.t-sq .nav-sq{width:46px;height:46px}
+/* v216 (Khalid): lens also on «تحدي»; squares grey until selected (lens on it), then colours appear */
+.t-nav .nav-sq circle{transition:fill .3s}
+.t-nav a.t-sq:not(.on):not(.hover) .nav-sq circle{fill:#8E8E93}
+body.wide.dark .t-nav a.t-sq:not(.on):not(.hover) .nav-sq circle{fill:#7C7C80}
+.t-nav a.t-sq:not(.on):not(.hover) .nav-sq{--nsq:#C7C7CC}
+body.wide.dark .t-nav a.t-sq:not(.on):not(.hover) .nav-sq{--nsq:#48484A}
