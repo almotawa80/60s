@@ -6199,3 +6199,10 @@ document.addEventListener('change', e => { const i = e.target; if (!i.closest ||
   };
   document.addEventListener('touchend', end); document.addEventListener('touchcancel', end);
 })();
+/* v346: tap the active tab while scrolled down → smooth scroll to top (iOS style) */
+(() => { let on = false;
+  addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('.t-nav > a, .s-nav > button'); on = !!(b && b.classList.contains('on')); }, true);
+  addEventListener('click', e => { const b = e.target.closest && e.target.closest('.t-nav > a, .s-nav > button'); if (!b || !on) return; on = false;
+    if (scrollY < 10 || $app.querySelector('.s-back, :scope > .t-top .back-btn')) return;
+    e.preventDefault(); e.stopImmediatePropagation(); scrollTo({ top: 0, behavior: 'smooth' }); }, true);
+})();
