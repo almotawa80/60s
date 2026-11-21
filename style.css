@@ -3009,3 +3009,11 @@ html body .t-nav,html body .s-nav{transition:scale .45s cubic-bezier(.25,1.2,.4,
 html body .t-nav:has(.lens.drag),html body .s-nav:has(.lens.drag){scale:1.008 1.012}
 html body .t-nav.bump,html body .s-nav.bump{animation:navBump2 .6s cubic-bezier(.25,.9,.35,1)}
 @keyframes navBump2{0%{scale:1}35%{scale:1.012 .985}70%{scale:.997 1.004}100%{scale:1}}
+/* v227: teacher glass as clear as the student one (dark rest tint was winning); student emoji icons follow the lens */
+html body.wide .t-nav .lens.drag,html body.wide .t-nav .lens.move,html body.wide.dark .t-nav .lens.drag,html body.wide.dark .t-nav .lens.move{background:rgba(0,0,0,.18)!important}
+html body .s-nav button .i{transition:filter .2s,opacity .2s,transform .25s cubic-bezier(.3,1.4,.5,1)}
+html body .s-nav button.on .i{filter:none!important;opacity:1!important}
+html body .s-nav:has(.lens.drag) button.on:not(.hover) .i{filter:grayscale(1)!important;opacity:.6!important}
+html body .s-nav:has(.lens.drag) button.hover .i{filter:none!important;opacity:1!important}
+html body .s-nav:has(.lens.drag) button.on:not(.hover){color:#AEAEB2!important}
+html body .s-nav:has(.lens.drag) button.hover{color:#fff!important}
