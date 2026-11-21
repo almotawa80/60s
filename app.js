@@ -1616,7 +1616,8 @@ function nwLesSheet(cu){ const ls = CFL[cu] || [], on = new Set(NW.lessons && NW
     <div class="nw-ls-list">${ls.map(([l], i) => `<button type="button" class="nw-ls-r${on.has(l) ? ' on' : ''}" data-act="nw-les-t" data-cu="${cu}" data-i="${i}"><span class="nw-ls-c">${ic('check')}</span><span class="grow">${esc(l)}</span><small>${i + 1}</small></button>`).join('')}</div>
     <button class="btn" data-act="nw-les-done" ${on.size ? '' : 'disabled'}>تم</button></div>`; }
 function nwLesSet(cu, set){ const ls = CFL[cu] || []; NW.lessons = set.size === ls.length ? null : ls.map(x => x[0]).filter(l => set.has(l));
-  const m = document.querySelector('.nw-ls'); if (m) m.outerHTML = nwLesSheet(cu); }
+  const m = document.querySelector('.nw-ls'); if (m) m.outerHTML = nwLesSheet(cu);
+  const v = document.querySelector('[data-act="nw-les"] .nw-v'), n = NW.lessons ? NW.lessons.length : 0; if (v) v.textContent = n ? n + ' من ' + ls.length : 'كلها (' + ls.length + ')'; }
 const nwLesOn = cu => new Set(NW.lessons && NW.lessons.length ? NW.lessons : (CFL[cu] || []).map(x => x[0]));
 ACTS['nw-les'] = t => modal(nwLesSheet(t.dataset.cu));
 ACTS['nw-les-all'] = t => { const cu = t.dataset.cu, ls = CFL[cu] || [], on = nwLesOn(cu); nwLesSet(cu, on.size === ls.length ? new Set() : new Set(ls.map(x => x[0]))); };

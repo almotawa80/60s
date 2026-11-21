@@ -3050,3 +3050,6 @@ html body.wide .t-body{padding-bottom:calc(130px + env(safe-area-inset-bottom))}
 .nw-ls .btn{width:100%}
 /* v234 (Khalid): less empty space under the tab bars, still clear of the home bar */
 html body .t-nav,html body .s-nav{bottom:max(10px, calc(env(safe-area-inset-bottom, 0px) - 6px))!important}
+/* v235: keep «الكل» clear of the sheet's ✕ */
+.nw-ls-h{padding-left:52px}
+.nw-ls .sub{margin:6px 0 0}
