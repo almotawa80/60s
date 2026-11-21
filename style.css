@@ -3070,8 +3070,8 @@ html body.wide.dark .modal{background:#1C1C1E}
 .rl-pc .rl-n{width:24px;height:24px;border-radius:50%;border:2px solid #C7C7CC;flex:none;box-sizing:border-box}
 .rl-pc.on{border-color:#C8102E}.rl-pc.on .rl-n{border:7px solid #C8102E}
 .rl-more{align-self:center;margin:-6px auto 0;display:block;border:0;background:none;color:#C8102E;font:inherit;font-weight:800;font-size:14px;padding:6px 12px}
-.rl-row{padding:10px 14px;display:flex;flex-direction:column;gap:8px}.rl-row>span{font-size:16px;font-weight:700}
-.set-grp .rl-row+.rl-row,.set-grp .rl-row+.set-row,.set-grp .set-row+.rl-row{border-top:.5px solid var(--line)}
+.rl2-row{padding:10px 14px;display:flex;flex-direction:column;gap:8px}.rl2-row>span{font-size:16px;font-weight:700}
+.set-grp .rl2-row+.rl2-row,.set-grp .rl2-row+.set-row,.set-grp .set-row+.rl2-row{border-top:.5px solid var(--line)}
 .rl-sg{display:flex;background:rgba(120,120,128,.14);border-radius:10px;padding:2px}
 .rl-sg button{flex:1;border:0;background:none;font:inherit;font-weight:700;font-size:13.5px;padding:7px 4px;border-radius:8px;color:var(--ink)}
 .rl-sg button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.15)}
@@ -3115,3 +3115,5 @@ a.btn:not(.soft):not(.ghost),a.btn.h-go{color:#fff!important;opacity:1!important
 .modal .aw-opt small{color:var(--muted)}
 .q5-oth{margin-top:14px}.q5-oth-sq .q5-sb{opacity:.75}
 .q5-hint{font-size:13.5px;font-weight:600;color:var(--muted);margin:-4px 2px 10px;line-height:1.6}
+.rl2-row{align-items:stretch;text-align:right}.rl2-row>span{text-align:right}
+.rl2-row .rl-sg{width:100%}.rl-sg button{white-space:nowrap;font-size:13px;padding:8px 2px}

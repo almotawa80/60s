@@ -4672,9 +4672,9 @@ function tRules(){
     (RL.adv ? sGrp('', [swRow({ k: 'pts_auto', re: 1, label: 'تلقائي', sub: 'سهل 15 · متوسط 30 · صعب 45' }), numRow('pts_e', 'سهل', auto), numRow('pts_m', 'متوسط', auto), numRow('pts_h', 'صعب', auto),
       sc !== 'correct' ? numRow('speed_pct', 'مكافأة السرعة') : '', sc === 'penalty' ? numRow('pen_pct', 'خصم الخطأ') : '']) : '') +
     `<div class="set-h">الترتيب عند الطلاب</div><div class="set-grp">
-      <div class="rl-row"><span>يشوف الطالب</span>${seg('lb', lb, [['all', 'كل الصف'], ['top', 'الأوائل بس'], ['hidden', 'ترتيبه بس']])}</div>
+      <div class="rl2-row"><span>يشوف الطالب</span>${seg('lb', lb, [['all', 'كل الصف'], ['top', 'الأوائل بس'], ['hidden', 'ترتيبه بس']])}</div>
       ${lb === 'top' ? numRow('lb_n', 'عدد الأوائل') + swRow({ k: 'lb_me', label: 'يشوف ترتيبه دائماً', sub: 'حتى لو مو من الأوائل' }) : ''}
-      <div class="rl-row"><span>الأسماء</span>${seg('names', nm, [['full', 'محمد أحمد العلي'], ['first_fam', 'محمد ع.'], ['first', 'محمد']])}</div>
+      <div class="rl2-row"><span>الأسماء</span>${seg('names', nm, [['full', 'محمد أحمد العلي'], ['first_fam', 'محمد ع.'], ['first', 'محمد']])}</div>
       ${swRow({ k: 'lb_pts', label: 'إظهار نقاط الآخرين' })}
       ${sRow({ act: 'go', attrs: 'data-h="#/t/tb"', label: 'إذا تساووا بالنقاط', val: esc(TBL[tbk[0]][0] + '، ثم ' + TBL[tbk[1]][0]) })}
     </div>`,
