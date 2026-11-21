@@ -252,12 +252,17 @@ function profs(){ try { return JSON.parse(LS.get('mc_profiles') || '[]').filter(
 function profSave(a){ LS.set('mc_profiles', JSON.stringify(a.slice(0, 8))); }
 function profAdd(p){ const a = profs().filter(x => x.token !== p.token && !(p.code && x.code === p.code)); a.unshift(p); profSave(a); S.token = p.token; LS.set('mc_token', p.token); if (p.code) LS.set('mc_code', p.code); }
 function devId(){ let d = LS.get('mc_dev'); if (!d) { d = Math.random().toString(36).slice(2) + Date.now().toString(36); LS.set('mc_dev', d); } return d; }
+const nmKey = s => String(s || '').replace(/[ًٌٍَُِّْـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim();
+/* v340: the same student in several classes (several teachers) = one person */
+function profSame(name){ const k = nmKey(name); return profs().filter(p => k && nmKey(p.name) === k); }
 function profPicker(){
-  const a = profs(); if (!a.length) return '';
-  return '<div class="card col who-pick"><b style="font-size:20px">مين يلعب؟</b>' + a.map((p, i) =>
-    '<button class="who-b" data-act="s-pick" data-i="' + i + '"><span class="av">' + esc(String(p.name || '؟').trim().charAt(0)) + '</span><span class="grow"><b>' + esc(p.name || 'طالب') + '</b><small>' + esc(p.cls || '') + '</small></span><span aria-hidden="true">‹</span></button>').join('') + '</div>';
+  const seen = {}, a = [];
+  profs().forEach(p => { const k = nmKey(p.name) || p.token; if (seen[k]) { if (p.cls) seen[k].cls = (seen[k].cls ? seen[k].cls + ' · ' : '') + p.cls; return; } seen[k] = Object.assign({}, p); a.push(seen[k]); });
+  if (!a.length) return '';
+  return '<div class="card col who-pick"><b style="font-size:20px">مين يلعب؟</b>' + a.map(p =>
+    '<button class="who-b" data-act="s-pick" data-t="' + esc(p.token) + '"><span class="av">' + esc(String(p.name || '؟').trim().charAt(0)) + '</span><span class="grow"><b>' + esc(p.name || 'طالب') + '</b><small>' + esc(p.cls || '') + '</small></span><span aria-hidden="true">‹</span></button>').join('') + '</div>';
 }
-ACTS['s-pick'] = t => { const p = profs()[+t.dataset.i]; if (!p) return; S.token = p.token; LS.set('mc_token', p.token); if (p.code) LS.set('mc_code', p.code); loadHome(); };
+ACTS['s-pick'] = t => { const p = profs().find(x => x.token === t.dataset.t); if (!p) return; S.token = p.token; LS.set('mc_token', p.token); if (p.code) LS.set('mc_code', p.code); loadHome(); };
 ACTS['s-switch'] = () => { closeModals(); LS.del('mc_token'); S.token = null; S.home = null; studentLogin(); };
 ACTS['s-logout'] = () => { profSave(profs().filter(p => p.token !== S.token)); LS.del('mc_token'); try { sessionStorage.removeItem('mc_token'); } catch(e){} S.token = null; S.home = null; studentLogin(); };
 
@@ -378,11 +383,11 @@ function renderHomeP(){
     '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
     '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
     '</div></div>' +
-    pills + '<div class="sp-mid">' + mid + '</div>' +
+    pills + '<div class="sp-mid">' + mid + '</div><div id="my-subj"></div>' +
     '<div class="sp-low"><button class="sp-prac" data-act="s-start" data-kind="practice"><span>🎯</span>تدرّب بدون نقاط</button>' +
     '</div></div>' + sNav('home');
   startCountdown();
-  if (!S.demo) loadDaily();
+  if (!S.demo) { loadDaily(); subjLoad(); }
   if (h.played_today && !S.demo && pushBtn() && !LS.get('mc_push_ask')) { LS.set('mc_push_ask', '1'); setTimeout(() => modal('<div class="s-avs center"><div class="lvl-up">🔔</div><h3>تبي نذكّرك؟</h3><p class="sub">نرسل لك تذكير وحد باليوم إذا ما لعبت، ورسائل معلمك توصلك على طول. وما فيه شي بالليل.</p><button class="btn" data-act="s-push">فعّل الإشعارات</button><button class="btn soft" data-act="close-modal">مو الحين</button></div>').classList.add('mid'), 1500); }
   if (!h.played_today && h.rank > 1 && h.gap > 0 && !S.demo) rpc('class_leaderboard', { p_token: S.token }).then(lb => {
     const rows = Array.isArray(lb) ? lb : (lb && lb.rows) || [], me = rows.find(r => r.is_me), above = me && rows.filter(r => r.rank < me.rank).sort((a, b) => b.rank - a.rank)[0];
@@ -474,6 +479,22 @@ async function loadDaily(){
     if (done && !LS.get('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString())) { LS.set('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString(), '1'); setTimeout(() => FX.win(false), 400); }
   }
 }
+/* v340 «موادي اليوم»: same student in several classes on this device → one list, tap a subject to play it */
+function resKey(tok){ return 'mc_res_' + String(tok).slice(0, 12) + '_' + new Date().toDateString(); }
+function resLbl(tok){ let r = null; try { r = JSON.parse(LS.get(resKey(tok)) || 'null'); } catch(e){} if (!r || !r.n) return '✓ أنهيت'; return r.c / r.n >= .5 ? '⚡ هزمت الدقيقة' : '✓ أنهيت، بكرة تهزمها 💪'; }
+async function subjLoad(){
+  const h = S.home, el = document.getElementById('my-subj'); if (!h || !el) return;
+  const others = profSame(h.student.name).filter(p => p.token !== S.token); if (!others.length) return;
+  const g = S.gen, hs = await Promise.all(others.map(p => rpc('student_home', { p_token: p.token }).then(x => ({ p, x })).catch(() => null)));
+  if (S.gen !== g || !document.getElementById('my-subj')) return;
+  const rows = [{ p: { token: S.token }, x: h, me: true }].concat(hs.filter(Boolean));
+  if (rows.length < 2) return;
+  const row = o => { const x = o.x, t = (x.competition && x.competition.title) || x.class.name, sub = x.class.name + (x.rank ? ' · مركزك ' + x.rank + ' من ' + (x.class.size || '-') : '');
+    return '<div class="ms-r' + (o.me ? ' me' : '') + '"><div class="ms-t"><b>' + esc(t) + '</b><small>' + esc(sub) + '</small>' + (x.played_today ? '<em>' + resLbl(o.p.token) + '</em>' : '') + '</div>' +
+      (x.played_today ? '<span class="ms-ok">✓</span>' : o.me ? '<span class="ms-here">هنا</span>' : '<button class="ms-play" data-act="s-subj" data-t="' + esc(o.p.token) + '">العب</button>') + '</div>'; };
+  el.innerHTML = '<div class="ms"><h3>موادي اليوم</h3>' + rows.map(row).join('') + '</div>';
+}
+ACTS['s-subj'] = t => { const p = profs().find(x => x.token === t.dataset.t); if (!p) return; S.token = p.token; LS.set('mc_token', p.token); if (p.code) LS.set('mc_code', p.code); loadHome(); };
 ACTS['s-box'] = async t => {
   if (S.boxing) return; S.boxing = true; t.disabled = true;
   const b = document.querySelector('.bx'); if (b) b.className = 'bx bx-shake';
@@ -1307,6 +1328,7 @@ async function showResult(sm){
   stopTimer(); S.gen = (S.gen || 0) + 1; S.cur = null;
   if (sm && Array.isArray(sm.review) && S.log) { const L = S.log.slice(-sm.review.length); sm.review.forEach((v, i) => { if (L[i] && L[i].c == null) L[i].c = v.c; }); }
   const cc = sm ? sm.correct_count : 0, qn = (sm && sm.total) || 4, lose = cc <= 1, win = cc >= qn - 1, perfect = cc === qn;
+  if (sm && sm.kind !== 'practice' && S.token) try { LS.set(resKey(S.token), JSON.stringify({ c: cc, n: qn })); } catch(e){}
   setTimeout(() => { if (win) FX.win(perfect); else FX.meh(); }, 250);
   const head = perfect ? 'مثالي! 🏆' : lose ? 'كل بطل يبدأ كذا 💪' : 'خلصت! 🎉';
   const sub = perfect ? (qn === 3 ? '٣ من ٣' : '٤ من ٤') + '، لا يُهزم!' : win ? 'أداء ممتاز، استمر!' : lose ? 'تدرّب على أخطائك وارجع أقوى' : 'قريب من القمة، حاول بكرة';

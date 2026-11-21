@@ -3596,3 +3596,14 @@ html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(1)::bef
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(2)::before{background-image:url(aw-b.png)!important;right:calc(var(--S)/-2 - var(--g)/2)!important;bottom:calc(var(--S)/-2 - var(--g)/2)!important}
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(3)::before{background-image:url(aw-y.png)!important;left:calc(var(--S)/-2 - var(--g)/2)!important;top:calc(var(--S)/-2 - var(--g)/2)!important}
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(4)::before{background-image:url(aw-g.png)!important;right:calc(var(--S)/-2 - var(--g)/2)!important;top:calc(var(--S)/-2 - var(--g)/2)!important}
+
+/* v340 «موادي اليوم» (same student, several classes) */
+.ms{width:100%;max-width:360px;margin:12px auto 0}
+.ms h3{font-size:15px;color:#98989F;margin:0 4px 8px;font-weight:700}
+.ms-r{display:flex;align-items:center;gap:12px;background:#1C1C1E;border-radius:18px;padding:12px 14px;margin-bottom:8px}
+.ms-r.me{box-shadow:inset 0 0 0 1.5px #3A3A3C}
+.ms-t{flex:1;min-width:0}.ms-t b{display:block;font-size:16px}.ms-t small{display:block;color:#98989F;font-size:12.5px}
+.ms-t em{display:block;font-style:normal;color:#F5B72B;font-weight:800;font-size:13px;margin-top:2px}
+.ms-ok{color:#30D158;font-weight:900;font-size:20px}
+.ms-here{color:#98989F;font-size:12.5px;font-weight:700}
+.ms-play{background:#C8102E;color:#fff;border:0;border-radius:14px;padding:8px 18px;font:inherit;font-weight:800;font-size:15px;box-shadow:0 4px 0 #8E0B21;cursor:pointer}
