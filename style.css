@@ -3581,3 +3581,7 @@ html body .sl.sl-red .sl1-t b{color:#F5B72B!important}
 .sp-done .goal{background:none;border-radius:0;padding:12px 2px 0;margin-top:6px;border-top:1px solid #2C2C2E}
 .sp-done .goal-t{font-size:14px}.sp-done .goal-t span{color:#98989F;opacity:1}
 .sp-done .goal-bar{height:8px;background:#2C2C2E}
+
+/* v330: answer hint sits inside the question card (was overlapping the answers) */
+html body .pv.pvx .pv-panel .qbox{position:relative}
+html body .pv.pvx .qbox .pts-pop{top:auto;bottom:16px;font-size:22px;line-height:1.3;padding:0 12px}
