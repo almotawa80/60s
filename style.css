@@ -2722,3 +2722,9 @@ html body .pv.pvx .dots .dot.done.no{background:#FF453A!important}
 .goal small{opacity:.75;font-size:13px}
 .s-avh{margin:14px 0 6px;font-size:15px}
 .s-avg button.lk{opacity:.35}
+/* v173 admin metrics */
+.ad-h{margin:4px 0 8px;font-size:17px}
+.ad-bars{display:flex;gap:4px;align-items:flex-end;height:90px;margin:12px 0 4px;padding:0 2px}
+.ad-bars div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px}
+.ad-bars i{display:block;width:100%;min-height:2px;background:#C8102E;border-radius:4px 4px 0 0}
+.ad-bars small{font-size:10px;opacity:.6}

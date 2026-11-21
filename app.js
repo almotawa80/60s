@@ -1190,10 +1190,24 @@ function admRender(){
   const L = (d.list || []).slice().sort(ADM.tab === 'new' ? (a, b) => new Date(b.created_at) - new Date(a.created_at) : (a, b) => b.rounds - a.rounds || new Date(b.last_sign_in_at || 0) - new Date(a.last_sign_in_at || 0));
   const k = (n, l, e) => `<div class="ad-k"><b>${nf(n)}</b><span>${l}</span>${e ? `<em>${e}</em>` : ''}</div>`;
   view('لوحة المشرف',
-    `<div class="ad-k4">${k(d.teachers, 'معلم', d.teachers_week ? `+${d.teachers_week} هالأسبوع` : '')}${k(d.students, 'طالب', d.students_week ? `+${d.students_week} هالأسبوع` : '')}${k(d.live, 'تحدي شغّال')}${k(d.rounds_week, 'جولة هالأسبوع', `اليوم ${nf(d.rounds_today)}`)}</div>
+    `<div id="ad-met"></div><div class="ad-k4">${k(d.teachers, 'معلم', d.teachers_week ? `+${d.teachers_week} هالأسبوع` : '')}${k(d.students, 'طالب', d.students_week ? `+${d.students_week} هالأسبوع` : '')}${k(d.live, 'تحدي شغّال')}${k(d.rounds_week, 'جولة هالأسبوع', `اليوم ${nf(d.rounds_today)}`)}</div>
     <div class="ad-segs"><button data-act="adm-tab" data-t="act" class="${ADM.tab === 'act' ? 'on' : ''}">الأنشط</button><button data-act="adm-tab" data-t="new" class="${ADM.tab === 'new' ? 'on' : ''}">الجدد</button></div>
     <div class="ad-rows">${L.map(t => `<button class="ad-tr" data-act="adm-one" data-id="${t.id}"><span class="ad-av">${esc((t.name || '?')[0])}</span><span class="grow"><b>${esc(t.name || '')}${t.last_sign_in_at && new Date(t.last_sign_in_at).toDateString() === today ? '<i class="ad-dot"></i>' : ''}</b><small>${t.classes} صفوف · ${t.students} طالب · آخر دخول ${admAgo(t.last_sign_in_at)}</small></span><span class="ad-n"><b>${nf(t.rounds)}</b><small>جولة</small></span></button>`).join('') || '<p class="sub center">ما في معلمين</p>'}</div>
     <p class="sub center">النقطة الخضراء: دخل اليوم · الجولات آخر 7 أيام</p>`, 'settings', '', '#/t/settings');
+  admMetrics();
+}
+/* v173 retention / habit metrics (sql/metrics.sql) */
+async function admMetrics(){
+  let m; try { m = ADM.m || (ADM.m = await rpc('admin_metrics')); } catch(e){ return; }
+  const el = document.getElementById('ad-met'); if (!el || !m) return;
+  const pc = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
+  const days = m.days || [], act = m.active || 0, td = days.length ? days[days.length - 1].n : 0, mx = Math.max(1, act, ...days.map(x => x.n));
+  const r = m.ret || {}, rt = n => { const x = r['d' + n] || {}; return `<div class="ad-k"><b>${pc(x.back || 0, x.base || 0)}</b><span>رجعوا يوم ${n}</span><em>من ${nf(x.base || 0)} طالب</em></div>`; };
+  const wd = ['أحد','اثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'];
+  el.innerHTML = `<h3 class="ad-h">📈 القياس</h3><div class="ad-k4"><div class="ad-k"><b>${pc(td, act)}</b><span>لعبوا اليوم</span><em>${nf(td)} من ${nf(act)}</em></div>${rt(1)}${rt(7)}${rt(30)}</div>
+    <div class="ad-bars">${days.map(x => { const d = new Date(x.d + 'T12:00:00'); return `<div title="${x.d}: ${x.n}"><i style="height:${Math.round(x.n / mx * 100)}%"></i><small>${wd[d.getDay()][0]}</small></div>`; }).join('')}</div>
+    <p class="sub center">آخر 14 يوم · عدد الطلاب اللي لعبوا الجولة الرسمية</p>
+    <div class="ad-k4"><div class="ad-k"><b>${m.streak && m.streak.avg != null ? m.streak.avg : 0}</b><span>متوسط السلسلة 🔥</span><em>أطول ${m.streak && m.streak.max || 0}</em></div><div class="ad-k"><b>${nf(m.boxes || 0)}</b><span>صندوق انفتح</span><em>آخر 7 أيام</em></div></div>`;
 }
 ACTS['adm-one'] = t => {
   const x = (ADM.d.list || []).find(r => r.id === t.dataset.id); if (!x) return;
