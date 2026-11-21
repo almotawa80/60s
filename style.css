@@ -3633,6 +3633,7 @@ body.wide.dark .hc-ring>div{background:none;position:relative}
 .mg-grid .mg-c.flip{background:#3A3A3C}
 .mg-grid .mg-c.ok{background:#1F9D55;box-shadow:0 5px 0 #136B38}
 .mg-grid .mg-c.no{background:#C8102E;box-shadow:0 5px 0 #7A0A1C}
+.mg-grid.drag{touch-action:none;-webkit-user-select:none;user-select:none}
 .mg-grid.cards{width:min(100%,calc(var(--n)*84px))}
 .mg-cups{position:relative;width:300px;height:170px;direction:ltr}
 .mg-cup{position:absolute;top:0;left:0;width:100px;height:170px;border:0;background:none;padding:0;cursor:pointer;transform:translateX(calc(var(--x)*100px));transition:transform .32s ease}

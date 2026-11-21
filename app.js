@@ -1240,6 +1240,22 @@ const mgGrid = (n, cells) => '<div class="mg-grid" style="--n:' + n + '">' + Arr
 function mgSay(t){ const e = $app.querySelector('.qbox > span'); if (e) e.textContent = t; }
 function mgEnd(ok){ if (S.locked) return; if (MG.end) { const f = MG.end; MG.end = null; MG.tap = null; return f(ok); } S.locked = true; MG.tap = null; stopTimer(); submit(ok ? 0 : 1); }
 ACTS['mg-c'] = t => { if (S.locked || !MG.tap) return; haptic(); MG.tap(Number(t.dataset.c), t); };
+/* grid games (squares, sequence): slide the finger over the cells without lifting it. A cell counts only when the finger
+   passes near its centre, so sliding between cells through the corners touches nothing. Tapping still works. */
+function mgDrag(e, mv){
+  if (S.locked || !MG.tap || !document.querySelector('#mg .mg-grid.drag')) { MG.dOn = false; return; }
+  const t = e.touches[0]; if (!t) return;
+  const el = document.elementFromPoint(t.clientX, t.clientY), c = el && el.closest ? el.closest('.mg-grid.drag .mg-c') : null;
+  if (!mv) { MG.dOn = !!(e.target.closest && e.target.closest('.mg-grid.drag')); MG.dl = -1; }
+  if (!MG.dOn) return;
+  e.preventDefault(); if (!c) return;
+  const r = c.getBoundingClientRect(), i = Number(c.dataset.c);
+  if (mv && Math.hypot(t.clientX - r.left - r.width / 2, t.clientY - r.top - r.height / 2) > r.width * .38) return;
+  if (i === MG.dl) return; MG.dl = i; haptic(); MG.tap(i, c);
+}
+document.addEventListener('touchstart', e => mgDrag(e, false), { passive: false });
+document.addEventListener('touchmove', e => { if (MG.dOn) mgDrag(e, true); }, { passive: false });
+['touchend', 'touchcancel'].forEach(k => document.addEventListener(k, () => { MG.dOn = false; }));
 async function mgStart(st){
   const p = st.question.payload, gen = S.gen, box = document.getElementById('mg'); MG.tap = null; if (!st.arena) MG.end = null;
   if (!box) return;
@@ -1251,7 +1267,7 @@ async function mgStart(st){
     box.innerHTML = mgGrid(n); mgSay('احفظ مكان المربعات');
     await mgSleep(300); if (!live()) return; lit.forEach(i => cell(i).classList.add('lit'));
     await mgSleep(1100 + k * 200); if (!live()) return; lit.forEach(i => cell(i).classList.remove('lit'));
-    mgSay('اضغط المربعات اللي كانت مضيئة');
+    mgSay('اضغط أو اسحب على المربعات اللي كانت مضيئة'); box.firstChild.classList.add('drag');
     MG.tap = i => { if (got.includes(i)) return;
       if (!lit.includes(i)) { cell(i).classList.add('no'); lit.forEach(j => cell(j).classList.add('ok')); return mgEnd(false); }
       got.push(i); cell(i).classList.add('ok'); if (got.length === k) mgEnd(true); };
@@ -1261,7 +1277,7 @@ async function mgStart(st){
     box.innerHTML = mgGrid(3); mgSay('تابع الترتيب');
     await mgSleep(400);
     for (const c of s) { if (!live()) return; cell(c).classList.add('lit'); FX.tick(); await mgSleep(430); if (!live()) return; cell(c).classList.remove('lit'); await mgSleep(140); }
-    if (!live()) return; mgSay('عيد نفس الترتيب');
+    if (!live()) return; mgSay('عيد نفس الترتيب'); box.firstChild.classList.add('drag');
     MG.tap = i => { const b = cell(i);
       if (i !== s[pos]) { b.classList.add('no'); cell(s[pos]).classList.add('ok'); return mgEnd(false); }
       pos++; b.classList.add('ok'); if (pos === k) return mgEnd(true); setTimeout(() => b.classList.remove('ok'), 200); };
