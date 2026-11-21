@@ -2983,3 +2983,8 @@ html body .s-nav button.hover .i{transform:scale(1.25);transition:transform .25s
 html body .s-nav button .i{transition:transform .25s cubic-bezier(.3,1.4,.5,1)}
 html body .t-nav a.hover .nav-sq,html body .t-nav a.hover .nav-ln{transform:scale(1.22);transition:transform .25s cubic-bezier(.3,1.4,.5,1)}
 html body .t-nav .nav-ln{transition:transform .25s cubic-bezier(.3,1.4,.5,1)}
+/* v220 (Khalid): clearer lens (no frost), bar gives a small springy squish on tab change like iOS */
+html body .t-nav .lens.drag,html body .t-nav .lens.move,html body .s-nav .lens.drag,html body .s-nav .lens.move{background:rgba(255,255,255,.015)!important;-webkit-backdrop-filter:saturate(160%) brightness(1.06);backdrop-filter:saturate(160%) brightness(1.06);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.7),inset 0 -1px 3px rgba(255,255,255,.14),0 8px 22px rgba(0,0,0,.28)!important}
+html body .t-nav.bump,html body .s-nav.bump{animation:navBump .55s cubic-bezier(.3,1.5,.45,1)}
+@keyframes navBump{0%{scale:1}30%{scale:1.035 .95}60%{scale:.99 1.02}100%{scale:1}}
