@@ -3117,3 +3117,7 @@ a.btn:not(.soft):not(.ghost),a.btn.h-go{color:#fff!important;opacity:1!important
 .q5-hint{font-size:13.5px;font-weight:600;color:var(--muted);margin:-4px 2px 10px;line-height:1.6}
 .rl2-row{align-items:stretch;text-align:right}.rl2-row>span{text-align:right}
 .rl2-row .rl-sg{width:100%}.rl-sg button{white-space:nowrap;font-size:13px;padding:8px 2px}
+/* v267: readable soft/danger buttons on dark; no underline on any button */
+.btn,.btn *{text-decoration:none!important}
+body.wide.dark .btn.soft,body.wide.dark .btn.ghost{background:#2C2C2E!important;color:#F5F5F7!important}
+body.wide.dark .btn.danger,body.wide.dark .btn.dng-t{background:#2C2C2E!important;color:#FF453A!important}

@@ -4884,7 +4884,7 @@ ACTS['mt-edit'] = t => {
   const k = t.dataset.k, i = Number(t.dataset.i), s = i >= 0 ? tplList(k)[i] : '';
   modal(`<h3>${i >= 0 ? 'تعديل قالب' : 'قالب جديد'} · ${MSG_K[k][0]}</h3><form class="col" data-form="mt-save" data-k="${k}" data-i="${i}"><textarea class="input" name="b" rows="4" maxlength="500" required>${esc(s)}</textarea>
     <div class="lv-chips">${['{الاسم}', '{النقاط}', '{الترتيب}', '{الصف}'].map(x => `<button type="button" data-act="mt-ins" data-v="${x}">${x}</button>`).join('')}</div>
-    <button class="btn" type="submit">حفظ</button>${i >= 0 ? `<button type="button" class="btn soft" data-act="mt-del" data-k="${k}" data-i="${i}" style="color:#B3122A">${ic('trash')} حذف القالب</button>` : ''}</form>`);
+    <button class="btn" type="submit">حفظ</button>${i >= 0 ? `<button type="button" class="btn soft dng-t" data-act="mt-del" data-k="${k}" data-i="${i}">${ic('trash')} حذف القالب</button>` : ''}</form>`);
 };
 ACTS['mt-ins'] = t => { const ta = t.closest('form').querySelector('textarea'), p = ta.selectionStart || ta.value.length; ta.value = ta.value.slice(0, p) + t.dataset.v + ta.value.slice(p); ta.focus(); };
 async function saveTpl(k, list){ const all = Object.assign({}, (T.settings || {}).msg_tpl || {}); all[k] = list; await saveSettings({ msg_tpl: all }); }
