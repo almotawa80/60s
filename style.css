@@ -2990,3 +2990,14 @@ html body .t-nav.bump,html body .s-nav.bump{animation:navBump .55s cubic-bezier(
 @keyframes navBump{0%{scale:1}30%{scale:1.035 .95}60%{scale:.99 1.02}100%{scale:1}}
 /* v221: lens bubble wider than tall (pill like iOS), not round */
 html body .t-nav .lens.drag,html body .t-nav .lens.move,html body .s-nav .lens.drag,html body .s-nav .lens.move{transform:scale(1.32,1.16)}
+/* v222 (Khalid): the active colour follows the lens while dragging */
+html body .t-nav:has(.lens.drag) a.on:not(.hover){color:var(--muted)!important}
+html body.wide.dark .t-nav:has(.lens.drag) a.on:not(.hover){color:#AEAEB2!important}
+html body .t-nav:has(.lens.drag) a.hover{color:var(--primary)!important}
+html body.wide.dark .t-nav:has(.lens.drag) a.hover{color:#E5404F!important}
+html body .t-nav:has(.lens.drag) a.t-sq.on:not(.hover) .nav-sq circle{fill:#7C7C80}
+html body .s-nav:has(.lens.drag) button.on:not(.hover){color:#AEAEB2}
+html body .s-nav:has(.lens.drag) button.hover{color:#fff}
+html body .s-nav:has(.lens.drag) button.on:not(.hover) .nav-sq circle{fill:#7C7C80}
+html body .s-nav:has(.lens.drag) button.hover .nav-sq circle{fill:revert-layer}
+.t-nav a,.s-nav button{transition:color .2s}
