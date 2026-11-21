@@ -5178,9 +5178,7 @@ ACTS['t-menu'] = () => {
   const it = (act, icon, color, label, attrs) => `<button class="sheet-i" data-act="${act}" ${attrs || ''}><span class="set-ic" style="background:${color}">${ic(icon)}</span><span class="grow">${label}</span></button>`;
   modal(`<div class="sheet t-menu">
     <button class="sheet-list tm-head" data-act="tm-go" data-a="st-profile">${avatarHtml('big-av')}<div class="grow"><b>${esc(T.name)}</b><div class="sub">حسابي · <span dir="ltr">${esc((T.user && T.user.email) || '')}</span></div></div><span class="set-chev">${ic('back')}</span></button>
-    <div class="sheet-list">${it('tm-go', 'gear', '#8E8E93', 'كل الإعدادات', 'data-a="tm-settings"')}</div>
-    <div class="sheet-list"><button class="sheet-i danger" data-act="tm-go" data-a="st-logout-ask">${ic('logout')}<span>تسجيل الخروج</span></button></div>
-    <button class="sheet-i sheet-cancel" data-act="close-modal">إغلاق</button></div>`);
+    <div class="st1-opts tm-sq"><button class="st1-o" data-act="tm-go" data-a="tm-settings"><span class="e">⚙️</span><b>الإعدادات</b></button><button class="st1-o dng" data-act="tm-go" data-a="st-logout-ask"><span class="e">🚪</span><b>تسجيل الخروج</b></button></div></div>`);
 };
 ACTS['tm-go'] = t => { const a = t.dataset.a; closeModals(); setTimeout(() => ACTS[a](t), 30); };
 ACTS['tm-settings'] = () => go('#/t/settings');
