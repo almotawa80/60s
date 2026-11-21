@@ -287,7 +287,8 @@ async function loadHome(){
   { const a = profs(), i = a.findIndex(p => p.token === S.token), me = { token: S.token, name: S.home.student.name, cls: S.home.class.name, code: (i >= 0 && a[i].code) || LS.get('mc_code') };
     if (i >= 0) a[i] = me; else a.unshift(me); profSave(a); }
   renderHome(); bgCheck();
-  { const ip = S.home.in_progress_attempt, k = ip && JSON.stringify(ip); if (k && S.autoRes !== k) { S.autoRes = k; const b = $app.querySelector('[data-act="s-start"][data-kind="official"]'); if (b) { S.resuming = true; ACTS['s-start'](b); } } }
+  { const ip = S.home.in_progress_attempt, k = ip && JSON.stringify(ip); if (k && S.autoRes !== k) { S.autoRes = k; const b = $app.querySelector('[data-act="s-start"][data-kind="official"]'); if (b) { S.resuming = true; ACTS['s-start'](b); } }
+    else if (!k && !S.demo) { const pt = Number(LS.get('mc_prac') || 0); if (pt && Date.now() - pt < 10 * 60 * 1000 && S.autoRes !== 'p' + pt) { S.autoRes = 'p' + pt; const b = document.createElement('button'); b.dataset.kind = 'practice'; S.resuming = true; ACTS['s-start'](b); } } }
   rpc('student_prefs', { p_token: S.token }).then(p => {
     S.prefs = p || {};
     if (p && p.remember === false && LS.get('mc_token')) { try { sessionStorage.setItem('mc_token', S.token); } catch(e){} LS.del('mc_token'); }
@@ -800,7 +801,8 @@ ACTS['s-start'] = async (t) => {
     if (resumed) { await countIn(gen, 'نكمل جولتك…'); if (S.gen !== gen) return; }
     const st = await rpc('start_attempt', { p_token: S.token, p_kind: t.dataset.kind });
     if (S.gen !== gen) return;
-    if (st.finished) { toast('أنهيت هذه الجولة'); return loadHome(); }
+    if (st.finished) { LS.del('mc_prac'); toast('أنهيت هذه الجولة'); return loadHome(); }
+    if (t.dataset.kind !== 'official' && t.dataset.kind !== 'knockout') LS.set('mc_prac', String(Date.now()));
     if (!resumed && st.position === 1 && st.seconds_left >= 14) await countIn(gen);
     if (S.gen !== gen) return;
     showQuestion(st);
@@ -971,6 +973,7 @@ function reviewHtml(){
     (good.length && bad.length ? '<details class="rv2-ok"><summary><i>✓</i>جاوبت ' + good.length + ' صح<em>‹</em></summary>' + good.map(x => '<div class="rv2-g">' + esc(x.q) + '<small>' + ans(x) + '</small></div>').join('') + '</details>' : '');
 }
 async function showResult(sm){
+  LS.del('mc_prac');
   stopTimer(); S.gen = (S.gen || 0) + 1; S.cur = null;
   if (sm && Array.isArray(sm.review) && S.log) { const L = S.log.slice(-sm.review.length); sm.review.forEach((v, i) => { if (L[i] && L[i].c == null) L[i].c = v.c; }); }
   const cc = sm ? sm.correct_count : 0, qn = (sm && sm.total) || 4, lose = cc <= 1, win = cc >= qn - 1, perfect = cc === qn;
