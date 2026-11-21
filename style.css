@@ -3607,3 +3607,10 @@ html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(4)::bef
 .ms-ok{color:#30D158;font-weight:900;font-size:20px}
 .ms-here{color:#98989F;font-size:12.5px;font-weight:700}
 .ms-play{background:#C8102E;color:#fff;border:0;border-radius:14px;padding:8px 18px;font:inherit;font-weight:800;font-size:15px;box-shadow:0 4px 0 #8E0B21;cursor:pointer}
+/* v341 glass cards (Khalid «نفذ» option 1: light glass) — student screens only, not arena/round */
+html body:not(.wide) .sh.pvx:not(.ar-find):not(.ar-res):not(.cin)::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(70vw 60vw at 85% 6%,rgba(200,16,46,.5),transparent 70%),radial-gradient(70vw 60vw at 8% 60%,rgba(200,16,46,.24),transparent 70%),radial-gradient(70vw 55vw at 80% 100%,rgba(245,183,43,.16),transparent 70%)}
+html body:not(.wide) .sh.pvx:not(.ar-find):not(.ar-res) :is(.card,.comp,.rows.card,.bdg,.bg2,.bg2.on,.bg2-next,.goal,.wk-star,.sp-done,.sp-prize,.rv2-w,.rv2-all,.rv2-ok,.rv2-dr,.ms-r,.code-pill,.av-btn){background:rgba(255,255,255,.07)!important;-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);border:1px solid rgba(255,255,255,.10)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)!important}
+html body:not(.wide) .sh.pvx .sp-prize{border-color:rgba(245,183,43,.45)!important}
+html body:not(.wide) .sh.pvx .sp-done .goal-bar{background:rgba(255,255,255,.12)!important}
+body:not(.wide) .s-nav{background:rgba(30,30,32,.55)!important;-webkit-backdrop-filter:blur(28px);backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12)!important}
+html body:not(.wide) .sh.pvx .sp-done :is(.goal,.wk-star){background:none!important;-webkit-backdrop-filter:none;backdrop-filter:none;border:0!important;border-top:1px solid rgba(255,255,255,.12)!important;box-shadow:none!important;border-radius:0}
