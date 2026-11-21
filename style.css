@@ -2874,3 +2874,8 @@ html body .pv.pvx .dots .dot{padding:0!important;font-size:0!important;flex:none
 #ob .ob-in{background:#2C2C2E;border:0;color:#fff}
 .obr-more .ob-t{min-height:50px!important}.obr-more .ob-t b{font-size:14px}
 @media (prefers-reduced-motion:reduce){.obr-pop.go{animation:none}}
+/* v195: multi-select is obvious: a tick box on every tile + count on the button */
+.obr-multi{display:inline-block;margin-top:6px;color:#F5B72B;font-weight:800;font-size:15px}
+#ob .obr-chk .ob-t{position:relative}
+#ob .obr-chk .ob-t::before{content:"";position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:7px;border:2px solid #636366;box-sizing:border-box}
+#ob .obr-chk .ob-t.on::before{content:"✓";border-color:#00230c;background:#00230c;color:#30D158;font-size:14px;font-weight:900;display:grid;place-items:center}
