@@ -3659,3 +3659,5 @@ html body:not(.wide) .sh.pvx .s-prof-pg .sp-rows{background:rgba(255,255,255,.07
 html body:not(.wide) .sh.pvx .s-prof-pg .code-pill{background:rgba(255,255,255,.1)!important;border:0!important}
 #app.pg-anim>.sh.s-tabpg{z-index:2;background:#000;will-change:transform;box-shadow:0 0 24px rgba(0,0,0,.5)}
 .pg-layer .sh.s-tabpg{min-height:100vh}
+.sp-pill[hidden]{display:none!important}
+body:not(.wide) .s-nav .nav-sq{transform:translateZ(0);-webkit-backface-visibility:hidden}
