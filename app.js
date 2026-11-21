@@ -591,7 +591,6 @@ ACTS['s-menu'] = () => {
   const m = LS.get('mc_mode') || 'auto';
   modal('<div class="sheet"><div class="sheet-list">' +
     '<button class="sheet-i" data-act="s-profile">' + ic('user') + '<span>ملفي</span></button>' +
-    '<div class="sheet-i" style="flex-direction:column;align-items:stretch;gap:8px"><span style="display:flex;gap:12px;align-items:center">' + ic('moon') + 'المظهر</span>' + modeSeg() + '</div>' +
     '<button class="sheet-i" data-act="s-sound-row">' + ic(FX.on() ? 'sound' : 'mute') + '<span>الصوت: ' + (FX.on() ? 'مفعّل' : 'مكتوم') + '</span></button>' +
     '<button class="sheet-i" data-act="s-switch">' + ic('users') + '<span>غيّر اللاعب</span></button>' +
     (hasTeacher() ? '<button class="sheet-i" data-act="s-to-teacher">' + ic('back') + '<span>رجوع لحساب المعلم</span></button>' : '') +
@@ -1045,8 +1044,7 @@ const PCACHE = {}; // last rendered teacher page per hash, shown instantly while
 /* appearance: light / dark / auto */
 const MQ = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
 function applyMode(){
-  const m = LS.get('mc_mode') || 'auto';
-  const dark = m === 'dark' || (m === 'auto' && MQ && MQ.matches);
+  const dark = true; /* v269: one dark look for everyone */
   document.body.classList.toggle('dark', dark);
   applyLook();
   const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = dark && document.body.classList.contains('wide') ? '#161112' : '#C8102E';
@@ -4565,7 +4563,7 @@ async function tSettings(){
     `<button class="set-profile" data-act="go" data-h="#/t/account">${avatarHtml('big-av')}<div class="grow"><b>${esc(tName())}</b><div class="sub">${sub ? esc(sub) : `<span dir="ltr">${esc(T.user.email || '')}</span>`}</div></div><span class="set-chev">${ic('back')}</span></button>` +
     sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/rules"', icon: 'trophy', color: '#C8102E', label: 'قواعد اللعب', val: 'النقاط · الترتيب' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/sset"', icon: 'users', color: '#1FA971', label: 'الطلاب والصفوف', val: 'الأسماء · الرسائل' }),
-      sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر', val: `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>` }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر', val: `<span id="mode-val">${(FONTS.find(f => f[0] === (LS.get('mc_fs') || 'm')) || FONTS[1])[1]}</span>` }),
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق', val: 'تثبيت · بيانات' }),
       ADM.st && ADM.st.is ? sRow({ act: 'go', attrs: 'data-h="#/t/admin"', icon: 'lock', color: '#30B0C7', label: 'المشرف', val: 'المعلمين · الدعم' }) : '']) +
     sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
@@ -4802,17 +4800,16 @@ async function tEntry(){
 
 /* ---- appearance (this device) ---- */
 const ACCENTS = [['#C8102E', 'أحمر'], ['#2F6FED', 'أزرق'], ['#1E9E5A', 'أخضر'], ['#7B4BD6', 'بنفسجي'], ['#E8710A', 'برتقالي'], ['#0F9BA8', 'فيروزي']];
-const FONTS = [['s', 'صغير', .92], ['m', 'عادي', 1], ['l', 'كبير', 1.1]];
+const FONTS = [['s', 'صغير', .92], ['m', 'وسط', 1], ['l', 'كبير', 1.1]];
 function tAppear(){
-  const m = LS.get('mc_mode') || 'auto', fs = LS.get('mc_fs') || 'm', ac = LS.get('mc_accent') || ACCENTS[0][0];
+  const fs = LS.get('mc_fs') || 'm', vib = !!navigator.vibrate;
   view('المظهر',
-    sGrp('الوضع', ['light', 'dark', 'auto'].map(k => `<button class="set-row radio" data-act="ap-mode" data-v="${k}"><span class="set-ic" style="background:${k === 'light' ? '#FF9500' : k === 'dark' ? '#5856D6' : '#8E8E93'}">${ic(k === 'light' ? 'sun' : k === 'dark' ? 'moon' : 'gear')}</span><span class="grow">${MODE_AR[k]}</span><span class="tick ${m === k ? 'on' : ''}">${ic('check')}</span></button>`), '«تلقائي» يتبع وضع جهازك.') +
-    sGrp('حجم الخط', [`<div class="set-row"><div class="tabs fs-seg grow">${FONTS.map(f => `<button type="button" class="${fs === f[0] ? 'on' : ''}" data-act="ap-fs" data-v="${f[0]}" style="font-size:${Math.round(15 * f[2])}px">${f[1]}</button>`).join('')}</div></div>`]) +
-    sGrp('الإحساس', [swRow({ act: 'ap-ls', k: 'mc_tsnd', on: LS.get('mc_tsnd') === '1', label: 'الأصوات', sub: 'صوت خفيف عند الضغط' }), swRow({ act: 'ap-ls', k: 'mc_vib', on: LS.get('mc_vib') === '1', label: 'الاهتزاز', sub: 'في الأجهزة اللي تدعمه' })], 'إعدادات المظهر تنحفظ على هذا الجهاز بس.'),
+    sGrp('حجم الخط', [`<div class="ap-fs"><div class="ap-demo" id="ap-demo" style="font-size:${Math.round(16 * (FONTS.find(f => f[0] === fs) || FONTS[1])[2])}px">كذا بيبان الكلام في التطبيق.</div><div class="ap-sq">${FONTS.map(f => `<button type="button" class="${fs === f[0] ? 'on' : ''}" data-act="ap-fs" data-v="${f[0]}"><b style="font-size:${Math.round(22 * f[2] * f[2])}px">أ</b><span>${f[1]}</span></button>`).join('')}</div></div>`]) +
+    sGrp('', [swRow({ act: 'ap-ls', k: 'mc_tsnd', on: LS.get('mc_tsnd') === '1', label: 'الأصوات', sub: 'صوت خفيف عند الضغط' })].concat(vib ? [swRow({ act: 'ap-ls', k: 'mc_vib', on: LS.get('mc_vib') === '1', label: 'الاهتزاز', sub: 'اهتزاز خفيف عند الضغط' })] : []), 'تنحفظ على هذا الجهاز بس.'),
     'settings', '', '#/t/settings');
 }
 ACTS['ap-mode'] = t => { LS.set('mc_mode', t.dataset.v); applyMode(); t.parentElement.querySelectorAll('.tick').forEach(x => x.classList.toggle('on', x.parentElement === t)); haptic(); };
-ACTS['ap-fs'] = t => { LS.set('mc_fs', t.dataset.v); applyLook(); t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); haptic(); };
+ACTS['ap-fs'] = t => { LS.set('mc_fs', t.dataset.v); applyLook(); t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const f = FONTS.find(x => x[0] === t.dataset.v), d = document.getElementById('ap-demo'); if (d && f) d.style.fontSize = Math.round(16 * f[2]) + 'px'; haptic(); };
 ACTS['ap-ac'] = t => { LS.set('mc_accent', t.dataset.v); applyLook(); t.parentElement.querySelectorAll('.ac-dot').forEach(b => b.classList.toggle('on', b === t)); haptic(); };
 ACTS['ap-ls'] = t => { const on = !t.querySelector('.ios-sw').classList.contains('on'); LS.set(t.dataset.k, on ? '1' : '0'); t.querySelector('.ios-sw').classList.toggle('on', on); haptic(); if (on && t.dataset.k === 'mc_tsnd') tapSound(); };
 function applyLook(){
@@ -4965,7 +4962,6 @@ function profileSheet(){
       <label class="set-row"><span class="grow" style="flex:0 0 auto;color:var(--muted)">الاسم</span><input class="prof-in" name="name" value="${esc(T.name)}" required maxlength="60"></label>
       <div class="set-row"><span style="color:var(--muted)">البريد</span><span class="grow" dir="ltr" style="text-align:left;color:var(--muted)">${esc(T.user.email || '')}</span></div></div>
       <button class="btn" type="submit">حفظ الاسم</button></form>
-    <div style="width:100%"><div class="set-h" style="margin:0 0 6px">المظهر</div>${modeSeg()}</div>
     <div class="set-grp" style="width:100%"><button class="set-row" data-act="st-pass"><span class="set-ic" style="background:#8E8E93">${ic('gear')}</span><span class="grow">تغيير كلمة المرور</span><span class="set-chev">${ic('back')}</span></button></div>
     <input type="file" id="av-file" accept="image/*" class="hide" data-change="av-chosen"></div>`);
 }
@@ -4975,8 +4971,6 @@ ACTS['t-menu'] = () => {
   const it = (act, icon, color, label, attrs) => `<button class="sheet-i" data-act="${act}" ${attrs || ''}><span class="set-ic" style="background:${color}">${ic(icon)}</span><span class="grow">${label}</span></button>`;
   modal(`<div class="sheet t-menu">
     <button class="sheet-list tm-head" data-act="tm-go" data-a="st-profile">${avatarHtml('big-av')}<div class="grow"><b>${esc(T.name)}</b><div class="sub">حسابي · <span dir="ltr">${esc((T.user && T.user.email) || '')}</span></div></div><span class="set-chev">${ic('back')}</span></button>
-    <div class="sheet-list">
-      <div class="sheet-i tm-mode"><span class="set-ic" style="background:#5856D6">${ic('moon')}</span><span class="grow">الوضع</span></div><div class="tm-seg">${modeSeg()}</div></div>
     <div class="sheet-list">${it('tm-go', 'gear', '#8E8E93', 'كل الإعدادات', 'data-a="tm-settings"')}</div>
     <div class="sheet-list"><button class="sheet-i danger" data-act="tm-go" data-a="st-logout-ask">${ic('logout')}<span>تسجيل الخروج</span></button></div>
     <button class="sheet-i sheet-cancel" data-act="close-modal">إغلاق</button></div>`);

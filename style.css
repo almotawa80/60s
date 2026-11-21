@@ -3121,3 +3121,12 @@ a.btn:not(.soft):not(.ghost),a.btn.h-go{color:#fff!important;opacity:1!important
 .btn,.btn *{text-decoration:none!important}
 body.wide.dark .btn.soft,body.wide.dark .btn.ghost{background:#2C2C2E!important;color:#F5F5F7!important}
 body.wide.dark .btn.danger,body.wide.dark .btn.dng-t{background:#2C2C2E!important;color:#FF453A!important}
+/* v269 appearance: font size squares + live sample */
+.ap-fs{padding:14px;display:flex;flex-direction:column;gap:12px}
+.ap-demo{text-align:center;padding:14px 10px;border-radius:12px;background:var(--soft);transition:font-size .15s;line-height:1.5}
+.ap-sq{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ap-sq button{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:84px;border-radius:14px;background:var(--soft);border:2px solid transparent;color:inherit;font:inherit;cursor:pointer}
+.ap-sq button b{line-height:1;font-weight:800}
+.ap-sq button span{font-size:13px;color:var(--muted);padding-bottom:8px}
+.ap-sq button.on{border-color:var(--primary)}
+.ap-sq button.on span{color:inherit;font-weight:700}
