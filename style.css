@@ -3053,3 +3053,5 @@ html body .t-nav,html body .s-nav{bottom:max(10px, calc(env(safe-area-inset-bott
 /* v235: keep «الكل» clear of the sheet's ✕ */
 .nw-ls-h{padding-left:52px}
 .nw-ls .sub{margin:6px 0 0}
+/* v236: lessons row sits right under «موادي» tiles */
+.nw-lbl+.nw-tiles+.nw-grp{margin-top:10px;border:2px solid color-mix(in srgb,var(--primary) 35%,transparent)}
