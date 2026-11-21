@@ -259,7 +259,7 @@ ACTS['s-switch'] = () => { closeModals(); LS.del('mc_token'); S.token = null; S.
 ACTS['s-logout'] = () => { profSave(profs().filter(p => p.token !== S.token)); LS.del('mc_token'); try { sessionStorage.removeItem('mc_token'); } catch(e){} S.token = null; S.home = null; studentLogin(); };
 
 /* v184 stage «tone» from the class name (Kuwait: 1–5 primary, 6–9 intermediate, 10–12 secondary): font size + celebration length */
-function qPer(cls){ return stageOf(cls) === 'p' ? 3 : 4; }
+function qPer(cls){ const ps = String(SG('prof_stage') || ''); return stageOf(cls) === 'p' && (!ps || ps.indexOf('ابتدائي') >= 0) ? 3 : 4; }
 function stageOf(name){
   const t = String(name || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
   let g = Number((t.match(/\d+/) || [])[0]) || 0;
