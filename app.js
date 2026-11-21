@@ -2632,36 +2632,74 @@ ACTS['rp-wa'] = async () => { const d = RP.d; if (!d) return; const note = rpNot
     (m.s.length ? `💪 قوي في: ${m.s.join('، ')}\n` : '') + (m.w.length ? `🎯 يحتاج مراجعة: ${m.w.join('، ')}\n` : '') +
     (note ? `\n${note}\n` : '') + `\n${T.name || ''}`;
   closeModals(); window.open('https://wa.me/' + ph + '?text=' + encodeURIComponent(txt), '_blank'); };
+/* PDF v2 (Khalid sample style): red band header, rings per lesson, class average, radar + bars, page 2 summary/progress/mistakes */
+const RP_GR = p => p >= 90 ? ['ممتاز', 'ok'] : p >= 80 ? ['جيد جداً', 'ok'] : p >= 65 ? ['جيد', 'mid'] : p >= 50 ? ['مقبول', 'mid'] : ['يحتاج تطوير', 'bad'];
+const RP_COL = { ok: '#1E8E4E', mid: '#D9930D', bad: '#C8102E' };
+function rpRing(p, k, size, w){ const r = (size - w) / 2, C = 2 * Math.PI * r, f = Math.max(0, Math.min(100, p)) / 100;
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="#F0E6D6" stroke-width="${w}"/><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${RP_COL[k]}" stroke-width="${w}" stroke-linecap="round" stroke-dasharray="${(C * f).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/></svg>`; }
+function rpRadar(les){ const n = les.length, R = 105, cx = 160, cy = 140, ang = i => -Math.PI / 2 + i * 2 * Math.PI / n, pt = (i, p) => [cx + Math.cos(ang(i)) * R * p / 100, cy + Math.sin(ang(i)) * R * p / 100];
+  const poly = f => les.map((x, i) => pt(i, f(x)).map(v => v.toFixed(1)).join(',')).join(' ');
+  const grid = [25, 50, 75, 100].map(g => `<polygon points="${les.map((x, i) => pt(i, g).map(v => v.toFixed(1)).join(',')).join(' ')}" fill="${g === 100 ? '#FBF6EC' : 'none'}" stroke="#EADFC8" stroke-width="1"/>`).join('') + les.map((x, i) => `<line x1="${cx}" y1="${cy}" x2="${pt(i, 100)[0].toFixed(1)}" y2="${pt(i, 100)[1].toFixed(1)}" stroke="#EADFC8"/>`).join('');
+  const me = les.map((x, i) => pt(i, rpPct(x.c, x.t)));
+  const svg = `<svg viewBox="0 0 320 280" width="320" height="280">${grid}
+    ${les.some(x => x.ca != null) ? `<polygon points="${poly(x => x.ca || 0)}" fill="none" stroke="#3B2A1A" stroke-width="1.6" stroke-dasharray="5 4"/>` : ''}
+    <polygon points="${poly(x => rpPct(x.c, x.t))}" fill="#C8102E" fill-opacity=".22" stroke="#C8102E" stroke-width="2.4" stroke-linejoin="round"/>
+    ${me.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4" fill="#C8102E"/>`).join('')}</svg>`;
+  const lbl = les.map((x, i) => { const p = pt(i, 122), a = Math.cos(ang(i)); return `<span class="rp4-rl" style="top:${(p[1] - 9).toFixed(0)}px;${Math.abs(a) < .2 ? `left:${(p[0] - 70).toFixed(0)}px;width:140px;text-align:center` : a > 0 ? `left:${(p[0] - 6).toFixed(0)}px;text-align:left` : `right:${(320 - p[0] - 6).toFixed(0)}px;text-align:right`}">${esc(rpLes(x.l))}</span>`; }).join('');
+  return `<div class="rp4-radar">${svg}${lbl}</div>`; }
 function rpPdfHtml(d, note){
-  const m = rpSummary(d), les = (d.lessons || []).filter(x => x.t >= 4), today = new Date().toISOString().slice(0, 10), subj = SG('prof_subject').split('|').filter(Boolean)[0] || '';
-  const meta = [['الصف', d.cls], ['المادة', subj], ['المدرسة', d.school], ['المعلم', d.teacher || T.name], ['الفترة', d.from ? rpDate(d.from) + ' – ' + rpDate(d.to, 1) : '']].filter(x => x[1]);
-  return `<div class="rp3-hd"><div><div class="rp3-ttl">تقرير أداء الطالب</div><h1>${esc(fmtStu(d.name || ''))}</h1></div><div class="rp3-br"><b>تحدّي الدقيقة</b>صدر في ${rpDate(today, 1)}</div>
-      <div class="rp3-meta">${meta.map(x => `<span>${x[0]}: <b>${esc(x[1])}</b></span>`).join('')}</div></div>
-    <div class="rp3-bd">
-      <div class="rp3-kpi"><div><b>${d.rounds}</b><span>جولة رسمية</span></div><div><b>${m.acc}%</b><span>إجابات صحيحة</span></div>
-        <div class="${m.tr > 2 ? 'k-up' : ''}"><b>${m.tr == null ? '—' : (m.tr > 0 ? '↑ ' : m.tr < 0 ? '↓ ' : '') + Math.abs(m.tr) + '%'}</b><span>التغيّر من أول أسبوع</span></div>
-        <div><b>${d.rank || '—'}${d.of ? ` <small>من ${d.of}</small>` : ''}</b><span>ترتيبه في الصف</span></div></div>
-      <div class="rp3-two"><div><h2>التقدم أسبوع بأسبوع</h2><div class="rp3-box">${rpChart(d, 1) || '<p class="rp3-mut">يحتاج أسبوعين على الأقل.</p>'}</div></div>
-        <div><h2>الخلاصة</h2><div class="rp3-sum s"><h3>✓ نقاط القوة</h3>${m.s.length ? m.s.map(x => `<div class="rp3-li">• ${esc(x)}</div>`).join('') : '<p class="rp3-mut">تتضح مع جولات أكثر.</p>'}</div>
-          <div class="rp3-sum w"><h3>! يحتاج مراجعة</h3>${m.w.length ? m.w.map(x => `<div class="rp3-li">• ${esc(x)}</div>`).join('') : '<p class="rp3-mut">ما فيه دروس ضعيفة.</p>'}</div></div></div>
-      ${les.length ? `<div><h2>الدروس</h2><div class="rp3-les"><div class="rp3-lr hd"><span>الدرس</span><span>الإجابات الصحيحة</span><span></span><span>المستوى</span></div>${les.map(x => { const k = rpLvl(x), p = rpPct(x.c, x.t); return `<div class="rp3-lr"><span>${esc(rpLes(x.l))}</span><div class="rp3-tr"><i class="k-${k}" style="width:${Math.max(3, p)}%"></i></div><b>${p}%</b><em class="k-${k}">${RP_LV[k]}</em></div>`; }).join('')}</div></div>` : ''}
-      ${note ? `<div><h2>ملاحظة المعلم</h2><div class="rp3-note">${esc(note)}</div></div>` : ''}
-      <div class="rp3-sig"><div>توقيع المعلم</div><div>توقيع ولي الأمر</div></div>
-    </div>
-    <div class="rp3-ft"><span><b>تحدّي الدقيقة</b> · دقيقة كل يوم</span><span>${esc(d.cls || '')}</span></div>`;
+  const m = rpSummary(d), les = (d.lessons || []).filter(x => x.t >= 3), today = new Date().toISOString().slice(0, 10), subj = SG('prof_subject').split('|').filter(Boolean)[0] || '';
+  const name = fmtStu(d.name || ''), ini = (d.name || '?').trim().charAt(0), acc = m.acc, g0 = RP_GR(acc), ca = d.cls_acc;
+  const head = `<div class="rp4-hd"><img src="icon-192.png?i=2" alt=""><div class="grow"><h1>تقرير أداء الطالب</h1><small>تحدّي الدقيقة${d.cls ? ' · الصف ' + esc(d.cls) : ''}${subj ? ' · ' + esc(subj) : ''}</small></div><span class="rp4-dt">${rpDate(today, 1)}</span></div>`;
+  const foot = n => `<div class="rp4-ft"><span>${esc(d.school || 'تحدّي الدقيقة')}${d.teacher ? ' · المعلم: ' + esc(d.teacher) : ''}</span><span>${n} / 2</span></div>`;
+  const diff = (a, b) => b == null ? '' : a >= b ? ` · <b class="g">أعلى بـ ${a - b}</b>` : ` · <b class="r">أقل بـ ${b - a}</b>`;
+  const top = les.slice(0, 3), bars = les.slice(0, 8);
+  const p1 = `<div class="rp4-pg">${head}<div class="rp4-bd">
+    <div class="rp4-card rp4-who"><span class="rp4-ini">${esc(ini)}</span><div class="grow"><b>${esc(name)}</b><small>${[d.cls ? 'الصف ' + d.cls : '', d.from ? 'من ' + rpDate(d.from) + ' إلى ' + rpDate(d.to, 1) : ''].filter(Boolean).map(esc).join(' · ')}</small></div>
+      <div class="rp4-ring big">${rpRing(acc, g0[1], 110, 14)}<span><b>${acc}%</b><small>نسبة الصح</small></span></div></div>
+    <div class="rp4-kpi">
+      <div class="rp4-card"><b>${d.rounds}</b><small>جولة رسمية</small></div>
+      <div class="rp4-card"><b style="color:${RP_COL[g0[1]]}">${acc}%</b><small>نسبة الصح${ca != null ? ' · الصف ' + ca + '%' : ''}</small></div>
+      <div class="rp4-card"><b>${d.avg_secs != null ? Math.max(1, Math.round(d.avg_secs)) + ' ث' : '—'}</b><small>متوسط سرعة الإجابة</small></div>
+      <div class="rp4-card"><b>${d.rank || '—'}</b><small>الترتيب${d.of ? ' من ' + d.of : ''}</small></div></div>
+    ${top.length ? `<h2>الدروس الأساسية</h2><div class="rp4-tops n${top.length}">${top.map(x => { const p = rpPct(x.c, x.t), g = RP_GR(p); return `<div class="rp4-card rp4-top"><b class="t">${esc(rpLes(x.l))}</b>
+      <div class="rp4-ring">${rpRing(p, g[1], 120, 15)}<span><b>${p}%</b><small>${x.t} سؤال</small></span></div>
+      <b class="rp4-gr" style="color:${RP_COL[g[1]]}">${g[0]}</b><small>${x.ca != null ? 'متوسط الصف ' + x.ca + '%' + diff(p, x.ca) : '&nbsp;'}</small></div>`; }).join('')}</div>` : ''}
+    ${bars.length >= 2 ? `<h2>الأداء حسب الدرس</h2><div class="rp4-two${bars.length >= 3 ? '' : ' one'}">
+      ${bars.length >= 3 ? `<div class="rp4-card">${rpRadar(bars)}<div class="rp4-leg"><span><i style="background:#C8102E"></i>الطالب</span><span><i style="background:#3B2A1A"></i>متوسط الصف</span></div></div>` : ''}
+      <div class="rp4-card rp4-bars">${bars.map(x => { const p = rpPct(x.c, x.t), g = RP_GR(p); return `<div class="rp4-br"><span class="n">${esc(rpLes(x.l))}</span><div class="tr"><i style="width:${Math.max(4, p)}%;background:${RP_COL[g[1]]}"></i>${x.ca != null ? `<u style="right:${x.ca}%"></u>` : ''}</div><b class="p">${p}%</b></div>`; }).join('')}
+        <div class="rp4-ax"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+        <div class="rp4-leg"><span><i style="background:${RP_COL.ok}"></i>80% فأكثر</span><span><i style="background:${RP_COL.mid}"></i>50–79%</span><span><i style="background:${RP_COL.bad}"></i>أقل من 50%</span><span><i class="ln"></i>متوسط الصف</span></div></div></div>` : ''}
+  </div>${foot(1)}</div>`;
+  const wr = (d.wrong || []).slice(0, 10), recs = [];
+  m.w.forEach(x => recs.push(`مراجعة درس ${x} والتدرّب على أسئلته.`));
+  if (d.avg_secs != null && d.avg_secs < 4 && acc < 60) recs.push('التأني في قراءة الخيارات قبل الإجابة.');
+  if (m.tr != null && m.tr < -2) recs.push('مستواه نزل مؤخراً، يحتاج تشجيع ومتابعة.');
+  if (!recs.length) recs.push(acc >= 85 ? 'مستوى ممتاز، نشجعه على الاستمرار.' : 'الاستمرار على الجولة اليومية يرفع المستوى.');
+  const p2 = `<div class="rp4-pg">${head}<div class="rp4-bd">
+    <h2>الخلاصة والتوصيات</h2><div class="rp4-two eq"><div class="rp4-card rp4-chips">${m.s.map(x => `<span class="g">💪 ${esc(x)} ${rpPct(les.find(y => rpLes(y.l) === x).c, les.find(y => rpLes(y.l) === x).t)}%</span>`).join('')}${m.w.map(x => `<span class="r">⚠️ ${esc(x)} ${rpPct(les.find(y => rpLes(y.l) === x).c, les.find(y => rpLes(y.l) === x).t)}%</span>`).join('')}${!m.s.length && !m.w.length ? '<small>تتضح نقاط القوة والضعف مع جولات أكثر.</small>' : ''}</div>
+      <div class="rp4-card rp4-recs">${recs.map(x => `<div>• ${esc(x)}</div>`).join('')}</div></div>
+    ${(d.weeks || []).filter(x => x.t > 0).length >= 2 ? `<h2>التقدم أسبوع بأسبوع</h2><div class="rp4-card">${m.tr != null ? `<p class="rp4-say">${m.tr > 2 ? `نسبة الصح زادت <b class="g">${m.tr}%</b> من أول أسبوع.` : m.tr < -2 ? `نسبة الصح نزلت <b class="r">${-m.tr}%</b> عن أول أسبوع.` : 'مستواه ثابت من أول أسبوع.'}</p>` : ''}${rpChart(d, 1)}</div>` : ''}
+    ${wr.length ? `<h2>أسئلة أخطأ فيها: ${(d.wrong || []).length}</h2><div class="rp4-wr"><div class="rp4-wh"><span>الدرس</span><span>السؤال</span><span>إجابته</span><span>الإجابة الصحيحة</span></div>
+      ${wr.map(w => `<div class="rp4-card rp4-wrow"><span class="l">${esc(rpLes(w.l || ''))}</span><span class="q">${esc(w.q)}</span><span class="x">${w.chosen ? esc(w.chosen) : 'ما جاوب'}</span><span class="c">${esc(w.right || '')}</span></div>`).join('')}</div>` : ''}
+    ${note ? `<h2>ملاحظة المعلم</h2><div class="rp4-card rp4-note">${esc(note)}</div>` : ''}
+    <div class="rp4-sig"><div>توقيع المعلم</div><div>توقيع ولي الأمر</div></div>
+  </div>${foot(2)}</div>`;
+  return p1 + p2;
 }
 /* html2canvas draws inline SVG badly: swap each chart for an <img> of itself */
-function rpSvgImg(root){ root.querySelectorAll('svg').forEach(sv => { const c = sv.cloneNode(true); c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('width', '600'); c.setAttribute('height', '200'); c.setAttribute('font-family', 'Arial, sans-serif');
-  const im = new Image(); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(c.outerHTML); im.style.cssText = 'display:block;width:100%;height:auto'; sv.replaceWith(im); }); }
+function rpSvgImg(root){ root.querySelectorAll('svg').forEach(sv => { const c = sv.cloneNode(true), w = sv.getAttribute('width'), h = sv.getAttribute('height'); c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('font-family', 'Arial, sans-serif');
+  if (!w) { c.setAttribute('width', '600'); c.setAttribute('height', '200'); }
+  const im = new Image(); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(c.outerHTML); im.style.cssText = w ? `display:block;width:${w}px;height:${h}px;flex:none` : 'display:block;width:100%;height:auto'; sv.replaceWith(im); }); }
 ACTS['rp-pdf'] = async t => { const d = RP.d; if (!d) return; const note = rpNote(); t.disabled = true; toast('جاري تجهيز الملف…');
   const host = document.createElement('div'); host.className = 'rp-pdf-host';
-  const page = document.createElement('div'); page.className = 'rp3'; page.dir = 'rtl'; page.innerHTML = rpPdfHtml(d, note);
+  const page = document.createElement('div'); page.className = 'rp4'; page.dir = 'rtl'; page.innerHTML = rpPdfHtml(d, note);
   host.appendChild(page); document.body.appendChild(host); rpSvgImg(page); rpSplitWords(page);
   const file = 'تقرير-' + String(d.name || 'طالب').replace(/[\\/:*?"<>|]/g, '-') + '.pdf';
   try {
     await loadScript(H2P); try { await document.fonts.ready; } catch(e){}
     await Promise.all([...page.querySelectorAll('img')].map(i => i.decode ? i.decode().catch(() => {}) : 0));
-    const w = html2pdf().set({ margin: 0, filename: file, image: { type: 'jpeg', quality: 0.96 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['avoid-all'] } }).from(page);
+    const w = html2pdf().set({ margin: 0, filename: file, image: { type: 'jpeg', quality: 0.96 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: [] } }).from(page);
     const blob = await w.outputPdf('blob'), f = new File([blob], file, { type: 'application/pdf' });
     closeModals();
     if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: file }); } catch(e){} }

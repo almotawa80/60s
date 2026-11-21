@@ -18,6 +18,14 @@ begin
     from att a join public.attempt_questions aqs on aqs.attempt_id = a.id
     left join public.questions q on q.id = aqs.question_id
     where a.kind <> 'practice'
+  ), caq as (
+    select coalesce(nullif(aqs.lesson,''), nullif(q.lesson,''), nullif(aqs.subject,''), nullif(q.subject,''), 'عام') as les, aqs.is_correct
+    from public.attempts a join public.students s on s.id = a.student_id
+    join public.attempt_questions aqs on aqs.attempt_id = a.id
+    left join public.questions q on q.id = aqs.question_id
+    where s.class_id = v_cls and a.status = 'finished' and a.kind <> 'practice'
+  ), cles as (
+    select les, round(100.0 * count(*) filter (where is_correct) / nullif(count(*), 0))::int ca from caq group by les
   ), wk as (
     select (play_date - extract(dow from play_date)::int) w, count(*) t, count(*) filter (where is_correct) c from aq group by 1
   ), les as (
@@ -39,7 +47,8 @@ begin
     'rank', (select 1 + count(*) from cls_rank x where x.p > coalesce((select p from cls_rank where student_id = p_student), 0)),
     'of', (select count(*) from public.students where class_id = v_cls and approved is not false),
     'weeks', coalesce((select jsonb_agg(jsonb_build_object('w', w, 't', t, 'c', c) order by w) from (select * from wk order by w desc limit 8) x), '[]'),
-    'lessons', coalesce((select jsonb_agg(jsonb_build_object('l', les, 's', subj, 't', t, 'c', c) order by t desc) from (select * from les order by t desc limit 14) x), '[]'),
+    'cls_acc', (select round(100.0 * count(*) filter (where is_correct) / nullif(count(*), 0))::int from caq),
+    'lessons', coalesce((select jsonb_agg(jsonb_build_object('l', x.les, 's', x.subj, 't', x.t, 'c', x.c, 'ca', cl.ca) order by x.t desc) from (select * from les order by t desc limit 14) x left join cles cl on cl.les = x.les), '[]'),
     'wrong', case when p_full then coalesce((select jsonb_agg(jsonb_build_object('q', body, 'right', case when payload->>'kind' = 'order' then (select string_agg(x, ' ← ') from jsonb_array_elements_text(options) x) else options->>correct_index end,
                  'chosen', case when chosen_index is null then null when payload->>'kind' = 'order' then '✗' else options->>chosen_index end, 'l', les))
                  from (select * from aq where is_correct is false and body is not null order by started_at desc, position desc limit 30) w), '[]') else '[]'::jsonb end,
