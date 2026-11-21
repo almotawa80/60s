@@ -1132,7 +1132,8 @@ function demoSubmit(idx, seq){
   const btns = $app.querySelectorAll('.opt');
   if (seq) ordMark(btns, seq, q.options.map((_, k) => S.demoPerm.indexOf(k)), ok); else
   btns.forEach((b, i) => { b.disabled = true; b.classList.add(i === q.c ? 'good' : i === idx ? 'bad' : 'dim'); if (i === q.c) optMark(b, '✓', 'الإجابة الصحيحة'); else if (i === idx) optMark(b, '✗', 'إجابتك، غير صحيحة'); });
-  if (seq) { if (ok) FX.correct(btns[seq[seq.length - 1]], pts); else FX.wrong(null, false); }
+  if (q.payload && q.payload.kind === 'game') { if (ok) FX.correct(document.getElementById('mg'), pts); else FX.wrong(null, idx == null); }
+  else if (seq) { if (ok) FX.correct(btns[seq[seq.length - 1]], pts); else FX.wrong(null, false); }
   else if (ok) FX.correct(btns[q.c], pts); else FX.wrong(idx != null ? btns[idx] : null, idx == null);
   const pop = document.getElementById('pop');
   if (pop) { pop.className = 'pts-pop ' + (ok ? 'good' : 'bad'); pop.textContent = ok ? '+' + pts + ' نقطة' : (idx == null ? 'انتهى الوقت' : 'إجابة غير صحيحة'); }
@@ -1200,7 +1201,7 @@ function showQuestion(st){
   stopTimer();
   S.gen = (S.gen || 0) + 1; clearTimeout(S.nextT);
   S.cur = st; S.locked = false; S.ord = [];
-  const q = st.question, th = document.body.dataset.theme || 'mid', isOrd = !!(q.payload && q.payload.kind === 'order');
+  const q = st.question, th = document.body.dataset.theme || 'mid', isOrd = !!(q.payload && q.payload.kind === 'order'), isGame = !!(q.payload && q.payload.kind === 'game');
   let dots = '';
   const L0 = S.log || [], lg = st.position > 1 ? L0.slice(-(st.position - 1)) : [], lo = st.position - 1 - lg.length;
   for (let i = 1; i <= st.total; i++) { const e = i < st.position && i - 1 - lo >= 0 ? lg[i - 1 - lo] : null; dots += '<span class="dot' + (i < st.position ? ' done' + (e ? (e.ok ? ' ok' : ' no') : '') : i === st.position ? ' cur' : '') + '"></span>'; }
@@ -1214,8 +1215,71 @@ function showQuestion(st){
     '<div class="pvx-tm' + (st.position === st.total ? ' last' : '') + '" id="timer"><i id="tfill" hidden></i><div class="pvx-bar"><i id="tfg"></i></div><span><b id="tnum">' + Math.ceil(st.seconds_left) + '</b> ثانية</span></div>' +
     '<div class="pv-panel"><div class="qbox' + (q.image ? ' has-img' : '') + '">' + (q.image ? '<img class="q-img" src="' + esc(q.image) + '" alt="' + esc(q.image_alt || 'صورة مرفقة بالسؤال') + '">' : '') + '<span>' + esc(q.body) + '</span><div class="pts-pop" id="pop"></div></div>' +
     (isOrd ? '<div class="ord-hint">اضغطها بالترتيب ١ ← ' + ['', '', '', '٣', '٤'][q.options.length] + '</div>' : '') +
-    '<div class="opts kc' + (long ? ' long' : '') + (q.options.length === 2 ? ' tf' : '') + (isOrd ? ' ord' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="' + (isOrd ? 's-ord' : 's-answer') + '" data-idx="' + i + '">' + (isOrd || q.options.length === 2 ? '<span class="letter shp" aria-hidden="true">' + (isOrd ? '' : ['✓', '✗'][i]) + '</span>' : '') + '<span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
+    (isGame ? '<div class="mg" id="mg"></div></div></div>' : '<div class="opts kc' + (long ? ' long' : '') + (q.options.length === 2 ? ' tf' : '') + (isOrd ? ' ord' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="' + (isOrd ? 's-ord' : 's-answer') + '" data-idx="' + i + '">' + (isOrd || q.options.length === 2 ? '<span class="letter shp" aria-hidden="true">' + (isOrd ? '' : ['✓', '✗'][i]) + '</span>' : '') + '<span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>');
   runTimer(st.seconds_left, st.secs);
+  if (isGame) mgStart(st);
+}
+/* ---- memory mini-games: question payload {kind:'game', g:'squares'|'seq'|'pairs'|'where'|'cups', lv} ----
+   options are ['نجحت','ما نجحت'] with correct_index 0: the client plays the game and submits 0 (won) or 1 (lost). The round timer runs the whole time. */
+const MG = { tap: null };
+const mgSleep = ms => new Promise(r => setTimeout(r, ms));
+const mgPick = (n, k) => { const a = Array.from({ length: n }, (_, i) => i); for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, k); };
+const mgGrid = (n, cells) => '<div class="mg-grid" style="--n:' + n + '">' + Array.from({ length: cells || n * n }, (_, i) => '<button type="button" class="mg-c" data-act="mg-c" data-c="' + i + '" aria-label="مربع ' + (i + 1) + '"></button>').join('') + '</div>';
+function mgSay(t){ const e = $app.querySelector('.qbox > span'); if (e) e.textContent = t; }
+function mgEnd(ok){ if (S.locked) return; S.locked = true; MG.tap = null; stopTimer(); submit(ok ? 0 : 1); }
+ACTS['mg-c'] = t => { if (S.locked || !MG.tap) return; haptic(); MG.tap(Number(t.dataset.c), t); };
+async function mgStart(st){
+  const p = st.question.payload, gen = S.gen, box = document.getElementById('mg'); MG.tap = null;
+  if (!box) return;
+  const lv = Math.max(1, Number(p.lv) || 1), at = (arr) => arr[Math.min(arr.length, lv) - 1];
+  const live = () => S.gen === gen && !S.locked && document.getElementById('mg') === box;
+  const cell = i => box.querySelector('[data-c="' + i + '"]');
+  if (p.g === 'squares') {
+    const [n, k] = at([[3, 3], [3, 4], [4, 4], [4, 5], [4, 6], [5, 7]]), lit = mgPick(n * n, k), got = [];
+    box.innerHTML = mgGrid(n); mgSay('احفظ مكان المربعات');
+    await mgSleep(300); if (!live()) return; lit.forEach(i => cell(i).classList.add('lit'));
+    await mgSleep(1100 + k * 200); if (!live()) return; lit.forEach(i => cell(i).classList.remove('lit'));
+    mgSay('اضغط المربعات اللي كانت مضيئة');
+    MG.tap = i => { if (got.includes(i)) return;
+      if (!lit.includes(i)) { cell(i).classList.add('no'); lit.forEach(j => cell(j).classList.add('ok')); return mgEnd(false); }
+      got.push(i); cell(i).classList.add('ok'); if (got.length === k) mgEnd(true); };
+  } else if (p.g === 'seq') {
+    const k = at([3, 4, 5, 6]), s = []; let pos = 0;
+    for (let i = 0; i < k; i++) { let c; do { c = Math.floor(Math.random() * 9); } while (c === s[i - 1]); s.push(c); }
+    box.innerHTML = mgGrid(3); mgSay('تابع الترتيب');
+    await mgSleep(400);
+    for (const c of s) { if (!live()) return; cell(c).classList.add('lit'); FX.tick(); await mgSleep(430); if (!live()) return; cell(c).classList.remove('lit'); await mgSleep(140); }
+    if (!live()) return; mgSay('عيد نفس الترتيب');
+    MG.tap = i => { const b = cell(i);
+      if (i !== s[pos]) { b.classList.add('no'); cell(s[pos]).classList.add('ok'); return mgEnd(false); }
+      pos++; b.classList.add('ok'); if (pos === k) return mgEnd(true); setTimeout(() => b.classList.remove('ok'), 200); };
+  } else if (p.g === 'pairs') {
+    const E = ['🐪', '🦅', '🌙', '⭐', '🕌', '📚'], np = at([3, 4]), deck = E.slice(0, np).concat(E.slice(0, np));
+    for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+    let open = [], found = 0, lock = false;
+    box.innerHTML = mgGrid(np === 3 ? 3 : 4, deck.length); box.firstChild.classList.add('cards'); mgSay('دوّر الأزواج المتشابهة');
+    MG.tap = async i => { const b = cell(i); if (lock || b.textContent) return;
+      b.textContent = deck[i]; b.classList.add('flip'); open.push(i); if (open.length < 2) return;
+      const a = open[0], c = open[1]; open = [];
+      if (deck[a] === deck[c]) { cell(a).classList.add('ok'); cell(c).classList.add('ok'); found++; if (found === np) mgEnd(true); return; }
+      lock = true; await mgSleep(550); if (!live()) return; [a, c].forEach(x => { cell(x).textContent = ''; cell(x).classList.remove('flip'); }); lock = false; };
+  } else if (p.g === 'where') {
+    const E = ['⭐', '🌙', '🍎', '⚽', '🚗', '📚'], [n, k] = at([[3, 3], [3, 4], [3, 5], [4, 6]]), pos = mgPick(n * n, k), t = Math.floor(Math.random() * k);
+    box.innerHTML = mgGrid(n); mgSay('احفظ مكان كل شكل');
+    await mgSleep(300); if (!live()) return; pos.forEach((c, i) => { cell(c).textContent = E[i]; });
+    await mgSleep(1300 + k * 350); if (!live()) return; pos.forEach(c => { cell(c).textContent = ''; });
+    mgSay('وين كان ' + E[t] + ' ؟');
+    MG.tap = i => { pos.forEach((c, j) => { cell(c).textContent = E[j]; });
+      if (i === pos[t]) { cell(i).classList.add('ok'); mgEnd(true); } else { cell(i).classList.add('no'); cell(pos[t]).classList.add('ok'); mgEnd(false); } };
+  } else {
+    const moves = at([4, 6, 8, 10]), sp = at([380, 320, 260, 210]), slot = [0, 1, 2], ball = Math.floor(Math.random() * 3);
+    box.innerHTML = '<div class="mg-cups">' + [0, 1, 2].map(i => '<button type="button" class="mg-cup' + (i === ball ? ' ball' : '') + '" data-act="mg-c" data-c="' + i + '" aria-label="كوب" style="--x:' + i + ';transition-duration:' + sp + 'ms"><b></b><i></i></button>').join('') + '</div>';
+    mgSay('تابع الكوب اللي تحته الكرة');
+    await mgSleep(300); if (!live()) return; cell(ball).classList.add('up'); await mgSleep(900); if (!live()) return; cell(ball).classList.remove('up'); await mgSleep(380);
+    for (let m = 0; m < moves; m++) { if (!live()) return; const [a, b] = mgPick(3, 2); [slot[a], slot[b]] = [slot[b], slot[a]]; cell(a).style.setProperty('--x', slot[a]); cell(b).style.setProperty('--x', slot[b]); await mgSleep(sp + 50); }
+    if (!live()) return; mgSay('وين الكرة؟');
+    MG.tap = i => { cell(ball).classList.add('up'); cell(i).classList.add(i === ball ? 'okc' : 'noc'); if (i !== ball) cell(i).classList.add('up'); mgEnd(i === ball); };
+  }
 }
 function runTimer(secs, tot){
   const total = tot || 15, end = performance.now() + secs * 1000;
@@ -1272,7 +1336,9 @@ async function submit(idx, seq){
     (S.log = S.log || []).push({ q: st.question.body, o: st.question.options, c: ci, x: seq ? null : idx, ok: !!r.correct, p: r.correct ? (r.points || 0) : 0 });
     { const pe = document.getElementById('pvpts'); if (pe && r.correct) { const L = (S.log || []).slice(-st.position); pe.textContent = '⭐ ' + L.reduce((a, x) => a + (x.p || 0), 0); pe.classList.remove('bump'); void pe.offsetWidth; pe.classList.add('bump'); } }
     const btns = $app.querySelectorAll('.opt');
-    if (st.question.payload && st.question.payload.kind === 'order') ordMark(btns, seq || [], r.order, r.correct);
+    const isGame = !!(st.question.payload && st.question.payload.kind === 'game'), mgEl = document.getElementById('mg');
+    if (isGame) { if (mgEl) mgEl.classList.add(r.correct ? 'won' : 'lost'); }
+    else if (st.question.payload && st.question.payload.kind === 'order') ordMark(btns, seq || [], r.order, r.correct);
     else btns.forEach((b, i) => {
       b.disabled = true;
       if (i === ci) { b.classList.add('good'); optMark(b, '✓', 'الإجابة الصحيحة'); }
@@ -1280,7 +1346,8 @@ async function submit(idx, seq){
       else b.classList.add('dim');
     });
     const combo = comboN(st.position);
-    if (seq) { if (r.correct) FX.correct(btns[seq[seq.length - 1]], r.points, combo); else FX.wrong(null, r.timeout); }
+    if (isGame) { if (r.correct) FX.correct(mgEl, r.points, combo); else FX.wrong(null, idx == null || r.timeout); }
+    else if (seq) { if (r.correct) FX.correct(btns[seq[seq.length - 1]], r.points, combo); else FX.wrong(null, r.timeout); }
     else if (r.correct) FX.correct(btns[ci], r.points, combo); else FX.wrong(idx != null ? btns[idx] : null, idx == null || r.timeout);
     { const av = document.getElementById('pvav'); if (av) { av.classList.remove('hop', 'nope'); void av.offsetWidth; av.classList.add(r.correct ? 'hop' : 'nope'); } }
     const dl = $app.querySelectorAll('.dots .dot')[st.position - 1]; if (dl) dl.classList.add('done', r.correct ? 'ok' : 'no');
