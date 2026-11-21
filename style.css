@@ -2764,3 +2764,7 @@ html body .pv.pvx .dots .dot.done.no{background:#FF453A!important}
 .cp-list.picking .cp-row.dim{opacity:1}
 .ch-sendbar{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));padding:10px 0;z-index:5}
 .ch-sendbar .btn{width:100%;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+/* v182 next-round countdown stands out */
+.sp-cd{display:flex;flex-direction:column;align-items:center;gap:2px;background:#2C2C2E;border-radius:16px;padding:8px 22px}
+.sp-cd small{font-size:12.5px;opacity:.7;font-weight:700}
+.sp-cd b{font-size:30px;font-weight:900;color:#F5B72B;direction:ltr;font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1.15}

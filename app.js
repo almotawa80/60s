@@ -343,7 +343,7 @@ function renderHomeP(){
   if (sh.saved && !S.demo) { const k = 'mc_saved_' + (h.student.id || ''); if (LS.get(k) !== sh.saved) { LS.set(k, sh.saved); setTimeout(() => toast('🛡 درعك حمى سلسلتك!'), 600); } }
   let mid;
   if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo" id="bx-emo">🎉</div><b id="bx-h">أحسنت! ارجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
-    '<div id="bx-act"></div><p class="sp-sub">الجولة القادمة بعد <b id="cd">' + cdText() + '</b></p><div id="goal"></div>' + pushBtn() + '</div>';
+    '<div id="bx-act"></div><div class="sp-cd"><small>الجولة القادمة بعد</small><b id="cd">' + cdText() + '</b></div><div id="goal"></div>' + pushBtn() + '</div>';
   else mid = (h.rank > 1 && h.gap != null ? '<div class="sp-rival" id="rival">' + (h.gap > 0 ? 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى اللي فوقك 👀' : 'أنت متعادل مع اللي فوقك، جولة وحدة تكفي! 👀') + '</div>' : h.rank === 1 && h.total_points ? '<div class="sp-rival">أنت الأول 🏆 حافظ عليها</div>' : '') +
     pzLine((h.competition || {}).prizes, 'sp-prize') +
     '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>' +
