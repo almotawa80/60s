@@ -1361,6 +1361,7 @@ async function teacherRoute(){
     else if (page === 'opt') tOpt(parts[1]);
     else if (page === 'tb') tTB();
     else if (page === 'sset') tSSet();
+    else if (page === 'hidden') await tHidden();
     else if (page === 'entry') await tEntry();
     else if (page === 'appear') tAppear();
     else if (page === 'msgtpl') tMsgTpl();
@@ -2105,9 +2106,9 @@ ACTS['s-msg'] = t => { const c = ctx(t), s = (CL.students[c.id] || []).find(x =>
 ACTS['sel-msg'] = () => { const c = CL.byId[CL.sel.cid] || CL.classes.find(x => x.id === CL.sel.cid); if (!c) return; msgSend((CL.students[c.id] || []).filter(s => CL.sel.ids.has(s.id)).map(s => clStu(c, s))); };
 ACTS['sel-del'] = async () => {
   const ids = [...CL.sel.ids], isC = CL.sel.type === 'classes';
-  if (!await ask(isC ? `حذف ${ids.length} صف مع طلبتها ونتائجها نهائياً؟` : `حذف ${ids.length} طالب/ـة ونتائجهم نهائياً؟`)) return;
-  const { error } = await sb.from(isC ? 'classes' : 'students').delete().in('id', ids);
-  if (error) return toast(errMsg(error));
+  if (!await ask(isC ? `حذف ${ids.length} صف مع طلبتها ونتائجها نهائياً؟` : `حذف ${ids.length} طالب/ـة؟ نتائجهم تبقى محفوظة وتقدر ترجعهم من الإعدادات.`)) return;
+  if (isC) { const { error } = await sb.from('classes').delete().in('id', ids); if (error) return toast(errMsg(error)); }
+  else if (!await hideStu(ids)) return;
   CL.sel = null; toast('تم الحذف'); await tClasses();
 };
 ACTS['sel-move'] = () => {
@@ -2514,11 +2515,21 @@ function snack(msg, onUndo, onCommit){
   document.body.appendChild(el); setTimeout(commit, 5000);
 }
 window.addEventListener('pagehide', () => { const s2 = document.getElementById('snack'); if (s2 && s2._commit) s2._commit(); });
+/* v268: deleting a student hides them (rpc teacher_hide_student, sql/keep_results.sql); history stays */
+async function hideStu(ids){ for (const id of ids) { const { error } = await sb.rpc('teacher_hide_student', { p_student: id }); if (error) { toast(/teacher_hide_student|PGRST202|function/i.test(error.message || '') ? 'يحتاج تحديث قاعدة البيانات أول' : errMsg(error)); return false; } } return true; }
+async function tHidden(){
+  view('الطلاب المحذوفين', '<div class="spin"></div>', 'settings', '', '#/t/sset');
+  let d = []; try { d = await rpc('teacher_hidden_students'); } catch(e){ return view('الطلاب المحذوفين', `<p class="sub center">${esc(errMsg(e))}</p>`, 'settings', '', '#/t/sset'); }
+  view('الطلاب المحذوفين', d.length ? sGrp('', d.map(x => `<div class="set-row"><span class="grow"><b>${esc(x.name)}</b><small class="sub" style="display:block">${esc(x.cls || 'صف محذوف')} · ${x.rounds} جولة</small></span><button class="btn sm soft" data-act="hs-back" data-id="${x.id}">رجّعه</button><button class="btn sm soft dng-t" data-act="hs-purge" data-id="${x.id}" data-n="${esc(x.name)}" aria-label="حذف نهائي">${ic('trash')}</button></div>`), 'نتائجهم محفوظة وتنحسب في تقاريرهم. «رجّعه» يرجّعه لصفه بنفس نقاطه.')
+    : `<div class="cl-empty sm"><b>ما فيه طلاب محذوفين</b><small>لما تحذف طالب يطلع هنا، ونتائجه تبقى محفوظة.</small></div>`, 'settings', '', '#/t/sset');
+}
+ACTS['hs-back'] = async t => { try { await rpc('teacher_restore_student', { p_student: t.dataset.id }); toast('رجع لصفه ✓'); CL.loaded = false; tHidden(); } catch(e){ toast(/class_gone/.test(e.message || '') ? 'صفه انحذف، ما نقدر نرجعه' : errMsg(e)); } };
+ACTS['hs-purge'] = async t => { if (!await ask('تنحذف نتائجه كلها، وما ترجع.', { title: `حذف ${t.dataset.n} نهائياً؟`, ok: 'حذف', cancel: 'لا', danger: true })) return;
+  try { await rpc('teacher_purge_student', { p_student: t.dataset.id }); toast('انحذف'); tHidden(); } catch(e){ toast(errMsg(e)); } };
 ACTS['t-del-student'] = async t => { const c = ctx(t); closeModals();
   const arr = CL.students[c.id] || [], st0 = arr.find(x => x.id === t.dataset.id); if (!st0) return;
-  if (!await ask('تنحذف نقاطه كلها، وما ترجع.', { title: `حذف ${st0.name}؟`, ok: 'حذف', cancel: 'لا', danger: true, safe: true })) return;
-  const { error } = await sb.from('students').delete().eq('id', st0.id);
-  if (error) return toast('تعذّر حذف ' + st0.name + '. تأكد من الاتصال وحاول مجدداً');
+  if (!await ask('يطلع من الصف، ونتائجه تبقى محفوظة. تقدر ترجعه من الإعدادات.', { title: `حذف ${st0.name}؟`, ok: 'حذف', cancel: 'لا', danger: true })) return;
+  if (!await hideStu([st0.id])) return;
   const i = arr.findIndex(x => x.id === st0.id); if (i >= 0) arr.splice(i, 1);
   renderClasses(); toast('تم حذف ' + st0.name);
 };
@@ -2565,7 +2576,7 @@ function cpPast(){
 }
 ACTS['cp-del-past'] = async t => {
   const gid = t.dataset.g, k = (CL.past || []).find(x => x.group_id === gid); if (!k) return;
-  if (!await ask('تنحذف نتائجه كلها، وما ترجع.', { title: `حذف «${k.title.split('·').pop().trim()}»؟`, danger: true, ok: 'حذف', cancel: 'لا' })) return;
+  if (!await ask('يختفي من القائمة. نقاط الطلاب ومستوياتهم وتقاريرهم تبقى.', { title: `حذف «${k.title.split('·').pop().trim()}»؟`, danger: true, ok: 'حذف', cancel: 'لا' })) return;
   const { error } = await sb.from('competitions').delete().eq('group_id', gid).eq('status', 'finished');
   if (error) return toast(errMsg(error));
   Object.keys(PCACHE).forEach(h => { if (h.indexOf('#/t/results') === 0) delete PCACHE[h]; });
@@ -4778,6 +4789,7 @@ function tSSet(){
     sGrp('', [optRow('stu_name', 'كيف تشوف أسماء طلابك')], 'في صفحة الصف وصفحة التحدي عندك أنت. اللي يشوفه الطلاب من «قواعد اللعب».') +
     sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/msgtpl"', icon: 'mail', color: '#2F80ED', label: 'قوالب الرسائل', val: 'تشجيع · تقدير · توصية' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/archive"', icon: 'archive', color: '#A2845E', label: 'الصفوف المؤرشفة' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/hidden"', icon: 'users', color: '#8E8E93', label: 'الطلاب المحذوفين' }),
       sRow({ act: 'st-newyear', icon: 'refresh', color: '#FF9500', label: 'بدء سنة دراسية جديدة' })], '«سنة جديدة» يؤرشف كل صفوفك وتبقى نتائجها محفوظة.'),
     'settings', '', '#/t/settings');
 }
