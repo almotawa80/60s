@@ -560,7 +560,7 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
   if (k === 'me') { const h = S.home, n = (h.student.name || '?').trim();
     return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><button class="s-me-av ' + lvlFrame() + (h.student.avatar ? ' em' : '') + '" data-act="s-av" aria-label="اختر شخصيتك">' + esc(h.student.avatar || n.charAt(0)) + '<span class="s-av-ed">✏️</span></button><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small></div>' +
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
-      '<div class="s-me-o">' + [['s-profile', '🪪', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-push-tab', pushOn() ? '🔔' : '🔕', 'الإشعارات'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
+      '<div class="s-me-o">' + [['s-rep-me', '📊', 'تقريري'], ['s-profile', '🪪', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-push-tab', pushOn() ? '🔔' : '🔕', 'الإشعارات'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
       '</div>'); }
   if (k === 'lb') { if (S.demo) return toast('الترتيب يظهر في المسابقة الفعلية');
     sPage('lb', '<div class="s-pgc"><div class="spin"></div></div>');
@@ -1409,6 +1409,7 @@ async function teacherRoute(){
     else if (page === 'tb') tTB();
     else if (page === 'sset') tSSet();
     else if (page === 'hidden') await tHidden();
+    else if (page === 'rep') await tStuRep(parts[1]);
     else if (page === 'entry') await tEntry();
     else if (page === 'appear') tAppear();
     else if (page === 'msgtpl') tMsgTpl();
@@ -2007,7 +2008,8 @@ ACTS['ch-stu'] = t => { const s = chStudents().find(x => x.id === t.dataset.id);
     <div class="st1-stats"><div><b>${k.pts}</b><small>نقطة</small></div><div><b>${k.rounds}</b><small>جولات</small></div></div>
     <div class="st1-today ${k.today ? 'on' : ''}">${k.today ? 'لعب اليوم ✓' : 'ما لعب اليوم'}</div>
     <button class="btn cp-share" data-act="ch-in" data-id="${esc(s.id)}" data-k="${k.today ? 'praise' : 'encourage'}" data-v="${esc(inMsg)}">${k.today ? 'شجّعه 🌟' : 'ذكّره يلعب 🔔'}</button>
-    <button class="btn soft" data-act="ch-wa" data-ph="${esc(s.phone || '')}" data-v="${esc(msg)}">أو واتساب</button></div>`); };
+    <button class="btn soft" data-act="ch-wa" data-ph="${esc(s.phone || '')}" data-v="${esc(msg)}">أو واتساب</button>
+    <button class="btn soft" data-act="s-rep" data-id="${esc(s.id)}">📊 تقريره</button></div>`); };
 ACTS['ch-wa'] = t => { let ph = (t.dataset.ph || '').replace(/[^0-9]/g, ''); if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2); closeModals(); window.open('https://wa.me/' + ph + '?text=' + encodeURIComponent(t.dataset.v), '_blank'); };
 ACTS['ch-more'] = () => { const ks = chComps(), c = ks[0]; if (!c) return; const g = c.group_id || c.id;
   const O = [c.paused_at ? ['cp-resume', '▶️', 'استئناف', `data-g="${g}"`] : ['cp-pause', '⏸', 'إيقاف مؤقت', `data-g="${g}"`], ['cp-end', '🏁', 'إنهاء', `data-g="${g}"`]];
@@ -2210,7 +2212,7 @@ function st1Html(c, s){
   const ord = st1Order(c), i = ord.findIndex(x => x.id === s.id), pv = ord[i - 1], nx = ord[i + 1], A = `data-id="${s.id}" data-cid="${c.id}"`;
   return `<div class="st1" data-cid="${c.id}" data-id="${s.id}"><div class="st1-h"><b>${esc(s.name)}</b><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div>
     <button class="btn cp-share" data-act="s-wa" data-id="${s.id}">أرسل له رمز الدخول</button>
-    <div class="st1-opts">${[['s-edit', '✏️', 'تعديل الاسم'], ['s-msg', '✉️', 'رسالة'], ['t-regen', '🔄', 'رمز جديد'], ['t-del-student', '🗑️', 'حذف']].map(o => `<button class="st1-o" data-act="${o[0]}" ${A}><span class="e">${o[1]}</span><b>${o[2]}</b></button>`).join('')}</div>
+    <div class="st1-opts">${[['s-edit', '✏️', 'تعديل الاسم'], ['s-msg', '✉️', 'رسالة'], ['t-regen', '🔄', 'رمز جديد'], ['t-del-student', '🗑️', 'حذف'], ['s-rep', '📊', 'تقريره']].map(o => `<button class="st1-o" data-act="${o[0]}" ${A}><span class="e">${o[1]}</span><b>${o[2]}</b></button>`).join('')}</div>
     <div class="st1-nav"><button class="icon-btn" data-act="s-go" data-id="${pv ? pv.id : ''}" ${pv ? '' : 'disabled'} aria-label="السابق">→</button><small>${i + 1} من ${ord.length}</small><button class="icon-btn" data-act="s-go" data-id="${nx ? nx.id : ''}" ${nx ? '' : 'disabled'} aria-label="التالي">←</button></div></div>`;
 }
 ACTS['s-go'] = t => { const c = ctx(t), id = t.dataset.id, s = id && (CL.students[c.id] || []).find(x => x.id === id); const el = document.querySelector('.st1'); if (!s || !el) return; el.outerHTML = st1Html(c, s); };
@@ -2564,6 +2566,124 @@ function snack(msg, onUndo, onCommit){
 window.addEventListener('pagehide', () => { const s2 = document.getElementById('snack'); if (s2 && s2._commit) s2._commit(); });
 /* v268: deleting a student hides them (rpc teacher_hide_student, sql/keep_results.sql); history stays */
 async function hideStu(ids){ for (const id of ids) { const { error } = await sb.rpc('teacher_hide_student', { p_student: id }); if (error) { toast(/teacher_hide_student|PGRST202|function/i.test(error.message || '') ? 'يحتاج تحديث قاعدة البيانات أول' : errMsg(error)); return false; } } return true; }
+/* ===== v270 student report (teacher page, WhatsApp/PDF, student «تقريري») — sql/student_report.sql ===== */
+const RP = { d: null, id: null, back: null, all: false };
+const rpPct = (c, t) => t ? Math.round(c * 100 / t) : 0;
+const rpLes = l => l === 'عام' ? 'أسئلة عامة' : l;
+function rpLvl(x){ if (x.t < 4) return 'few'; const p = rpPct(x.c, x.t); return p >= 80 ? 'ok' : p >= 50 ? 'mid' : 'bad'; }
+const RP_LV = { ok: 'متمكّن', mid: 'جيد', bad: 'يحتاج مراجعة', few: 'قليل' };
+function rpTrend(d){ const w = (d.weeks || []).filter(x => x.t >= 3); if (w.length < 2) return null; return rpPct(w[w.length - 1].c, w[w.length - 1].t) - rpPct(w[0].c, w[0].t); }
+function rpDate(s, y){ try { return new Date(s + 'T12:00:00').toLocaleDateString('ar-KW-u-nu-latn', y ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'long' }); } catch(e){ return s; } }
+/* weekly line: newest on the left (RTL time) */
+function rpChart(d, light){
+  const w = (d.weeks || []).filter(x => x.t > 0); if (w.length < 2) return '';
+  const n = w.length, X = i => n === 1 ? 150 : 285 - i * (270 / (n - 1)), Y = p => 85 - p * .65, pts = w.map((x, i) => [X(i), Y(rpPct(x.c, x.t))]);
+  const ln = light ? '#C8102E' : '#FFD60A', grid = light ? '#EEEEF1' : '#2C2C2E', txt = light ? '#16161A' : '#fff', mut = light ? '#6B6B73' : '#8E8E93';
+  const last = w[n - 1], first = w[0];
+  return `<svg viewBox="0 0 300 100" class="rp2-svg" aria-label="نسبة الإجابات الصحيحة أسبوع بأسبوع">${[20, 52, 85].map(y => `<line x1="0" y1="${y}" x2="300" y2="${y}" stroke="${grid}"/>`).join('')}
+    ${light ? `<polygon fill="${ln}" fill-opacity=".08" points="${pts.map(p => p.join(',')).join(' ')} ${pts[n - 1][0]},85 ${pts[0][0]},85"/>` : ''}
+    <polyline fill="none" stroke="${ln}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" points="${pts.map(p => p.join(',')).join(' ')}"/>
+    ${pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="${i === n - 1 ? 4.5 : 3.5}" fill="${i === n - 1 || !light ? ln : '#fff'}" stroke="${ln}" stroke-width="2"/>`).join('')}
+    <text x="${pts[n - 1][0]}" y="${Math.max(11, pts[n - 1][1] - 9)}" fill="${txt}" font-size="11" font-weight="700" text-anchor="middle">${rpPct(last.c, last.t)}%</text>
+    <text x="${pts[0][0]}" y="${Math.min(97, pts[0][1] + 16)}" fill="${mut}" font-size="10" text-anchor="middle">${rpPct(first.c, first.t)}%</text></svg>
+    <div class="rp2-wk"><span>${rpDate(first.w)}</span><span>هالأسبوع</span></div>`;
+}
+function rpOpen(id){ RP.back = location.hash; go('#/t/rep/' + id); }
+ACTS['s-rep'] = t => { closeModals(); rpOpen(t.dataset.id); };
+async function tStuRep(id){
+  const back = RP.back && RP.back.indexOf('/rep/') < 0 ? RP.back : '#/t/classes';
+  view('تقرير الطالب', '<div class="spin"></div>', 'classes', '', back);
+  let d; try { d = await rpc('teacher_student_report2', { p_student: id }); }
+  catch(e){ return view('تقرير الطالب', `<p class="sub center">${/PGRST202|teacher_student_report2/.test(e.message || '') ? 'يحتاج تحديث قاعدة البيانات أول' : esc(errMsg(e))}</p>`, 'classes', '', back); }
+  RP.d = d; RP.id = id; RP.all = false;
+  view('تقرير الطالب', rpHtml(d), 'classes', '', back);
+}
+function rpHtml(d){
+  const acc = rpPct(d.correct, d.total), tr = rpTrend(d), name = fmtStu(d.name || '');
+  const hero = `<div class="rp2-hero"><div class="rp2-av">${esc(d.avatar || (d.name || '?').trim().charAt(0))}</div><b class="rp2-nm">${esc(name)}</b>
+    <div class="rp2-pills">${d.cls ? `<span>${esc(d.cls)}</span>` : ''}<span class="g">المستوى ${lvlOf(d.xp || 0).n}</span>${d.streak ? `<span>🔥 ${d.streak} ${d.streak > 2 && d.streak < 11 ? 'أيام' : 'يوم'}</span>` : ''}</div>`;
+  if (!d.rounds) return hero + `<div class="rp2-empty">ما لعب جولات رسمية للحين.${d.practice ? `<br><small>تدرّب ${d.practice} ${d.practice > 2 && d.practice < 11 ? 'مرات' : 'مرة'} بدون نقاط.</small>` : ''}</div></div>`;
+  const les = d.lessons || [], wr = d.wrong || [], cm = d.comps || [];
+  return hero + `<div class="rp2-nums"><div><b>${d.rounds}</b><small>جولة</small></div><div><b>${acc}%</b><small>صح</small></div><div><b>${d.avg_secs != null ? Math.round(d.avg_secs) + 'ث' : '—'}</b><small>السرعة</small></div><div><b>${d.rank || '—'}</b><small>ترتيبه</small></div></div></div>
+    ${tr != null ? `<h3 class="rp2-h">هل يتحسن؟</h3><div class="rp2-card"><p class="rp2-say">${tr > 2 ? `إجاباته الصحيحة زادت <b class="up">${tr}%</b> من أول أسبوع.` : tr < -2 ? `إجاباته الصحيحة نزلت <b class="dn">${-tr}%</b> عن أول أسبوع.` : 'مستواه ثابت من أول أسبوع.'}</p>${rpChart(d)}</div>` : ''}
+    ${les.length ? `<h3 class="rp2-h">دروسه</h3><div class="rp2-les">${les.map(x => { const k = rpLvl(x); return `<div class="rp2-l k-${k}"><i></i><span class="grow">${esc(rpLes(x.l))}</span><b>${k === 'few' ? 'قليل' : rpPct(x.c, x.t) + '%'}</b></div>`; }).join('')}</div>
+      <div class="rp2-key"><span><i class="k-ok"></i>متمكّن</span><span><i class="k-mid"></i>بين بين</span><span><i class="k-bad"></i>يحتاج مراجعة</span></div>` : ''}
+    ${wr.length ? `<h3 class="rp2-h">وين يغلط؟</h3><div id="rp2-wr">${rpWrong(wr)}</div>` : ''}
+    ${cm.length || d.gone ? `<details class="rp2-det"><summary>التحديات اللي لعبها <span>${cm.length + (d.gone ? 1 : 0)}</span></summary>${cm.map(c => `<div class="rp2-ch"><b>${esc(c.t)}</b><span>${c.p ? (c.r <= 3 ? ['🥇', '🥈', '🥉'][c.r - 1] + ' ' : '') + 'المركز ' + c.r : '—'}</span></div>`).join('')}${d.gone ? `<div class="rp2-ch"><b>تحديات محذوفة</b><span class="gone">نتيجتها محفوظة</span></div>` : ''}</details>` : ''}
+    <div class="rp2-bar"><button class="btn" data-act="rp-send">📤 أرسل التقرير</button></div>`;
+}
+function rpWrong(wr){ const list = RP.all ? wr : wr.slice(0, 3);
+  return list.map(w => `<div class="rp2-mis"><q>${esc(w.q)}</q><div class="a">${w.chosen ? `<span class="w">✗ ${esc(w.chosen)}</span>` : '<span class="w">✗ ما جاوب</span>'}<span class="c">✓ ${esc(w.right || '')}</span></div></div>`).join('') +
+    (!RP.all && wr.length > 3 ? `<button class="rp2-more" data-act="rp-more">كل أخطائه (${wr.length}) ‹</button>` : ''); }
+ACTS['rp-more'] = () => { RP.all = true; const el = document.getElementById('rp2-wr'); if (el && RP.d) el.innerHTML = rpWrong(RP.d.wrong || []); };
+ACTS['rp-send'] = () => { if (!RP.d) return; const n = fmtStu(RP.d.name || '');
+  modal(`<div class="st1"><div class="st1-h"><b>أرسل تقرير ${esc(n.split(' ')[0])}</b><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div>
+    <textarea id="rp-note" class="input rp2-note" rows="2" maxlength="300" placeholder="ملاحظتك (اختياري)">${esc(RP.note || '')}</textarea>
+    <div class="st1-opts"><button class="st1-o" data-act="rp-wa"><span class="e">💬</span><b>واتساب</b></button><button class="st1-o" data-act="rp-pdf"><span class="e">📄</span><b>ملف PDF</b></button></div></div>`); };
+const rpNote = () => { const el = document.getElementById('rp-note'); if (el) RP.note = el.value.trim(); return RP.note || ''; };
+function rpSummary(d){ const acc = rpPct(d.correct, d.total), les = (d.lessons || []).filter(x => x.t >= 4), tr = rpTrend(d);
+  const s = les.filter(x => rpLvl(x) === 'ok').map(x => rpLes(x.l)), w = les.filter(x => rpLvl(x) === 'bad').map(x => rpLes(x.l));
+  return { acc, tr, s, w }; }
+ACTS['rp-wa'] = async () => { const d = RP.d; if (!d) return; const note = rpNote(), m = rpSummary(d);
+  let ph = ''; try { const r = await sb.from('students').select('phone').eq('id', RP.id).maybeSingle(); ph = (r.data && r.data.phone || '').replace(/[^0-9]/g, ''); } catch(e){}
+  if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2);
+  const txt = `تقرير ${fmtStu(d.name || '')}${d.cls ? ' · ' + d.cls : ''}\n` +
+    `لعب ${d.rounds} جولة، وإجاباته الصحيحة ${m.acc}%` + (m.tr != null && m.tr > 2 ? ` (تحسّن ${m.tr}%)` : '') + `.\n` +
+    (m.s.length ? `💪 قوي في: ${m.s.join('، ')}\n` : '') + (m.w.length ? `🎯 يحتاج مراجعة: ${m.w.join('، ')}\n` : '') +
+    (note ? `\n${note}\n` : '') + `\n${T.name || ''}`;
+  closeModals(); window.open('https://wa.me/' + ph + '?text=' + encodeURIComponent(txt), '_blank'); };
+function rpPdfHtml(d, note){
+  const m = rpSummary(d), les = (d.lessons || []).filter(x => x.t >= 4), today = new Date().toISOString().slice(0, 10), subj = SG('prof_subject').split('|').filter(Boolean)[0] || '';
+  const meta = [['الصف', d.cls], ['المادة', subj], ['المدرسة', d.school], ['المعلم', d.teacher || T.name], ['الفترة', d.from ? rpDate(d.from) + ' – ' + rpDate(d.to, 1) : '']].filter(x => x[1]);
+  return `<div class="rp3-hd"><div><div class="rp3-ttl">تقرير أداء الطالب</div><h1>${esc(fmtStu(d.name || ''))}</h1></div><div class="rp3-br"><b>تحدّي الدقيقة</b>صدر في ${rpDate(today, 1)}</div>
+      <div class="rp3-meta">${meta.map(x => `<span>${x[0]}: <b>${esc(x[1])}</b></span>`).join('')}</div></div>
+    <div class="rp3-bd">
+      <div class="rp3-kpi"><div><b>${d.rounds}</b><span>جولة رسمية</span></div><div><b>${m.acc}%</b><span>إجابات صحيحة</span></div>
+        <div class="${m.tr > 2 ? 'k-up' : ''}"><b>${m.tr == null ? '—' : (m.tr > 0 ? '↑ ' : m.tr < 0 ? '↓ ' : '') + Math.abs(m.tr) + '%'}</b><span>التغيّر من أول أسبوع</span></div>
+        <div><b>${d.rank || '—'}${d.of ? ` <small>من ${d.of}</small>` : ''}</b><span>ترتيبه في الصف</span></div></div>
+      <div class="rp3-two"><div><h2>التقدم أسبوع بأسبوع</h2><div class="rp3-box">${rpChart(d, 1) || '<p class="rp3-mut">يحتاج أسبوعين على الأقل.</p>'}</div></div>
+        <div><h2>الخلاصة</h2><div class="rp3-sum s"><h3>✓ نقاط القوة</h3>${m.s.length ? m.s.map(x => `<div class="rp3-li">• ${esc(x)}</div>`).join('') : '<p class="rp3-mut">تتضح مع جولات أكثر.</p>'}</div>
+          <div class="rp3-sum w"><h3>! يحتاج مراجعة</h3>${m.w.length ? m.w.map(x => `<div class="rp3-li">• ${esc(x)}</div>`).join('') : '<p class="rp3-mut">ما فيه دروس ضعيفة.</p>'}</div></div></div>
+      ${les.length ? `<div><h2>الدروس</h2><div class="rp3-les"><div class="rp3-lr hd"><span>الدرس</span><span>الإجابات الصحيحة</span><span></span><span>المستوى</span></div>${les.map(x => { const k = rpLvl(x), p = rpPct(x.c, x.t); return `<div class="rp3-lr"><span>${esc(rpLes(x.l))}</span><div class="rp3-tr"><i class="k-${k}" style="width:${Math.max(3, p)}%"></i></div><b>${p}%</b><em class="k-${k}">${RP_LV[k]}</em></div>`; }).join('')}</div></div>` : ''}
+      ${note ? `<div><h2>ملاحظة المعلم</h2><div class="rp3-note">${esc(note)}</div></div>` : ''}
+      <div class="rp3-sig"><div>توقيع المعلم</div><div>توقيع ولي الأمر</div></div>
+    </div>
+    <div class="rp3-ft"><span><b>تحدّي الدقيقة</b> · دقيقة كل يوم</span><span>${esc(d.cls || '')}</span></div>`;
+}
+/* html2canvas draws inline SVG badly: swap each chart for an <img> of itself */
+function rpSvgImg(root){ root.querySelectorAll('svg').forEach(sv => { const c = sv.cloneNode(true); c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('width', '600'); c.setAttribute('height', '200'); c.setAttribute('font-family', 'Arial, sans-serif');
+  const im = new Image(); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(c.outerHTML); im.style.cssText = 'display:block;width:100%;height:auto'; sv.replaceWith(im); }); }
+ACTS['rp-pdf'] = async t => { const d = RP.d; if (!d) return; const note = rpNote(); t.disabled = true; toast('جاري تجهيز الملف…');
+  const host = document.createElement('div'); host.className = 'rp-pdf-host';
+  const page = document.createElement('div'); page.className = 'rp3'; page.dir = 'rtl'; page.innerHTML = rpPdfHtml(d, note);
+  host.appendChild(page); document.body.appendChild(host); rpSvgImg(page); rpSplitWords(page);
+  const file = 'تقرير-' + String(d.name || 'طالب').replace(/[\\/:*?"<>|]/g, '-') + '.pdf';
+  try {
+    await loadScript(H2P); try { await document.fonts.ready; } catch(e){}
+    await Promise.all([...page.querySelectorAll('img')].map(i => i.decode ? i.decode().catch(() => {}) : 0));
+    const w = html2pdf().set({ margin: 0, filename: file, image: { type: 'jpeg', quality: 0.96 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['avoid-all'] } }).from(page);
+    const blob = await w.outputPdf('blob'), f = new File([blob], file, { type: 'application/pdf' });
+    closeModals();
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: file }); } catch(e){} }
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast('تم تنزيل التقرير'); }
+  } catch(e){ toast('ما قدرنا نجهز الملف، جرّب مرة ثانية'); }
+  finally { host.remove(); t.disabled = false; }
+};
+/* student: «تقريري» in «أنا» */
+ACTS['s-rep-me'] = async () => { if (!S.home) return;
+  sPage('me', '<div class="s-pgc"><div class="spin"></div></div>');
+  let d; try { d = await rpc('student_my_report', { p_token: S.token }); } catch(e){ toast(errMsg(e)); return ACTS['s-tab']({ dataset: { t: 'me' } }); }
+  if (S.tab !== 'me') return;
+  const les = (d.lessons || []).filter(x => x.t >= 4), s = les.filter(x => rpLvl(x) === 'ok'), w = les.filter(x => rpLvl(x) !== 'ok' && rpLvl(x) !== 'few').sort((a, b) => a.c / a.t - b.c / b.t).slice(0, 4), tr = rpTrend(d);
+  const c = document.querySelector('.s-tabpg .s-pgc'); if (!c) return;
+  c.innerHTML = `<div class="rp2-top"><button class="icon-btn" data-act="s-tab" data-t="me" aria-label="رجوع">${ic('back')}</button><h3>📊 تقريري</h3></div>
+    <div class="rp2-hero"><div class="rp2-nums n3"><div><b>${d.rounds}</b><small>جولة</small></div><div><b>${rpPct(d.correct, d.total)}%</b><small>صح</small></div><div><b>${tr != null && tr > 0 ? '↑' + tr + '%' : lvlOf(d.xp || 0).n}</b><small>${tr != null && tr > 0 ? 'تحسّنت' : 'مستواك'}</small></div></div></div>
+    ${!d.rounds ? '<div class="rp2-empty">العب جولات، وتقريرك يطلع هني.</div>' : `
+    <h3 class="rp2-h">💪 دروسك القوية</h3>${s.length ? `<div class="rp2-chips">${s.map(x => `<span class="k-ok">${esc(rpLes(x.l))}</span>`).join('')}</div>` : '<p class="rp2-mut">تطلع هني لما تجاوب صح في درس أكثر من مرة.</p>'}
+    <h3 class="rp2-h">🎯 تحتاج تدريب</h3>${w.length ? `<div class="rp2-chips">${w.map(x => `<span class="k-w">${esc(rpLes(x.l))}</span>`).join('')}</div>` : '<p class="rp2-mut">ما فيه دروس ضعيفة، كفو! 👏</p>'}
+    <button class="btn soft rp2-prac" data-act="s-start" data-kind="practice">🔁 تدرّب بدون نقاط</button>`}
+    <p class="rp2-note2">كل أسبوع تشوف هني كيف تتحسّن. التدريب ما يأثر على نقاطك.</p>`;
+};
 async function tHidden(){
   view('الطلاب المحذوفين', '<div class="spin"></div>', 'settings', '', '#/t/sset');
   let d = []; try { d = await rpc('teacher_hidden_students'); } catch(e){ return view('الطلاب المحذوفين', `<p class="sub center">${esc(errMsg(e))}</p>`, 'settings', '', '#/t/sset'); }
@@ -4414,7 +4534,7 @@ ACTS['r-open'] = t => {
   modal(`<div class="st-card"><div class="st-top"><div class="avatar big-av">${esc(ini)}</div><div><b>${esc(r.name)}</b><div class="sub">${esc(r.cls)} · رقم ${esc(r.student_no) || '—'}</div></div></div>
     <div class="stats"><div class="stat"><b>${r.pts}</b><span>النقاط</span></div><div class="stat"><b>${r.pts ? sorted.indexOf(r) + 1 : '—'}</b><span>في صفه من ${sorted.length}</span></div><div class="stat"><b>${r.rounds}</b><span>الجولات</span></div><div class="stat"><b>${acc}</b><span>نسبة الصحيح</span></div></div>
     <div class="sub center">${r.correct} إجابة صحيحة من ${r.rounds * qPer(r.cls)} · ${r.played_today ? '<b style="color:#168A5B">لعب اليوم ✓</b>' : '<b style="color:#8a5a00">لم يلعب اليوم</b>'}</div>
-    <button class="btn" style="margin-top:14px" data-act="r-report" data-id="${r.id}" data-name="${esc(r.name)}" data-cls="${esc(r.cls)}">تقرير أداء الطالب</button><small class="sub center" style="display:block;margin-top:4px">${RS.comp ? 'يشمل جولات هذه المسابقة فقط' : 'يشمل جولات المسابقة الحالية'}</small>
+    <button class="btn" style="margin-top:14px" data-act="s-rep" data-id="${r.id}">📊 تقرير الطالب</button>
     <button class="btn soft" style="margin-top:8px" data-act="r-msg" data-id="${r.id}">${ic('mail')} إرسال رسالة</button></div>`);
 };
 const LV_AR = { easy: 'السهلة', medium: 'المتوسطة', hard: 'الصعبة' };
@@ -4482,7 +4602,7 @@ function loadScript(src){ return new Promise((ok, no) => { if (window.html2pdf) 
 /* canvas draws RTL runs badly: give each word / punctuation mark its own box (mirrored brackets) */
 function rpSplitWords(root){
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = [];
-  while (w.nextNode()) if (/\S/.test(w.currentNode.nodeValue)) nodes.push(w.currentNode);
+  while (w.nextNode()) if (/\S/.test(w.currentNode.nodeValue) && !(w.currentNode.parentNode.closest && w.currentNode.parentNode.closest('svg'))) nodes.push(w.currentNode);
   nodes.forEach(n => { const f = document.createDocumentFragment();
     n.nodeValue.split(/(\s+|[.:،,؛()%·\/؟?!\-])/).forEach(p => { if (!p) return; if (/^\s+$/.test(p)) f.appendChild(document.createTextNode(p)); else { const s = document.createElement('x-w'); s.textContent = /^[()]+$/.test(p) ? p.replace(/[()]/g, c => c === '(' ? ')' : '(') : p; f.appendChild(s); } });
     n.parentNode.replaceChild(f, n); });
