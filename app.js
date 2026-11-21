@@ -2376,8 +2376,6 @@ function compForm(){
       </div>
       <div class="set-grp cf3">
         <button type="button" class="cf3-r" data-act="cf3-diff"><span class="grow">الصعوبة</span><b id="cf3-dv"></b><i>‹</i></button>
-        <button type="button" class="cf3-r" data-act="cf3-qt"><span class="grow">أنواع الأسئلة</span><b id="cf3-tv"></b><i>‹</i></button>
-        <button type="button" class="cf3-r" data-act="cf-preview"><span class="grow">🎮 جرّب كطالب</span><i>‹</i></button>
       </div>
       <div class="set-f">كل جولة: 4 أسئلة × 15 ثانية. جولة رسمية يومياً، والتدريب مفتوح.</div>
     </details>
@@ -2415,8 +2413,6 @@ function compEditForm(v){
       </div>
       <div class="set-grp cf3">
         <button type="button" class="cf3-r" data-act="cf3-diff"><span class="grow">الصعوبة</span><b id="cf3-dv"></b><i>‹</i></button>
-        <button type="button" class="cf3-r" data-act="cf3-qt"><span class="grow">أنواع الأسئلة</span><b id="cf3-tv"></b><i>‹</i></button>
-        <button type="button" class="cf3-r" data-act="cf-preview"><span class="grow">🎮 جرّب كطالب</span><i>‹</i></button>
       </div>
       <button type="button" class="btn" data-act="ce-close">تم</button></div></div>
   </form>`;
@@ -2513,12 +2509,13 @@ ACTS['cp-try'] = async t => {
   const ks = (CL.allComps || []).filter(k => k.group_id === t.dataset.g); if (!ks.length) return;
   const k = ks[0], cls = CL.byId[k.class_id] || {}; t.setAttribute('aria-busy', 'true');
   try {
-    const sel = 'id,body,options,correct_index,curriculum_id,lesson,payload';
-    let q1 = sb.from('questions').select(sel + ',question_picks!inner(teacher_id)').eq('question_picks.teacher_id', T.user.id).limit(1000);
-    if (k.curriculum_id) q1 = q1.eq('curriculum_id', k.curriculum_id);
-    const [a, b] = await Promise.all([q1, sb.from('questions').select(sel).eq('owner_id', T.user.id).eq('status', 'approved').limit(1000)]);
-    let pool = [...((a && a.data) || []), ...((b && b.data) || [])].filter(q => Array.isArray(q.options) && q.options.length >= 2);
-    if (k.lessons && k.lessons.length) { const L = new Set(k.lessons); const f = pool.filter(q => L.has(q.lesson)); if (f.length >= 4) pool = f; }
+    /* same rule as start_attempt: picked/own approved, type in the challenge's types, curriculum questions from its subjects (+ lessons) */
+    const sel = 'id,body,options,correct_index,curriculum_id,lesson,payload,qtype,status';
+    const q1 = sb.from('questions').select(sel + ',question_picks!inner(teacher_id)').eq('question_picks.teacher_id', T.user.id).eq('status', 'approved').limit(2000);
+    const [a, b] = await Promise.all([q1, sb.from('questions').select(sel).eq('owner_id', T.user.id).eq('status', 'approved').limit(2000)]);
+    const cus = new Set((k.curricula && k.curricula.length ? k.curricula : [k.curriculum_id]).filter(Boolean)), types = k.qtypes && k.qtypes.length ? k.qtypes : ['curriculum'], les = k.lessons && k.lessons.length ? new Set(k.lessons) : null;
+    let pool = [...((a && a.data) || []), ...((b && b.data) || [])].filter(q => Array.isArray(q.options) && q.options.length >= 2 && types.indexOf(q.qtype || 'curriculum') >= 0 &&
+      ((q.qtype || 'curriculum') !== 'curriculum' || !cus.size || (cus.has(q.curriculum_id) && (!les || les.has(q.lesson)))));
     const seen = new Set(); pool = pool.filter(q => !seen.has(q.id) && seen.add(q.id));
     if (pool.length < 4) { t.removeAttribute('aria-busy'); return toast('ما فيه أسئلة كافية في «أسئلتي» لهذا التحدي، أضف دروس من بنك الأسئلة'); }
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
