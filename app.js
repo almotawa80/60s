@@ -3249,7 +3249,7 @@ ACTS['s-rep-me'] = async () => { if (!S.home) return;
   if (S.tab !== 'me') return;
   const les = (d.lessons || []).filter(x => x.t >= 4), s = les.filter(x => rpLvl(x) === 'ok'), w = les.filter(x => rpLvl(x) !== 'ok' && rpLvl(x) !== 'few').sort((a, b) => a.c / a.t - b.c / b.t).slice(0, 4), tr = rpTrend(d);
   const c = document.querySelector('.s-tabpg .s-pgc'); if (!c) return;
-  c.innerHTML = `<div class="rp2-top"><button class="icon-btn" data-act="s-tab" data-t="me" aria-label="رجوع">${ic('back')}</button><h3>📊 تقريري</h3></div>
+  c.innerHTML = `<div class="rp2-top"><button class="icon-btn s-back" data-act="s-tab" data-t="me" aria-label="رجوع">${ic('back')}</button><h3>📊 تقريري</h3></div>
     <div class="rp2-hero"><div class="rp2-nums n3"><div><b>${d.rounds}</b><small>جولة</small></div><div><b>${rpPct(d.correct, d.total)}%</b><small>صح</small></div><div><b>${tr != null && tr > 0 ? '↑' + tr + '%' : lvlOf(d.xp || 0).n}</b><small>${tr != null && tr > 0 ? 'تحسّنت' : 'مستواك'}</small></div></div></div>
     ${!d.rounds ? '<div class="rp2-empty">العب جولات، وتقريرك يطلع هني.</div>' : `
     <h3 class="rp2-h">💪 دروسك القوية</h3>${s.length ? `<div class="rp2-chips">${s.map(x => `<span class="k-ok">${esc(rpLes(x.l))}</span>`).join('')}</div>` : '<p class="rp2-mut">تطلع هني لما تجاوب صح في درس أكثر من مرة.</p>'}
@@ -6067,6 +6067,7 @@ document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastT
 /* swipe from the right edge to go back; swipe rows to reveal delete */
 function goBack(){
   if (document.querySelector('.modal-back')) return closeModals();
+  const sbk = $app.querySelector('.s-back'); if (sbk) return sbk.click();
   const b = document.querySelector('.back-btn'); if (b) return b.click();
   if (document.querySelector('[data-act="w-prev"]')) return ACTS['w-prev']();
   if (document.querySelector('[data-act="s-quit"]')) return;
@@ -6082,7 +6083,7 @@ document.addEventListener('touchstart', e => {
   const t = e.touches[0], row = e.target.closest('.sw-main');
   const rw = row ? row.parentElement : null;
   const page = !row && canSwipeBack() && !hScrollable(e.target);
-  G = { x: t.clientX, y: t.clientY, t0: Date.now(), row, page, edge: !row && !page && t.clientX > innerWidth - 28, dx: 0, lock: null,
+  G = { x: t.clientX, y: t.clientY, t0: Date.now(), row, page, edge: !row && !page && (t.clientX > innerWidth - 28 || (!!$app.querySelector('.s-back') && !document.querySelector('.modal-back,.dlg-back') && !hScrollable(e.target))), dx: 0, lock: null,
     base: row ? (Number(row.dataset.off) || 0) : 0,
     wr: rw ? rw.querySelector('.sw-r').offsetWidth + 22 : 0, wl: rw ? rw.querySelector('.sw-l').offsetWidth + 22 : 0 };
   if (!row) document.querySelectorAll('.sw-main.open').forEach(r => { if (!e.target.closest('.sw-act')) { r.classList.remove('open'); r.style.transform = ''; r.dataset.off = 0; } });
