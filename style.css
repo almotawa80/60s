@@ -2695,3 +2695,8 @@ html body.wide.dark .t-nav .lens{background:linear-gradient(180deg,rgba(255,255,
 .sp-low .sp-prac{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:340px;min-height:56px;border:1.5px solid #48484A;border-radius:18px;background:#2C2C2E;color:#F5F5F7;font:inherit;font-weight:900;font-size:17px;box-shadow:0 5px 0 #0E0E10;cursor:pointer}
 .sp-low .sp-prac span{font-size:22px}
 .sp-low .sp-prac:active{transform:translateY(3px);box-shadow:0 2px 0 #0E0E10}
+/* v169: answer dots show right/wrong, combo pop, lose = review is the main action */
+html body .pv.pvx .dots .dot.done.ok{background:#30D158!important}
+html body .pv.pvx .dots .dot.done.no{background:#FF453A!important}
+.pts-pop.good.combo{animation:pop3d .45s;letter-spacing:0}
+.result.is-lose .rv2-dr{background:#C8102E;color:#fff;box-shadow:0 5px 0 #8E0B21}

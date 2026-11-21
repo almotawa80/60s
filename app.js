@@ -600,17 +600,16 @@ const FX = (() => {
     reduce, on, toggle(){ LS.set('mc_sound', on() ? '0' : '1'); return on(); },
     tick(final){ tone(final ? 1100 : 880, .06, 'square', .06); },
     heart(){ tone(70, .14, 'sine', .55); tone(60, .16, 'sine', .45, .18); vib([30, 80, 30]); },
-    correct(btn, pts){
-      tone(660, .12, 'triangle', .22); tone(990, .2, 'triangle', .22, .1); tone(1320, .25, 'sine', .15, .2); vib(25);
+    correct(btn, pts, combo){
+      const k = Math.pow(1.122, Math.max(0, Math.min(3, (combo || 1) - 1)));
+      tone(660 * k, .12, 'triangle', .22); tone(990 * k, .2, 'triangle', .22, .1); tone(1320 * k, .25, 'sine', .15, .2); vib(25);
       if (!btn) return; const r = btn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
       burst(x, y, ['#F5B72B', '#FFE48A', '#4FD394', '#fff'], 26, 120);
       if (pts) floatText(x, r.top, '+' + pts, 'good');
       flash('good', 500);
     },
     wrong(btn, timeout){
-      tone(180, .25, 'sawtooth', .16, 0, 90); tone(140, .3, 'square', .08, .05, 70); vib([60, 40, 60]);
-      flash('bad', 650);
-      const q = !reduce() && document.querySelector('.qbox'); if (q) { q.classList.remove('shake'); void q.offsetWidth; q.classList.add('shake'); }
+      tone(392, .18, 'sine', .14); tone(330, .3, 'sine', .12, .14); vib(40);
       if (timeout) { const t = document.querySelector('.timer'); if (t) { const r = t.getBoundingClientRect(); floatText(r.left + r.width / 2, r.top + r.height / 2, 'انتهى الوقت!', 'bad'); } }
     },
     explode(){
@@ -746,7 +745,8 @@ function showQuestion(st){
   S.cur = st; S.locked = false; S.ord = [];
   const q = st.question, th = document.body.dataset.theme || 'mid', isOrd = !!(q.payload && q.payload.kind === 'order');
   let dots = '';
-  for (let i = 1; i <= st.total; i++) dots += '<span class="dot' + (i < st.position ? ' done' : i === st.position ? ' cur' : '') + '"></span>';
+  const L0 = S.log || [], lg = st.position > 1 ? L0.slice(-(st.position - 1)) : [], lo = st.position - 1 - lg.length;
+  for (let i = 1; i <= st.total; i++) { const e = i < st.position && i - 1 - lo >= 0 ? lg[i - 1 - lo] : null; dots += '<span class="dot' + (i < st.position ? ' done' + (e ? (e.ok ? ' ok' : ' no') : '') : i === st.position ? ' cur' : '') + '"></span>'; }
   const long = q.options.some(o => String(o).length > 22);
   $app.innerHTML =
     '<div class="play pv pvx">' +
@@ -799,6 +799,9 @@ ACTS['s-quit'] = async () => {
   if (!await ask('الأسئلة المتبقية ستُحتسب بلا نقاط عند انتهاء وقتها.', { title: 'الخروج من الجولة؟', ok: 'خروج', cancel: 'أكمل الجولة', danger: true, safe: true })) return;
   stopTimer(); loadHome();
 };
+/* correct answers in a row at the end of this round's log (visual only, points unchanged) */
+function comboN(pos){ const L = (S.log || []).slice(-(pos || 4)); let n = 0; for (let i = L.length - 1; i >= 0 && L[i].ok; i--) n++; return n; }
+function comboTxt(n){ return n >= 4 ? ' · كاملة! 🏆' : n === 3 ? ' · ما ينوقف! 🔥🔥' : n === 2 ? ' · مولّع! 🔥' : ''; }
 async function submit(idx, seq){
   if (S.demo) return demoSubmit(idx, seq);
   const st = S.cur, gen = S.gen;
@@ -818,19 +821,21 @@ async function submit(idx, seq){
       else if (i === idx) { b.classList.add('bad'); optMark(b, '✗', 'إجابتك، غير صحيحة'); }
       else b.classList.add('dim');
     });
-    if (seq) { if (r.correct) FX.correct(btns[seq[seq.length - 1]], r.points); else FX.wrong(null, r.timeout); }
-    else if (r.correct) FX.correct(btns[ci], r.points); else FX.wrong(idx != null ? btns[idx] : null, idx == null || r.timeout);
+    const combo = comboN(st.position);
+    if (seq) { if (r.correct) FX.correct(btns[seq[seq.length - 1]], r.points, combo); else FX.wrong(null, r.timeout); }
+    else if (r.correct) FX.correct(btns[ci], r.points, combo); else FX.wrong(idx != null ? btns[idx] : null, idx == null || r.timeout);
+    const dl = $app.querySelectorAll('.dots .dot')[st.position - 1]; if (dl) dl.classList.add('done', r.correct ? 'ok' : 'no');
     const pop = document.getElementById('pop');
     if (pop) {
-      pop.className = 'pts-pop ' + (r.correct ? 'good' : 'bad');
-      pop.textContent = r.correct ? '+' + r.points + ' نقطة' : (idx == null || r.timeout ? 'انتهى الوقت' : 'إجابة غير صحيحة');
+      pop.className = 'pts-pop ' + (r.correct ? 'good' + (combo >= 2 ? ' combo' : '') : 'bad');
+      pop.textContent = r.correct ? '+' + r.points + ' نقطة' + comboTxt(combo) : (idx == null || r.timeout ? 'انتهى الوقت، الصحيحة بالأخضر' : 'الصحيحة بالأخضر 👆');
     }
     clearTimeout(S.nextT);
     S.nextT = setTimeout(() => {
       if (S.gen !== gen || S.cur !== st) return;
       if (res.next && res.next.finished) showResult(res.summary);
       else showQuestion(res.next);
-    }, 1500);
+    }, r.correct ? 1200 : 2500);
   } catch(e){
     if (S.gen !== gen || S.cur !== st) return;
     S.locked = false;
@@ -863,10 +868,9 @@ async function showResult(sm){
   stopTimer(); S.gen = (S.gen || 0) + 1; S.cur = null;
   if (sm && Array.isArray(sm.review) && S.log) { const L = S.log.slice(-sm.review.length); sm.review.forEach((v, i) => { if (L[i] && L[i].c == null) L[i].c = v.c; }); }
   const cc = sm ? sm.correct_count : 0, lose = cc <= 1, win = cc >= 3, perfect = cc === 4;
-  if (lose) await FX.explode();
-  setTimeout(() => { if (win) FX.win(perfect); else if (!lose) FX.meh(); }, 250);
-  const head = perfect ? 'مثالي! 🏆' : 'خلصت! 🎉';
-  const sub = perfect ? '٤ من ٤، لا يُهزم!' : win ? 'أداء ممتاز، استمر!' : lose ? 'لا بأس، جرّب التدريب وعد أقوى' : 'قريب من القمة، حاول غداً';
+  setTimeout(() => { if (win) FX.win(perfect); else FX.meh(); }, 250);
+  const head = perfect ? 'مثالي! 🏆' : lose ? 'كل بطل يبدأ كذا 💪' : 'خلصت! 🎉';
+  const sub = perfect ? '٤ من ٤، لا يُهزم!' : win ? 'أداء ممتاز، استمر!' : lose ? 'تدرّب على أخطائك وارجع أقوى' : 'قريب من القمة، حاول بكرة';
   const stars = [0, 1, 2, 3].map(i => '<span class="star-s' + (i < cc ? ' on' : '') + '" style="animation-delay:' + (0.5 + i * 0.25) + 's">' + ic('star') + '</span>').join('');
   let rankRow = '';
   if (sm && sm.kind === 'official' && sm.rank_after) {
@@ -879,7 +883,7 @@ async function showResult(sm){
   const toAr = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
   const th = document.body.dataset.theme || 'mid';
   $app.innerHTML = '<div class="sh pvx">' +
-    '<div class="result ' + (win ? 'is-win' : lose ? 'is-lose' : '') + '"><div class="medal-wrap">' + (win ? '<div class="rays"></div>' : '') + '<div class="medal">' + ic(lose ? 'clock' : 'trophy') + '</div></div>' +
+    '<div class="result ' + (win ? 'is-win' : lose ? 'is-lose' : '') + '"><div class="medal-wrap">' + (win ? '<div class="rays"></div>' : '') + '<div class="medal">' + ic(lose ? 'star' : 'trophy') + '</div></div>' +
     '<h2 class="center res-h">' + head + '</h2><p class="center muted" style="margin-top:-8px">' + sub + (sm && sm.kind === 'practice' ? ' · تدريب' : sm && sm.kind === 'knockout' ? ' · مواجهة التصفيات' : '') + '</p>' +
     (sm && sm.kind === 'knockout' ? '<p class="center sub">تُحسم المواجهة بعدد الإجابات الصحيحة ثم السرعة، وتظهر النتيجة في الرئيسية عندما ينهي منافسك.</p>' : '') +
     '<div class="stars-row">' + stars + '</div>' +
