@@ -2748,14 +2748,14 @@ function ncHtml(){
 function ncRender(){ const m = document.querySelector('.nc2'); if (m) { m.outerHTML = ncHtml(); if (NC.editing) { const i = document.getElementById('nc2-in'); if (i) { i.focus(); i.select(); } } } }
 document.addEventListener('input', e => { if (e.target.id !== 'nc2-in') return; NC.custom = e.target.value.replace(/\s+/g, ' ').trim(); const b = document.querySelector('[data-act="nc2-save"]'); if (b) b.disabled = NC.custom.length < 2; });
 document.addEventListener('keydown', e => { if (e.target.id === 'nc2-in' && e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
-/* iPad/tablet: student screens are phone-sized; scale the page up to fill the screen (teacher .wide keeps device width) */
+/* iPad/tablet: scale the page up to fill the screen (student layout 540 wide, teacher .wide 720 wide) */
 (() => {
   const m = document.querySelector('meta[name=viewport]'); if (!m || !(navigator.maxTouchPoints > 0)) return;
   const DEF = m.content, fit = () => {
     const a = Math.min(screen.width, screen.height), b = Math.max(screen.width, screen.height);
     const land = (screen.orientation && /landscape/.test(screen.orientation.type)) || Math.abs(window.orientation || 0) === 90;
-    const W = land ? b : a, H = land ? a : b, s = Math.min(W / 540, H / 720);
-    const c = (s > 1.15 && !document.body.classList.contains('wide')) ? 'width=' + Math.round(W / s) + ',user-scalable=no,viewport-fit=cover' : DEF;
+    const wide = document.body.classList.contains('wide'), W = land ? b : a, H = land ? a : b, s = wide ? Math.min(W / 720, H / 960) : Math.min(W / 540, H / 720);
+    const c = s > 1.15 ? 'width=' + Math.round(W / s) + ',user-scalable=no,viewport-fit=cover' : DEF;
     if (m.content !== c) m.content = c;
   };
   fit(); new MutationObserver(fit).observe(document.body, { attributes: true, attributeFilter: ['class'] });
