@@ -3063,3 +3063,16 @@ html body.wide .st1-o{font-weight:700}
 html body.wide .modal-x{background:var(--soft)!important;color:var(--ink)!important}
 html body.wide small,html body.wide .sub{font-weight:600}
 html body.wide.dark .modal{background:#1C1C1E}
+/* v242 قواعد اللعب */
+.rl-pts{display:flex;flex-direction:column;gap:8px}
+.rl-pc{display:flex;align-items:center;gap:12px;background:var(--card);border:2px solid transparent;border-radius:14px;padding:12px 14px;font:inherit;color:var(--ink);text-align:right;width:100%}
+.rl-pc .rl-e{font-size:24px;width:32px;text-align:center}.rl-pc .grow{display:flex;flex-direction:column}.rl-pc b{font-size:16px;font-weight:800}.rl-pc small{color:var(--muted);font-weight:600;font-size:13px}
+.rl-pc .rl-n{width:24px;height:24px;border-radius:50%;border:2px solid #C7C7CC;flex:none;box-sizing:border-box}
+.rl-pc.on{border-color:#C8102E}.rl-pc.on .rl-n{border:7px solid #C8102E}
+.rl-more{align-self:center;margin:-6px auto 0;display:block;border:0;background:none;color:#C8102E;font:inherit;font-weight:800;font-size:14px;padding:6px 12px}
+.rl-row{padding:10px 14px;display:flex;flex-direction:column;gap:8px}.rl-row>span{font-size:16px;font-weight:700}
+.set-grp .rl-row+.rl-row,.set-grp .rl-row+.set-row,.set-grp .set-row+.rl-row{border-top:.5px solid var(--line)}
+.rl-sg{display:flex;background:rgba(120,120,128,.14);border-radius:10px;padding:2px}
+.rl-sg button{flex:1;border:0;background:none;font:inherit;font-weight:700;font-size:13.5px;padding:7px 4px;border-radius:8px;color:var(--ink)}
+.rl-sg button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+body.wide.dark .rl-sg button.on{background:#48484A}

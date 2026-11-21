@@ -1353,8 +1353,7 @@ async function teacherRoute(){
     else if (page === 'settings') await tSettings();
     else if (page === 'admin') await tAdmin();
     else if (page === 'sg') tSetGroup(parts[1]);
-    else if (page === 'qset') await tQSet();
-    else if (page === 'rset') tRSet();
+    else if (page === 'qset' || page === 'rset' || page === 'rules') tRules();
     else if (page === 'account') await tAccount();
     else if (page === 'opt') tOpt(parts[1]);
     else if (page === 'tb') tTB();
@@ -4488,9 +4487,9 @@ ACTS['num-pick'] = async t => {
 /* choice pages (#/t/opt/<key>) */
 const DIFF_ALL = () => DIFF.map(d => [d[0], d[1], d[2]]);
 const OPTS = {
-  difficulty: { t: 'صعوبة الجولة', back: '#/t/qset', o: DIFF_ALL, foot: 'كل جولة فيها 4 أسئلة. «حسب مستوى الطالب» تصعّب الأسئلة لمن يجاوب صح وتسهّلها لمن يغلط.' },
+  difficulty: { t: 'الصعوبة الافتراضية', back: '#/t/rules', o: DIFF_ALL, foot: 'كل جولة فيها 4 أسئلة. «حسب مستوى الطالب» تصعّب الأسئلة لمن يجاوب صح وتسهّلها لمن يغلط.' },
   q_src: { t: 'مصدر الأسئلة', back: '#/t/qset', o: () => [['all', 'أسئلتي + بنك الأسئلة', 'إذا خلصت أسئلتك تكمل من البنك'], ['mine', 'أسئلتي فقط', 'لازم يكون عندك أسئلة متاحة كافية']] },
-  show_ans: { t: 'إظهار الإجابة الصحيحة', back: '#/t/qset', o: () => [['each', 'بعد كل سؤال', ''], ['end', 'بنهاية الجولة', 'تظهر في مراجعة الإجابات'], ['never', 'لا تظهر', 'يعرف الطالب بس إذا كانت إجابته صح أو خطأ']] },
+  show_ans: { t: 'إظهار الإجابة الصحيحة', back: '#/t/rules', o: () => [['each', 'بعد كل سؤال', ''], ['end', 'بنهاية الجولة', 'تظهر في مراجعة الإجابات'], ['never', 'لا تظهر', 'يعرف الطالب بس إذا كانت إجابته صح أو خطأ']] },
   scoring: { t: 'طريقة الحساب', back: '#/t/rset', o: () => [['speed', 'الإجابة الصحيحة ومكافأة السرعة', 'نقاط السؤال + مكافأة لمن يجاوب أسرع'], ['correct', 'الصحة فقط', 'نقاط السؤال بدون مكافأة سرعة'], ['penalty', 'مع خصم للخطأ', 'مثل الأول، والخاطئة تخصم (الجولة ما تنزل تحت الصفر)']] },
   lb: { t: 'لوحة المتصدرين', back: '#/t/rset', o: () => [['all', 'كاملة', 'يشوف الطالب ترتيب كل الصف'], ['top', 'أفضل عدد', 'تحدد العدد من صفحة النتائج'], ['hidden', 'مخفية حتى النهاية', 'يشوف ترتيبه بس لين تنتهي المسابقة']], get: () => SG('lb') === 'top10' ? 'top' : SG('lb') },
   names: { t: 'أسماء الطلبة في اللوحة', back: '#/t/rset', o: () => [['full', 'الاسم كاملاً', 'محمد أحمد العلي'], ['first_fam', 'الأول وحرف العائلة', 'محمد ع.'], ['first', 'الاسم الأول فقط', 'محمد']] },
@@ -4531,7 +4530,7 @@ async function tSettings(){
   const sub = [mySubjects().join('، '), SG('school')].filter(Boolean).join(' · ');
   view('الإعدادات',
     `<button class="set-profile" data-act="go" data-h="#/t/account">${avatarHtml('big-av')}<div class="grow"><b>${esc(tName())}</b><div class="sub">${sub ? esc(sub) : `<span dir="ltr">${esc(T.user.email || '')}</span>`}</div></div><span class="set-chev">${ic('back')}</span></button>` +
-    sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/sg/ch"', icon: 'trophy', color: '#C8102E', label: 'التحدي', val: 'الأسئلة · النقاط' }),
+    sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/sg/ch"', icon: 'trophy', color: '#C8102E', label: 'التحدي', val: 'قواعد اللعب' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/st"', icon: 'users', color: '#1FA971', label: 'الطلاب', val: 'الصفوف · الرسائل' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر', val: `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>` }),
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق', val: 'تثبيت · بيانات' }),
@@ -4541,8 +4540,7 @@ async function tSettings(){
 }
 function tSetGroup(k){
   const G = {
-    ch: ['التحدي', sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/qset"', icon: 'help', color: '#C8102E', label: 'إعدادات الأسئلة', val: esc(optLabel('difficulty')) }),
-      sRow({ act: 'go', attrs: 'data-h="#/t/rset"', icon: 'chart', color: '#FF9500', label: 'النقاط والترتيب' })])],
+    ch: ['التحدي', sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/rules"', icon: 'help', color: '#C8102E', label: 'قواعد اللعب', val: esc(optLabel('scoring') === 'الصحة فقط' ? 'الصح بس' : 'الصح + السرعة') })])],
     st: ['الطلاب', sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/sset"', icon: 'users', color: '#1FA971', label: 'الطلبة والصفوف' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/msgtpl"', icon: 'mail', color: '#2F80ED', label: 'قوالب الرسائل', val: 'تشجيع · تقدير · توصية' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/archive"', icon: 'archive', color: '#A2845E', label: 'الصفوف المؤرشفة' })])],
@@ -4633,7 +4631,37 @@ ACTS['st-del-acc'] = async () => {
   T.name = null; T.settings = {}; location.hash = '#/t'; toast('تم حذف الحساب');
 };
 
-/* ---- question settings ---- */
+/* ---- v242 (Khalid ❤ preview https://claude.ai/artifact/9U8PfvebVym6SnstV7LxJ2): one «قواعد اللعب» page ---- */
+const RL = { adv: false };
+function tRules(){
+  const sc = SG('scoring') || 'speed', auto = SG('pts_auto'), lb = optGet('lb'), nm = optGet('names');
+  const pe = auto ? 15 : SG('pts_e'), pm = auto ? 30 : SG('pts_m'), ph = auto ? 45 : SG('pts_h');
+  const maxR = Math.round((pe + 2 * pm + ph) * (sc === 'correct' ? 1 : 1 + SG('speed_pct') / 100));
+  const tbk = tbKeys();
+  const card = (v, e, b, sm) => `<button class="rl-pc${sc === v ? ' on' : ''}" data-act="rl-sc" data-v="${v}"><span class="rl-e">${e}</span><span class="grow"><b>${b}</b><small>${sm}</small></span><span class="rl-n"></span></button>`;
+  const seg = (k, cur, opts) => `<div class="rl-sg">${opts.map(o => `<button class="${cur === o[0] ? 'on' : ''}" data-act="rl-seg" data-k="${k}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>`;
+  view('قواعد اللعب',
+    sGrp('الجولة', [optRow('difficulty', 'الصعوبة الافتراضية'), optRow('show_ans', 'إظهار الإجابة الصحيحة'),
+      swRow({ k: 'shuffle', label: 'خلط الخيارات', sub: 'كل طالب يشوف ترتيب مختلف' }), swRow({ k: 'norep', label: 'لا تعيد سؤال جاوبه صح' })],
+      '٤ أسئلة × ١٥ ثانية (الابتدائي ٣ × ٢٠). الصعوبة تقدر تغيّرها لكل تحدي.') +
+    `<div class="set-h">النقاط</div><div class="rl-pts">${card('correct', '✅', 'الصح بس', 'كل إجابة صح تاخذ نقاطها')}${card('speed', '⚡', 'الصح + السرعة', 'الأسرع ياخذ لين ' + SG('speed_pct') + '٪ زيادة')}${card('penalty', '⚖️', 'الصح + السرعة − الخطأ', 'والخطأ يخصم ' + SG('pen_pct') + '٪')}</div>
+    <div class="set-f">أعلى جولة تقريباً ${maxR} نقطة. التغيير يأثر على الجولات القادمة بس.</div>
+    <button class="rl-more" data-act="rl-adv">${RL.adv ? 'إخفاء الأرقام' : 'تعديل الأرقام ‹'}</button>` +
+    (RL.adv ? sGrp('', [swRow({ k: 'pts_auto', re: 1, label: 'تلقائي', sub: 'سهل 15 · متوسط 30 · صعب 45' }), numRow('pts_e', 'سهل', auto), numRow('pts_m', 'متوسط', auto), numRow('pts_h', 'صعب', auto),
+      sc !== 'correct' ? numRow('speed_pct', 'مكافأة السرعة') : '', sc === 'penalty' ? numRow('pen_pct', 'خصم الخطأ') : '']) : '') +
+    `<div class="set-h">الترتيب عند الطلاب</div><div class="set-grp">
+      <div class="rl-row"><span>يشوف الطالب</span>${seg('lb', lb, [['all', 'كل الصف'], ['top', 'الأوائل بس'], ['hidden', 'ترتيبه بس']])}</div>
+      ${lb === 'top' ? numRow('lb_n', 'عدد الأوائل') + swRow({ k: 'lb_me', label: 'يشوف ترتيبه دائماً', sub: 'حتى لو مو من الأوائل' }) : ''}
+      <div class="rl-row"><span>الأسماء</span>${seg('names', nm, [['full', 'محمد أحمد العلي'], ['first_fam', 'محمد ع.'], ['first', 'محمد']])}</div>
+      ${swRow({ k: 'lb_pts', label: 'إظهار نقاط الآخرين' })}
+      ${sRow({ act: 'go', attrs: 'data-h="#/t/tb"', label: 'إذا تساووا بالنقاط', val: esc(TBL[tbk[0]][0] + '، ثم ' + TBL[tbk[1]][0]) })}
+    </div>`,
+    'settings', '', '#/t/sg/ch');
+}
+ACTS['rl-sc'] = async t => { haptic(); await saveSettings({ scoring: t.dataset.v }); rerender(); };
+ACTS['rl-seg'] = async t => { haptic(); await saveSettings({ [t.dataset.k]: t.dataset.v }); rerender(); };
+ACTS['rl-adv'] = () => { RL.adv = !RL.adv; rerender(); };
+/* ---- question settings (old page, kept for reference; routes now go to tRules) ---- */
 async function tQSet(){
   const qt = SG('qtypes') || ['curriculum', 'general', 'quick'];
   const QC = { curriculum: '#2F80ED', general: '#14A89B', quick: '#FF9500', memory: '#AF52DE' };
@@ -4675,7 +4703,7 @@ function tbKeys(){
 function tTB(){
   const a = tbKeys();
   view('عند تساوي النقاط', `<div class="set-grp tb-list">${a.map((k, i) => `<div class="set-row tb-row" data-k="${k}"><span class="tb-n">${i + 1}</span><span class="grow rl-txt"><b>${TBL[k][0]}</b><small>${TBL[k][1]}</small></span><span class="tb-mv">${i > 0 ? `<button type="button" class="tb-b" data-act="tb-mv" data-i="${i}" data-d="-1" aria-label="رفع ${TBL[k][0]} للأعلى">▲</button>` : ''}${i < a.length - 1 ? `<button type="button" class="tb-b" data-act="tb-mv" data-i="${i}" data-d="1" aria-label="إنزال ${TBL[k][0]} للأسفل">▼</button>` : ''}</span><span class="drag-h" aria-hidden="true">${ic('grip')}</span></div>`).join('')}</div>
-    <div class="set-f">اسحب من المقبض أو استخدم الأسهم لترتيب الأولوية. لو تساوى طالبين بالنقاط نقارن بالمعيار الأول، ولو تساووا فيه نروح للثاني وهكذا.</div>`, 'settings', '', '#/t/rset');
+    <div class="set-f">اسحب من المقبض أو استخدم الأسهم لترتيب الأولوية. لو تساوى طالبين بالنقاط نقارن بالمعيار الأول، ولو تساووا فيه نروح للثاني وهكذا.</div>`, 'settings', '', '#/t/rules');
 }
 ACTS['tb-mv'] = async t => { const keys = tbKeys().slice(), i = Number(t.dataset.i), j = i + Number(t.dataset.d); if (j < 0 || j >= keys.length) return;
   [keys[i], keys[j]] = [keys[j], keys[i]]; await saveSettings({ tb: keys }); tTB();
