@@ -2081,7 +2081,7 @@ ACTS['c-xl'] = () => { closeModals(); setTimeout(() => modal(`<div class="aw-she
   <div class="xl2-s"><b>٣</b><span class="grow">ارفعه هنا</span><button class="btn sm" data-act="m-run" data-a="t-multi-up">ارفع الملف</button></div></div>`), 30); };
 /* v120: class ⋯ = six squares, like the student card */
 ACTS['c-cmore'] = t => { const c = ctx(t); const sq = (a, e, l, x) => `<button class="st1-o${x ? ' ' + x : ''}" data-act="m-run" data-a="${a}" data-cid="${c.id}"><span>${e}</span>${l}</button>`;
-  modal(`<div class="aw-sheet"><h3>${esc(c.name)}</h3><div class="st1-opts">${sq('t-print-codes', '🖨️', 'طباعة البطاقات')}${sq('c-menu', '⚙️', 'إعدادات الصف')}${sq('c-promote', '🎓', 'ترقية للصف التالي')}${sq('t-export-codes', '📥', 'الرموز Excel')}${sq('c-archive', '📦', 'أرشفة الصف')}${sq('c-del', '🗑️', 'حذف الصف', 'dng')}</div></div>`); };
+  modal(`<div class="aw-sheet"><h3>${esc(c.name)}</h3><div class="st1-opts">${sq('t-print-codes', '🖨️', 'طباعة البطاقات')}${sq('c-menu', '⚙️', 'إعدادات الصف')}${sq('c-promote', '🎓', 'ترقية للصف التالي')}${sq('t-export-codes', '🔑', 'تنزيل رموز الطلبة')}${sq('c-archive', '📦', 'أرشفة الصف')}${sq('c-del', '🗑️', 'حذف الصف', 'dng')}</div></div>`); };
 ACTS['m-run'] = t => { closeModals(); const a2 = t.dataset.a; const fake = document.querySelector(`[data-cid="${t.dataset.cid}"]`) || t; setTimeout(() => ACTS[a2](fake.querySelector ? (fake.querySelector('.cls-head') || fake) : fake), 30); };
 ACTS['c-pick'] = t => { const id = t.dataset.id; CL.sel.ids.has(id) ? CL.sel.ids.delete(id) : CL.sel.ids.add(id); haptic(); const y = scrollY; renderClasses(); scrollTo(0, y); };
 ACTS['c-select'] = () => { CL.sel = { type: 'classes', ids: new Set() }; renderClasses(); };
@@ -4035,7 +4035,11 @@ ACTS['aw-start'] = t => {
 /* v163: the file pickers may not be on the page (class page), so make them when needed */
 function awInput(id, accept, act){ let i = document.getElementById(id); if (!i) { i = document.createElement('input'); i.type = 'file'; i.id = id; i.accept = accept; i.className = 'hide'; i.dataset.change = act; document.body.appendChild(i); } return i; }
 ACTS['aw-photo'] = () => { closeModals(); awInput('awimg', 'image/*', 'aw-img').click(); };
-ACTS['aw-file'] = () => { closeModals(); awInput('awxl', '.xlsx,.xls,.csv', 'aw-xl').click(); };
+ACTS['aw-file'] = () => { closeModals(); setTimeout(() => modal(`<div class="aw-sheet xl2"><h3>إضافة طلبة من Excel</h3>
+  <div class="xl2-s"><b>١</b><span class="grow">نزّل النموذج<small>أو استخدم كشف المدرسة إذا عندك</small></span><button class="btn sm soft" data-act="t-sample-students">نزّله</button></div>
+  <div class="xl2-s"><b>٢</b><span class="grow">اكتب فيه أسماء الطلبة</span></div>
+  <div class="xl2-s"><b>٣</b><span class="grow">ارفعه هنا</span><button class="btn sm" data-act="aw-file-go">ارفع الملف</button></div></div>`), 30); };
+ACTS['aw-file-go'] = () => { closeModals(); awInput('awxl', '.xlsx,.xls,.csv', 'aw-xl').click(); };
 ACTS['aw-paste'] = () => { closeModals();
   modal(`<h3>كتابة أو لصق الأسماء</h3><p class="sub">اسم الطالب في كل سطر. تقدر تنسخ عمود الأسماء من Excel أو الواتساب وتلصقه هنا.</p>
     <textarea class="input paste-ta aw-ta" rows="9" dir="auto" placeholder="سارة خالد العتيبي&#10;ليان عبدالله الزامل&#10;نور محمد الحربي"></textarea><div class="paste-info"></div>
