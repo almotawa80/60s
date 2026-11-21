@@ -3498,3 +3498,8 @@ html body:not(.wide)[data-theme] .input::placeholder{color:#8E8E93}
 img.nav-sq{object-fit:contain;-webkit-user-drag:none;user-select:none;pointer-events:none}
 html body .t-nav a.t-sq img.nav-sq{width:42px;height:42px}
 html body .s-nav .i.sq img.nav-sq,html body .s-nav button.s-ar .i.sq img.nav-sq{width:42px;height:42px}
+
+/* v305: teacher centre stopwatch dim until active/pressed */
+html body .t-nav a.t-sq img.nav-sq{transition:filter .2s,opacity .2s,transform .25s cubic-bezier(.3,1.4,.5,1)}
+html body .t-nav a.t-sq:not(.on):not(.hover):not(:active) img.nav-sq{filter:grayscale(1) brightness(1.15);opacity:.55}
+html body .t-nav:has(.lens.drag) a.t-sq.on:not(.hover) img.nav-sq{filter:grayscale(1) brightness(1.15);opacity:.55}
