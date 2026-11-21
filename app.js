@@ -1655,7 +1655,7 @@ function obGrades(){ return [...OB.st].map(v => OB_STAGES.indexOf(v)).filter(i =
 function obStep(n){
   OB.n = n; let el = document.getElementById('ob'); if (!el) { el = document.createElement('div'); el.id = 'ob'; document.body.appendChild(el); }
   const Q = obQn(), tile = (on, v, e, act) => `<button class="ob-t${on ? ' on' : ''}" data-act="${act || 'ob-pick'}" data-v="${esc(v)}">${e ? `<span class="e">${e}</span>` : ''}<b>${esc(v)}</b></button>`;
-  const head = n <= Q ? `<div class="obr-top">${n > 1 ? '<button class="obr-back" data-act="ob-back" aria-label="رجوع">→</button>' : ''}<span class="obr-pill">السؤال ${n} من ${Q}</span><span class="obr-pts">⭐ ${OB.pts}</span></div><div class="obr-dots">${Array.from({ length: Q }, (_, i) => `<i class="${i + 1 < n ? 'ok' : i + 1 === n ? 'cur' : ''}"></i>`).join('')}</div><div class="obr-bar"><i style="width:${100 - (n - 1) * 100 / Q}%"></i></div>` : '';
+  const head = n <= Q ? `<div class="obr-top"><span class="obr-pill">السؤال ${n} من ${Q}</span><span class="obr-pts">⭐ ${OB.pts}</span></div><div class="obr-dots">${Array.from({ length: Q }, (_, i) => `<i class="${i + 1 < n ? 'ok' : i + 1 === n ? 'cur' : ''}"></i>`).join('')}</div><div class="obr-bar"><i style="width:${100 - (n - 1) * 100 / Q}%"></i></div>` : '';
   const q = (t, sub) => `<div class="obr-q">${t}${sub ? `<small>${sub}</small>` : ''}</div>`;
   let b = '';
   if (n === 1) b = q('أي مراحل تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk">${OB_STAGES.map((v, i) => tile(OB.st.has(v), v, ['🎒', '📘', '🎓', '🏛️'][i])).join('')}</div><button class="btn obr-go" data-act="ob-next" ${OB.st.size ? '' : 'disabled'}>${OB.st.size ? `التالي (${OB.st.size} مختارة)` : 'اختر مرحلة أو أكثر'}</button>`;
@@ -1679,6 +1679,7 @@ function obStep(n){
     b = `<div class="obr-hero"><div class="obr-big">📲</div><h2>رمز صفك</h2><div class="obr-code" dir="ltr">${esc(fmtCode(OB.code))}</div><p>أرسله لطلابك في الواتساب. أول ما يدخلون يطلعون عندك.</p></div>
       <button class="btn obr-go" data-act="c-share-wa" data-v="${esc(msg)}">شارك الرمز</button><button class="btn soft" data-act="ob-close">خذني للرئيسية</button>`;
   }
+  if (n > 1 && n <= Q) b += '<button class="btn ghost obr-bk" data-act="ob-back">رجوع</button>';
   el.innerHTML = `${OB.demo ? '<button class="obr-demo" data-act="ob-close">تجربة · لا يُحفظ شي ✕</button>' : ''}<div class="ob-b obr">${head}${b}</div><div class="obr-pop" id="obr-pop"></div>`;
 }
 function obClasses(){ const secs = OB.secs.size ? [...OB.secs] : [''], seen = new Set(), out = [];
