@@ -379,13 +379,13 @@ function renderHomeP(){
     const di = Math.floor(Date.now() / 864e5);
     mid = (ln.length ? ln[di % ln.length] : '') + '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>';
   }
-  $app.innerHTML = '<div class="sh sp pvx">' +
+  sPut('<div class="sh sp pvx">' +
     '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
     '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
     '</div></div>' +
     pills + '<div class="sp-mid">' + mid + '</div><div id="my-subj"></div>' +
     '<div class="sp-low"><button class="sp-prac" data-act="s-start" data-kind="practice"><span>🎯</span>تدرّب بدون نقاط</button>' +
-    '</div></div>' + sNav('home');
+    '</div></div>' + sNav('home'));
   startCountdown();
   if (!S.demo) { loadDaily(); subjLoad(); }
   if (h.played_today && !S.demo && pushBtn() && !LS.get('mc_push_ask')) { LS.set('mc_push_ask', '1'); setTimeout(() => modal('<div class="s-avs center"><div class="lvl-up">🔔</div><h3>تبي نذكّرك؟</h3><p class="sub">نرسل لك تذكير وحد باليوم إذا ما لعبت، ورسائل معلمك توصلك على طول. وما فيه شي بالليل.</p><button class="btn" data-act="s-push">فعّل الإشعارات</button><button class="btn soft" data-act="close-modal">مو الحين</button></div>').classList.add('mid'), 1500); }
