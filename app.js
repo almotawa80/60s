@@ -4552,7 +4552,7 @@ async function tSettings(){
   const sub = [mySubjects().join('، '), SG('school')].filter(Boolean).join(' · ');
   view('الإعدادات',
     `<button class="set-profile" data-act="go" data-h="#/t/account">${avatarHtml('big-av')}<div class="grow"><b>${esc(tName())}</b><div class="sub">${sub ? esc(sub) : `<span dir="ltr">${esc(T.user.email || '')}</span>`}</div></div><span class="set-chev">${ic('back')}</span></button>` +
-    sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/sg/ch"', icon: 'trophy', color: '#C8102E', label: 'التحدي', val: 'قواعد اللعب' }),
+    sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/rules"', icon: 'trophy', color: '#C8102E', label: 'قواعد اللعب', val: 'النقاط · الترتيب' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/st"', icon: 'users', color: '#1FA971', label: 'الطلاب', val: 'الصفوف · الرسائل' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر', val: `<span id="mode-val">${MODE_AR[LS.get('mc_mode') || 'auto']}</span>` }),
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق', val: 'تثبيت · بيانات' }),
@@ -4676,7 +4676,7 @@ function tRules(){
       ${swRow({ k: 'lb_pts', label: 'إظهار نقاط الآخرين' })}
       ${sRow({ act: 'go', attrs: 'data-h="#/t/tb"', label: 'إذا تساووا بالنقاط', val: esc(TBL[tbk[0]][0] + '، ثم ' + TBL[tbk[1]][0]) })}
     </div>`,
-    'settings', '', '#/t/sg/ch');
+    'settings', '', '#/t/settings');
 }
 ACTS['rl-sc'] = async t => { haptic(); await saveSettings({ scoring: t.dataset.v }); rerender(); };
 ACTS['rl-seg'] = async t => { haptic(); await saveSettings({ [t.dataset.k]: t.dataset.v }); rerender(); };
