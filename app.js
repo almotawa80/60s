@@ -1646,56 +1646,63 @@ const OB = {};
 async function obStart(demo){
   if (document.getElementById('ob')) return;
   demo = demo === true;
-  Object.assign(OB, { demo, st: new Set(demo ? [] : String(SG('prof_stage') || '').split('|').filter(Boolean)), sj: new Set(demo ? [] : mySubjects()), gr: null, sec: null, school: SG('school') || '', d: SG('district') || '', more: false, edit: false, redo: false, pts: 0, hasCls: false, code: '', cname: '' });
+  Object.assign(OB, { demo, st: new Set(demo ? [] : String(SG('prof_stage') || '').split('|').filter(Boolean)), sj: new Set(demo ? [] : mySubjects()), gr: null, grs: [], secs: new Set(), sec: null, school: SG('school') || '', d: SG('district') || '', more: false, edit: false, redo: false, pts: 0, hasCls: false, code: '', cname: '' });
   if (!demo) try { const r = await sb.from('classes').select('id').limit(1); OB.hasCls = !!(r.data && r.data.length); } catch(e){}
   obStep(1);
 }
-const obQn = () => OB.hasCls ? 2 : 4;
+const obQn = () => OB.hasCls ? 2 : 3;
 function obGrades(){ return [...OB.st].map(v => OB_STAGES.indexOf(v)).filter(i => i >= 0).sort().flatMap(i => NC_ST[i][2].map((g, k) => ({ st: NC_ST[i][0], g, l: NC_ST[i][0] === 'university' ? 'السنة ' + UNI_Y[k] : GRADES[g - 1] }))); }
 function obStep(n){
   OB.n = n; let el = document.getElementById('ob'); if (!el) { el = document.createElement('div'); el.id = 'ob'; document.body.appendChild(el); }
   const Q = obQn(), tile = (on, v, e, act) => `<button class="ob-t${on ? ' on' : ''}" data-act="${act || 'ob-pick'}" data-v="${esc(v)}">${e ? `<span class="e">${e}</span>` : ''}<b>${esc(v)}</b></button>`;
-  const head = n <= Q ? `<div class="obr-top"><span class="obr-pill">السؤال ${n} من ${Q}</span><span class="obr-pts">⭐ ${OB.pts}</span></div><div class="obr-dots">${Array.from({ length: Q }, (_, i) => `<i class="${i + 1 < n ? 'ok' : i + 1 === n ? 'cur' : ''}"></i>`).join('')}</div><div class="obr-bar"><i style="width:${100 - (n - 1) * 100 / Q}%"></i></div>` : '';
+  const head = n <= Q ? `<div class="obr-top">${n > 1 ? '<button class="obr-back" data-act="ob-back" aria-label="رجوع">→</button>' : ''}<span class="obr-pill">السؤال ${n} من ${Q}</span><span class="obr-pts">⭐ ${OB.pts}</span></div><div class="obr-dots">${Array.from({ length: Q }, (_, i) => `<i class="${i + 1 < n ? 'ok' : i + 1 === n ? 'cur' : ''}"></i>`).join('')}</div><div class="obr-bar"><i style="width:${100 - (n - 1) * 100 / Q}%"></i></div>` : '';
   const q = (t, sub) => `<div class="obr-q">${t}${sub ? `<small>${sub}</small>` : ''}</div>`;
   let b = '';
   if (n === 1) b = q('أي مراحل تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk">${OB_STAGES.map((v, i) => tile(OB.st.has(v), v, ['🎒', '📘', '🎓', '🏛️'][i])).join('')}</div><button class="btn obr-go" data-act="ob-next" ${OB.st.size ? '' : 'disabled'}>${OB.st.size ? `التالي (${OB.st.size} مختارة)` : 'اختر مرحلة أو أكثر'}</button>`;
   if (n === 2) b = q('أي مواد تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk">${SUBJECTS.filter(x => x !== 'عام' && x !== 'أخرى').map(v => tile(OB.sj.has(v), v, SUBJ_EMOJI[v] || '📘')).join('')}</div><button class="btn obr-go" data-act="ob-next" ${OB.sj.size ? '' : 'disabled'}>${OB.sj.size ? `التالي (${OB.sj.size} مختارة)` : 'اختر مادة أو أكثر'}</button>`;
-  if (n === 3) { const gs = obGrades(); b = q('أي صف تبي تبدأ فيه؟', 'تقدر تضيف صفوف ثانية بعدين') + `<div class="ob-g${gs.length > 4 ? ' g3' : ''}">${gs.map((g, k) => `<button class="ob-t${OB.gr && OB.gr.st === g.st && OB.gr.g === g.g ? ' on' : ''}" data-act="ob-gr" data-k="${k}"><b>${esc(g.l)}</b></button>`).join('')}</div>`; }
-  if (n === 4) b = q('أي شعبة؟') + `<div class="ob-g g3">${secList().slice(0, 8).map(x => `<button class="ob-t obr-sec${OB.sec === x ? ' on' : ''}" data-act="ob-sec" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div><button class="btn soft obr-go" data-act="ob-sec" data-v="">بدون شعبة</button>`;
+  if (n === 3) { const gs = obGrades(), on = g => OB.grs.some(x => x.st === g.st && x.g === g.g); b = q('أي صفوف تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk${gs.length > 4 ? ' g3' : ''}">${gs.map((g, k) => `<button class="ob-t${on(g) ? ' on' : ''}" data-act="ob-gr" data-k="${k}"><b>${esc(g.l)}</b></button>`).join('')}</div><button class="btn obr-go" data-act="ob-next" ${OB.grs.length ? '' : 'disabled'}>${OB.grs.length ? `التالي (${OB.grs.length} مختارة)` : 'اختر صف أو أكثر'}</button>`; }
+  if (n === 4) b = q('أي شعب؟', '<b class="obr-multi">☑️ اختر كل الشعب</b>') + `<div class="ob-g obr-chk g3">${secList().slice(0, 9).map(x => `<button class="ob-t obr-sec${OB.secs.has(x) ? ' on' : ''}" data-act="ob-sec" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div>${OB.secs.size ? `<button class="btn obr-go" data-act="ob-next">التالي (${OB.secs.size} مختارة)</button>` : `<button class="btn soft obr-go" data-act="ob-next">بدون شعبة</button>`}`;
   if (n === 5) {
     const row = (k, l, v) => `<button class="obr-row" data-act="ob-row" data-q="${k}"><span>${l}</span><b>${esc(v || '—')}</b><i>تعديل</i></button>`;
-    const cn = OB.gr ? cnameOf(OB.gr.st, OB.gr.g, OB.sec || '') : '';
+    const cn = obClasses().map(x => x.name).join('، ');
     b = `<div class="obr-hero"><div class="obr-stars">⭐${'⭐'.repeat(Q - 1)}</div><h2>مثالي! هذا ملفك 🏆</h2><p>اضغط على أي سطر تبي تعدله</p></div>
-      <div class="obr-sum">${row(1, 'المرحلة', [...OB.st].join('، '))}${row(2, 'المادة', [...OB.sj].join('، '))}${OB.hasCls ? '' : row(3, 'الصف', cn) + row(4, 'الشعبة', OB.sec || 'بدون')}</div>
+      <div class="obr-sum">${row(1, 'المرحلة', [...OB.st].join('، '))}${row(2, 'المادة', [...OB.sj].join('، '))}${OB.hasCls ? '' : row(3, 'الصفوف', cn)}</div>
       ${OB.more ? `<div class="obr-more"><label for="ob-school">المدرسة</label><input class="input ob-in" id="ob-school" maxlength="80" placeholder="اسم المدرسة" value="${esc(OB.school)}"><label>المنطقة</label><div class="ob-g g3">${OB_DIST.map(v => tile(OB.d === v, v, '', 'ob-dist')).join('')}</div></div>` : `<button class="btn soft" data-act="ob-more">المزيد ⋯ <small class="muted">المدرسة والمنطقة</small></button>`}
       <button class="btn obr-go" data-act="ob-finish">${OB.hasCls ? 'تمام 👍' : 'تمام، ادعُ طلابك 📲'}</button>`;
   }
-  if (n === 6) {
+  if (n === 6 && OB.made && OB.made.length > 1) {
+    b = `<div class="obr-hero"><div class="obr-big">📲</div><h2>رموز صفوفك</h2><p>أرسل لكل صف رمزه في الواتساب. أول ما يدخلون يطلعون عندك.</p></div>
+      <div class="obr-codes">${OB.made.map(c => { const m = `انضم لتحدي «${c.name}» في تحدّي الدقيقة 🎯\nرمز الصف: ${fmtCode(c.code)}\nأو اضغط الرابط:\n${joinLink(c.code)}`; return `<div class="obr-cr"><b>${esc(c.name)}</b><span dir="ltr">${esc(fmtCode(c.code))}</span><button class="btn sm" data-act="c-share-wa" data-v="${esc(m)}">شارك</button></div>`; }).join('')}</div>
+      <button class="btn soft obr-go" data-act="ob-close">خذني للرئيسية</button>`;
+  } else if (n === 6) {
     const msg = `انضم لتحدي «${OB.cname}» في تحدّي الدقيقة 🎯\nرمز الصف: ${fmtCode(OB.code)}\nأو اضغط الرابط:\n${joinLink(OB.code)}`;
     b = `<div class="obr-hero"><div class="obr-big">📲</div><h2>رمز صفك</h2><div class="obr-code" dir="ltr">${esc(fmtCode(OB.code))}</div><p>أرسله لطلابك في الواتساب. أول ما يدخلون يطلعون عندك.</p></div>
       <button class="btn obr-go" data-act="c-share-wa" data-v="${esc(msg)}">شارك الرمز</button><button class="btn soft" data-act="ob-close">خذني للرئيسية</button>`;
   }
   el.innerHTML = `${OB.demo ? '<button class="obr-demo" data-act="ob-close">تجربة · لا يُحفظ شي ✕</button>' : ''}<div class="ob-b obr">${head}${b}</div><div class="obr-pop" id="obr-pop"></div>`;
 }
+function obClasses(){ const secs = OB.secs.size ? [...OB.secs] : [''], seen = new Set(), out = [];
+  OB.grs.forEach(g => secs.forEach(sc => { const name = cnameOf(g.st, g.g, sc); if (!seen.has(name)) { seen.add(name); out.push({ name, st: g.st }); } })); return out; }
 function obAns(){
-  if (OB.redo) { if (OB.n === 1 && !OB.hasCls) { OB.gr = null; return obStep(3); } OB.redo = false; return obStep(5); }
+  if (OB.redo) { if (OB.n === 1 && !OB.hasCls) { OB.grs = []; return obStep(3); } OB.redo = false; return obStep(5); }
   if (OB.edit) { OB.edit = false; return obStep(5); }
   OB.pts += 10; haptic();
-  const p = document.getElementById('obr-pop'); if (p) { p.textContent = '+10' + (OB.n >= 4 ? ' · كاملة! 🏆' : OB.n === 3 ? ' · ما ينوقف 🔥🔥' : OB.n === 2 ? ' · مولّع 🔥' : ''); p.classList.remove('go'); void p.offsetWidth; p.classList.add('go'); }
+  const p = document.getElementById('obr-pop'); if (p) { p.textContent = '+10' + (OB.n >= obQn() ? ' · كاملة! 🏆' : OB.n === 3 ? ' · ما ينوقف 🔥🔥' : OB.n === 2 ? ' · مولّع 🔥' : ''); p.classList.remove('go'); void p.offsetWidth; p.classList.add('go'); }
   try { FX.tick && FX.tick(); } catch(e){}
   setTimeout(() => obStep(OB.n >= obQn() ? 5 : OB.n + 1), 650);
 }
 ACTS['ob-pick'] = t => { const v = t.dataset.v, set = OB.n === 1 ? OB.st : OB.sj; set.has(v) ? set.delete(v) : set.add(v); haptic(); obStep(OB.n); };
 ACTS['ob-next'] = () => obAns();
-ACTS['ob-gr'] = t => { const g = obGrades()[+t.dataset.k]; if (!g) return; OB.gr = g; t.classList.add('on'); obAns(); };
-ACTS['ob-sec'] = t => { OB.sec = t.dataset.v || ''; if (t.classList.contains('ob-t')) t.classList.add('on'); obAns(); };
+ACTS['ob-back'] = () => { if (OB.n > 1) { OB.edit = false; OB.redo = false; obStep(OB.n - 1); } };
+ACTS['ob-gr'] = t => { const g = obGrades()[+t.dataset.k]; if (!g) return; const i = OB.grs.findIndex(x => x.st === g.st && x.g === g.g); i >= 0 ? OB.grs.splice(i, 1) : OB.grs.push(g); haptic(); obStep(3); };
+ACTS['ob-sec'] = t => { const v = t.dataset.v || ''; if (!v) return obAns(); OB.secs.has(v) ? OB.secs.delete(v) : OB.secs.add(v); haptic(); obStep(4); };
 ACTS['ob-row'] = t => { const k = +t.dataset.q; OB.edit = k !== 1; OB.redo = k === 1; obStep(k); };
 ACTS['ob-more'] = () => { OB.more = true; obStep(5); };
 ACTS['ob-dist'] = t => { const sc = document.getElementById('ob-school'); if (sc) OB.school = sc.value; OB.d = OB.d === t.dataset.v ? '' : t.dataset.v; obStep(5); };
 document.addEventListener('input', e => { if (e.target.id === 'ob-school') OB.school = e.target.value; });
 ACTS['ob-finish'] = async t => {
-  if (!OB.st.size || !OB.sj.size || (!OB.hasCls && !OB.gr)) return toast('كمّل الإجابات أول');
-  if (OB.demo) { OB.code = 'DEMO12'; OB.cname = cnameOf(OB.gr.st, OB.gr.g, OB.sec || ''); return obStep(6); }
+  if (!OB.st.size || !OB.sj.size || (!OB.hasCls && !OB.grs.length)) return toast('كمّل الإجابات أول');
+  if (OB.demo) { OB.made = obClasses().map((c, i) => ({ name: c.name, code: 'DEMO1' + i })); OB.code = OB.made[0].code; OB.cname = OB.made[0].name; return obStep(6); }
   t.disabled = true; t.textContent = 'لحظة…';
   const p = { ob: 'done', prof_stage: [...OB.st].join('|'), prof_subject: [...OB.sj].join('|') };
   if (OB.school.trim()) p.school = OB.school.trim().slice(0, 80);
@@ -1703,11 +1710,15 @@ ACTS['ob-finish'] = async t => {
   try {
     await saveSettings(p);
     if (OB.hasCls) { document.getElementById('ob').remove(); toast('أهلاً فيك 👋'); return rerender(); }
-    const name = cnameOf(OB.gr.st, OB.gr.g, OB.sec || ''), style = OB.gr.st === 'primary' ? 'kids' : OB.gr.st === 'university' ? 'uni' : 'mid';
-    const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: OB.gr.st, style }).select().single();
-    if (error) throw error;
-    let code = await rpc('set_self_join', { p_class: data.id, p_on: true });
-    OB.code = typeof code === 'string' ? code : (data.join_code || ''); OB.cname = name;
+    OB.made = [];
+    for (const c of obClasses()) {
+      const style = c.st === 'primary' ? 'kids' : c.st === 'university' ? 'uni' : 'mid';
+      const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name: c.name, stage: c.st, style }).select().single();
+      if (error) throw error;
+      const code = await rpc('set_self_join', { p_class: data.id, p_on: true });
+      OB.made.push({ name: c.name, code: typeof code === 'string' ? code : (data.join_code || '') });
+    }
+    OB.code = OB.made[0].code; OB.cname = OB.made[0].name; OB.hasCls = true;
     Object.keys(PCACHE).forEach(h => delete PCACHE[h]);
     obStep(6);
   } catch(e){ t.disabled = false; t.textContent = 'تمام، ادعُ طلابك 📲'; toast(errMsg(e)); }
