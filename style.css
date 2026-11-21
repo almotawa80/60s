@@ -3643,3 +3643,14 @@ body.wide.dark .hc-ring>div{background:none;position:relative}
 .mg-cup.okc i{background:#1F9D55}.mg-cup.noc i{background:#FF453A}
 @media (max-height:640px){.pv.pvx .mg{min-height:180px}.mg-grid{width:min(100%,calc(var(--n)*72px))}}
 @media (prefers-reduced-motion:reduce){.mg-cup,.mg-cup i,.mg-grid .mg-c{transition:none}}
+
+/* v342 bank reports + admin bank controls */
+.q4-rep{display:block;width:100%;margin-top:10px;padding:12px;border:0;border-radius:14px;background:none;color:var(--muted,#8E8E93);font:700 14px inherit;font-family:inherit;cursor:pointer}
+.q4-adm{margin-top:12px;padding:12px;border-radius:16px;border:1px dashed var(--line);display:flex;flex-direction:column;gap:8px}
+.q4-adm b{font-size:13px}.q4-adm button{padding:12px;border:0;border-radius:12px;background:var(--card);color:var(--ink);font:800 14px inherit;font-family:inherit;cursor:pointer}
+.q4-adm button:last-child{color:#C8102E}
+.ad-h{font-weight:800;font-size:15px;margin:4px 4px 8px;display:flex;align-items:center;gap:8px}.ad-h span{background:#C8102E;color:#fff;border-radius:999px;padding:1px 9px;font-size:13px}
+.ad-qb{font-weight:800;font-size:17px;line-height:1.6;margin:0 0 10px}
+.ad-qo{display:grid;gap:6px;margin-bottom:12px}.ad-qo span{padding:9px 12px;border-radius:12px;background:var(--bg);font-weight:700}.ad-qo span.ok{background:#1F9D55;color:#fff}
+.ad-qn{margin-bottom:12px}.ad-qn p{margin:0 0 6px;color:var(--muted,#8E8E93);font-size:14px;line-height:1.6}
+.ad-qr{display:flex;align-items:center;gap:8px;margin-bottom:8px}.ad-qr input[type=radio]{width:22px;height:22px;flex:none;accent-color:#1F9D55}.ad-qr .input{flex:1;min-width:0}

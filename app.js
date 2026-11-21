@@ -1798,13 +1798,47 @@ function admRender(){
   const L = (d.list || []).slice().sort(ADM.tab === 'new' ? (a, b) => new Date(b.created_at) - new Date(a.created_at) : (a, b) => b.rounds - a.rounds || new Date(b.last_sign_in_at || 0) - new Date(a.last_sign_in_at || 0));
   const k = (n, l, e) => `<div class="ad-k"><b>${nf(n)}</b><span>${l}</span>${e ? `<em>${e}</em>` : ''}</div>`;
   view('لوحة المشرف',
-    `<div id="ad-met"></div><div class="ad-k4">${k(d.teachers, 'معلم', d.teachers_week ? `+${d.teachers_week} هالأسبوع` : '')}${k(d.students, 'طالب', d.students_week ? `+${d.students_week} هالأسبوع` : '')}${k(d.live, 'تحدي شغّال')}${k(d.rounds_week, 'جولة هالأسبوع', `اليوم ${nf(d.rounds_today)}`)}</div>
+    `<div id="ad-met"></div><div id="ad-rep"></div><div class="ad-k4">${k(d.teachers, 'معلم', d.teachers_week ? `+${d.teachers_week} هالأسبوع` : '')}${k(d.students, 'طالب', d.students_week ? `+${d.students_week} هالأسبوع` : '')}${k(d.live, 'تحدي شغّال')}${k(d.rounds_week, 'جولة هالأسبوع', `اليوم ${nf(d.rounds_today)}`)}</div>
     <button class="btn soft ad-ob" data-act="ob-demo">🎮 جرّب جولة البداية (تجربة)</button>
     <div class="ad-segs"><button data-act="adm-tab" data-t="act" class="${ADM.tab === 'act' ? 'on' : ''}">الأنشط</button><button data-act="adm-tab" data-t="new" class="${ADM.tab === 'new' ? 'on' : ''}">الجدد</button></div>
     <div class="ad-rows">${L.map(t => `<button class="ad-tr" data-act="adm-one" data-id="${t.id}"><span class="ad-av">${esc((t.name || '?')[0])}</span><span class="grow"><b>${esc(t.name || '')}${t.last_sign_in_at && new Date(t.last_sign_in_at).toDateString() === today ? '<i class="ad-dot"></i>' : ''}</b><small>${t.classes} صفوف · ${t.students} طالب · آخر دخول ${admAgo(t.last_sign_in_at)}</small></span><span class="ad-n"><b>${nf(t.rounds)}</b><small>جولة</small></span></button>`).join('') || '<p class="sub center">ما في معلمين</p>'}</div>
     <p class="sub center">النقطة الخضراء: دخل اليوم · الجولات آخر 7 أيام</p>`, 'settings', '', '#/t/settings');
-  admMetrics();
+  admMetrics(); admReports();
 }
+/* v342 bank reports: teachers flag a bank question, the admin edits or deletes it for everyone (sql/bank_admin.sql) */
+async function admReports(force){
+  let L; try { L = (!force && ADM.rep) || (ADM.rep = await rpc('admin_reports')); } catch(e){ return; }
+  const el = document.getElementById('ad-rep'); if (!el) return;
+  el.innerHTML = L && L.length ? `<div class="ad-h">🚩 بلاغات الأسئلة <span>${L.length}</span></div><div class="ad-rows">${L.map((r, i) => `<button class="ad-tr" data-act="adm-rep" data-i="${i}"><span class="grow"><b>${esc(r.body)}</b><small>${esc([r.subject, r.lesson].filter(Boolean).join(' · ') || TYPE_AR[r.qtype] || '')}${r.notes[0] ? ' · «' + esc(String(r.notes[0]).slice(0, 60)) + '»' : ''}</small></span><span class="ad-n"><b>${r.n}</b><small>بلاغ</small></span></button>`).join('')}</div>` : '';
+}
+ACTS['adm-rep'] = t => { const r = (ADM.rep || [])[+t.dataset.i]; if (!r) return;
+  const game = r.payload && r.payload.kind === 'game';
+  modal(`<h3>بلاغ عن سؤال</h3><p class="ad-qb">${esc(r.body)}</p>
+    <div class="ad-qo">${r.options.map((o, j) => `<span class="${j === r.correct_index ? 'ok' : ''}">${j === r.correct_index ? '✓ ' : ''}${esc(o)}</span>`).join('')}</div>
+    ${r.notes.length ? `<div class="ad-qn">${r.notes.map(n => `<p>«${esc(n)}»</p>`).join('')}</div>` : '<p class="sub">بدون ملاحظة</p>'}
+    <div class="col">${game ? '' : `<button class="btn" data-act="adm-qed" data-i="${t.dataset.i}">✏ عدّله للجميع</button>`}<button class="btn soft" data-act="adm-qdel" data-id="${r.id}">🗑 احذفه من البنك للجميع</button><button class="btn ghost" data-act="adm-rep-x" data-id="${r.id}">تجاهل البلاغ</button></div>`);
+};
+ACTS['adm-qed'] = t => { const r = (ADM.rep || [])[+t.dataset.i]; if (!r) return; closeModals();
+  modal(`<h3>تعديل للجميع</h3><form class="col" data-form="adm-qsave"><input type="hidden" name="id" value="${r.id}">
+    <div class="field"><label for="aq-b">السؤال</label><textarea class="input" id="aq-b" name="b" required maxlength="400">${esc(r.body)}</textarea></div>
+    <div class="field"><label>الإجابات (اختر الصحيحة)</label>${r.options.map((o, j) => `<div class="ad-qr"><input type="radio" name="c" id="aq-c${j}" value="${j}"${j === r.correct_index ? ' checked' : ''} aria-label="الإجابة الصحيحة"><input class="input" id="aq-o${j}" name="o${j}" value="${esc(o)}" maxlength="120" required></div>`).join('')}</div>
+    ${r.payload && r.payload.kind === 'order' ? '<p class="sub">سؤال ترتيب: اكتب الأشياء بالترتيب الصحيح.</p>' : ''}
+    <button class="btn" type="submit">حفظ للجميع</button></form>`);
+};
+ACTS['adm-qsave'] = async f => { const r = (ADM.rep || []).find(x => x.id === f.id.value); if (!r) return;
+  const opts = r.options.map((_, j) => f['o' + j].value.trim()), ci = r.payload && r.payload.kind === 'order' ? 0 : +f.c.value;
+  if (opts.some(o => !o) || new Set(opts).size < opts.length) return toast('الإجابات لازم تكون مكتوبة ومختلفة');
+  try { await rpc('admin_question_set', { p_q: r.id, p_body: f.b.value.trim(), p_options: opts, p_correct: ci }); } catch(e){ return toast(errMsg(e)); }
+  closeModals(); toast('انحفظ للجميع ✓'); admReports(true);
+};
+ACTS['adm-qdel'] = async t => {
+  if (!await ask('ينحذف من البنك عند كل المعلمين، وما يرجع.', { title: 'حذف للجميع؟', ok: 'حذف', danger: true })) return;
+  try { await rpc('admin_question_delete', { p_q: t.dataset.id }); } catch(e){ return toast(/function|not find/i.test(String(e.message)) ? 'شغّل ملف bank_admin.sql أول' : errMsg(e)); }
+  toast('انحذف من البنك');
+  if (t.dataset.back === 'led') { await tQuestions(); return q4LedSheet(QS.led); }
+  closeModals(); admReports(true);
+};
+ACTS['adm-rep-x'] = async t => { try { await rpc('admin_reports_close', { p_q: t.dataset.id }); } catch(e){ return toast(errMsg(e)); } closeModals(); admReports(true); };
 /* v173 retention / habit metrics (sql/metrics.sql) */
 async function admMetrics(){
   let m; try { m = ADM.m || (ADM.m = await rpc('admin_metrics')); } catch(e){ return; }
@@ -4097,7 +4131,7 @@ function q4QForm(id, pre){
   const m = q ? (q.payload && q.payload.kind === 'order' ? 2 : q.options.length === 2 ? 1 : 0) : 0;
   const qq = QS.q4q, hd = pre && qq ? `سؤال ${qq.total - qq.list.length} من ${qq.total}` : q ? 'تعديل السؤال' : 'سؤال جديد';
   q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="${pre ? 'q4-qq-stop' : 'q4-bl'}" aria-label="رجوع">→</button><h3>${hd}</h3>${pre ? '<button class="q4-ed" data-act="q4-qq-skip">تخطّي</button>' : ''}</div>
-    <form class="q4-qf m${m}" data-form="q4-qsave"><input type="hidden" name="m" value="${m}"><input type="hidden" name="tfa" value="${m === 1 ? (q.correct_index === 0 ? '1' : '0') : ''}">
+    <form class="q4-qf m${m}" id="q4-qf" data-form="q4-qsave"><input type="hidden" name="m" value="${m}"><input type="hidden" name="tfa" value="${m === 1 ? (q.correct_index === 0 ? '1' : '0') : ''}">
     ${pre || q ? '' : `<div class="p3-seg">${['٤ خيارات', 'صح أو خطأ', 'رتّب'].map((x, i) => `<button type="button" class="${i === m ? 'on' : ''}" data-act="q4-mode" data-m="${i}">${x}</button>`).join('')}</div>`}
     <label for="q4b">السؤال</label><textarea class="input" id="q4b" name="b" required maxlength="400">${q ? esc(q.body) : pre ? esc(pre.body) : ''}</textarea>
     <div class="q4-tf"><label>الجملة هذي…</label><div class="p3-tfb"><button type="button" class="t${m === 1 && q.correct_index === 0 ? ' on' : ''}" data-act="q4-tfa" data-v="1">✅ صح</button><button type="button" class="f${m === 1 && q.correct_index === 1 ? ' on' : ''}" data-act="q4-tfa" data-v="0">❌ خطأ</button></div></div>
@@ -4107,13 +4141,16 @@ function q4QForm(id, pre){
     <input type="hidden" name="c" value="${ci}">
     <p class="p3-note">التعديل عندك بس، وما يتغيّر عند المعلمين الثانيين.</p>
     <button class="p3-big" type="submit">حفظ</button></form>
-    ${q ? '<button class="q4-del" data-act="q4-qdel">حذف السؤال</button>' : ''}</div>`);
+    ${q ? '<button class="q4-del" data-act="q4-qdel">حذف السؤال</button>' : ''}
+    ${q && !q.owner_id ? `<button class="q4-rep" data-act="q-report" data-id="${q.id}">🚩 بلّغ عن خطأ في السؤال</button>` : ''}
+    ${q && !q.owner_id && admBank() ? `<div class="q4-adm"><b>🛠 المشرف</b><button type="submit" form="q4-qf" name="all" value="1">حفظ التعديل للجميع</button><button data-act="adm-qdel" data-id="${q.id}" data-back="led">حذف من البنك للجميع</button></div>` : ''}</div>`);
 }
+const admBank = () => !!(ADM.st && ADM.st.is && !ADM.st.act);
 ACTS['q4-bl'] = () => q4LedSheet(QS.led);
 ACTS['q4-ok'] = t => { const f = t.closest('form'); f.querySelectorAll('.q4-op button').forEach(b => { b.className = ''; b.textContent = ''; }); t.className = 'ok'; t.textContent = '✓'; f.c.value = t.dataset.j; };
 ACTS['q4-mode'] = t => { const f = t.closest('form'); f.m.value = t.dataset.m; f.className = 'q4-qf m' + t.dataset.m; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); };
 ACTS['q4-tfa'] = t => { const f = t.closest('form'); f.tfa.value = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); haptic(); };
-ACTS['q4-qsave'] = async f => {
+ACTS['q4-qsave'] = async (f, ev) => {
   const cu = QS.subjCu, l = QS.led, body = f.b.value.trim(), m = f.m.value; let opts, ci, payload = null;
   if (!body) return toast('اكتب السؤال');
   if (m === '1') { if (f.tfa.value === '') return toast('اضغط ✅ صح أو ❌ خطأ'); opts = ['صح', 'خطأ']; ci = f.tfa.value === '1' ? 0 : 1; }
@@ -4125,6 +4162,11 @@ ACTS['q4-qsave'] = async f => {
     opts = raw.filter(Boolean); ci = opts.indexOf(raw[c]); if (opts.length < 2) return toast('اكتب إجابتين على الأقل');
   }
   const old = QS.qe ? (QS.glob.find(x => x.id === QS.qe) || QS.list.find(x => x.id === QS.qe)) : null;
+  if (ev && ev.submitter && ev.submitter.name === 'all' && old && !old.owner_id && admBank()) {
+    if (!await ask('يتغيّر السؤال عند كل المعلمين.', { title: 'حفظ للجميع؟', ok: 'حفظ' })) return;
+    try { await rpc('admin_question_set', { p_q: old.id, p_body: body, p_options: opts, p_correct: ci }); } catch(e){ return toast(/function|not find/i.test(String(e.message)) ? 'شغّل ملف bank_admin.sql أول' : errMsg(e)); }
+    toast('انحفظ للجميع ✓'); await tQuestions(); return q4LedSheet(l);
+  }
   const btn = f.querySelector('[type=submit]'); btn.setAttribute('aria-busy', 'true');
   let error;
   if (old && old.owner_id) ({ error } = await sb.from('questions').update({ body, options: opts, correct_index: ci, payload }).eq('id', old.id));
