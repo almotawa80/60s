@@ -258,6 +258,13 @@ ACTS['s-pick'] = t => { const p = profs()[+t.dataset.i]; if (!p) return; S.token
 ACTS['s-switch'] = () => { closeModals(); LS.del('mc_token'); S.token = null; S.home = null; studentLogin(); };
 ACTS['s-logout'] = () => { profSave(profs().filter(p => p.token !== S.token)); LS.del('mc_token'); try { sessionStorage.removeItem('mc_token'); } catch(e){} S.token = null; S.home = null; studentLogin(); };
 
+/* v184 stage «tone» from the class name (Kuwait: 1–5 primary, 6–9 intermediate, 10–12 secondary): font size + celebration length */
+function stageOf(name){
+  const t = String(name || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  let g = Number((t.match(/\d+/) || [])[0]) || 0;
+  if (!g) { const W = ['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر','الحادي عشر','الثاني عشر']; for (let i = W.length - 1; i >= 0; i--) if (t.indexOf(W[i]) >= 0) { g = i + 1; break; } }
+  return !g ? 'm' : g <= 5 ? 'p' : g <= 9 ? 'm' : 's';
+}
 async function loadHome(){
   stopTimer(); S.gen = (S.gen || 0) + 1; clearTimeout(S.nextT); S.cur = null;
   document.body.classList.remove('wide');
@@ -269,6 +276,7 @@ async function loadHome(){
     return;
   }
   setTheme(S.home.class.style); LS.set('mc_theme', S.home.class.style || 'mid');
+  document.body.dataset.stage = stageOf(S.home.class.name);
   { const a = profs(), i = a.findIndex(p => p.token === S.token), me = { token: S.token, name: S.home.student.name, cls: S.home.class.name, code: (i >= 0 && a[i].code) || LS.get('mc_code') };
     if (i >= 0) a[i] = me; else a.unshift(me); profSave(a); }
   renderHome(); bgCheck();
@@ -708,7 +716,8 @@ const FX = (() => {
       [523, 659, 784, 1047].forEach((f, i) => tone(f, .28, 'triangle', .2, i * .12));
       tone(1319, .6, 'sine', .14, .5); if (perfect) [1047, 1319, 1568].forEach((f, i) => tone(f, .35, 'triangle', .14, .9 + i * .1));
       vib([30, 40, 30, 40, 80]);
-      confetti(perfect ? 4200 : 3000);
+      const st = document.body.dataset.stage, k = st === 'p' ? 1 : st === 's' ? .4 : .7;
+      confetti(Math.round((perfect ? 4200 : 3000) * k));
     },
     meh(){ tone(523, .2, 'triangle', .15); tone(659, .3, 'triangle', .15, .15); }
   };

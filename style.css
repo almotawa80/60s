@@ -2778,3 +2778,10 @@ html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt.oc3::before{backg
 html body[data-theme] .pv.pvx .opts.kc .opt.good::before,html body[data-theme] .pv.pvx .opts.kc .opt.bad::before,html body[data-theme] .pv.pvx .opts.kc .opt.dim::before{opacity:0}
 .pv-pts{display:inline-block;margin-top:4px;color:#F5B72B;font-weight:900;font-size:15px;font-variant-numeric:tabular-nums}
 .pv-pts.bump{animation:bxp .45s cubic-bezier(.2,1.6,.4,1)}
+/* v184 stage tone */
+html body[data-stage=p][data-theme] .pv.pvx .pv-panel .qbox{font-size:24px}
+html body[data-stage=p][data-theme] .pv.pvx .opts.kc .opt .txt{font-size:20px!important}
+html body[data-stage=p][data-theme] .pv.pvx .opts.kc.long .opt .txt{font-size:17px!important}
+html body[data-stage=s][data-theme] .pv.pvx .pv-panel .qbox{font-size:20px}
+html body[data-stage=s][data-theme] .pv.pvx .opts.kc .opt .txt{font-size:17px!important}
+html body[data-stage=s][data-theme] .pv.pvx .opts.kc.long .opt .txt{font-size:15px!important}
