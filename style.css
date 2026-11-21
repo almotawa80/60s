@@ -3055,3 +3055,11 @@ html body .t-nav,html body .s-nav{bottom:max(10px, calc(env(safe-area-inset-bott
 .nw-ls .sub{margin:6px 0 0}
 /* v236: lessons row sits right under «موادي» tiles */
 .nw-lbl+.nw-tiles+.nw-grp{margin-top:10px;border:2px solid color-mix(in srgb,var(--primary) 35%,transparent)}
+/* v241 (Khalid: «الخطوط مو واضحة»): teacher screens — neutral iOS dark palette (no brown/red tints), clearer text weights */
+html body.wide.dark{--bg:#000;--card:#1C1C1E;--ink:#F5F5F7;--muted:#C7C7CC;--line:rgba(255,255,255,.12);--soft:#2C2C2E;--edge:#000;background:#000!important}
+html body.wide{--muted:#6B5E5A;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+html body.wide .st1-o b,html body.wide .st1-o span:not(.e){font-weight:700}
+html body.wide .st1-o{font-weight:700}
+html body.wide .modal-x{background:var(--soft)!important;color:var(--ink)!important}
+html body.wide small,html body.wide .sub{font-weight:600}
+html body.wide.dark .modal{background:#1C1C1E}
