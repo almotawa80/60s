@@ -3092,3 +3092,12 @@ body.wide.dark .rl-sg button.on{background:#48484A}
 .cm2-v{color:var(--muted);font-weight:700;letter-spacing:1px}
 .cm2 .set-row{width:100%}
 .aw-sq .st1-o small{display:block;color:var(--muted);font-weight:600;font-size:12.5px;margin-top:2px}
+/* v252 print cards preview */
+.pcv{position:fixed;inset:0;z-index:80;background:#F2F2F7;color:#111;overflow:auto;padding:calc(env(safe-area-inset-top) + 10px) 14px calc(env(safe-area-inset-bottom) + 20px)}
+.pcv-bar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F2F2F7;padding:6px 0 10px;z-index:1}
+.pcv-bar b{font-size:17px}.pcv .btn.soft{background:#E5E5EA;color:#111}
+.pcv-t{font-size:14px;font-weight:600;color:#3A3A3C;line-height:1.7;margin:0 0 12px}
+.pcv-in{background:#fff;border-radius:14px;padding:14px}
+.pcv-in .pcards{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pcv-in .pcard{border:1px dashed #bbb;border-radius:10px;padding:8px;display:flex;gap:8px;align-items:center;font-size:13px}
+.pcv-in .pq svg{width:64px;height:64px}.pcv-in .pc{font-weight:900;letter-spacing:1px;direction:ltr}

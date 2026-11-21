@@ -2081,7 +2081,7 @@ ACTS['c-xl'] = () => { closeModals(); setTimeout(() => modal(`<div class="aw-she
   <div class="xl2-s"><b>٣</b><span class="grow">ارفعه هنا</span><button class="btn sm" data-act="m-run" data-a="t-multi-up">ارفع الملف</button></div></div>`), 30); };
 /* v120: class ⋯ = six squares, like the student card */
 ACTS['c-cmore'] = t => { const c = ctx(t); const sq = (a, e, l, x) => `<button class="st1-o${x ? ' ' + x : ''}" data-act="m-run" data-a="${a}" data-cid="${c.id}"><span>${e}</span>${l}</button>`;
-  modal(`<div class="aw-sheet"><h3>${esc(c.name)}</h3><div class="st1-opts">${sq('t-print-codes', '🖨️', 'طباعة البطاقات')}${sq('c-menu', '⚙️', 'إعدادات الصف')}${sq('c-promote', '🎓', 'ترقية للصف التالي')}${sq('t-export-codes', '🔑', 'تنزيل رموز الطلبة')}${sq('c-archive', '📦', 'أرشفة الصف')}${sq('c-del', '🗑️', 'حذف الصف', 'dng')}</div></div>`); };
+  modal(`<div class="aw-sheet"><h3>${esc(c.name)}</h3><div class="st1-opts">${sq('t-print-codes', '🖨️', 'طباعة البطاقات')}${sq('c-menu', '⚙️', 'إعدادات الصف')}${sq('c-promote', '🎓', nextGradeName(c.name) ? 'ترقية إلى ' + esc(nextGradeName(c.name)) : 'ترقية للصف التالي')}${sq('t-export-codes', '🔑', 'تنزيل رموز الطلبة')}${sq('c-archive', '📦', 'أرشفة الصف')}${sq('c-del', '🗑️', 'حذف الصف', 'dng')}</div></div>`); };
 ACTS['m-run'] = t => { closeModals(); const a2 = t.dataset.a; const fake = document.querySelector(`[data-cid="${t.dataset.cid}"]`) || t; setTimeout(() => ACTS[a2](fake.querySelector ? (fake.querySelector('.cls-head') || fake) : fake), 30); };
 ACTS['c-pick'] = t => { const id = t.dataset.id; CL.sel.ids.has(id) ? CL.sel.ids.delete(id) : CL.sel.ids.add(id); haptic(); const y = scrollY; renderClasses(); scrollTo(0, y); };
 ACTS['c-select'] = () => { CL.sel = { type: 'classes', ids: new Set() }; renderClasses(); };
@@ -2238,13 +2238,15 @@ ACTS['c-archive'] = async t => { const c = ctx(t);
   closeModals(); CL.open.delete(c.id); toast('تمت الأرشفة'); await tClasses(); };
 ACTS['c-unarchive'] = async t => { const { error } = await sb.from('classes').update({ archived: false }).eq('id', t.dataset.id); if (error) return toast(errMsg(error)); toast('تم الاسترجاع'); await tClasses(); };
 function nextGradeName(n){
-  const o = ORD.find(x => n.includes(x[0])); if (!o || o[1] >= 12) return null;
-  return n.replace(o[0], GRADES[o[1]]);
+  const o = ORD.find(x => n.includes(x[0])); if (o) return o[1] >= 12 ? null : n.replace(o[0], GRADES[o[1]]);
+  const m = String(n).match(/[0-9٠-٩]+/); if (!m) return null; /* v252: digits like 7G → 8G */
+  const v = Number(m[0].replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))); if (!v || v >= 12) return null;
+  const nx = /[٠-٩]/.test(m[0]) ? String(v + 1).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]) : String(v + 1); return n.replace(m[0], nx);
 }
 ACTS['c-promote'] = async t => { const c = ctx(t), nn = nextGradeName(c.name);
-  if (!nn) return toast('ما قدرت أحدد الصف التالي، عدّل الاسم من إعدادات الصف');
-  if (!await ask(`ترقية «${c.name}» إلى «${nn}»؟ يبقى الطلبة ورموزهم كما هي.`, { ok: 'ترقية' })) return;
-  const { error } = await sb.from('classes').update({ name: nn }).eq('id', c.id); if (error) return toast(errMsg(error));
+  const v = await ask(`نفس الطلبة ورموزهم ونقاطهم، بس يتغير اسم الصف. مثلاً في بداية السنة الجديدة.`, { title: 'ترقية «' + c.name + '» إلى:', input: nn || '', placeholder: 'اسم الصف الجديد', ok: 'ترقية' });
+  const name = (v || '').trim(); if (!name || name === c.name) return;
+  const { error } = await sb.from('classes').update({ name }).eq('id', c.id); if (error) return toast(errMsg(error));
   toast('تمت الترقية'); await tClasses(); };
 ACTS['c-joinshow'] = async t => { const c = ctx(t); if (!c || !c.self_join) return; const link = joinLink(c.join_code);
   let qr = ''; try { await loadJs(QRJS, 'qrcode'); qr = qrSvg(link); } catch(e){}
@@ -2532,7 +2534,11 @@ ACTS['t-print-codes'] = async t => { ctx(t);
   let qr = false; try { await loadJs(QRJS, 'qrcode'); qr = !!window.qrcode; } catch(e){}
   document.getElementById('print-area').innerHTML = `<h2 style="text-align:center;margin:0 0 10px">${esc(CK.cls.name)} — رموز الدخول إلى تحدّي الدقيقة</h2><p style="text-align:center;direction:ltr;margin:0 0 12px">${esc(url)}</p>` +
     `<div class="pcards">${CK.students.map(s => `<div class="pcard${qr ? ' qr' : ''}">${qr ? `<div class="pq">${qrSvg(url + '#/c/' + s.code)}</div>` : ''}<div><b>${esc(s.name)}</b><div class="pc">${esc(s.code)}</div><small>${esc(s.student_no)}</small></div></div>`).join('')}</div>` + (qr ? '<p style="text-align:center;font-size:12px;margin-top:10px">امسح الرمز بكاميرا الجوال للدخول مباشرة، أو اكتب الرمز في الموقع.</p>' : '');
-  window.print();
+  /* v252: iPhone app can't open the print dialog, so show the cards first; print / share from there */
+  const w = document.createElement('div'); w.className = 'pcv'; w.innerHTML = `<div class="pcv-bar"><button class="btn sm soft" data-x>إغلاق</button><b>بطاقات الدخول</b><button class="btn sm" data-p>🖨️ طباعة</button></div><p class="pcv-t">بطاقة لكل طالب فيها اسمه ورمزه وQR. تطبعها وتوزعها، والطالب يمسح الـQR بالجوال ويدخل على طول بدون ما يكتب شي.</p><div class="pcv-in">${document.getElementById('print-area').innerHTML}</div>`;
+  w.querySelector('[data-x]').onclick = () => w.remove();
+  w.querySelector('[data-p]').onclick = () => { try { window.print(); } catch(e){} setTimeout(() => { if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) toast('إذا ما طلعت الطباعة: افتح الموقع من Safari واطبع من هناك'); }, 1200); };
+  closeModals(); document.body.appendChild(w);
 };
 
 /* ---- competitions (one place, many classes) ---- */
