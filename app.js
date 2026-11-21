@@ -287,8 +287,8 @@ async function loadHome(){
   { const a = profs(), i = a.findIndex(p => p.token === S.token), me = { token: S.token, name: S.home.student.name, cls: S.home.class.name, code: (i >= 0 && a[i].code) || LS.get('mc_code') };
     if (i >= 0) a[i] = me; else a.unshift(me); profSave(a); }
   renderHome(); bgCheck();
-  { const ip = S.home.in_progress_attempt, k = ip && JSON.stringify(ip); if (k && S.autoRes !== k) { S.autoRes = k; const b = $app.querySelector('[data-act="s-start"][data-kind="official"]'); if (b) { S.resuming = true; ACTS['s-start'](b); } }
-    else if (!k && !S.demo) { const pt = Number(LS.get('mc_prac') || 0); if (pt && Date.now() - pt < 10 * 60 * 1000 && S.autoRes !== 'p' + pt) { S.autoRes = 'p' + pt; const b = document.createElement('button'); b.dataset.kind = 'practice'; S.resuming = true; ACTS['s-start'](b); } } }
+  { const ip = S.home.in_progress_attempt, k = ip && JSON.stringify(ip); if (k && S.autoRes !== k && !S.noAuto) { S.autoRes = k; const b = $app.querySelector('[data-act="s-start"][data-kind="official"]'); if (b) { S.resuming = true; ACTS['s-start'](b); } }
+    else if (!k && !S.demo && !S.noAuto) { const pt = Number(LS.get('mc_prac') || 0); if (pt && Date.now() - pt < 10 * 60 * 1000 && S.autoRes !== 'p' + pt) { S.autoRes = 'p' + pt; const b = document.createElement('button'); b.dataset.kind = 'practice'; S.resuming = true; ACTS['s-start'](b); } } }
   rpc('student_prefs', { p_token: S.token }).then(p => {
     S.prefs = p || {};
     if (p && p.remember === false && LS.get('mc_token')) { try { sessionStorage.setItem('mc_token', S.token); } catch(e){} LS.del('mc_token'); }
@@ -908,7 +908,7 @@ ACTS['s-answer'] = (t) => { if (S.locked) return; S.locked = true; stopTimer(); 
 ACTS['s-quit'] = async () => {
   if (S.demo) { stopTimer(); return renderHome(); }
   if (!await ask('الأسئلة المتبقية ستُحتسب بلا نقاط عند انتهاء وقتها.', { title: 'الخروج من الجولة؟', ok: 'خروج', cancel: 'أكمل الجولة', danger: true, safe: true })) return;
-  stopTimer(); loadHome();
+  stopTimer(); S.noAuto = true; LS.del('mc_prac'); loadHome();
 };
 /* correct answers in a row at the end of this round's log (visual only, points unchanged) */
 function comboN(pos){ const L = (S.log || []).slice(-(pos || 4)); let n = 0; for (let i = L.length - 1; i >= 0 && L[i].ok; i--) n++; return n; }
