@@ -546,7 +546,11 @@ function bgWin(won){
 }
 ACTS['bg2-try'] = () => { const bs = bgVals(); bgWin([[bs[0], 1], [bs[2], 1], [bs[1], 1]]); };
 /* student bottom bar (v106): home · ranking · badges · me. Not shown during a round (the round replaces the page). */
-function sNav(cur){ return '<nav class="s-nav">' + [['home', '🏠', 'الرئيسية'], ['lb', '🏆', 'الترتيب'], ['bd', '⭐', 'شاراتي'], ['me', '👤', 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (x[0] === 'home' ? ' aria-label="الرئيسية"' : '') + (cur === x[0] ? ' aria-current="page"' : '') + '>' + (x[0] === 'home' ? '<span class="i sq">' + NAV_SQ + '</span>' : '<span class="i">' + x[1] + '</span>' + x[2]) + '</button>').join('') + '</nav>'; }
+const S_TABS = ['home', 'lb', 'bd', 'me'];
+function lensMove(nav, i){ const l = nav && nav.querySelector('.lens'); if (!l) return; if (String(l.style.getPropertyValue('--i')) !== String(i)) { l.classList.add('move'); clearTimeout(l._mv); l._mv = setTimeout(() => l.classList.remove('move'), 520); } l.style.setProperty('--i', i); }
+function sNav(cur){ const i = Math.max(0, S_TABS.indexOf(cur)), p = S.navPrev == null ? i : S.navPrev; S.navPrev = i;
+  setTimeout(() => requestAnimationFrame(() => lensMove(document.querySelector('.s-nav'), i)), 20);
+  return '<nav class="s-nav"><span class="lens" style="--i:' + p + ';--n:4"></span>' + [['home', '🏠', 'الرئيسية'], ['lb', '🏆', 'الترتيب'], ['bd', '⭐', 'شاراتي'], ['me', '👤', 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (x[0] === 'home' ? ' aria-label="الرئيسية"' : '') + (cur === x[0] ? ' aria-current="page"' : '') + '>' + (x[0] === 'home' ? '<span class="i sq">' + NAV_SQ + '</span>' : '<span class="i">' + x[1] + '</span>' + x[2]) + '</button>').join('') + '</nav>'; }
 function sPage(t, body){ const th = document.body.dataset.theme || 'mid'; S.tab = t; closeModals(); stopTimer(); clearInterval(S.cdT);
   $app.innerHTML = '<div class="sh s-tabpg pvx">' + body + '</div>' + sNav(t); scrollTo(0, 0); }
 ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
@@ -1128,42 +1132,46 @@ function viewRaw(title, body, active, top, back){
     const tmp = document.createElement('div'); tmp.innerHTML = shell(title, body, active, top, back);
     oldTop.replaceWith(tmp.querySelector('.t-top')); oldBody.replaceWith(tmp.querySelector('.t-body'));
     nav.querySelectorAll('a').forEach((a, j) => a.classList.toggle('on', j === i0));
-    const lens = nav.querySelector('.lens'); if (lens) { lens.style.opacity = i0 < 0 ? '0' : ''; lens.style.setProperty('--i', i); }
+    const lens = nav.querySelector('.lens'); if (lens) { lens.style.opacity = i0 < 0 ? '0' : ''; lensMove(nav, i); }
     NAVI.prev = i; window.scrollTo(0, 0); return;
   }
   $app.innerHTML = shell(title, body, active, top, back); window.scrollTo(0, 0);
   const lens = $app.querySelector('.lens');
   if (lens && i0 < 0) lens.style.opacity = '0';
-  if (lens) requestAnimationFrame(() => requestAnimationFrame(() => { lens.style.setProperty('--i', i); NAVI.prev = i; }));
+  if (lens) requestAnimationFrame(() => requestAnimationFrame(() => { lensMove($app.querySelector('.t-nav'), i); NAVI.prev = i; }));
 }
-/* liquid-glass lens: drag across the tab bar */
+/* liquid-glass lens: drag across the tab bar (teacher .t-nav and student .s-nav) */
 (function(){
   let drag = null;
-  const idxAt = (nav, x) => { const r = nav.getBoundingClientRect(), w = r.width / NAV.length; return Math.max(0, Math.min(NAV.length - 1, Math.floor((r.right - x) / w))); };
-  const reset = () => { if (drag && drag.lens) drag.lens.classList.remove('drag'); if (drag) drag.nav.querySelectorAll('a').forEach(el => el.classList.remove('hover')); drag = null; };
+  const items = nav => [...nav.querySelectorAll(':scope > a, :scope > button')];
+  const idxAt = (nav, x) => { const n = items(nav).length, r = nav.getBoundingClientRect(), w = r.width / n; return Math.max(0, Math.min(n - 1, Math.floor((r.right - x) / w))); };
+  const reset = () => { if (drag && drag.lens) drag.lens.classList.remove('drag'); if (drag) items(drag.nav).forEach(el => el.classList.remove('hover')); drag = null; };
   document.addEventListener('touchcancel', reset, { passive: true });
   document.addEventListener('touchstart', e => {
     reset();
-    const nav = e.target.closest && e.target.closest('.t-nav'); if (!nav || e.touches.length > 1) return;
+    const nav = e.target.closest && e.target.closest('.t-nav,.s-nav'); if (!nav || e.touches.length > 1) return;
     drag = { nav, lens: nav.querySelector('.lens'), x0: e.touches[0].clientX, moved: false };
+    if (drag.lens) { const k = idxAt(nav, e.touches[0].clientX); drag.lens.classList.add('drag'); drag.lens.style.setProperty('--i', k); items(nav).forEach((el, j) => el.classList.toggle('hover', j === k)); }
   }, { passive: true });
   document.addEventListener('touchmove', e => {
     if (!drag || !drag.nav.isConnected || !drag.lens) { drag = null; return; }
     const x = e.touches[0].clientX; if (Math.abs(x - drag.x0) > 6) drag.moved = true;
     if (!drag.moved) return;
     e.preventDefault();
-    const r = drag.nav.getBoundingClientRect(), w = r.width / NAV.length, pos = Math.max(0, Math.min(NAV.length - 1, (r.right - x) / w - .5));
-    drag.lens.classList.add('drag'); drag.lens.style.setProperty('--i', pos);
-    const k = idxAt(drag.nav, x); drag.nav.querySelectorAll('a').forEach((el, j) => el.classList.toggle('hover', j === k));
+    const n = items(drag.nav).length, r = drag.nav.getBoundingClientRect(), w = r.width / n, pos = Math.max(0, Math.min(n - 1, (r.right - x) / w - .5));
+    drag.lens.classList.add('drag', 'live'); drag.lens.style.setProperty('--i', pos);
+    const k = idxAt(drag.nav, x); items(drag.nav).forEach((el, j) => el.classList.toggle('hover', j === k));
   }, { passive: false });
   document.addEventListener('touchend', e => {
     if (!drag) return;
     const d = drag; drag = null;
+    if (d.lens) setTimeout(() => d.lens.classList.remove('drag', 'live'), d.moved ? 0 : 160);
+    items(d.nav).forEach(el => el.classList.remove('hover'));
     if (!d.moved || !d.lens) return;
-    const k = idxAt(d.nav, e.changedTouches[0].clientX);
-    d.lens.classList.remove('drag'); d.lens.style.setProperty('--i', k);
-    d.nav.querySelectorAll('a').forEach(el => el.classList.remove('hover'));
-    const h = '#/t/' + NAV[k][0]; if (location.hash !== h) location.hash = h;
+    const k = idxAt(d.nav, e.changedTouches[0].clientX); d.lens.style.setProperty('--i', k);
+    const el = items(d.nav)[k];
+    if (d.nav.classList.contains('t-nav')) { const h = '#/t/' + NAV[k][0]; if (location.hash !== h) location.hash = h; }
+    else if (el && !el.classList.contains('on')) el.click();
   });
 })();
 function go(h){ if (location.hash === h) route(); else location.hash = h; }
