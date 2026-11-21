@@ -1304,7 +1304,7 @@ async function teacherRoute(){
       T.name = (r.data && r.data.display_name) || (T.user.email || '').split('@')[0];
       T.avatar = (r.data && r.data.avatar_url) || '';
       T.settings = (r.data && r.data.settings) || {};
-      if (T.settings.ob !== 'done' && !(SG('prof_subject') && SG('prof_stage')) && !(ADM.st && ADM.st.act)) setTimeout(obStart, 400);
+      if (OB.want) { OB.want = 0; setTimeout(() => obStart(true), 400); } else if (T.settings.ob !== 'done' && !(SG('prof_subject') && SG('prof_stage')) && !(ADM.st && ADM.st.act)) setTimeout(obStart, 400);
     }
     if (page === 'classes' || page === 'comps') { CL.tab = page; CL.cur = null; await tClasses(); }
     else if (page === 'new') await tNew();
@@ -1371,10 +1371,11 @@ const OB_STAGES = ['ابتدائي', 'متوسط', 'ثانوي', 'جامعة'];
 const OB_DIST = ['العاصمة', 'حولي', 'الفروانية', 'الجهراء', 'الأحمدي', 'مبارك الكبير'];
 const OB = {};
 /* v194: onboarding is a challenge round (no skip): stage → subjects → grade → section → profile summary (tap to edit, «المزيد» = school/district) → class code */
-async function obStart(){
+async function obStart(demo){
   if (document.getElementById('ob')) return;
-  Object.assign(OB, { st: new Set(String(SG('prof_stage') || '').split('|').filter(Boolean)), sj: new Set(mySubjects()), gr: null, sec: null, school: SG('school') || '', d: SG('district') || '', more: false, edit: false, redo: false, pts: 0, hasCls: false, code: '', cname: '' });
-  try { const r = await sb.from('classes').select('id').limit(1); OB.hasCls = !!(r.data && r.data.length); } catch(e){}
+  demo = demo === true;
+  Object.assign(OB, { demo, st: new Set(demo ? [] : String(SG('prof_stage') || '').split('|').filter(Boolean)), sj: new Set(demo ? [] : mySubjects()), gr: null, sec: null, school: SG('school') || '', d: SG('district') || '', more: false, edit: false, redo: false, pts: 0, hasCls: false, code: '', cname: '' });
+  if (!demo) try { const r = await sb.from('classes').select('id').limit(1); OB.hasCls = !!(r.data && r.data.length); } catch(e){}
   obStep(1);
 }
 const obQn = () => OB.hasCls ? 2 : 4;
@@ -1402,7 +1403,7 @@ function obStep(n){
     b = `<div class="obr-hero"><div class="obr-big">📲</div><h2>رمز صفك</h2><div class="obr-code" dir="ltr">${esc(fmtCode(OB.code))}</div><p>أرسله لطلابك في الواتساب. أول ما يدخلون يطلعون عندك.</p></div>
       <button class="btn obr-go" data-act="c-share-wa" data-v="${esc(msg)}">شارك الرمز</button><button class="btn soft" data-act="ob-close">خذني للرئيسية</button>`;
   }
-  el.innerHTML = `<div class="ob-b obr">${head}${b}</div><div class="obr-pop" id="obr-pop"></div>`;
+  el.innerHTML = `${OB.demo ? '<button class="obr-demo" data-act="ob-close">تجربة · لا يُحفظ شي ✕</button>' : ''}<div class="ob-b obr">${head}${b}</div><div class="obr-pop" id="obr-pop"></div>`;
 }
 function obAns(){
   if (OB.redo) { if (OB.n === 1 && !OB.hasCls) { OB.gr = null; return obStep(3); } OB.redo = false; return obStep(5); }
@@ -1422,6 +1423,7 @@ ACTS['ob-dist'] = t => { const sc = document.getElementById('ob-school'); if (sc
 document.addEventListener('input', e => { if (e.target.id === 'ob-school') OB.school = e.target.value; });
 ACTS['ob-finish'] = async t => {
   if (!OB.st.size || !OB.sj.size || (!OB.hasCls && !OB.gr)) return toast('كمّل الإجابات أول');
+  if (OB.demo) { OB.code = 'DEMO12'; OB.cname = cnameOf(OB.gr.st, OB.gr.g, OB.sec || ''); return obStep(6); }
   t.disabled = true; t.textContent = 'لحظة…';
   const p = { ob: 'done', prof_stage: [...OB.st].join('|'), prof_subject: [...OB.sj].join('|') };
   if (OB.school.trim()) p.school = OB.school.trim().slice(0, 80);
@@ -5113,6 +5115,7 @@ function route(){
   const h = location.hash || '#/s';
   if (h.indexOf('#/p/') !== 0) pvClose(false);
   if (/access_token=|error_description=|type=recovery/.test(h)) return authReturn();
+  if (h === '#/t/ob') { history.replaceState(null, '', '#/t/home'); if (T.name) setTimeout(() => obStart(true), 300); else OB.want = 1; teacherRoute(); return; }
   if (h.indexOf('#/t') === 0) teacherRoute();
   else if (h.indexOf('#/j/') === 0) studentJoin(decodeURIComponent(h.slice(4)));
   else if (h.indexOf('#/p/') === 0) { if (window.top !== window) document.documentElement.classList.add('embed'); else pvClose(true); demoStart(h.slice(4)); }
