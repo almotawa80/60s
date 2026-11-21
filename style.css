@@ -2737,3 +2737,7 @@ html body .pv.pvx .dots .dot.done.no{background:#FF453A!important}
 /* v175 reminder */
 .sp-bell{border:0;background:transparent;color:inherit;opacity:.8;font:700 14px Cairo,system-ui,sans-serif;text-decoration:underline;cursor:pointer;padding:4px}
 .push-steps{text-align:start;line-height:2;margin:8px 0 16px;padding-inline-start:20px}
+/* v176 level */
+.sp-lvl{border:0;font:inherit;color:inherit;cursor:pointer}
+.lvl-up{font-size:56px;font-weight:900;color:#F5B72B;line-height:1.1}
+.lvl-bar{margin:12px 0}

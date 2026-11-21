@@ -339,7 +339,7 @@ function renderHome(){
 function renderHomeP(){
   const h = S.home, th = document.body.dataset.theme || 'mid', size = h.class.size || 0;
   const days = h.streak || 0, up = S.upMsg, sh = h.shield || {}; S.upMsg = null;
-  const pills = '<div class="sp-pills"><span class="sp-pill">مركزك ' + (h.rank || '-') + ' من ' + size + '</span>' + (days ? '<span class="sp-pill"><span class="flame">🔥</span> ' + days + (days === 1 ? ' يوم' : days === 2 ? ' يومين' : ' أيام') + '</span>' : '') + (sh.shields ? '<span class="sp-pill" title="الدرع يحمي سلسلتك يوم غياب">🛡' + (sh.shields > 1 ? ' ×' + sh.shields : '') + '</span>' : '') + '</div>';
+  const pills = '<div class="sp-pills"><span class="sp-pill">مركزك ' + (h.rank || '-') + ' من ' + size + '</span>' + (days ? '<span class="sp-pill"><span class="flame">🔥</span> ' + days + (days === 1 ? ' يوم' : days === 2 ? ' يومين' : ' أيام') + '</span>' : '') + (sh.shields ? '<span class="sp-pill" title="الدرع يحمي سلسلتك يوم غياب">🛡' + (sh.shields > 1 ? ' ×' + sh.shields : '') + '</span>' : '') + '<button class="sp-pill sp-lvl" id="lvl" data-act="s-lvl" hidden></button></div>';
   if (sh.saved && !S.demo) { const k = 'mc_saved_' + (h.student.id || ''); if (LS.get(k) !== sh.saved) { LS.set(k, sh.saved); setTimeout(() => toast('🛡 درعك حمى سلسلتك!'), 600); } }
   let mid;
   if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo" id="bx-emo">🎉</div><b id="bx-h">أحسنت! ارجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
@@ -356,12 +356,24 @@ function renderHomeP(){
     '<div class="sp-low"><button class="sp-prac" data-act="s-start" data-kind="practice"><span>🎯</span>تدرّب بدون نقاط</button>' +
     '</div></div>' + sNav('home');
   startCountdown();
-  if (h.played_today && !S.demo) loadDaily();
+  if (!S.demo) loadDaily();
   if (!h.played_today && h.rank > 1 && h.gap > 0 && !S.demo) rpc('class_leaderboard', { p_token: S.token }).then(lb => {
     const rows = Array.isArray(lb) ? lb : (lb && lb.rows) || [], me = rows.find(r => r.is_me), above = me && rows.filter(r => r.rank < me.rank).sort((a, b) => b.rank - a.rank)[0];
     const el = document.getElementById('rival'); if (el && above && above.name) el.innerHTML = 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى ' + esc(String(above.name).split(' ')[0]) + ' 👀';
   }).catch(() => {});
 }
+/* v176 permanent level ⚡ (sql/student_level.sql): level n starts at 50·n(n−1)/2 XP */
+const LVL_NAMES = [[1, 'مبتدئ'], [5, 'متحمّس'], [10, 'شاطر'], [15, 'بطل'], [20, 'أسطورة']];
+function lvlOf(xp){ let n = 1; while (25 * n * (n + 1) <= xp) n++; const lo = 25 * n * (n - 1), hi = 25 * n * (n + 1); return { n, lo, hi, name: LVL_NAMES.filter(x => n >= x[0]).pop()[1] }; }
+function lvlShow(xp){
+  if (xp == null) return; const L = lvlOf(xp), el = document.getElementById('lvl');
+  if (el) { el.hidden = false; el.textContent = '⚡ مستوى ' + L.n; }
+  const k = 'mc_lvl_' + (S.home && S.home.student.id || ''), was = Number(LS.get(k) || 0);
+  if (was && L.n > was) setTimeout(() => { FX.win(false); modal('<div class="s-avs center"><div class="lvl-up">⚡' + L.n + '</div><h3>وصلت مستوى ' + L.n + '!</h3><p class="sub">صرت «' + L.name + '». كمّل وتوصل أبعد 🚀</p><button class="btn" data-act="close-modal">يلا!</button></div>'); }, 700);
+  LS.set(k, String(L.n));
+}
+ACTS['s-lvl'] = () => { const xp = (S.daily || {}).xp || 0, L = lvlOf(xp), pc = Math.round((xp - L.lo) / (L.hi - L.lo) * 100);
+  modal('<div class="s-avs center"><div class="lvl-up">⚡' + L.n + '</div><h3>مستوى ' + L.n + ' · ' + L.name + '</h3><div class="goal-bar lvl-bar"><i style="width:' + pc + '%"></i></div><p class="sub">باقي ' + (L.hi - xp) + ' نقطة خبرة للمستوى ' + (L.n + 1) + '</p><p class="sub">كل إجابة صح = ١٠ · كل جولة = ٥، والتدريب يحسب بعد</p><button class="btn" data-act="close-modal">تمام</button></div>'); };
 /* v175 daily reminder at 4 PM (web push, sql/push.sql + edge function «push») */
 const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 function pushBtn(){
@@ -388,7 +400,8 @@ ACTS['s-push'] = async t => {
 /* v171 «صندوق بكرة» + «هدف الصف» (needs sql/box_goal.sql; silently absent before it) */
 async function loadDaily(){
   let d; try { d = await rpc('student_daily', { p_token: S.token }); } catch(e){ return; }
-  S.daily = d; if (!d || !document.getElementById('bx-h')) return;
+  S.daily = d; if (d) lvlShow(d.xp);
+  if (!d || !document.getElementById('bx-h')) return;
   const bx = d.box || {}, emo = document.getElementById('bx-emo'), hd = document.getElementById('bx-h'), act = document.getElementById('bx-act');
   if (bx.ready) { emo.innerHTML = '<span class="bx bx-ready">🎁</span>'; hd.textContent = 'صندوقك جاهز!'; act.innerHTML = '<button class="sp-open" data-act="s-box">افتح الصندوق</button>'; }
   else if (bx.locked) { emo.innerHTML = '<span class="bx bx-lock">🎁</span>'; hd.textContent = 'أحسنت! صندوقك ينفتح بكرة'; act.innerHTML = '<p class="bx-note">العب جولة بكرة وافتحه 🔒</p>'; }
