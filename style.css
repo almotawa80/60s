@@ -3572,3 +3572,12 @@ html body .sl.sl-red .sl1-t b{color:#F5B72B!important}
 /* v326 level line (secondary/uni) */
 .lv-next{width:100%;max-width:300px;margin:2px auto 0}
 .lv-next .goal-t{font-size:14px;gap:8px}.lv-next .goal-bar{height:7px;margin:6px 0 2px}
+
+/* v328 flat after-round card (Khalid 👍 preview): no inner boxes */
+.sp-done .sp-cd{background:none;padding:2px 0 0;border-radius:0}
+.sp-done .sp-cd small{font-size:14px;color:#98989F;opacity:1}
+.sp-done .sp-cd b{font-size:34px}
+.sp-done #goal{width:100%}
+.sp-done .goal{background:none;border-radius:0;padding:12px 2px 0;margin-top:6px;border-top:1px solid #2C2C2E}
+.sp-done .goal-t{font-size:14px}.sp-done .goal-t span{color:#98989F;opacity:1}
+.sp-done .goal-bar{height:8px;background:#2C2C2E}

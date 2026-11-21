@@ -468,7 +468,7 @@ async function loadDaily(){
   const sr = d.star, me = sr && sr.id === S.home.student.id;
   if (g && g.size > 1 && el) {
     const pc = Math.min(100, Math.round(g.played / g.size * 100)), done = g.played >= g.need;
-    el.innerHTML = '<div class="goal"><div class="goal-t"><b>' + (done ? '⭐ الصف أخذ نجمة اليوم' : '🎯 باقي ' + (g.need - g.played) + ' ويأخذ الصف نجمة') + '</b><span>' + g.played + '/' + g.size + '</span></div>' +
+    el.innerHTML = '<div class="goal"><div class="goal-t"><b>' + (done ? '⭐ الصف أخذ نجمة اليوم' : '🎯 باقي ' + (g.need - g.played === 1 ? 'طالب واحد' : g.need - g.played === 2 ? 'طالبين' : (g.need - g.played) + ' طلاب') + ' ويأخذ الصف نجمة') + '</b><span>' + g.played + '/' + g.size + '</span></div>' +
       '<div class="goal-bar"><i style="width:' + pc + '%"></i>' + (done ? '' : '<em style="right:' + Math.round(g.need / g.size * 100) + '%"></em>') + '</div></div>' +
       (sr ? '<div class="wk-star' + (me ? ' me" role="button" data-act="s-share" data-k="star' : '') + '"><span>' + (sr.av ? esc(sr.av) : '⭐') + '</span><div><small>⭐ نجم الأسبوع</small><b>' + (me ? 'أنت! تحسّنت ' + sr.up + ' نقطة' : esc(String(sr.name).split(' ')[0])) + '</b></div></div>' : '');
     if (done && !LS.get('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString())) { LS.set('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString(), '1'); setTimeout(() => FX.win(false), 400); }
