@@ -3558,3 +3558,7 @@ html body:not(.wide) .s-nav{background:rgba(28,28,30,.7)!important;-webkit-backd
 .ta .btn{background:#C8102E!important;color:#fff!important;box-shadow:0 5px 0 #8E0B21!important;border:0!important}
 .ta .btn.ghost{background:#2C2C2E!important;box-shadow:none!important}
 .ta .card,.ta .tabs button.on{background-image:none!important}
+
+/* v315 زر «أنا معلم»: إطار ذهبي واضح على الأسود (خالد اختار) */
+html body .sl.sl-red .sl1-t{background:#1C1C1E!important;border:2px solid #F5B72B!important;color:#F5B72B!important;box-shadow:none!important}
+html body .sl.sl-red .sl1-t b{color:#F5B72B!important}
