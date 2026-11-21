@@ -370,11 +370,13 @@ async function loadDaily(){
   if (bx.ready) { emo.innerHTML = '<span class="bx bx-ready">🎁</span>'; hd.textContent = 'صندوقك جاهز!'; act.innerHTML = '<button class="sp-open" data-act="s-box">افتح الصندوق</button>'; }
   else if (bx.locked) { emo.innerHTML = '<span class="bx bx-lock">🎁</span>'; hd.textContent = 'أحسنت! صندوقك ينفتح بكرة'; act.innerHTML = '<p class="bx-note">العب جولة بكرة وافتحه 🔒</p>'; }
   const g = d.goal, el = document.getElementById('goal');
+  const sr = d.star, me = sr && sr.id === S.home.student.id;
   if (g && g.size > 1 && el) {
     const pc = Math.min(100, Math.round(g.played / g.size * 100)), done = g.played >= g.need;
     el.innerHTML = '<div class="goal"><div class="goal-t"><b>' + (done ? '⭐ الصف أخذ نجمة اليوم!' : '🎯 هدف الصف') + '</b><span>' + g.played + ' من ' + g.size + '</span></div>' +
       '<div class="goal-bar"><i style="width:' + pc + '%"></i><em style="right:' + Math.round(g.need / g.size * 100) + '%"></em></div>' +
-      '<small>' + (done ? 'نجوم الصف: ' + g.stars + ' ⭐' : 'باقي ' + (g.need - g.played) + ' ويأخذ الصف نجمة ⭐' + (g.stars ? ' · عندكم ' + g.stars : '')) + '</small></div>';
+      '<small>' + (done ? 'نجوم الصف: ' + g.stars + ' ⭐' : 'باقي ' + (g.need - g.played) + ' ويأخذ الصف نجمة ⭐' + (g.stars ? ' · عندكم ' + g.stars : '')) + '</small></div>' +
+      (sr ? '<div class="wk-star' + (me ? ' me' : '') + '"><span>' + (sr.av ? esc(sr.av) : '⭐') + '</span><div><small>⭐ نجم الأسبوع</small><b>' + (me ? 'أنت! تحسّنت ' + sr.up + ' نقطة' : esc(String(sr.name).split(' ')[0])) + '</b></div></div>' : '');
     if (done && !LS.get('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString())) { LS.set('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString(), '1'); setTimeout(() => FX.win(false), 400); }
   }
 }
@@ -1687,11 +1689,17 @@ function renderChallenge(gid){
     ${left && !c.paused_at && ph === 'points' ? `<button class="btn ch-rem" data-act="ch-remind">🔔 ذكّر الباقين (${left})</button>` : ''}</div>
     <div class="ch-acts">${[['cp-try', '🎮', 'جرّب'], ['ch-code', '🔗', 'الرمز'], ['ch-edit', '✏️', 'تعديل'], ['ch-det', '📊', 'التفاصيل']].map(o => `<button class="ch-a" data-act="ch-run" data-a="${o[0]}" data-g="${esc(gid)}"><span>${o[1]}</span>${o[2]}</button>`).join('')}</div>
     <div class="ch-2">${c.paused_at ? `<button class="ch-b" data-act="cp-resume" data-g="${esc(gid)}">▶️ استئناف</button>` : `<button class="ch-b" data-act="cp-pause" data-g="${esc(gid)}">⏸ إيقاف مؤقت</button>`}<button class="ch-b end" data-act="cp-end" data-g="${esc(gid)}">🏁 إنهاء</button></div>
-    <p class="ch-meta">${esc(meta)}</p><div id="ch-warn"></div>
+    <p class="ch-meta">${esc(meta)}</p><div id="ch-warn"></div><div id="ch-star"></div>
     ${rows.length ? `<div class="cp-list">${rows.map((x, i) => { const k = CST(x.id); return `<button class="cp-row${k.today ? '' : ' dim'}" data-act="ch-stu" data-id="${x.id}"><span class="cp-rk">${k.pts && i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="grow"><b>${x.avatar ? esc(x.avatar) + ' ' : ''}${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b>${multi ? `<small class="ch-cls">${esc(x._c || '')}</small>` : ''}</span><span class="cp-pts">${k.pts}</span></button>`; }).join('')}</div>`
       : `<div class="cl-empty sm"><b>ما فيه طلاب بعد</b><small>شارك رمز الصف من ⋯</small></div>`}</div>`;
   view(String(c.title || 'التحدي').split('·').pop().trim(), body, 'home', '', '#/t/home');
-  chWarn(c);
+  chWarn(c); chStar(ks);
+}
+/* v174 «نجم الأسبوع» (Thu–Sat): most improved student vs last week (sql/week_star.sql) */
+async function chStar(ks){
+  let r = []; try { r = await Promise.all(ks.map(k => rpc('teacher_week_star', { p_class: k.class_id }).catch(() => null))); } catch(e){ return; }
+  const el = document.getElementById('ch-star'); if (!el) return;
+  el.innerHTML = r.filter(Boolean).map(x => `<button class="ch-star" data-act="ch-stu" data-id="${esc(x.id)}"><span class="ch-star-i">${x.av ? esc(x.av) : '⭐'}</span><span class="grow"><small>⭐ نجم الأسبوع</small><b>${esc(fmtStu(x.name))}</b><small>تحسّن ${x.up} نقطة بالجولة عن الأسبوع اللي قبل · شجّعه 👏</small></span></button>`).join('');
 }
 /* v123: warn when the challenge has fewer than 4 questions in «أسئلتي», with a one-tap fix */
 async function chWarn(c){
