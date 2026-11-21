@@ -281,6 +281,7 @@ async function loadHome(){
   { const a = profs(), i = a.findIndex(p => p.token === S.token), me = { token: S.token, name: S.home.student.name, cls: S.home.class.name, code: (i >= 0 && a[i].code) || LS.get('mc_code') };
     if (i >= 0) a[i] = me; else a.unshift(me); profSave(a); }
   renderHome(); bgCheck();
+  { const ip = S.home.in_progress_attempt, k = ip && JSON.stringify(ip); if (k && S.autoRes !== k) { S.autoRes = k; const b = $app.querySelector('[data-act="s-start"][data-kind="official"]'); if (b) { S.resuming = true; ACTS['s-start'](b); } } }
   rpc('student_prefs', { p_token: S.token }).then(p => {
     S.prefs = p || {};
     if (p && p.remember === false && LS.get('mc_token')) { try { sessionStorage.setItem('mc_token', S.token); } catch(e){} LS.del('mc_token'); }
@@ -781,11 +782,13 @@ ACTS['s-start'] = async (t) => {
   if (S.demo) return demoQ(1);
   const lbl = t.innerHTML, gen = S.gen = (S.gen || 0) + 1;
   S.starting = true; t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحضير…';
+  const resumed = S.resuming; S.resuming = false;
   try {
+    if (resumed) { await countIn(gen, 'نكمل جولتك…'); if (S.gen !== gen) return; }
     const st = await rpc('start_attempt', { p_token: S.token, p_kind: t.dataset.kind });
     if (S.gen !== gen) return;
     if (st.finished) { toast('أنهيت هذه الجولة'); return loadHome(); }
-    if (st.position === 1 && st.seconds_left >= 14) await countIn(gen);
+    if (!resumed && st.position === 1 && st.seconds_left >= 14) await countIn(gen);
     if (S.gen !== gen) return;
     showQuestion(st);
   } catch(e){
@@ -797,9 +800,9 @@ ACTS['s-start'] = async (t) => {
   } finally { S.starting = false; }
 };
 /* 3-2-1 before the round */
-function countIn(gen){
+function countIn(gen, txt){
   const th = document.body.dataset.theme || 'mid';
-  $app.innerHTML = '<div class="sh pvx cin"><div class="cin-n" id="cin" role="status">3</div><p class="cin-t">استعد!</p></div>';
+  $app.innerHTML = '<div class="sh pvx cin"><div class="cin-n" id="cin" role="status">3</div><p class="cin-t">' + (txt || 'استعد!') + '</p></div>';
   return new Promise(res => { let n = 3; FX.tick && FX.tick();
     const step = () => { if (S.gen !== gen) return res(); n--; const el = document.getElementById('cin'); if (n <= 0 || !el) return res();
       el.textContent = n; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; FX.tick && FX.tick(); setTimeout(step, 800); };
