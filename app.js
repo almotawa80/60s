@@ -725,11 +725,14 @@ function arNow(g){ setTimeout(async () => { if (AR.gen !== g || S.tab !== 'ar' |
   arNow(g); }, 8000); }
 function arDraw(){
   const h = AR.h, l = h.lvl, t = h.tier, subs = h.subjects || [];
+  const stg = ['مبتدئ', 'محترف', 'أسطورة'], si = l.n < 11 ? 0 : l.n < 31 ? 1 : 2;
   const gate = l.n < 11 ? 'بوابة 4 أسئلة عند مستوى 11' : l.n < 31 ? 'بوابة 6 أسئلة عند مستوى 31' : l.n < 60 ? 'القمة عند مستوى 60' : '⭐ ' + (l.stars || 0);
   sPage('ar', '<div class="ar">' +
-    '<div class="ar-top"><div><b class="ar-nm">' + esc(h.nick || '') + '</b><small>' + t.nq + ' أسئلة بالدقيقة</small></div>' + '<span class="ar-on" id="ar-now"' + (h.now ? '' : ' hidden') + '><i></i><b>' + (h.now || 0) + '</b> موجودين الحين</span>' + '</div>' +
-    '<div class="ar-dial">' + arDial(l) + '<div class="ar-core"><button class="ar-avb" data-act="ar-pf" aria-label="غيّر لقبك وشكلك">' + arAv(h.avatar, h.nick, '', h.av) + '</button>' + '<div class="ar-lv">مستوى <b>' + l.n + '</b></div></div></div>' +
-    '<div class="ar-under"><span><b>' + l.into + '</b> / ' + l.need + ' نقطة</span><span class="gate">' + gate + '</span></div>' +
+    '<div class="ar-top"><div><b class="ar-nm">' + esc(h.nick || '') + '</b></div>' + '<span class="ar-on" id="ar-now"' + (h.now ? '' : ' hidden') + '><i></i><b>' + (h.now || 0) + '</b> موجودين الحين</span>' + '</div>' +
+    '<div class="ar-me"><div class="ar-me1"><button class="ar-avb" data-act="ar-pf" aria-label="غيّر لقبك وشكلك">' + arAv(h.avatar, h.nick, '', h.av) + '</button><div><h2>مستوى ' + l.n + '</h2><small>' + stg[si] + ' · ' + t.nq + ' أسئلة بالدقيقة</small></div></div>' +
+      '<div class="ar-mbar"><i style="width:' + Math.max(3, Math.min(100, Math.round(l.into / Math.max(1, l.need) * 100))) + '%"></i></div>' +
+      '<div class="ar-mrow"><span><b>' + l.into + '</b> / ' + l.need + ' نقطة</span><span>' + (l.n < 60 ? 'باقي <b>' + Math.max(0, l.need - l.into) + '</b> نقطة لمستوى ' + (l.n + 1) : '⭐ ' + (l.stars || 0)) + '</span></div></div>' +
+    '<div class="ar-stg">' + [['🥉', 'مستوى 1 إلى 10', '3 أسئلة'], ['🥈', 'من مستوى 11', '4 أسئلة'], ['🥇', 'من مستوى 31', '6 أسئلة']].map((x, k) => '<div class="' + (k === si ? 'on' : k < si ? 'done' : '') + '"><span class="e">' + (k > si ? '🔒' : x[0]) + '</span><b>' + stg[k] + '</b><small>' + x[1] + '</small><small' + (k === si ? ' class="here">أنت هنا' : '>' + (k < si ? 'خلّصتها ✓' : x[2])) + '</small></div>').join('') + '</div>' +
     (subs.length ? '<div class="ar-deck" id="ar-deck">' + subs.map((x, i) => { const d = arSubj(x.s, i);
         return '<button class="ar-card" style="--c:' + AR_COL[d.c][0] + '" data-act="ar-play" data-s="' + esc(x.s) + '">' + arArt(d) + '<span class="ar-pill" data-s="' + esc(x.s) + '"' + (x.now ? '' : ' hidden') + '><i></i><b>' + (x.now || 0) + '</b> يلعبون الحين</span><span class="ar-cn">' + esc(d.n) + '</span><span class="ar-cta">العب ' + ic('play') + '</span></button>'; }).join('') + '</div>' +
       (subs.length > 1 ? '<div class="ar-dots" id="ar-dots">' + subs.map((_, i) => '<i' + (i ? '' : ' class="on"') + '></i>').join('') + '</div>' : '')

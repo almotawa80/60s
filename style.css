@@ -3526,3 +3526,16 @@ html body:not(.wide) .s-nav{background:rgba(28,28,30,.7)!important;-webkit-backd
 .nt-all{background:none;border:0;color:#E5404F;font:inherit;font-weight:700;font-size:14px;padding:8px 4px;cursor:pointer}
 .nt-r{display:flex;align-items:center;gap:6px}.nt-r .nt-i{flex:1;min-width:0}
 .nt-x{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:var(--soft,#2C2C2E);color:var(--muted,#C7C7CC);font-size:14px;cursor:pointer}
+/* v310 (Khalid): arena home = clear level card + 3 named stages (replaces the dial) */
+.ar-me{background:#1C1C1E;border-radius:22px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.ar-me1{display:flex;align-items:center;gap:12px}
+.ar-me1 .ar-av{width:60px;height:60px;font-size:34px;box-shadow:0 0 0 3px #1C1C1E,0 0 0 5px #F5B72B}
+.ar-me1 h2{margin:0;font-size:25px;font-weight:900;color:#F5B72B;line-height:1.2}
+.ar-me1 small{color:#C7C7CC;font-size:13px}
+.ar-mbar{height:13px;border-radius:8px;background:#2C2C2E;overflow:hidden}.ar-mbar i{display:block;height:100%;background:#F5B72B;border-radius:8px}
+.ar-mrow{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:#C7C7CC}.ar-mrow b{color:#fff}
+.ar-stg{display:flex;gap:8px}
+.ar-stg>div{flex:1;min-width:0;background:#1C1C1E;border-radius:16px;padding:8px 4px;text-align:center;border:2px solid transparent;color:#8E8E93}
+.ar-stg>div.on{border-color:#F5B72B;color:#fff}.ar-stg>div.done{color:#C7C7CC}
+.ar-stg .e{display:block;font-size:22px;line-height:1.25}.ar-stg b{display:block;font-size:14px;font-weight:800}.ar-stg small{display:block;font-size:11px}
+.ar-stg .here{color:#F5B72B;font-weight:800}
