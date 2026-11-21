@@ -1668,6 +1668,7 @@ function obStep(n){
     b = `<div class="obr-hero"><div class="obr-stars">⭐${'⭐'.repeat(Q - 1)}</div><h2>مثالي! هذا ملفك 🏆</h2><p>اضغط على أي سطر تبي تعدله</p></div>
       <div class="obr-sum">${row(1, 'المرحلة', [...OB.st].join('، '))}${row(2, 'المادة', [...OB.sj].join('، '))}</div>
       ${OB.hasCls ? '' : `<div class="obr-cls"><span>صفوفك</span><div>${OB.grs.map((g, k) => `<button class="obr-cl" data-act="ob-grx" data-k="${k}">${esc(cnameOf(g.st, g.g, ''))} <i>✕</i></button>`).join('')}<button class="obr-cl add" data-act="ob-row" data-q="3">＋ أضف</button></div></div>`}
+      <div class="obr-more"><label for="ob-school">المدرسة</label><input class="input ob-in" id="ob-school" maxlength="80" placeholder="اسم المدرسة (اختياري)" value="${esc(OB.school)}"><label>المنطقة التعليمية</label><div class="ob-g g3">${OB_DIST.map(v => tile(OB.d === v, v, '', 'ob-dist')).join('')}</div></div>
       <button class="btn obr-go" data-act="ob-finish">${OB.hasCls ? 'تمام 👍' : 'تمام، ادعُ طلابك 📲'}</button>`;
   }
   if (n === 6 && OB.made && OB.made.length > 1) {
