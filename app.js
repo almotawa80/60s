@@ -3271,12 +3271,17 @@ function q3Home(){
   /* v129: one square per subject; subjects with chosen lessons are green with ✓ and come first */
   const st = {}; mine.forEach(g => { const sj = cuOf(g.cu).subject; (st[sj] = st[sj] || { l: 0, n: 0 }); st[sj].l++; st[sj].n += g.n; });
   const sq = subs.sort((x, y) => (!!st[y.s]) - (!!st[x.s])).map(x => { const m = st[x.s]; return `<button class="q5-sb${m ? ' on' : ''}" data-act="q4-subj" data-s="${esc(x.s)}"><span class="e">${SUBJ_EMOJI[x.s] || '📘'}</span><b>${esc(x.s)}</b><small>${m ? `${m.l} ${m.l === 1 ? 'درس' : 'دروس'} · ${m.n} سؤال` : x.n + ' درس'}</small></button>`; });
-  if (ownAll) sq.splice(own ? Object.keys(st).length : sq.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
+  /* v261 (Khalid): «موادي» (profile subjects + ones with active lessons + own) first, then «مواد أخرى» */
+  const myS = new Set(mySubjects()); Object.keys(st).forEach(k => myS.add(k)); const keyOf = h => (h.match(/data-s="([^"]*)"/) || [])[1];
+  const sqMine = sq.filter(h => myS.has(keyOf(h)) || (!myS.size && st[keyOf(h)])), sqOther = sq.filter(h => !sqMine.includes(h));
+  if (ownAll) sqMine.splice(own ? sqMine.filter(h => / on"/.test(h)).length : sqMine.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
+  if (0) sq.splice(own ? Object.keys(st).length : sq.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
   return `<div class="q4">
     ${total ? `<div class="q4-days">عندك ${total} سؤال، تكفي ${daysAr(days)} ${days >= 7 ? '👍' : '⚠️'}</div>` : `<div class="q4-days low">اضغط مادة تحت وشغّل دروسها</div>`}
     <button class="p3-big" data-act="q3-add">＋ أضف سؤال</button>
-    <div class="q5-lbl">اضغط المادة وشغّل الدروس اللي تبيها</div>
-    <div class="q5-sq">${sq.join('')}<button class="q5-sb q5-new" data-act="q5-newsubj"><span class="e">＋</span><b>مادة جديدة</b></button></div></div>`;
+    <div class="q5-lbl">موادي</div>
+    <div class="q5-sq">${sqMine.join('')}<button class="q5-sb q5-new" data-act="q5-newsubj"><span class="e">＋</span><b>مادة جديدة</b></button></div>
+    ${sqOther.length ? `<div class="q5-lbl q5-oth">مواد أخرى</div><div class="q5-sq q5-oth-sq">${sqOther.join('')}</div>` : ''}</div>`;
 }
 const q4Gr = c => c.grade ? (c.stage === 'university' ? 'سنة ' + c.grade : (GRADES[c.grade - 1] || c.grade)).replace(/^ال/, '') : (STAGE_AR[c.stage] || '');
 // curricula that fit the teacher's classes (grade from the class name, else the whole stage)

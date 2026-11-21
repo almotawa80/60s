@@ -3113,3 +3113,4 @@ a.btn:not(.soft):not(.ghost),a.btn.h-go{color:#fff!important;opacity:1!important
 .modal .aw-opt{background:var(--soft,#2C2C2E)!important;border:2px solid transparent!important;border-radius:18px!important;box-shadow:none!important}
 .modal .aw-opt.on{border-color:#C8102E!important}
 .modal .aw-opt small{color:var(--muted)}
+.q5-oth{margin-top:14px}.q5-oth-sq .q5-sb{opacity:.75}
