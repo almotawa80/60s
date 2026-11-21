@@ -725,8 +725,9 @@ ACTS['ar-play'] = async t => {
   const h = AR.h || {};
   $app.innerHTML = '<div class="sh pvx ar-find"><div class="ar-radar"><i></i><i></i><span class="sweep"></span>' + arAv(h.avatar, h.nick, '', h.av) + '</div><h2>ندوّر لك خصم…</h2><p>' + esc(arSubj(s).n) + ' · قريب من مستواك</p></div>';
   try {
-    const got = await Promise.all([rpc('arena_start', { p_token: S.token, p_subject: s }), new Promise(z => setTimeout(z, 1500))]);
+    const got = await Promise.all([rpc('arena_start', { p_token: S.token, p_subject: s }), new Promise(z => setTimeout(z, 3200 + Math.random() * 2300))]);
     if (AR.gen !== g) return;
+    { const hh = document.querySelector('.ar-find h2'); if (hh) { hh.textContent = 'لقينا لك خصم! ⚔️'; FX.tick && FX.tick(true); haptic(); await new Promise(z => setTimeout(z, 900)); if (AR.gen !== g) return; } }
     AR.r = Object.assign(got[0], { pos: 0, me: [], op: [], emoN: 3, q: got[0].question });
     await arVs(g); if (AR.gen !== g) return;
     arQ();
