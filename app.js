@@ -1459,7 +1459,7 @@ function tCheckMail(email){
   card.outerHTML = `<div class="card col cm-mail"><div class="cm-ic">📩</div><h2>تحقق من بريدك</h2>
     <p>أرسلنا رابط التفعيل إلى</p><b dir="ltr" class="cm-em">${esc(email)}</b>
     <p class="sub">افتح الرسالة واضغط الرابط، وبيدخلك على طول. ما وصلت؟ شوف مجلد الرسائل غير المرغوبة.</p>
-    ${gm ? '<a class="btn" href="https://mail.google.com/mail/u/0/#search/' + encodeURIComponent('تحدي OR confirm OR تأكيد') + '" target="_blank" rel="noopener">افتح Gmail</a>' : ol ? '<a class="btn" href="https://outlook.office.com/mail/" target="_blank" rel="noopener">افتح البريد</a>' : ''}
+    ${gm ? '<a class="btn" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener">افتح Gmail</a>' : ol ? '<a class="btn" href="https://outlook.office.com/mail/" target="_blank" rel="noopener">افتح البريد</a>' : ''}
     <button class="btn ${gm || ol ? 'soft' : ''}" data-act="t-resend" id="t-resend">أعد إرسال الرسالة</button>
     <button class="btn ghost" data-act="t-mode" data-mode="in">فعّلت الحساب؟ سجّل الدخول</button></div>`;
   scrollTo(0, 0);
