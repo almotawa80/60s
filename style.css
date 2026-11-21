@@ -3438,3 +3438,7 @@ a.btn{text-decoration:none}
 #ob .obr-sm.obr-chk .ob-t::before{top:6px;right:6px;width:18px;height:18px;border-radius:6px}
 #ob .obr-sm.obr-chk .ob-t.on::before{font-size:12px}
 #ob .obr-q{padding:16px 14px;font-size:22px}
+#ob .ob-g.g4>.ob-t{flex-basis:calc(25% - 8px)}
+#ob .obr-sm.g4>.ob-t{min-height:70px}
+#ob .obr-sm.g4 .ob-t .e{font-size:20px}
+#ob .obr-sm.g4 .ob-t b{font-size:12px}

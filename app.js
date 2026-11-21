@@ -1659,7 +1659,7 @@ function obStep(n){
   const q = (t, sub) => `<div class="obr-q">${t}${sub ? `<small>${sub}</small>` : ''}</div>`;
   let b = '';
   if (n === 1) b = q('أي مراحل تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk">${OB_STAGES.map((v, i) => tile(OB.st.has(v), v, ['🎒', '📘', '🎓', '🏛️'][i])).join('')}</div><button class="btn obr-go" data-act="ob-next" ${OB.st.size ? '' : 'disabled'}>${OB.st.size ? `التالي (${OB.st.size} مختارة)` : 'اختر مرحلة أو أكثر'}</button>`;
-  if (n === 2) b = q('أي مواد تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk g3 obr-sm">${SUBJECTS.filter(x => x !== 'عام' && x !== 'أخرى').concat([...OB.sj].filter(x => SUBJECTS.indexOf(x) < 0)).map(v => tile(OB.sj.has(v), v, SUBJ_EMOJI[v] || '📘')).join('')}<button class="ob-t" data-act="ob-other"><span class="e">✍️</span><b>أخرى</b></button></div><button class="btn obr-go" data-act="ob-next" ${OB.sj.size ? '' : 'disabled'}>${OB.sj.size ? `التالي (${OB.sj.size} مختارة)` : 'اختر مادة أو أكثر'}</button>`;
+  if (n === 2) b = q('أي مواد تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk ${obSubjList().length > 11 ? 'g4' : 'g3'} obr-sm">${obSubjList().map(v => tile(OB.sj.has(v), v, SUBJ_EMOJI[v] || '📘')).join('')}<button class="ob-t" data-act="ob-other"><span class="e">✍️</span><b>أخرى</b></button></div><button class="btn obr-go" data-act="ob-next" ${OB.sj.size ? '' : 'disabled'}>${OB.sj.size ? `التالي (${OB.sj.size} مختارة)` : 'اختر مادة أو أكثر'}</button>`;
   if (n === 3) { const gs = obGrades(), on = g => OB.grs.some(x => x.st === g.st && x.g === g.g); b = q('أي صفوف تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk${gs.length > 4 ? ' g3' : ''}">${gs.map((g, k) => `<button class="ob-t${on(g) ? ' on' : ''}" data-act="ob-gr" data-k="${k}"><b>${esc(g.l)}</b></button>`).join('')}</div><button class="btn obr-go" data-act="ob-next" ${OB.grs.length ? '' : 'disabled'}>${OB.grs.length ? `التالي (${OB.grs.length} مختارة)` : 'اختر صف أو أكثر'}</button>`; }
   if (n === 4) b = q('أي شعب؟', '<b class="obr-multi">☑️ اختر كل الشعب</b>') + `<div class="ob-g obr-chk g3">${secList().slice(0, 9).map(x => `<button class="ob-t obr-sec${OB.secs.has(x) ? ' on' : ''}" data-act="ob-sec" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div>${OB.secs.size ? `<button class="btn obr-go" data-act="ob-next">التالي (${OB.secs.size} مختارة)</button>` : `<button class="btn soft obr-go" data-act="ob-next">بدون شعبة</button>`}`;
   if (n === 5) {
@@ -1749,7 +1749,13 @@ function pzSet(w, v){ if (w === 'nw') NW.prizes = v; else CC.prizes = v; closeMo
   const el = document.querySelector(`.pz-row[data-w="${w}"]`); if (el) el.outerHTML = pzRow(v, w); }
 ACTS['pz-save'] = f => { const v = [0, 1, 2].map(i => f['p' + i].value.replace(/\s+/g, ' ').trim()); pzSet(f.dataset.w, v.some(Boolean) ? v : null); };
 ACTS['pz-del'] = t => pzSet(t.dataset.w, null);
-const SUBJ_EMOJI = { 'الرياضيات': '📐', 'التربية الإسلامية': '🕌', 'اللغة العربية': '📖', 'العلوم': '🔬', 'اللغة الإنجليزية': '🔤', 'الاجتماعيات': '🗺️', 'الحاسوب': '💻' };
+const SUBJ_EMOJI = { 'الرياضيات': '📐', 'التربية الإسلامية': '🕌', 'اللغة العربية': '📖', 'العلوم': '🔬', 'اللغة الإنجليزية': '🔤', 'الاجتماعيات': '🗺️', 'الحاسوب': '💻', 'القرآن الكريم': '📗', 'الكيمياء': '⚗️', 'الفيزياء': '🧲', 'الأحياء': '🧬', 'الجيولوجيا': '🪨', 'المعلوماتية': '💻', 'الفرنسية': '🇫🇷', 'التاريخ': '🏛️', 'الجغرافيا': '🌍', 'علم النفس': '🧠', 'الفلسفة': '💭', 'الدستور': '⚖️' };
+/* Kuwait subjects per stage (/mnt/project-files/curricula/kuwait-curricula.md) */
+const OB_SUBJ = { 'ابتدائي': ['التربية الإسلامية', 'اللغة العربية', 'الرياضيات', 'العلوم', 'اللغة الإنجليزية', 'الاجتماعيات', 'الحاسوب'],
+  'متوسط': ['التربية الإسلامية', 'اللغة العربية', 'الرياضيات', 'العلوم', 'اللغة الإنجليزية', 'الاجتماعيات', 'الحاسوب'],
+  'ثانوي': ['التربية الإسلامية', 'القرآن الكريم', 'اللغة العربية', 'اللغة الإنجليزية', 'الرياضيات', 'الكيمياء', 'الفيزياء', 'الأحياء', 'الجيولوجيا', 'المعلوماتية', 'الفرنسية', 'التاريخ', 'الجغرافيا', 'علم النفس', 'الفلسفة', 'الدستور'],
+  'جامعة': ['التربية الإسلامية', 'اللغة العربية', 'اللغة الإنجليزية', 'الرياضيات', 'العلوم', 'الحاسوب'] };
+const obSubjList = () => { const out = []; (OB.st.size ? [...OB.st] : ['متوسط']).forEach(st => (OB_SUBJ[st] || []).forEach(x => { if (out.indexOf(x) < 0) out.push(x); })); [...OB.sj].forEach(x => { if (out.indexOf(x) < 0) out.push(x); }); return out; };
 function nwGrade(c){ const n = (c && c.name) || ''; for (let i = GRADES.length - 1; i >= 0; i--) if (n.indexOf(GRADES[i]) >= 0) return i + 1; const m = n.match(/\d+/); return m ? Number(m[0]) : null; }
 async function qCounts(){
   const or = 'owner_id.is.null,owner_id.eq.' + T.user.id;
