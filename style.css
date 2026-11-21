@@ -3562,3 +3562,9 @@ html body:not(.wide) .s-nav{background:rgba(28,28,30,.7)!important;-webkit-backd
 /* v315 زر «أنا معلم»: إطار ذهبي واضح على الأسود (خالد اختار) */
 html body .sl.sl-red .sl1-t{background:#1C1C1E!important;border:2px solid #F5B72B!important;color:#F5B72B!important;box-shadow:none!important}
 html body .sl.sl-red .sl1-t b{color:#F5B72B!important}
+
+/* v322 tie-break list: rounded group, no arrow buttons */
+.tb-list{border-radius:14px}
+.tb-list .tb-row:first-child{border-radius:14px 14px 0 0}.tb-list .tb-row:last-child{border-radius:0 0 14px 14px}
+.tb-row[data-act]{cursor:pointer}
+.tb-row .drag-h{color:#8E8E93}

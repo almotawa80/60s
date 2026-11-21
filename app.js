@@ -5326,14 +5326,15 @@ function tbKeys(){
 }
 function tTB(){
   const a = tbKeys();
-  view('عند تساوي النقاط', `<div class="set-grp tb-list">${a.map((k, i) => `<div class="set-row tb-row" data-k="${k}"><span class="tb-n">${i + 1}</span><span class="grow rl-txt"><b>${TBL[k][0]}</b><small>${TBL[k][1]}</small></span><span class="tb-mv">${i > 0 ? `<button type="button" class="tb-b" data-act="tb-mv" data-i="${i}" data-d="-1" aria-label="رفع ${TBL[k][0]} للأعلى">▲</button>` : ''}${i < a.length - 1 ? `<button type="button" class="tb-b" data-act="tb-mv" data-i="${i}" data-d="1" aria-label="إنزال ${TBL[k][0]} للأسفل">▼</button>` : ''}</span><span class="drag-h" aria-hidden="true">${ic('grip')}</span></div>`).join('')}</div>
-    <div class="set-f">اسحب من المقبض أو استخدم الأسهم لترتيب الأولوية. لو تساوى طالبين بالنقاط نقارن بالمعيار الأول، ولو تساووا فيه نروح للثاني وهكذا.</div>`, 'settings', '', '#/t/rules');
+  view('عند تساوي النقاط', `<div class="set-grp tb-list">${a.map((k, i) => `<div class="set-row tb-row" data-k="${k}"${i ? ` data-act="tb-mv" data-i="${i}" data-d="-1"` : ''}><span class="tb-n">${i + 1}</span><span class="grow rl-txt"><b>${TBL[k][0]}</b><small>${TBL[k][1]}</small></span><span class="drag-h" aria-hidden="true">${ic('grip')}</span></div>`).join('')}</div>
+    <div class="set-f">اسحب ☰ أو اضغط على المعيار عشان يطلع فوق. لو تساوى طالبين بالنقاط، يتقدم الأعلى في المعيار الأول، ولو تساووا فيه نروح للي بعده.</div>`, 'settings', '', '#/t/rules');
 }
 ACTS['tb-mv'] = async t => { const keys = tbKeys().slice(), i = Number(t.dataset.i), j = i + Number(t.dataset.d); if (j < 0 || j >= keys.length) return;
   [keys[i], keys[j]] = [keys[j], keys[i]]; await saveSettings({ tb: keys }); tTB();
   const b = document.querySelector(`.tb-row[data-k="${keys[j]}"] [data-d="${t.dataset.d}"]`) || document.querySelector(`.tb-row[data-k="${keys[j]}"] .tb-b`); if (b) b.focus(); };
 (function(){
   let D = null;
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.tb-row .drag-h')) e.stopPropagation(); }, true);
   document.addEventListener('pointerdown', e => {
     const h = e.target.closest('.drag-h'); if (!h) return;
     const row = h.closest('.tb-row'), list = row.parentElement, rows = [...list.children];
