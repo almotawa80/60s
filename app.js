@@ -14,6 +14,7 @@ const LS = {
 };
 const ERR = {
   no_questions: 'ما في أسئلة كافية بهالمادة الحين، جرّب مادة ثانية',
+  bad_nick: 'اللقب مو متاح، ارمِ النرد مرة ثانية', bad_avatar: 'اختر شكل من الموجود',
   round_not_found: 'الجولة انتهت، ابدأ جولة جديدة',
   name_taken: 'هذا الاسم مسجّل من جهاز ثاني. إذا هو اسمك قول لمعلمك.',
   bad_name: 'اكتب اسمك الأول واسم العائلة بالعربي',
@@ -583,7 +584,107 @@ function arGlyph(g, ink){
 }
 function arArt(d){ const ink = AR_COL[d.c][1], pos = [[20, 34, -11], [86, 50, 7], [28, 112, -5]];
   return '<svg class="ar-art" viewBox="0 0 252 258" aria-hidden="true">' + d.b.map((g, i) => '<g transform="translate(' + pos[i][0] + ' ' + pos[i][1] + ') rotate(' + pos[i][2] + ' 30 30)"><g class="ar-blk"><rect x="0" y="6" width="60" height="60" rx="15" fill="rgba(0,0,0,.28)"/><rect width="60" height="60" rx="15" fill="#fff"/>' + arGlyph(g, ink) + '</g></g>').join('') + '</svg>'; }
-function arAv(av, name, cls){ return '<span class="ar-av' + (cls ? ' ' + cls : '') + '">' + esc(av || String(name || '؟').trim().charAt(0)) + '</span>'; }
+const AR_SK={a:['#f6d3b3','#e3b08a'],b:['#e9bb93','#cf9a6f'],c:['#c98f63','#a9744b']};
+const AR_AV={
+ b1:{k:'ghutra',bg:'#C8102E',sk:'b',m:'smile',cl:'#fff'},
+ b2:{k:'shmagh',bg:'#3A3A3C',sk:'c',m:'grin',cl:'#fff'},
+ b3:{k:'cap',bg:'#0A84FF',sk:'a',m:'smirk',c:'#FFD60A',cl:'#fff'},
+ b4:{k:'hair',bg:'#30D158',sk:'b',m:'grin',c:'#2a1d16',cl:'#0A84FF',gl:1},
+ g1:{k:'hijab',bg:'#0A84FF',sk:'a',m:'smile',c:'#ff8fb3',c2:'#e56d96'},
+ g2:{k:'hijab',bg:'#FFD60A',sk:'c',m:'grin',c:'#23b5a6',c2:'#178f83',gl:1},
+ g3:{k:'hijab',bg:'#C8102E',sk:'b',m:'smile',c:'#f3f1fa',c2:'#cfcbe0'},
+ g4:{k:'bow',bg:'#30D158',sk:'a',m:'grin',c:'#3a2418',cl:'#fff'}
+};
+let AR_UID=0;
+function arFace(id){
+  const a=AR_AV[id], u='arc'+(++AR_UID), [sk,sk2]=AR_SK[a.sk], cov=a.k==='ghutra'||a.k==='shmagh'||a.k==='hijab';
+  const rays=Array.from({length:8},(_,i)=>`<path d="M50 50L${(50+90*Math.cos(i*Math.PI/4-.16)).toFixed(1)} ${(50+90*Math.sin(i*Math.PI/4-.16)).toFixed(1)}L${(50+90*Math.cos(i*Math.PI/4+.16)).toFixed(1)} ${(50+90*Math.sin(i*Math.PI/4+.16)).toFixed(1)}z" fill="#fff" opacity=".09"/>`).join('');
+  const mouth={smile:'<path d="M42 62q8 7 16 0" stroke="#3a2015" stroke-width="2.6" fill="none" stroke-linecap="round"/>',
+    grin:'<path d="M41 60h18a9 9 0 0 1-18 0z" fill="#3a2015"/><path d="M43 60h14v3.200H43z" fill="#fff"/>',
+    smirk:'<path d="M43 63q9 4 15-3" stroke="#3a2015" stroke-width="2.6" fill="none" stroke-linecap="round"/>'}[a.m];
+  const rx=cov?17.500:21;
+  const face=`<ellipse cx="50" cy="51" rx="${rx}" ry="21" fill="${sk}"/>
+    <ellipse cx="38.500" cy="58" rx="4.200" ry="3" fill="#ff7b7b" opacity=".35"/><ellipse cx="61.500" cy="58" rx="4.200" ry="3" fill="#ff7b7b" opacity=".35"/>
+    <ellipse cx="42" cy="49" rx="4.200" ry="5" fill="#fff"/><ellipse cx="58" cy="49" rx="4.200" ry="5" fill="#fff"/>
+    <circle cx="42.800" cy="49.800" r="2.900" fill="#2b1810"/><circle cx="58.800" cy="49.800" r="2.900" fill="#2b1810"/>
+    <circle cx="43.800" cy="48.600" r="1" fill="#fff"/><circle cx="59.800" cy="48.600" r="1" fill="#fff"/>
+    <path d="M37.500 42.500q4.500-3 9-.800M53.500 41.700q4.500-2.200 9 .800" stroke="#3a2015" stroke-width="2.200" fill="none" stroke-linecap="round"/>
+    ${a.m==='smirk'?'':''}${mouth}
+    ${a.gl?'<g fill="none" stroke="#1b1b1f" stroke-width="2.200"><circle cx="42" cy="49.500" r="6.800"/><circle cx="58" cy="49.500" r="6.800"/><path d="M48.800 49h2.400"/></g>':''}`;
+  const neck=`<rect x="44" y="66" width="12" height="12" rx="4" fill="${sk2}"/>`;
+  const body=c=>`<path d="M16 104c0-18 14-28 34-28s34 10 34 28z" fill="${c}"/><path d="M42 77q8 8 16 0" stroke="rgba(0,0,0,.18)" stroke-width="2.500" fill="none" stroke-linecap="round"/>`;
+  const ears=`<circle cx="29.500" cy="52" r="4.500" fill="${sk2}"/><circle cx="70.500" cy="52" r="4.500" fill="${sk2}"/>`;
+  let g='';
+  if(a.k==='ghutra'||a.k==='shmagh'){
+    const f=a.k==='shmagh'?`url(#p${u})`:'#fff', sh=a.k==='shmagh'?'rgba(120,10,25,.35)':'#d9dbe3';
+    g=`${a.k==='shmagh'?`<defs><pattern id="p${u}" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#fff"/><rect width="3.500" height="3.500" fill="#d2283f"/><rect x="3.500" y="3.500" width="3.500" height="3.500" fill="#d2283f"/></pattern></defs>`:''}
+      <path d="M23 50C21 16 79 16 77 50L86 100H14z" fill="${f}"/>
+      <path d="M26 60L20 98M74 60l6 38" stroke="${sh}" stroke-width="2.500" stroke-linecap="round"/>
+      ${body('#fff')}${neck}${face}
+      <path d="M30.500 44C31 26 69 26 69.500 44 58 37.500 42 37.500 30.500 44z" fill="${f}"/>
+      <path d="M27 36.500q23-13 46 0" stroke="#15151a" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M29.500 30q20.500-11.500 41 0" stroke="#15151a" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  }
+  if(a.k==='cap') g=`${body(a.cl)}${neck}${ears}<path d="M29 48C27 34 36 28 50 28s23 6 21 20z" fill="#2a1d16"/>${face}
+      <path d="M28 44C28 22 72 22 72 44 58 39 42 39 28 44z" fill="${a.c}"/><path d="M28 44c14-5 30-5 44 0" stroke="rgba(0,0,0,.2)" stroke-width="2" fill="none"/>
+      <path d="M20 45.500c2-5 16-6.500 34-3.500l-1 5.500c-12-1.500-24-1-33 2.500z" fill="${a.c}"/><path d="M20 45.500c9-3.500 21-4 33-2.500" stroke="rgba(0,0,0,.25)" stroke-width="2" fill="none"/>
+      <circle cx="50" cy="26" r="2.600" fill="#fff"/>`;
+  if(a.k==='hair') g=`${body(a.cl)}${neck}${ears}${face}
+      <path d="M28 47C24 30 34 23 41 26c1-5 8-7 12-3 6-4 14 0 14 5 6 1 9 10 5 19-3-7-8-11-13-10-4 1-7-2-9-4-3 5-9 4-12 5-5 2-8 5-10 9z" fill="${a.c}"/>`;
+  if(a.k==='hijab') g=`<path d="M21 52C19 16 81 16 79 52c0 18 6 32 10 48H11c4-16 10-30 10-48z" fill="${a.c}"/>
+      <path d="M30 70c6 8 14 11 20 11s14-3 20-11" stroke="${a.c2}" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M26 82q24 12 48 0" stroke="${a.c2}" stroke-width="2.500" fill="none" stroke-linecap="round" opacity=".7"/>
+      ${face}
+      <path d="M32 44C33 28 67 28 68 44 58 36.500 42 36.500 32 44z" fill="${a.c2}"/>
+      <path d="M31 46C31 24 69 24 69 46" stroke="${a.c}" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  if(a.k==='bow') g=`<path d="M25 52C22 22 78 22 75 52l5 36H20z" fill="${a.c}"/>${body(a.cl)}${neck}${ears}${face}
+      <path d="M28 49C26 30 40 24 50 26c12-3 24 5 22 23-5-9-13-13-22-13s-17 4-22 13z" fill="${a.c}"/>
+      <path d="M64 26l-10-6v12zM64 26l10-6v12z" fill="#F5B72B"/><circle cx="64" cy="26" r="3.400" fill="#ffd96b"/>`;
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="${u}"><circle cx="50" cy="50" r="50"/></clipPath></defs><g clip-path="url(#${u})"><rect width="100" height="100" fill="${a.bg}"/>${rays}${g}</g></svg>`;
+}
+const AR_EM={
+ laugh:'<circle cx="20" cy="20" r="18" fill="#F5B72B"/><path d="M10 16q4-5 7 0M23 16q4-5 7 0" stroke="#3b2500" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M10 22h20a10 10 0 0 1-20 0z" fill="#3b2500"/><path d="M14 28q6-4 12 0a10 10 0 0 1-12 0z" fill="#ff6b81"/>',
+ cry:'<circle cx="20" cy="20" r="18" fill="#F5B72B"/><path d="M10 15l6 2M30 15l-6 2" stroke="#3b2500" stroke-width="2.5" stroke-linecap="round"/><path d="M14 30q6-6 12 0" stroke="#3b2500" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M12 19c-3 5-3 9 0 9s3-4 0-9zM28 19c-3 5-3 9 0 9s3-4 0-9z" fill="#4db8ff"/>',
+ strong:'<path d="M8 28c0-9 4-14 9-14l2-8h7l-1 9c6 1 9 5 9 11 0 6-5 9-13 9S8 33 8 28z" fill="#f1c9a5"/><path d="M17 15c2 4 5 5 9 4" stroke="#b98a62" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
+ fire:'<path d="M20 3c2 7 10 10 10 20a10 10 0 0 1-20 0c0-5 3-7 4-11 2 2 3 3 4 5 1-5 0-9 2-14z" fill="#ff5a1f"/><path d="M20 20c2 3 5 4 5 8a5 5 0 0 1-10 0c0-3 3-4 5-8z" fill="#F5B72B"/>',
+ clap:'<path d="M9 22l8-12 4 3-4 7 9-9 4 4-7 8 6-4 3 4-12 12c-5 4-12 0-13-6z" fill="#f1c9a5"/><path d="M27 5l1 4M33 8l-3 3M35 14l-4 1" stroke="#F5B72B" stroke-width="2.5" stroke-linecap="round"/>',
+ wow:'<circle cx="20" cy="20" r="18" fill="#F5B72B"/><circle cx="13" cy="16" r="3" fill="#3b2500"/><circle cx="27" cy="16" r="3" fill="#3b2500"/><ellipse cx="20" cy="28" rx="4.5" ry="6" fill="#3b2500"/>'
+};
+const AR_EMN = { laugh: 'ضحك', cry: 'بكاء', strong: 'قوة', fire: 'نار', clap: 'تصفيق', wow: 'واو' };
+const AR_W = { b: ['صقر','فهد','نجم','بطل','ذيب','فارس','برق','نسر','أسد','سهم'], g: ['نجمة','فراشة','قمر','بطلة','لؤلؤة','وردة','شمس','غزالة','ريم','نسمة'], x: ['الحلبة','الدقيقة','الذكاء','السرعة','العلم','المعرفة'] };
+function arEm(k){ return '<svg viewBox="0 0 40 40" aria-hidden="true">' + AR_EM[k] + '</svg>'; }
+function arAv(av, name, cls, dr){ if (/^[bg][1-4]$/.test(dr || '')) return '<span class="ar-av dr' + (cls ? ' ' + cls : '') + '">' + arFace(dr) + '</span>';
+  return '<span class="ar-av' + (cls ? ' ' + cls : '') + '">' + esc(av || String(name || '؟').trim().charAt(0)) + '</span>'; }
+/* «لقبك وشكلك»: the nickname is rolled from fixed word lists (never typed), the look is one of eight drawn characters */
+function arRoll(g, not){ const pk = a => a[Math.floor(Math.random() * a.length)]; let n; do { n = pk(AR_W[g]) + ' ' + pk(AR_W.x); } while (n === not); return n; }
+function arPfHtml(){ const f = AR.pf;
+  return '<h3>لقبك وشكلك</h3><div class="ar-pfg">' + [['b', 'ولد'], ['g', 'بنت']].map(x => '<button class="' + (f.g === x[0] ? 'on' : '') + '" data-act="ar-pf-g" data-g="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
+    '<div class="ar-pfa">' + [1, 2, 3, 4].map(i => '<button class="' + (f.av === f.g + i ? 'on' : '') + '" data-act="ar-pf-av" data-v="' + f.g + i + '" aria-label="شكل ' + i + '">' + arFace(f.g + i) + '</button>').join('') + '</div>' +
+    '<div class="ar-pfn"><b>' + esc(f.nick) + '</b><button data-act="ar-pf-roll" aria-label="لقب ثاني"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="5" width="30" height="30" rx="8" fill="#F5F5F7"/><circle cx="13.5" cy="13.5" r="3" fill="#C8102E"/><circle cx="26.5" cy="13.5" r="3" fill="#1C1C1E"/><circle cx="20" cy="20" r="3" fill="#1C1C1E"/><circle cx="13.5" cy="26.5" r="3" fill="#1C1C1E"/><circle cx="26.5" cy="26.5" r="3" fill="#C8102E"/></svg>غيّر</button></div>' +
+    '<button class="btn" data-act="ar-pf-save">حفظ</button><p class="ar-pfh">اسمك الحقيقي ما يطلع في الحلبة، بس لقبك.</p>'; }
+function arPfDraw(){ const el = document.getElementById('ar-pf'); if (el) el.innerHTML = arPfHtml(); }
+function arProfile(){ const h = AR.h || {}, st = (S.home && S.home.student) || {};
+  const g = h.av ? h.av.charAt(0) : (st.gender === 'f' ? 'g' : 'b'), w = String(h.nick || '').split(' ');
+  AR.pf = { g, av: h.av || g + '1', nick: h.av && AR_W[g].indexOf(w[0]) >= 0 && AR_W.x.indexOf(w[1]) >= 0 && w.length === 2 ? h.nick : arRoll(g) };
+  closeModals(); modal('<div class="ar-pf" id="ar-pf">' + arPfHtml() + '</div>'); }
+ACTS['ar-pf'] = () => { if (AR.h && !S.demo) arProfile(); };
+ACTS['ar-pf-g'] = t => { const f = AR.pf, g = t.dataset.g; if (!f || f.g === g) return; f.g = g; f.av = g + f.av.charAt(1); f.nick = arRoll(g); arPfDraw(); };
+ACTS['ar-pf-av'] = t => { if (!AR.pf) return; AR.pf.av = t.dataset.v; arPfDraw(); };
+ACTS['ar-pf-roll'] = () => { const f = AR.pf; if (!f) return; f.nick = arRoll(f.g, f.nick); arPfDraw(); FX.tick && FX.tick(); };
+ACTS['ar-pf-save'] = async t => { const f = AR.pf; if (!f || t.disabled) return; t.disabled = true;
+  try { await rpc('arena_profile', { p_token: S.token, p_nick: f.nick, p_av: f.av }); if (AR.h) { AR.h.nick = f.nick; AR.h.av = f.av; AR.h.setup = false; } closeModals(); if (S.tab === 'ar') arDraw(); }
+  catch(e){ t.disabled = false; toast(errMsg(e)); } };
+/* reactions: no chat, six drawn faces, three per round; the opponent's recorded ones replay at the moment they were sent */
+function arMuted(){ return LS.get('mc_ar_mute') === '1'; }
+function arBubble(id, k){ const el = document.getElementById(id); if (!el || !AR_EM[k]) return; const b = document.createElement('span'); b.className = 'ar-bub'; b.innerHTML = arEm(k); el.appendChild(b); setTimeout(() => b.remove(), 1800); }
+function arEmoHtml(){ const r = AR.r, m = arMuted();
+  return '<div class="ar-emo' + (m ? ' off' : '') + '" id="ar-emo">' + (m ? '<button class="mute" data-act="ar-mute">التفاعلات مقفلة · شغّلها</button>'
+    : Object.keys(AR_EM).map(k => '<button data-act="ar-emo" data-k="' + k + '"' + (r.emoN > 0 ? '' : ' disabled') + ' aria-label="' + AR_EMN[k] + '">' + arEm(k) + '</button>').join('') +
+      '<button class="mute" data-act="ar-mute" aria-label="اقفل التفاعلات"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M9 10h22a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H19l-7 6v-6H9a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4z" fill="none" stroke="#98989F" stroke-width="3" stroke-linejoin="round"/><path d="M7 34L33 6" stroke="#98989F" stroke-width="3.5" stroke-linecap="round"/></svg></button>') + '</div>'; }
+ACTS['ar-mute'] = () => { LS.set('mc_ar_mute', arMuted() ? '0' : '1'); const el = document.getElementById('ar-emo'); if (el && AR.r) el.outerHTML = arEmoHtml(); };
+ACTS['ar-emo'] = t => { const r = AR.r; if (!r || !(r.emoN > 0)) return; r.emoN--; arBubble('ar-mav', t.dataset.k);
+  if (r.emoN <= 0) document.querySelectorAll('#ar-emo button[data-k]').forEach(b => { b.disabled = true; });
+  rpc('arena_emote', { p_token: S.token, p_round: r.round, p_k: t.dataset.k, p_t: AR.lock ? 0.5 : Math.round((performance.now() - (AR.q0 || 0)) / 100) / 10 }).catch(() => {}); };
 /* the dial: 60 ticks = 60 levels, the red hand is where you are; gates mark where 4 and 6 questions open */
 function arDial(l){
   const C = 118, lvl = l.n; let t = '';
@@ -603,14 +704,14 @@ async function arHome(){
   if (AR.h) arDraw(); else sPage('ar', '<div class="s-pgc"><div class="spin"></div></div>');
   try { AR.h = await rpc('arena_home', { p_token: S.token }); }
   catch(e){ if (AR.gen === g && S.tab === 'ar') sPage('ar', '<div class="s-pgc col"><div class="err">' + esc(errMsg(e)) + '</div><button class="btn" data-act="s-tab" data-t="ar">إعادة المحاولة</button></div>'); return; }
-  if (AR.gen === g && S.tab === 'ar') arDraw();
+  if (AR.gen === g && S.tab === 'ar') { arDraw(); if (AR.h.setup && !AR.asked) { AR.asked = true; arProfile(); } }
 }
 function arDraw(){
   const h = AR.h, l = h.lvl, t = h.tier, subs = h.subjects || [];
   const gate = l.n < 11 ? 'بوابة 4 أسئلة عند مستوى 11' : l.n < 31 ? 'بوابة 6 أسئلة عند مستوى 31' : l.n < 60 ? 'القمة عند مستوى 60' : '⭐ ' + (l.stars || 0);
   sPage('ar', '<div class="ar">' +
     '<div class="ar-top"><div><b class="ar-nm">' + esc(h.nick || '') + '</b><small>' + t.nq + ' أسئلة بالدقيقة</small></div>' + (h.players_today ? '<span class="ar-on"><i></i><b>' + h.players_today + '</b> لعبوا اليوم</span>' : '') + '</div>' +
-    '<div class="ar-dial">' + arDial(l) + '<div class="ar-core">' + arAv(h.avatar, h.nick) + '<div class="ar-lv">مستوى <b>' + l.n + '</b></div></div></div>' +
+    '<div class="ar-dial">' + arDial(l) + '<div class="ar-core"><button class="ar-avb" data-act="ar-pf" aria-label="غيّر لقبك وشكلك">' + arAv(h.avatar, h.nick, '', h.av) + '</button>' + '<div class="ar-lv">مستوى <b>' + l.n + '</b></div></div></div>' +
     '<div class="ar-under"><span><b>' + l.into + '</b> / ' + l.need + ' نقطة</span><span class="gate">' + gate + '</span></div>' +
     (subs.length ? '<div class="ar-deck" id="ar-deck">' + subs.map((x, i) => { const d = arSubj(x.s, i);
         return '<button class="ar-card" style="--c:' + AR_COL[d.c][0] + '" data-act="ar-play" data-s="' + esc(x.s) + '">' + arArt(d) + '<span class="ar-pill">' + (x.played ? '<i></i>' + x.played + ' لعبوا اليوم' : 'جديد') + '</span><span class="ar-cn">' + esc(d.n) + '</span><span class="ar-cta">العب ' + ic('play') + '</span></button>'; }).join('') + '</div>' +
@@ -622,11 +723,11 @@ function arDraw(){
 ACTS['ar-play'] = async t => {
   if (AR.busy || S.demo) return; AR.busy = true; const g = ++AR.gen, s = t.dataset.s; stopTimer(); closeModals();
   const h = AR.h || {};
-  $app.innerHTML = '<div class="sh pvx ar-find"><div class="ar-radar"><i></i><i></i><span class="sweep"></span>' + arAv(h.avatar, h.nick) + '</div><h2>ندوّر لك خصم…</h2><p>' + esc(arSubj(s).n) + ' · قريب من مستواك</p></div>';
+  $app.innerHTML = '<div class="sh pvx ar-find"><div class="ar-radar"><i></i><i></i><span class="sweep"></span>' + arAv(h.avatar, h.nick, '', h.av) + '</div><h2>ندوّر لك خصم…</h2><p>' + esc(arSubj(s).n) + ' · قريب من مستواك</p></div>';
   try {
     const got = await Promise.all([rpc('arena_start', { p_token: S.token, p_subject: s }), new Promise(z => setTimeout(z, 1500))]);
     if (AR.gen !== g) return;
-    AR.r = Object.assign(got[0], { pos: 0, me: [], op: [], q: got[0].question });
+    AR.r = Object.assign(got[0], { pos: 0, me: [], op: [], emoN: 3, q: got[0].question });
     await arVs(g); if (AR.gen !== g) return;
     arQ();
   } catch(e){ if (AR.gen === g) { toast(errMsg(e)); arHome(); } }
@@ -634,8 +735,8 @@ ACTS['ar-play'] = async t => {
 };
 function arVs(g){
   const r = AR.r, h = AR.h || {}, o = r.opp;
-  $app.innerHTML = '<div class="ar-vs"><div class="half a">' + arAv(h.avatar, h.nick) + '<b>' + esc(h.nick || 'أنت') + '</b><small>مستوى ' + r.lvl + '</small></div>' +
-    '<div class="half b"><small>مستوى ' + o.lvl + '</small><b>' + esc(o.name || '') + '</b>' + arAv(o.avatar, o.name) + '</div>' +
+  $app.innerHTML = '<div class="ar-vs"><div class="half a">' + arAv(h.avatar, h.nick, '', h.av) + '<b>' + esc(h.nick || 'أنت') + '</b><small>مستوى ' + r.lvl + '</small></div>' +
+    '<div class="half b"><small>مستوى ' + o.lvl + '</small><b>' + esc(o.name || '') + '</b>' + arAv(o.avatar, o.name, '', o.av) + '</div>' +
     '<div class="mid"><svg viewBox="0 0 112 112" aria-hidden="true"><circle cx="56" cy="56" r="50" fill="none" stroke="#2A2A2E" stroke-width="8"/><circle id="ar-cdr" cx="56" cy="56" r="50" fill="none" stroke="#F5B72B" stroke-width="8" stroke-linecap="round" stroke-dasharray="314.2 314.2" transform="rotate(-90 56 56)"/></svg><div class="num" id="ar-num" role="status"><span class="vs">VS</span></div></div>' +
     '<p class="cap">' + esc(arSubj(r.subject).n) + ' · ' + r.nq + ' أسئلة · ' + r.secs + ' ثانية للسؤال</p></div>';
   return new Promise(res => { let c = 3; const col = { 3: '#FF453A', 2: '#FFD60A', 1: '#30D158' };
@@ -647,7 +748,7 @@ function arScore(){ const r = AR.r, m = r.me.filter(Boolean).length, o = r.op.fi
 function arTug(){ const s = arScore(), a = document.getElementById('ar-mine'), k = document.getElementById('ar-knot'); if (!a) return; a.style.width = s.pct + '%'; k.style.right = s.pct + '%';
   document.getElementById('ar-m').textContent = s.m; document.getElementById('ar-o').textContent = s.o; }
 function arTugHtml(){ const r = AR.r, h = AR.h || {}, s = arScore();
-  return '<div class="ar-tug">' + arAv(h.avatar, h.nick) + '<div class="ar-ropew"><div class="ar-rope"><div class="mine" id="ar-mine" style="width:' + s.pct + '%"></div></div><span class="knot" id="ar-knot" style="right:' + s.pct + '%"></span></div>' + arAv(r.opp.avatar, r.opp.name) + '</div>' +
+  return '<div class="ar-tug"><span class="ar-avw" id="ar-mav">' + arAv(h.avatar, h.nick, '', h.av) + '</span>' + '<div class="ar-ropew"><div class="ar-rope"><div class="mine" id="ar-mine" style="width:' + s.pct + '%"></div></div><span class="knot" id="ar-knot" style="right:' + s.pct + '%"></span></div><span class="ar-avw" id="ar-oav">' + arAv(r.opp.avatar, r.opp.name, '', r.opp.av) + '</span></div>' +
     '<div class="ar-sc"><span>أنت <b id="ar-m">' + s.m + '</b></span><span><b id="ar-o">' + s.o + '</b> ' + esc(r.opp.name || '') + '</span></div>'; }
 function arQ(){
   const r = AR.r, q = r.q, g = AR.gen; AR.lock = false; clearTimeout(AR.ot);
@@ -655,7 +756,9 @@ function arQ(){
   $app.innerHTML = '<div class="play pv pvx ar-round"><button class="icon-btn pv-btn ar-x" data-act="ar-quit" aria-label="الخروج من الجولة">' + ic('x') + '</button>' + arTugHtml() +
     '<div class="pvx-tm" id="timer"><div class="pvx-bar"><i id="tfg"></i></div><span>السؤال ' + (r.pos + 1) + ' من ' + r.nq + ' · <b id="tnum">' + r.secs + '</b> ثانية</span></div>' +
     '<div class="pv-panel"><div class="qbox"><span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
-    '<div class="opts kc' + (long ? ' long' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="ar-ans" data-idx="' + i + '"><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div></div>';
+    '<div class="opts kc' + (long ? ' long' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="ar-ans" data-idx="' + i + '"><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div>' + arEmoHtml() + '</div>';
+  AR.q0 = performance.now();
+  (r.opp.emo || []).forEach(e => { if (e.pos === r.pos) setTimeout(() => { if (AR.gen !== g || AR.r !== r || r.pos !== e.pos || arMuted()) return; arBubble('ar-oav', e.k); }, Math.max(700, (e.t || 1) * 1000)); });
   rpc('arena_served', { p_token: S.token, p_round: r.round, p_pos: r.pos }).catch(() => {});
   const st = AR.tm = {}, end = performance.now() + r.secs * 1000, num = document.getElementById('tnum'), fg = document.getElementById('tfg'), box = document.getElementById('timer'); let shown = -1;
   const tick = () => { if (AR.tm !== st || AR.gen !== g) return; const left = Math.max(0, (end - performance.now()) / 1000), sec = Math.ceil(left);
