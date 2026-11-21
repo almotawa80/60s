@@ -1252,7 +1252,7 @@ async function showResult(sm){
     '<div class="center rs-st2"><div class="big" id="bigpts">0</div><div class="muted">نقاط هذه الجولة</div></div>' +
     (rankRow ? '<div class="rows card rs-st3">' + rankRow + '</div>' : '') +
     (S.upMsg ? '<div class="s-up">' + S.upMsg + '</div>' : '') +
-    (sm && sm.kind === 'official' && sm.rank_after >= 1 && sm.rank_after <= 3 ? shBtn('win', { r: sm.rank_after }) : sm && sm.kind !== 'practice' && perfect ? shBtn('perfect', { d: toAr(qn) + ' من ' + toAr(qn) + ' بدون ولا غلطة' }) : '') +
+    (sm && sm.kind !== 'practice' && sm.total_points > 0 ? shBtn('pts', { n: toAr(sm.total_points), p: perfect }, '📤 تحدّى أصحابك') : '') +
     reviewHtml() +
     '<button class="btn rv2-done" data-act="s-reload">تم</button></div></div>';
   const target = sm ? sm.total_points : 0, el = document.getElementById('bigpts'), t0 = performance.now();
@@ -1266,11 +1266,10 @@ const SHK = {
   badge: (a) => [a.i || '⚡', 'شارة جديدة: ' + a.n, a.d || ''],
   level: (a) => ['🎖', 'المستوى ' + a.n, a.d || ''],
   star: () => ['🌟', 'نجم الأسبوع في الصف', 'أعلى تحسّن هالأسبوع'],
-  win: (a) => [a.r === 1 ? '🥇' : a.r === 2 ? '🥈' : '🥉', 'المركز ' + (['', 'الأول', 'الثاني', 'الثالث'][a.r] || a.r) + ' في الصف', a.d || ''],
-  perfect: (a) => ['💯', 'علامة كاملة اليوم', a.d || 'بدون ولا غلطة']
+  pts: (a) => [a.p ? '💯' : '🔥', 'حصلت على ' + a.n + ' نقطة', 'تقدر تفوز علي؟ 💪']
 };
 function shMe(){ const st = (S.home && S.home.student) || {}; return { n: String(st.name || '').trim().split(/\s+/)[0] || 'بطل', av: st.avatar || '🙂' }; }
-function shLink(n){ return location.origin + location.pathname + '#/w/' + encodeURIComponent(n); }
+function shLink(){ return location.origin + location.pathname + '#/w'; }
 function shDraw(kind, a){
   const [icn, t1, t2] = SHK[kind](a || {}), me = shMe(), W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d'), F = getComputedStyle(document.body).fontFamily || 'system-ui', f = (w, s) => w + ' ' + s + 'px ' + F;
@@ -1285,18 +1284,18 @@ function shDraw(kind, a){
   x.fillStyle = '#2C2C2E'; x.fillRect(80, 1170, W - 160, 3);
   x.textAlign = 'right'; x.fillStyle = '#fff'; x.font = f(800, 52); x.fillText('تحدّي', W - 90, 1250); const w1 = x.measureText('تحدّي ').width;
   x.fillStyle = '#C8102E'; x.fillText('الدقيقة', W - 90 - w1, 1250);
-  x.textAlign = 'left'; x.fillStyle = '#C7C7CC'; x.font = f(500, 38); x.fillText('👈 جرّبها مع صفك', 90, 1250);
+  x.textAlign = 'left'; x.fillStyle = '#C7C7CC'; x.font = f(500, 38); x.fillText(kind === 'pts' ? '👈 شارك الحين' : '👈 جرّبها مع صفك', 90, 1250);
   return { c, t1, me };
 }
 async function shareCard(kind, a){
-  const { c, t1, me } = shDraw(kind, a), url = shLink(me.n), text = me.n + ' ' + t1 + ' في «تحدّي الدقيقة» 🏆';
+  const { c, t1, me } = shDraw(kind, a), url = shLink(), text = kind === 'pts' ? 'حصلت على ' + a.n + ' نقطة في «تحدّي الدقيقة» 🔥 تقدر تفوز علي؟\nشارك الحين 👇' : t1 + ' في «تحدّي الدقيقة» 🏆';
   const blob = await new Promise(r => c.toBlob(r, 'image/png')), file = blob && new File([blob], 'tahaddi.png', { type: 'image/png' });
   if (file && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], text: text + '\n' + url }); return; } catch(e){ if (e && e.name === 'AbortError') return; } }
   const src = c.toDataURL('image/png');
   modal('<div class="sh-mo center"><h3>📤 شارك إنجازك</h3><img class="sh-img" src="' + src + '" alt=""><p class="sub">اضغط على الصورة مطوّلاً واحفظها، أو أرسل الرابط</p><a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(text + '\n' + url) + '">💬 واتساب</a></div>');
 }
-ACTS['s-share'] = t => shareCard(t.dataset.k, { n: t.dataset.n, d: t.dataset.d, r: Number(t.dataset.r || 0) });
-function shBtn(kind, a, label){ a = a || {}; return '<button class="btn sh-btn" data-act="s-share" data-k="' + kind + '"' + (a.n != null ? ' data-n="' + esc(String(a.n)) + '"' : '') + (a.d ? ' data-d="' + esc(a.d) + '"' : '') + (a.r ? ' data-r="' + a.r + '"' : '') + '>' + (label || '📤 شارك إنجازك') + '</button>'; }
+ACTS['s-share'] = t => shareCard(t.dataset.k, { n: t.dataset.n, d: t.dataset.d, p: t.dataset.p === '1' });
+function shBtn(kind, a, label){ a = a || {}; return '<button class="btn sh-btn" data-act="s-share" data-k="' + kind + '"' + (a.n != null ? ' data-n="' + esc(String(a.n)) + '"' : '') + (a.d ? ' data-d="' + esc(a.d) + '"' : '') + (a.p ? ' data-p="1"' : '') + '>' + (label || '📤 شارك إنجازك') + '</button>'; }
 /* landing page for people who open the shared link */
 function shLanding(n){
   document.body.classList.remove('wide');
