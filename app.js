@@ -1398,7 +1398,7 @@ function teacherAuth(){
   <div class="pad col"><form class="card col" data-form="t-auth" autocomplete="on" method="post" action="#">
     <div class="tabs"><button type="button" class="${up ? '' : 'on'}" data-act="t-mode" data-mode="in">تسجيل الدخول</button><button type="button" class="${up ? 'on' : ''}" data-act="t-mode" data-mode="up">إنشاء حساب</button></div>
     ${up ? '<div class="field"><label for="a-name">الاسم</label><input class="input" id="a-name" name="name" required></div>' : ''}
-    <div class="field"><label for="a-email">البريد الإلكتروني</label><input class="input" id="a-email" name="email" type="email" required dir="ltr" placeholder="example@school.edu.kw" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+    <div class="field"><label for="a-email">البريد الإلكتروني</label><input class="input" id="a-email" name="email" type="email" required dir="ltr" value="${esc(T.authEmail || '')}" placeholder="example@school.edu.kw" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
     <div class="field"><label for="a-pw">كلمة المرور</label><input class="input" id="a-pw" name="password" type="password" required minlength="6" dir="ltr" aria-describedby="a-pw-h" autocomplete="${up ? 'new-password' : 'current-password'}"><small class="sub" id="a-pw-h">${up ? '6 أحرف على الأقل' : ''}</small></div>
     ${up ? '' : '<button type="button" class="link forgot" data-act="t-forgot">نسيت كلمة المرور؟</button>'}
     <div id="aerr"></div>
@@ -1443,7 +1443,8 @@ ACTS['t-auth'] = async f => {
     if (T.authMode === 'up') {
       const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name: (f.name.value || '').trim() }, emailRedirectTo: location.origin + location.pathname + '#/t/home' } });
       if (error) throw error;
-      if (!data.session) { box.innerHTML = '<div class="ok">تم إرسال رسالة تفعيل إلى بريدك الإلكتروني. افتحها ثم سجّل الدخول.</div>'; return; }
+      if (data.user && data.user.identities && !data.user.identities.length) { T.authMode = 'in'; T.authEmail = email; teacherAuth(); const b2 = document.getElementById('aerr'); if (b2) b2.innerHTML = '<div class="err">هذا البريد عنده حساب. سجّل الدخول بكلمة المرور.</div>'; return; }
+      if (!data.session) { T.authEmail = email; return tCheckMail(email); }
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
@@ -1451,6 +1452,23 @@ ACTS['t-auth'] = async f => {
     go('#/t/home');
   } catch(e){ box.innerHTML = `<div class="err">${esc(errMsg(e))}</div>`; }
 };
+/* after sign-up: one clear screen instead of a small line under the form */
+function tCheckMail(email){
+  const card = document.querySelector('form[data-form="t-auth"]'); if (!card) return;
+  const gm = /@(gmail|googlemail)\.com$/i.test(email), ol = /@(outlook|hotmail|live|moe\.edu\.kw)/i.test(email);
+  card.outerHTML = `<div class="card col cm-mail"><div class="cm-ic">📩</div><h2>تحقق من بريدك</h2>
+    <p>أرسلنا رابط التفعيل إلى</p><b dir="ltr" class="cm-em">${esc(email)}</b>
+    <p class="sub">افتح الرسالة واضغط الرابط، وبيدخلك على طول. ما وصلت؟ شوف مجلد الرسائل غير المرغوبة.</p>
+    ${gm ? '<a class="btn" href="https://mail.google.com/mail/u/0/#search/' + encodeURIComponent('تحدي OR confirm OR تأكيد') + '" target="_blank" rel="noopener">افتح Gmail</a>' : ol ? '<a class="btn" href="https://outlook.office.com/mail/" target="_blank" rel="noopener">افتح البريد</a>' : ''}
+    <button class="btn ${gm || ol ? 'soft' : ''}" data-act="t-resend" id="t-resend">أعد إرسال الرسالة</button>
+    <button class="btn ghost" data-act="t-mode" data-mode="in">فعّلت الحساب؟ سجّل الدخول</button></div>`;
+  scrollTo(0, 0);
+}
+ACTS['t-resend'] = async t => { const email = T.authEmail; if (!email || t.disabled) return; t.disabled = true;
+  const { error } = await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: location.origin + location.pathname + '#/t/home' } });
+  if (error) { t.disabled = false; return toast(/rate|seconds|security/i.test(error.message || '') ? 'انتظر شوي وحاول مرة ثانية' : errMsg(error)); }
+  toast('أرسلناها مرة ثانية ✓'); let n = 60; t.textContent = 'أعد الإرسال بعد ' + n + ' ث';
+  const iv = setInterval(() => { n--; if (!document.body.contains(t)) return clearInterval(iv); if (n <= 0) { clearInterval(iv); t.disabled = false; t.textContent = 'أعد إرسال الرسالة'; } else t.textContent = 'أعد الإرسال بعد ' + n + ' ث'; }, 1000); };
 ACTS['t-logout'] = async () => { await sb.auth.signOut(); T.user = null; teacherAuth(); };
 
 /* ---- admin: dashboard + support access (view only until «تفعيل الدعم») ---- */

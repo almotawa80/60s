@@ -3307,6 +3307,7 @@ body.wide.dark .btn.danger,body.wide.dark .btn.dng-t{background:#2C2C2E!importan
 .nt-i small{display:block;color:var(--muted,#C7C7CC);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nt-i em{font-style:normal;background:#C8102E;color:#fff;border-radius:10px;padding:6px 12px;font-size:13px;font-weight:700;flex:none}
 .nt-empty{text-align:center;color:var(--muted,#C7C7CC);padding:24px 0}
+<<<<<<< Updated upstream
 
 /* ===== v275 الحلبة (public arena): dial + subject cards + duel ===== */
 .ar{position:relative;z-index:1;padding:16px 16px 0;display:flex;flex-direction:column;gap:10px}
@@ -3409,3 +3410,13 @@ html body .s-nav button.s-ar .nav-sq circle:nth-of-type(2){fill:#FF453A!importan
 html body .s-nav button.s-ar .nav-sq circle:nth-of-type(3){fill:#30D158!important}
 html body .s-nav button.s-ar .nav-sq circle:nth-of-type(4){fill:#FFD60A!important}
 html body .s-nav button.s-ar{transform:translateY(-3px)}
+=======
+/* v275 check-your-email screen */
+.cm-mail{align-items:center;text-align:center;gap:10px}
+.cm-mail .cm-ic{font-size:52px;line-height:1}
+.cm-mail h2{margin:0;font-size:22px;font-weight:800}
+.cm-mail p{margin:0}
+.cm-em{font-size:16px;background:var(--soft,#2C2C2E);border-radius:12px;padding:8px 14px;word-break:break-all}
+.cm-mail .btn{width:100%}
+a.btn{text-decoration:none}
+>>>>>>> Stashed changes
