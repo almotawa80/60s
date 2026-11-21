@@ -2074,7 +2074,7 @@ function sheet(title, items){
 }
 /* v246 (Khalid screenshots): classes ⋯ = squares like the class ⋯ */
 const sqO = (a, e, l, x) => `<button class="st1-o${x ? ' ' + x : ''}" data-act="${a.indexOf(':') === 0 ? a.slice(1) : 'm-run'}" data-a="${a}"><span>${e}</span>${l}</button>`;
-ACTS['c-more'] = () => modal(`<div class="aw-sheet"><h3>الصفوف</h3><div class="st1-opts">${sqO('t-multi-up', '📤', 'إضافة من Excel')}${sqO(':c-xl', '📄', 'نموذج Excel')}${sqO('c-select', '☑️', 'تحديد صفوف')}${sqO('c-del-all', '🗑️', 'حذف الصفوف', 'dng')}</div></div>`);
+ACTS['c-more'] = () => modal(`<div class="aw-sheet"><h3>الصفوف</h3><div class="st1-opts">${sqO('t-multi-up', '📤', 'إضافة من Excel')}${sqO('t-multi-sample', '📄', 'نموذج Excel')}${sqO('c-select', '☑️', 'تحديد صفوف')}${sqO('c-del-all', '🗑️', 'حذف الصفوف', 'dng')}</div></div>`);
 ACTS['c-xl'] = () => { closeModals(); setTimeout(() => modal(`<div class="aw-sheet"><h3>نموذج Excel</h3><div class="st1-opts">${sqO('t-multi-sample', '🏫', 'نموذج الصفوف')}${sqO('t-sample-students', '👥', 'نموذج الطلبة')}</div></div>`), 30); };
 /* v120: class ⋯ = six squares, like the student card */
 ACTS['c-cmore'] = t => { const c = ctx(t); const sq = (a, e, l, x) => `<button class="st1-o${x ? ' ' + x : ''}" data-act="m-run" data-a="${a}" data-cid="${c.id}"><span>${e}</span>${l}</button>`;
