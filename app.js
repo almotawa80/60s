@@ -1527,7 +1527,7 @@ function subjTiles(c, sel, act, extra, afterMine){
   return (mt ? `<div class="nw-lbl">موادي</div><div class="nw-tiles">${mt}</div>${afterMine || ''}` : '') + `<div class="nw-lbl">أسئلة عامة</div><div class="nw-tiles">${gt}</div>`;
 }
 async function tNew(fresh){
-  if (fresh !== false && !NW.keep) Object.assign(NW, { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
+  if (fresh !== false && !NW.keep) Object.assign(NW, { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, les: {}, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
   const [cl, cp] = await Promise.all([sb.from('classes').select('*').eq('archived', false).order('created_at'), sb.from('competitions').select('id,class_id').eq('status', 'active')]);
   if (cl.error) throw cl.error;
   NW.classes = cl.data; NW.busy = new Set((cp.data || []).map(c => c.class_id));
@@ -1594,30 +1594,38 @@ ACTS['nw-multi'] = () => { NW.multi = true; NW.cls = []; nwRender(); };
 ACTS['nw-next'] = () => { if (NW.cls.length) { NW.step = 2; nwRender(); } };
 const NW_GEN = [['general', '🌍', 'ثقافة عامة'], ['quick', '⚡', 'سرعة بديهة'], ['memory', '🧠', 'ذاكرة']];
 function nwName(k){ const o = NW_GEN.find(x => x[0] === k); if (o) return o[2]; const cu = CU.list.find(x => x.id === k); return cu ? String(cu.subject).replace(/^(اللغة|التربية) /, '') : ''; }
-ACTS['nw-subj'] = t => { const k = t.dataset.k, sel = NW.sel || (NW.sel = []); NW.sel = sel.includes(k) ? sel.filter(x => x !== k) : sel.concat(k); NW.lessons = null; nwRender(); };
+ACTS['nw-subj'] = t => { const k = t.dataset.k, sel = NW.sel || (NW.sel = []); NW.sel = sel.includes(k) ? sel.filter(x => x !== k) : sel.concat(k); nwRender(); };
 ACTS['nw-subj-next'] = () => { const sel = NW.sel || []; if (!sel.length) return;
   const cus = sel.filter(k => !NW_GEN.some(o => o[0] === k));
   NW.cus = cus; NW.cu = cus[0] || null; NW.gtypes = sel.filter(k => NW_GEN.some(o => o[0] === k));
   NW.subj = sel.length === 1 ? nwName(sel[0]) : sel.length === 2 ? sel.map(nwName).join(' و') : 'منوعة'; NW.step = 3; nwRender(); };
 /* v233 (Khalid): pick lessons (one subject) + start / difficulty / knockout rows on the last step */
-function nwLesCu(sel){ const cus = (sel || []).filter(k => !NW_GEN.some(o => o[0] === k)); return cus.length === 1 ? cus[0] : null; }
-function nwLesRow(sel){ const cu = nwLesCu(sel); if (!cu) return '';
-  const ls = CFL[cu]; if (!ls) { nwLesLoad(cu).then(() => { if (NW.step === 2 && location.hash.indexOf('#/t/new') === 0) nwRender(); }); return ''; }
-  if (!ls.length) return '';
-  const n = NW.lessons && NW.lessons.length ? NW.lessons.length : 0;
-  return `<div class="nw-grp"><button type="button" class="ce1-row" data-act="nw-les" data-cu="${cu}"><span class="ce1-e">📚</span><span class="grow"><b>الدروس</b></span><em class="nw-v">${n ? n + ' من ' + ls.length : 'كلها (' + ls.length + ')'}</em><span class="ce1-ch">←</span></button></div>`; }
+function nwLesCus(sel){ return (sel || []).filter(k => !NW_GEN.some(o => o[0] === k)); }
+/* chosen lessons per subject: null = all */
+function nwLesGet(cu){ const ls = (CFL[cu] || []).map(x => x[0]); NW.les = NW.les || {};
+  if (cu in NW.les) return NW.les[cu];
+  if (NW.lessons && NW.lessons.length) { const f = ls.filter(l => NW.lessons.includes(l)); return f.length && f.length < ls.length ? f : null; }
+  return null; }
+function nwLesRow(sel){ const cus = nwLesCus(sel); if (!cus.length) return '';
+  const miss = cus.filter(cu => !CFL[cu]); if (miss.length) { Promise.all(miss.map(nwLesLoad)).then(() => { if (NW.step === 2 && location.hash.indexOf('#/t/new') === 0) nwRender(); }); return ''; }
+  const rows = cus.filter(cu => CFL[cu].length).map(cu => { const n = (nwLesGet(cu) || []).length, tot = CFL[cu].length;
+    return `<button type="button" class="ce1-row" data-act="nw-les" data-cu="${cu}"><span class="ce1-e">📚</span><span class="grow"><b>${cus.length > 1 ? 'دروس ' + esc(nwName(cu)) : 'الدروس'}</b></span><em class="nw-v">${n ? n + ' من ' + tot : 'كلها (' + tot + ')'}</em><span class="ce1-ch">←</span></button>`; }).join('');
+  return rows ? `<div class="nw-grp">${rows}</div>` : ''; }
 async function nwLesLoad(cu){ if (CFL[cu]) return;
   const r = await sb.from('questions').select('lesson').eq('curriculum_id', cu).eq('status', 'approved').not('lesson', 'is', null).order('created_at').limit(5000);
   const cnt = {}, order = []; (r.data || []).forEach(q => { if (!cnt[q.lesson]) order.push(q.lesson); cnt[q.lesson] = (cnt[q.lesson] || 0) + 1; }); CFL[cu] = order.map(l => [l, cnt[l]]); }
-function nwLesSheet(cu){ const ls = CFL[cu] || [], on = new Set(NW.lessons && NW.lessons.length ? NW.lessons : ls.map(x => x[0])), all = on.size === ls.length;
-  return `<div class="aw-sheet nw-ls"><div class="nw-ls-h"><h3>أي دروس شرحت؟</h3><button type="button" class="nw-ls-all" data-act="nw-les-all" data-cu="${cu}">${all ? 'إلغاء الكل' : 'الكل'}</button></div>
+const nwLesOn = cu => new Set(nwLesGet(cu) || (CFL[cu] || []).map(x => x[0]));
+function nwLesSheet(cu){ const ls = CFL[cu] || [], on = nwLesOn(cu), all = on.size === ls.length;
+  return `<div class="aw-sheet nw-ls"><div class="nw-ls-h"><h3>أي دروس شرحت${(NW.sel || []).filter(k => !NW_GEN.some(o => o[0] === k)).length > 1 ? ' في ' + esc(nwName(cu)) : ''}؟</h3><button type="button" class="nw-ls-all" data-act="nw-les-all" data-cu="${cu}">${all ? 'إلغاء الكل' : 'الكل'}</button></div>
     <p class="sub">ضغطة طويلة على درس = من الأول لين هذا الدرس</p>
     <div class="nw-ls-list">${ls.map(([l], i) => `<button type="button" class="nw-ls-r${on.has(l) ? ' on' : ''}" data-act="nw-les-t" data-cu="${cu}" data-i="${i}"><span class="nw-ls-c">${ic('check')}</span><span class="grow">${esc(l)}</span><small>${i + 1}</small></button>`).join('')}</div>
     <button class="btn" data-act="nw-les-done" ${on.size ? '' : 'disabled'}>تم</button></div>`; }
-function nwLesSet(cu, set){ const ls = CFL[cu] || []; NW.lessons = set.size === ls.length ? null : ls.map(x => x[0]).filter(l => set.has(l));
+function nwLesSet(cu, set){ const ls = CFL[cu] || []; NW.les = NW.les || {}; NW.les[cu] = set.size === ls.length ? null : ls.map(x => x[0]).filter(l => set.has(l));
   const m = document.querySelector('.nw-ls'); if (m) m.outerHTML = nwLesSheet(cu);
-  const v = document.querySelector('[data-act="nw-les"] .nw-v'), n = NW.lessons ? NW.lessons.length : 0; if (v) v.textContent = n ? n + ' من ' + ls.length : 'كلها (' + ls.length + ')'; }
-const nwLesOn = cu => new Set(NW.lessons && NW.lessons.length ? NW.lessons : (CFL[cu] || []).map(x => x[0]));
+  const v = document.querySelector('[data-act="nw-les"][data-cu="' + cu + '"] .nw-v'), n = NW.les[cu] ? NW.les[cu].length : 0; if (v) v.textContent = n ? n + ' من ' + ls.length : 'كلها (' + ls.length + ')'; }
+/* lessons saved on the challenge: null if every chosen subject is «all», else the union (all lessons for untouched subjects) */
+function nwLesSave(cus){ const parts = cus.map(cu => nwLesGet(cu)); if (!parts.some(Boolean)) return null;
+  return [...new Set(cus.flatMap((cu, i) => parts[i] || (CFL[cu] || []).map(x => x[0])))]; }
 ACTS['nw-les'] = t => modal(nwLesSheet(t.dataset.cu));
 ACTS['nw-les-all'] = t => { const cu = t.dataset.cu, ls = CFL[cu] || [], on = nwLesOn(cu); nwLesSet(cu, on.size === ls.length ? new Set() : new Set(ls.map(x => x[0]))); };
 ACTS['nw-les-t'] = t => { if (NW.lpLong) { NW.lpLong = false; return; } const cu = t.dataset.cu, l = (CFL[cu] || [])[Number(t.dataset.i)]; if (!l) return; const on = nwLesOn(cu); on.has(l[0]) ? on.delete(l[0]) : on.add(l[0]); nwLesSet(cu, on); };
@@ -1676,7 +1684,7 @@ ACTS['nw-start'] = async t => {
     const qtypes = (cus2.length ? ['curriculum'] : []).concat(gts2.length ? gts2 : cus2.length ? [] : ['general', 'quick']);
     const multi = cus2.length > 1 ? { curricula: cus2 } : {};
     const r = await sb.from('competitions').insert(cs.map(c => Object.assign({ class_id: c.id, group_id: gid, title, start_date: today, points_end_date: sp.points_end_date, end_date: sp.end_date,
-      group_size: 6, qualifiers: NW.koQ || 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: cus2.length > 1 ? null : NW.lessons || null }, multi, pzVal(NW.prizes))));
+      group_size: 6, qualifiers: NW.koQ || 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: nwLesSave(cus2) }, multi, pzVal(NW.prizes))));
     if (r.error) throw r.error;
     NW.made = [];
     for (const c of cs) { let code = c.join_code; if (!c.self_join || !code) code = await rpc('set_self_join', { p_class: c.id, p_on: true }); NW.made.push({ c, code }); }
@@ -4300,7 +4308,7 @@ ACTS['r-again'] = async () => {
   const { data } = await sb.from('competitions').select('class_id').eq('group_id', k.group_id);
   const days = cfDays(k.start_date, k.end_date) + 1;
   Object.assign(NW, { keep: true, step: 3, multi: false, cls: [...new Set((data || []).map(x => x.class_id))], cu: k.curriculum_id || null, cus: k.curricula && k.curricula.length ? k.curricula.slice() : k.curriculum_id ? [k.curriculum_id] : [], gtypes: (k.qtypes || ['general', 'quick']).filter(x => x !== 'curriculum'),
-    subj: String(k.title || '').split('·').pop().trim() || 'منوعة', days: days > 21 ? 30 : days > 10 ? 14 : 7, made: null, prizes: k.prizes && k.prizes.length ? k.prizes.slice() : null, lessons: k.lessons && k.lessons.length ? k.lessons : null, diff: k.difficulty || null });
+    subj: String(k.title || '').split('·').pop().trim() || 'منوعة', days: days > 21 ? 30 : days > 10 ? 14 : 7, made: null, prizes: k.prizes && k.prizes.length ? k.prizes.slice() : null, lessons: k.lessons && k.lessons.length ? k.lessons : null, les: {}, diff: k.difficulty || null });
   go('#/t/new');
 };
 ACTS['r-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tResults.apply(null, RS.args || [RS.id, RS.comp]).catch(() => renderResults()); };
