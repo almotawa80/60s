@@ -3478,3 +3478,9 @@ a.btn{text-decoration:none}
 .ar-pfn button svg{width:30px;height:30px}
 .ar-pfn button:active svg{transform:rotate(90deg)}
 .ar-pfh{margin:0;text-align:center;color:#98989F;font-size:13px}
+
+/* v291: student inputs were white text on white (join name form) */
+html body:not(.wide)[data-theme] .input,html body:not(.wide)[data-theme] select.input,html body:not(.wide)[data-theme] textarea.input{background:#2C2C2E;color:#F5F5F7;border-color:rgba(255,255,255,.14);caret-color:#C8102E}
+html body:not(.wide)[data-theme] .input:focus{border-color:#C8102E}
+html body:not(.wide)[data-theme] .input::placeholder{color:#8E8E93}
+.jn-hint{color:#FF9F0A;font-size:14px;text-align:center;margin-top:-4px}

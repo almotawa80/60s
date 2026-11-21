@@ -5734,7 +5734,8 @@ function jnRender(step){
   else if (step === 'confirm') b = `<div class="card col center"><p class="sub">اسمك:</p><div class="jn-name">${esc(JN.name)}</div><b class="jn-q">صح؟</b>
     <div id="jerr"></div><button class="btn" data-act="jn-go">نعم صح ✓</button><button class="btn soft" data-act="${JN.pick ? 'jn-list' : 'jn-form'}">لا، أعدّل</button></div>`;
   $app.innerHTML = head + '<div class="pad col">' + b + '</div>';
-  $app.querySelectorAll('.jn-in').forEach(el => el.addEventListener('input', () => { const v = el.value.replace(/[^ء-ي ]/g, '').replace(/\s{2,}/g, ' '); if (v !== el.value) el.value = v; }));
+  $app.querySelectorAll('.jn-in').forEach(el => el.addEventListener('input', () => { const raw = el.value.replace(/ک/g, 'ك').replace(/[یى](?=\S)/g, 'ي').replace(/ی/g, 'ى'), lat = /[A-Za-z]/.test(raw), v = raw.replace(/[^ء-ي ]/g, '').replace(/\s{2,}/g, ' '); if (v !== el.value) el.value = v;
+    let h = el.parentNode.querySelector('.jn-hint'); if (lat && !h) { h = document.createElement('div'); h.className = 'jn-hint'; h.textContent = 'اكتب اسمك بالعربي (غيّر لوحة المفاتيح 🌐)'; el.after(h); } else if (!lat && h && v) h.remove(); }));
   const f = document.getElementById('jn-f'); if (f && !f.value) setTimeout(() => f.focus(), 60);
 }
 ACTS['jn-locked'] = t => { const n = JN.info.names.find(x => x.id === t.dataset.id); if (!n) return; JN.lock = n;
