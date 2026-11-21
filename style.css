@@ -2955,12 +2955,12 @@ body.wide.dark .t-nav a.t-sq:not(.on):not(.hover) .nav-sq{--nsq:#48484A}
 html body .s-nav .i.sq{filter:none!important;opacity:1!important}
 html body .s-nav .i.sq .nav-sq{width:50px;height:50px}
 .s-nav .nav-sq circle{transition:fill .3s}
-.s-nav button:not(.on) .nav-sq circle{fill:#7C7C80}
+.s-nav button:not(.on):not(.hover) .nav-sq circle{fill:#7C7C80}
 /* v217: student home tab = squares only (no label), same height as icon+label, grey until selected */
 html body .s-nav .i.sq{filter:none!important;opacity:1!important}
 html body .s-nav .i.sq .nav-sq{width:50px;height:50px}
 .s-nav .nav-sq circle{transition:fill .3s}
-.s-nav button:not(.on) .nav-sq circle{fill:#7C7C80}
+.s-nav button:not(.on):not(.hover) .nav-sq circle{fill:#7C7C80}
 /* v219 (Khalid): iPhone-style liquid-glass lens for teacher + student tab bars.
    Rest: soft flat pill. Moving/pressed: clear glass bubble, bigger than the bar, rainbow rim, magnified icon. */
 html body .t-nav .lens,html body .s-nav .lens{display:block!important;position:absolute;top:5px;bottom:5px;--n:5;width:calc((100% - 12px) / var(--n));right:calc(6px + (100% - 12px) / var(--n) * var(--i));z-index:0;border-radius:999px;pointer-events:none;
@@ -2999,5 +2999,4 @@ html body .t-nav:has(.lens.drag) a.t-sq.on:not(.hover) .nav-sq circle{fill:#7C7C
 html body .s-nav:has(.lens.drag) button.on:not(.hover){color:#AEAEB2}
 html body .s-nav:has(.lens.drag) button.hover{color:#fff}
 html body .s-nav:has(.lens.drag) button.on:not(.hover) .nav-sq circle{fill:#7C7C80}
-html body .s-nav:has(.lens.drag) button.hover .nav-sq circle{fill:revert-layer}
 .t-nav a,.s-nav button{transition:color .2s}
