@@ -3029,3 +3029,8 @@ html body .s-nav{height:60px}
 html body .s-nav button{min-height:50px;font-size:12px}
 html body .s-nav .i{font-size:21px}
 html body .s-nav .i.sq .nav-sq{width:44px;height:44px}
+/* v229 (Khalid): lift both tab bars above the iPhone home bar so swiping the lens doesn't switch apps */
+html body .t-nav{bottom:calc(env(safe-area-inset-bottom, 0px) + 10px)!important}
+html body .s-nav{bottom:calc(env(safe-area-inset-bottom, 0px) + 10px)!important}
+html body.wide .t-body{padding-bottom:calc(130px + env(safe-area-inset-bottom))}
+.sh:has(~ .s-nav){padding-bottom:calc(110px + env(safe-area-inset-bottom))}
