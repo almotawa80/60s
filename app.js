@@ -1283,7 +1283,14 @@ ACTS['adm-one'] = t => {
     <div class="ad-st3"><div><b>${nf(x.classes)}</b><span>صفوف</span></div><div><b>${nf(x.students)}</b><span>طالب</span></div><div><b>${nf(x.rounds)}</b><span>جولة</span></div></div>
     <div class="set-grp">${row('التحديات الشغّالة', nf(x.live))}${row('أسئلة كتبها بنفسه', nf(x.own_q))}${row('سجّل', admAgo(x.created_at))}${row('آخر دخول', admAgo(x.last_sign_in_at))}</div>
     <button class="btn" data-act="adm-enter" data-id="${x.id}">👁 ادخل على حسابه</button>
-    ${x.email ? `<a class="btn ghost" href="mailto:${esc(x.email)}">✉️ راسله</a>` : ''}</div>`);
+    ${x.email ? `<a class="btn ghost" href="mailto:${esc(x.email)}">✉️ راسله</a>` : ''}
+    ${x.id !== T.user.id ? `<button class="link ad-del" data-act="adm-del" data-id="${x.id}">🗑 حذف الحساب</button>` : ''}</div>`);
+};
+ACTS['adm-del'] = async t => {
+  const x = (ADM.d.list || []).find(r => r.id === t.dataset.id); if (!x) return;
+  if (!await ask(`تنحذف صفوفه (${nf(x.classes)}) وطلابه (${nf(x.students)}) وكل شي له، وما ترجع.`, { title: `حذف حساب ${x.name || x.email || ''}؟`, ok: 'حذف' })) return;
+  try { await rpc('admin_delete_teacher', { p_teacher: x.id }); closeModals(); toast('انحذف الحساب'); ADM.d.list = ADM.d.list.filter(r => r.id !== x.id); admRender(); }
+  catch(e){ toast(/function|not find/i.test(String(e.message)) ? 'شغّل ملف admin_delete.sql أول' : errMsg(e)); }
 };
 
 /* ---- router ---- */
