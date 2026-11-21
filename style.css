@@ -2743,3 +2743,15 @@ html body .pv.pvx .dots .dot.done.no{background:#FF453A!important}
 .lvl-bar{margin:12px 0}
 /* v177 reminder time */
 .cf3-time{background:transparent;border:0;color:inherit;font:700 16px Cairo,system-ui,sans-serif;direction:ltr;min-width:96px;text-align:end}
+/* v179 compact student home after the round (Khalid: practice was hidden below) */
+.sp-pills{gap:6px;padding:0 16px}
+.sp-pill{white-space:nowrap;font-size:13.5px;padding:7px 11px;gap:4px}
+.sp .sp-mid{gap:10px;padding:10px 16px}
+.sp-done{padding:16px 16px 12px;gap:8px}
+.sp-done>b{font-size:21px;line-height:1.3}
+.sp-done .bx{font-size:52px}
+.sp-done .sp-emo{font-size:48px}
+.sp-done .goal{margin-top:2px;padding:8px 12px;background:#2C2C2E;border-radius:14px;max-width:none}
+.sp-done .goal-t{font-size:13.5px;gap:8px}
+.sp-done .goal-bar{height:7px;margin:6px 0 2px;background:#1C1C1E}
+.sp-bell{font-size:13px}

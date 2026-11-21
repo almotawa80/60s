@@ -343,7 +343,7 @@ function renderHomeP(){
   if (sh.saved && !S.demo) { const k = 'mc_saved_' + (h.student.id || ''); if (LS.get(k) !== sh.saved) { LS.set(k, sh.saved); setTimeout(() => toast('🛡 درعك حمى سلسلتك!'), 600); } }
   let mid;
   if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo" id="bx-emo">🎉</div><b id="bx-h">أحسنت! ارجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
-    '<div id="bx-act"></div><p class="sp-sub">الجولة القادمة بعد <b id="cd">' + cdText() + '</b></p>' + pushBtn() + '</div><div id="goal"></div>';
+    '<div id="bx-act"></div><p class="sp-sub">الجولة القادمة بعد <b id="cd">' + cdText() + '</b></p><div id="goal"></div>' + pushBtn() + '</div>';
   else mid = (h.rank > 1 && h.gap != null ? '<div class="sp-rival" id="rival">' + (h.gap > 0 ? 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى اللي فوقك 👀' : 'أنت متعادل مع اللي فوقك، جولة وحدة تكفي! 👀') + '</div>' : h.rank === 1 && h.total_points ? '<div class="sp-rival">أنت الأول 🏆 حافظ عليها</div>' : '') +
     pzLine((h.competition || {}).prizes, 'sp-prize') +
     '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>' +
@@ -405,14 +405,13 @@ async function loadDaily(){
   if (!d || !document.getElementById('bx-h')) return;
   const bx = d.box || {}, emo = document.getElementById('bx-emo'), hd = document.getElementById('bx-h'), act = document.getElementById('bx-act');
   if (bx.ready) { emo.innerHTML = '<span class="bx bx-ready">🎁</span>'; hd.textContent = 'صندوقك جاهز!'; act.innerHTML = '<button class="sp-open" data-act="s-box">افتح الصندوق</button>'; }
-  else if (bx.locked) { emo.innerHTML = '<span class="bx bx-lock">🎁</span>'; hd.textContent = 'أحسنت! صندوقك ينفتح بكرة'; act.innerHTML = '<p class="bx-note">العب جولة بكرة وافتحه 🔒</p>'; }
+  else if (bx.locked) { emo.innerHTML = '<span class="bx bx-lock">🎁</span>'; hd.textContent = 'أحسنت! صندوقك ينفتح بكرة'; act.innerHTML = ''; }
   const g = d.goal, el = document.getElementById('goal');
   const sr = d.star, me = sr && sr.id === S.home.student.id;
   if (g && g.size > 1 && el) {
     const pc = Math.min(100, Math.round(g.played / g.size * 100)), done = g.played >= g.need;
-    el.innerHTML = '<div class="goal"><div class="goal-t"><b>' + (done ? '⭐ الصف أخذ نجمة اليوم!' : '🎯 هدف الصف') + '</b><span>' + g.played + ' من ' + g.size + '</span></div>' +
-      '<div class="goal-bar"><i style="width:' + pc + '%"></i><em style="right:' + Math.round(g.need / g.size * 100) + '%"></em></div>' +
-      '<small>' + (done ? 'نجوم الصف: ' + g.stars + ' ⭐' : 'باقي ' + (g.need - g.played) + ' ويأخذ الصف نجمة ⭐' + (g.stars ? ' · عندكم ' + g.stars : '')) + '</small></div>' +
+    el.innerHTML = '<div class="goal"><div class="goal-t"><b>' + (done ? '⭐ الصف أخذ نجمة اليوم' : '🎯 باقي ' + (g.need - g.played) + ' ويأخذ الصف نجمة') + '</b><span>' + g.played + '/' + g.size + '</span></div>' +
+      '<div class="goal-bar"><i style="width:' + pc + '%"></i>' + (done ? '' : '<em style="right:' + Math.round(g.need / g.size * 100) + '%"></em>') + '</div></div>' +
       (sr ? '<div class="wk-star' + (me ? ' me' : '') + '"><span>' + (sr.av ? esc(sr.av) : '⭐') + '</span><div><small>⭐ نجم الأسبوع</small><b>' + (me ? 'أنت! تحسّنت ' + sr.up + ' نقطة' : esc(String(sr.name).split(' ')[0])) + '</b></div></div>' : '');
     if (done && !LS.get('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString())) { LS.set('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString(), '1'); setTimeout(() => FX.win(false), 400); }
   }
