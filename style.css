@@ -2988,3 +2988,5 @@ html body .t-nav .lens.drag,html body .t-nav .lens.move,html body .s-nav .lens.d
   box-shadow:inset 0 1px 1px rgba(255,255,255,.7),inset 0 -1px 3px rgba(255,255,255,.14),0 8px 22px rgba(0,0,0,.28)!important}
 html body .t-nav.bump,html body .s-nav.bump{animation:navBump .55s cubic-bezier(.3,1.5,.45,1)}
 @keyframes navBump{0%{scale:1}30%{scale:1.035 .95}60%{scale:.99 1.02}100%{scale:1}}
+/* v221: lens bubble wider than tall (pill like iOS), not round */
+html body .t-nav .lens.drag,html body .t-nav .lens.move,html body .s-nav .lens.drag,html body .s-nav .lens.move{transform:scale(1.32,1.16)}
