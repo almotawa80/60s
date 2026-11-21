@@ -2768,3 +2768,13 @@ html body .pv.pvx .dots .dot.done.no{background:#FF453A!important}
 .sp-cd{display:flex;flex-direction:column;align-items:center;gap:2px;background:#2C2C2E;border-radius:16px;padding:8px 22px}
 .sp-cd small{font-size:12.5px;opacity:.7;font-weight:700}
 .sp-cd b{font-size:30px;font-weight:900;color:#F5B72B;direction:ltr;font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1.15}
+/* v183 answer colour stripes, live points, rotating line */
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt{position:relative;overflow:hidden}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt::before{content:"";position:absolute;top:0;bottom:0;right:0;width:7px}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt.oc0::before{background:#FF453A}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt.oc1::before{background:#0A84FF}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt.oc2::before{background:#FFD60A}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt.oc3::before{background:#30D158}
+html body[data-theme] .pv.pvx .opts.kc .opt.good::before,html body[data-theme] .pv.pvx .opts.kc .opt.bad::before,html body[data-theme] .pv.pvx .opts.kc .opt.dim::before{opacity:0}
+.pv-pts{display:inline-block;margin-top:4px;color:#F5B72B;font-weight:900;font-size:15px;font-variant-numeric:tabular-nums}
+.pv-pts.bump{animation:bxp .45s cubic-bezier(.2,1.6,.4,1)}

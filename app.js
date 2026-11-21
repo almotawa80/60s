@@ -205,7 +205,7 @@ function studentLogin(){
     '<div class="code-wrap"><div class="code-boxes">' + '<div class="code-box"></div>'.repeat(6) + '</div>' +
     '<input class="code-input" id="code" inputmode="latin" autocomplete="off" autocapitalize="characters" maxlength="20" aria-label="رمز الدخول"></div>' +
     '<div id="lerr"></div>' +
-    '<button class="btn sl1-go" data-act="s-login">دخول</button><p class="sl1-h">الرمز تاخذه من معلمك</p></div>' +
+    '<button class="btn sl1-go" data-act="s-login">دخول</button><p class="sl1-h">الرمز عند معلمك، أو في رسالة الواتساب</p></div>' +
     '<div class="center sl-t"><button class="sl1-t" data-act="go-teacher">👨‍🏫 أنا معلم؟ <b>ادخل من هنا</b></button></div></div></div>';
   const inp = document.getElementById('code');
   const paint = v => $app.querySelectorAll('.code-box').forEach((el, i) => { el.textContent = v[i] || ''; el.classList.toggle('on', i === Math.min(v.length, 5)); });
@@ -344,10 +344,16 @@ function renderHomeP(){
   let mid;
   if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo" id="bx-emo">🎉</div><b id="bx-h">أحسنت! ارجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
     '<div id="bx-act"></div><div class="sp-cd"><small>الجولة القادمة بعد</small><b id="cd">' + cdText() + '</b></div><div id="goal"></div>' + pushBtn() + '</div>';
-  else mid = (h.rank > 1 && h.gap != null ? '<div class="sp-rival" id="rival">' + (h.gap > 0 ? 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى اللي فوقك 👀' : 'أنت متعادل مع اللي فوقك، جولة وحدة تكفي! 👀') + '</div>' : h.rank === 1 && h.total_points ? '<div class="sp-rival">أنت الأول 🏆 حافظ عليها</div>' : '') +
-    pzLine((h.competition || {}).prizes, 'sp-prize') +
-    '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>' +
-    (days ? '<p class="sp-sub">لا تطفي الشعلة 🔥</p>' : '');
+  else {
+    /* v183: one line above «العب», rotating daily between what applies (rival / leader, prize, streak) */
+    const ln = [];
+    if (h.rank > 1 && h.gap != null) ln.push('<div class="sp-rival" id="rival">' + (h.gap > 0 ? 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى اللي فوقك 👀' : 'أنت متعادل مع اللي فوقك، جولة وحدة تكفي! 👀') + '</div>');
+    else if (h.rank === 1 && h.total_points) ln.push('<div class="sp-rival">أنت الأول 🏆 حافظ عليها</div>');
+    const pz = pzLine((h.competition || {}).prizes, 'sp-prize'); if (pz) ln.push(pz);
+    if (days) ln.push('<div class="sp-rival">لا تطفي الشعلة 🔥 ' + days + (days === 1 ? ' يوم' : days === 2 ? ' يومين' : ' أيام') + '</div>');
+    const di = Math.floor(Date.now() / 864e5);
+    mid = (ln.length ? ln[di % ln.length] : '') + '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>';
+  }
   $app.innerHTML = '<div class="sh sp pvx">' +
     '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
     '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
@@ -822,7 +828,7 @@ function showQuestion(st){
     '<div class="play pv pvx">' +
     '<div class="play-top"><button class="icon-btn pv-btn" data-act="s-quit" aria-label="الخروج للرئيسية">' + ic('home') + '</button>' +
     '<div class="pv-head"><b class="pv-pill">السؤال ' + st.position + ' من ' + st.total + '</b><div class="dots">' + dots + '</div>' +
-    (st.kind === 'practice' ? '<span class="pv-kind">تدريب</span>' : '') + '</div>' +
+    (st.kind === 'practice' ? '<span class="pv-kind">تدريب</span>' : '') + '<span class="pv-pts" id="pvpts">⭐ ' + lg.reduce((a, x) => a + (x.p || 0), 0) + '</span></div>' +
     '<button class="icon-btn pv-btn pv-snd" data-act="s-sound" aria-label="الصوت">' + ic(FX.on() ? 'sound' : 'mute') + '</button></div>' +
     '<div class="pvx-tm' + (st.position === st.total ? ' last' : '') + '" id="timer"><i id="tfill" hidden></i><div class="pvx-bar"><i id="tfg"></i></div><span><b id="tnum">' + Math.ceil(st.seconds_left) + '</b> ثانية</span></div>' +
     '<div class="pv-panel"><div class="qbox' + (q.image ? ' has-img' : '') + '">' + (q.image ? '<img class="q-img" src="' + esc(q.image) + '" alt="' + esc(q.image_alt || 'صورة مرفقة بالسؤال') + '">' : '') + '<span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
@@ -882,7 +888,8 @@ async function submit(idx, seq){
     const res = await rpc('submit_answer', { p_token: S.token, p_attempt: st.attempt_id, p_position: st.position, p_chosen: idx });
     if (S.gen !== gen || S.cur !== st) return; // left the question meanwhile
     const r = res.result, ci = r.correct_index != null ? r.correct_index : (r.correct ? idx : null);
-    (S.log = S.log || []).push({ q: st.question.body, o: st.question.options, c: ci, x: seq ? null : idx, ok: !!r.correct });
+    (S.log = S.log || []).push({ q: st.question.body, o: st.question.options, c: ci, x: seq ? null : idx, ok: !!r.correct, p: r.correct ? (r.points || 0) : 0 });
+    { const pe = document.getElementById('pvpts'); if (pe && r.correct) { const L = (S.log || []).slice(-st.position); pe.textContent = '⭐ ' + L.reduce((a, x) => a + (x.p || 0), 0); pe.classList.remove('bump'); void pe.offsetWidth; pe.classList.add('bump'); } }
     const btns = $app.querySelectorAll('.opt');
     if (st.question.payload && st.question.payload.kind === 'order') ordMark(btns, seq || [], r.order, r.correct);
     else btns.forEach((b, i) => {
