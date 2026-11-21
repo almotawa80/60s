@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     rows = ((data || []) as any[]).map((r) => ({ ...r, tag: "mc-msg" }));
   } else {
     const { data } = await db.rpc("push_targets");
-    rows = ((data || []) as any[]).map((r) => ({ ...r, title: "تحدّي الدقيقة ⏱", body: "يا " + (r.name || "بطل") + "، باقي لك جولة اليوم. دقيقة وحدة بس!", tag: "mc-daily" }));
+    rows = ((data || []) as any[]).map((r) => ({ ...r, title: "اهزم الدقيقة ⏱", body: "يا " + (r.name || "بطل") + "، باقي لك جولة اليوم. دقيقة وحدة بس!", tag: "mc-daily" }));
   }
   let sent = 0, dropped = 0;
   for (const r of rows) {

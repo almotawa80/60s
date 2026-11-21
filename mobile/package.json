@@ -2,7 +2,7 @@
   "name": "beat60s-mobile",
   "private": true,
   "license": "UNLICENSED",
-  "description": "غلاف Capacitor لتطبيق تحدّي الدقيقة في App Store: يحمّل beat60s.com مباشرة",
+  "description": "غلاف Capacitor لتطبيق اهزم الدقيقة في App Store: يحمّل beat60s.com مباشرة",
   "scripts": {
     "sync": "cap sync ios",
     "ios": "cap open ios",

@@ -202,7 +202,7 @@ function studentLogin(){
   document.body.classList.remove('wide');
   $app.innerHTML = '<div class="sh sl sl-red pv-' + th + '">' +
     '<div class="hero">' + LOGO +
-    '<h1>تحدّي الدقيقة</h1></div>' +
+    '<h1>اهزم الدقيقة</h1></div>' +
     '<div class="pad col">' + profPicker() +
     '<div class="col sl1"><b class="sl1-q">' + (profs().length ? 'لاعب جديد؟' : 'عندك رمز؟') + '</b>' +
     '<div class="code-wrap"><div class="code-boxes">' + '<div class="code-box"></div>'.repeat(6) + '</div>' +
@@ -432,7 +432,7 @@ const b64u = s => { const p = '='.repeat((4 - s.length % 4) % 4), b = atob((s + 
 const pushDone = () => { LS.set('mc_push', '1'); document.querySelectorAll('[data-act="s-push-tab"]').forEach(b => { b.disabled = false; const i = b.querySelector('i'); if (i) i.textContent = '🔔'; }); closeModals(); document.querySelectorAll('.sp-bell').forEach(b => b.remove()); toast('تمام! يوصلك التذكير ورسائل معلمك 🔔'); };
 ACTS['s-push'] = async t => {
   if (NP()) { t.disabled = true;
-    try { if (await npSub()) return pushDone(); t.disabled = false; toast('الإشعارات مقفلة: افتحها من إعدادات الآيفون › تحدّي الدقيقة'); }
+    try { if (await npSub()) return pushDone(); t.disabled = false; toast('الإشعارات مقفلة: افتحها من إعدادات الآيفون › اهزم الدقيقة'); }
     catch(e){ t.disabled = false; toast('ما قدرنا نفعّل التذكير، جرّب بعدين'); }
     return; }
   if (isApp()) return toast('حدّث التطبيق عشان تفعّل الإشعارات');
@@ -1365,7 +1365,7 @@ function shDraw(kind, a){
   return { c, t1, me };
 }
 async function shareCard(kind, a){
-  const { c, t1, me } = shDraw(kind, a), url = shLink(), text = kind === 'pts' ? 'حصلت على ' + a.n + ' نقطة في «تحدّي الدقيقة» 🔥 تقدر تفوز علي؟\nشارك الحين 👇' : t1 + ' في «تحدّي الدقيقة» 🏆';
+  const { c, t1, me } = shDraw(kind, a), url = shLink(), text = kind === 'pts' ? 'حصلت على ' + a.n + ' نقطة في «اهزم الدقيقة» 🔥 تقدر تفوز علي؟\nشارك الحين 👇' : t1 + ' في «اهزم الدقيقة» 🏆';
   const blob = await new Promise(r => c.toBlob(r, 'image/png')), file = blob && new File([blob], 'tahaddi.png', { type: 'image/png' });
   if (file && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], text: text + '\n' + url }); return; } catch(e){ if (e && e.name === 'AbortError') return; } }
   const src = c.toDataURL('image/png');
@@ -1377,7 +1377,7 @@ function shBtn(kind, a, label){ a = a || {}; return '<button class="btn sh-btn" 
 function shLanding(n){
   document.body.classList.remove('wide');
   $app.innerHTML = '<div class="sh pvx"><div class="shl">' +
-    '<div class="shl-m">🏆</div><h2>' + (n ? esc(n) + ' يلعب «تحدّي الدقيقة»' : 'صفك كله يتحدى كل يوم') + '</h2>' +
+    '<div class="shl-m">🏆</div><h2>' + (n ? esc(n) + ' يلعب «اهزم الدقيقة»' : 'صفك كله يتحدى كل يوم') + '</h2>' +
     '<p>جولة وحدة باليوم، دقيقة وحدة، أسئلة من المنهج. والصف كله يتنافس على الترتيب.</p>' +
     '<div class="shl-st"><div><b>١</b>المعلم يسوي تحدي من الأسئلة الجاهزة</div><div><b>٢</b>يرسل رمز الصف للطلاب</div><div><b>٣</b>كل يوم دقيقة لعب ونقاط وشارات</div></div>' +
     '<a class="btn" href="#/t">👨‍🏫 أنت معلم؟ سوّ تحدي لصفك مجاناً</a><a class="shl-s" href="#/s">عندك رمز من معلمك؟ ادخل من هنا</a></div></div>';
@@ -1581,7 +1581,7 @@ function go(h){ if (location.hash === h) route(); else location.hash = h; }
 function teacherAuth(){
   const up = T.authMode === 'up';
   $app.innerHTML = `
-  <div class="ta"><div class="hero">${LOGO}<h1>تحدّي الدقيقة</h1><p>منصة مسابقات تعليمية للمدارس والجامعات</p></div>
+  <div class="ta"><div class="hero">${LOGO}<h1>اهزم الدقيقة</h1><p>منصة مسابقات تعليمية للمدارس والجامعات</p></div>
   <div class="pad col"><form class="card col" data-form="t-auth" autocomplete="on" method="post" action="#">
     <div class="tabs"><button type="button" class="${up ? '' : 'on'}" data-act="t-mode" data-mode="in">تسجيل الدخول</button><button type="button" class="${up ? 'on' : ''}" data-act="t-mode" data-mode="up">إنشاء حساب</button></div>
     ${up ? '<div class="field"><label for="a-name">الاسم</label><input class="input" id="a-name" name="name" required></div>' : ''}
@@ -1863,10 +1863,10 @@ function obStep(n){
   }
   if (n === 6 && OB.made && OB.made.length > 1) {
     b = `<div class="obr-hero"><div class="obr-big">📲</div><h2>رموز صفوفك</h2><p>أرسل لكل صف رمزه في الواتساب. أول ما يدخلون يطلعون عندك.</p></div>
-      <div class="obr-codes">${OB.made.map(c => { const m = `انضم لتحدي «${c.name}» في تحدّي الدقيقة 🎯\nرمز الصف: ${fmtCode(c.code)}\nأو اضغط الرابط:\n${joinLink(c.code)}`; return `<div class="obr-cr"><b>${esc(c.name)}</b><span dir="ltr">${esc(fmtCode(c.code))}</span><button class="btn sm" data-act="c-share-wa" data-v="${esc(m)}">شارك</button></div>`; }).join('')}</div>
+      <div class="obr-codes">${OB.made.map(c => { const m = `انضم لتحدي «${c.name}» في «اهزم الدقيقة» 🎯\nرمز الصف: ${fmtCode(c.code)}\nأو اضغط الرابط:\n${joinLink(c.code)}`; return `<div class="obr-cr"><b>${esc(c.name)}</b><span dir="ltr">${esc(fmtCode(c.code))}</span><button class="btn sm" data-act="c-share-wa" data-v="${esc(m)}">شارك</button></div>`; }).join('')}</div>
       <button class="btn soft obr-go" data-act="ob-close">خذني للرئيسية</button>`;
   } else if (n === 6) {
-    const msg = `انضم لتحدي «${OB.cname}» في تحدّي الدقيقة 🎯\nرمز الصف: ${fmtCode(OB.code)}\nأو اضغط الرابط:\n${joinLink(OB.code)}`;
+    const msg = `انضم لتحدي «${OB.cname}» في «اهزم الدقيقة» 🎯\nرمز الصف: ${fmtCode(OB.code)}\nأو اضغط الرابط:\n${joinLink(OB.code)}`;
     b = `<div class="obr-hero"><div class="obr-big">📲</div><h2>رمز صفك</h2><div class="obr-code" dir="ltr">${esc(fmtCode(OB.code))}</div><p>أرسله لطلابك في الواتساب. أول ما يدخلون يطلعون عندك.</p></div>
       <button class="btn obr-go" data-act="c-share-wa" data-v="${esc(msg)}">شارك الرمز</button><button class="btn soft" data-act="ob-close">خذني للرئيسية</button>`;
   }
@@ -2148,7 +2148,7 @@ ACTS['nw-start'] = async t => {
   } catch(e){ toast(errMsg(e)); t.removeAttribute('aria-busy'); t.textContent = 'ابدأ التحدي 🚀'; }
   NW.saving = false;
 };
-ACTS['nw-wa'] = () => { const m = NW.made || []; const txt = `يلا نلعب تحدّي الدقيقة ⏱️\n${m.map(x => `${m.length > 1 ? x.c.name + ': ' : ''}الرمز ${fmtCode(x.code)}\n${joinLink(x.code)}`).join('\n')}`; open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank'); };
+ACTS['nw-wa'] = () => { const m = NW.made || []; const txt = `يلا نلعب «اهزم الدقيقة» ⏱️\n${m.map(x => `${m.length > 1 ? x.c.name + ': ' : ''}الرمز ${fmtCode(x.code)}\n${joinLink(x.code)}`).join('\n')}`; open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank'); };
 ACTS['nw-show'] = async () => { const x = (NW.made || [])[0]; if (!x) return; let qr = ''; try { await loadJs(QRJS, 'qrcode'); qr = qrSvg(joinLink(x.code)); } catch(e){}
   const w = document.createElement('div'); w.className = 'joinshow'; w.innerHTML = `<button class="joinshow-x" aria-label="إغلاق">${ic('x')}</button><b>${esc(x.c.name)}</b><span>ادخل التطبيق واكتب الرمز</span><div class="nw-code nw-code-xl" dir="ltr">${esc(fmtCode(x.code))}</div>${qr ? `<div class="joinshow-qr">${qr}</div>` : ''}`;
   w.querySelector('.joinshow-x').onclick = () => w.remove(); document.body.appendChild(w); };
@@ -2264,7 +2264,7 @@ ACTS['w-finish'] = async t => {
       if (p.self && !g.self) { c.join_code = await rpc('set_self_join', { p_class: c.id, p_on: true }); g.self = true; }
       if (W.compNow && !g.comp) {
         const pe = addDays(W.start, 4);
-        const k = await sb.from('competitions').insert({ class_id: c.id, group_id: gid, qtypes: W.qtypes, difficulty: (T.settings || {}).difficulty || 'normal', title: 'مسابقة تحدّي الدقيقة', start_date: W.start, points_end_date: pe, end_date: addDays(pe, 3), group_size: 6, qualifiers: 8, round_window_hours: 24 });
+        const k = await sb.from('competitions').insert({ class_id: c.id, group_id: gid, qtypes: W.qtypes, difficulty: (T.settings || {}).difficulty || 'normal', title: 'مسابقة اهزم الدقيقة', start_date: W.start, points_end_date: pe, end_date: addDays(pe, 3), group_size: 6, qualifiers: 8, round_window_hours: 24 });
         if (k.error) throw k.error;
         g.comp = true;
       }
@@ -2376,7 +2376,7 @@ const chComps = () => (CL.allComps || []).filter(k => (k.group_id || k.id) === C
 const chStudents = () => chComps().flatMap(k => CL.students[k.class_id] || []);
 ACTS['ch-remind'] = () => { const ks = chComps(), c = ks[0]; if (!c) return;
   const cls = ks.map(k => CL.byId[k.class_id]).filter(Boolean), url = location.origin + location.pathname;
-  const txt = `يا أبطال ⏱️ لا تنسون جولة اليوم في «${c.title || 'تحدّي الدقيقة'}»، دقيقة وحدة بس!\n` + cls.map(x => x.join_code ? `${ks.length > 1 ? x.name + ': ' : ''}${joinLink(x.join_code)}` : url).join('\n');
+  const txt = `يا أبطال ⏱️ لا تنسون جولة اليوم في «${c.title || 'اهزم الدقيقة'}»، دقيقة وحدة بس!\n` + cls.map(x => x.join_code ? `${ks.length > 1 ? x.name + ': ' : ''}${joinLink(x.join_code)}` : url).join('\n');
   const left = chStudents().filter(x => x.approved !== false && !CST(x.id).today);
   CL.remTxt = txt; CL.remIds = left.map(x => x.id);
   modal(`<div class="s-avs center"><h3>🔔 ذكّر ${left.length} ${left.length === 1 ? 'طالب' : 'طلاب'}</h3><p class="sub">توصلهم رسالة داخل التطبيق، وإشعار للي مفعّل الإشعارات.</p>
@@ -2400,7 +2400,7 @@ ACTS['ch-in'] = async t => { if (t.disabled) return; t.disabled = true;
   if (error) return toast(errMsg(error)); closeModals(); toast('انرسلت ✓'); };
 ACTS['ch-stu'] = t => { const s = chStudents().find(x => x.id === t.dataset.id); if (!s) return; const k = CST(s.id), url = location.origin + location.pathname;
   const inMsg = k.today ? `أحسنت يا ${s.name.split(' ')[0]} 🌟 لعبت جولة اليوم، استمر!` : `هلا ${s.name.split(' ')[0]} 👋 باقي لك جولة اليوم، دقيقة وحدة بس! ⏱️`;
-  const msg = k.today ? `أحسنت يا ${s.name.split(' ')[0]} 🌟 لعبت جولة اليوم، استمر!` : `هلا ${s.name.split(' ')[0]} 👋 باقي لك جولة اليوم في تحدّي الدقيقة، دقيقة وحدة بس!\nادخل من هنا:\n${url}#/c/${s.code}`;
+  const msg = k.today ? `أحسنت يا ${s.name.split(' ')[0]} 🌟 لعبت جولة اليوم، استمر!` : `هلا ${s.name.split(' ')[0]} 👋 باقي لك جولة اليوم في «اهزم الدقيقة»، دقيقة وحدة بس!\nادخل من هنا:\n${url}#/c/${s.code}`;
   modal(`<div class="st1"><div class="st1-h"><b>${esc(s.name)}</b><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div>
     <div class="st1-stats"><div><b>${k.pts}</b><small>نقطة</small></div><div><b>${k.rounds}</b><small>جولات</small></div></div>
     <div class="st1-today ${k.today ? 'on' : ''}">${k.today ? 'لعب اليوم ✓' : 'ما لعب اليوم'}</div>
@@ -2443,7 +2443,7 @@ function classPage(c){
 ACTS['c-open'] = t => go('#/t/class/' + t.dataset.id);
 ACTS['c-pmore'] = () => { const el = document.querySelector('.cp1[data-cid]'); if (el) ACTS['c-cmore'](el); };
 ACTS['c-share'] = t => { const c = ctx(t); if (!c) return; const link = joinLink(c.join_code);
-  const msg = `انضم لتحدي «${c.name}» في تحدّي الدقيقة 🎯\nرمز الصف: ${fmtCode(c.join_code || '')}\nأو اضغط الرابط:\n${link}`;
+  const msg = `انضم لتحدي «${c.name}» في «اهزم الدقيقة» 🎯\nرمز الصف: ${fmtCode(c.join_code || '')}\nأو اضغط الرابط:\n${link}`;
   sheet('شارك الرمز', [
     { act: 'c-share-wa', attrs: `data-v="${esc(msg)}"`, icon: 'send', label: 'واتساب' },
     { act: 'm-run', attrs: `data-a="c-joinshow" data-cid="${c.id}"`, icon: 'eye', label: 'اعرض على الشاشة' },
@@ -2656,7 +2656,7 @@ ACTS['s-parent'] = () => {
 ACTS['s-wa'] = t => {
   const s = Object.values(CL.students).flat().find(x => x.id === t.dataset.id); if (!s) return;
   const url = location.origin + location.pathname;
-  const msg = `مرحباً ${s.name}\nرمز دخولك إلى «تحدّي الدقيقة»: ${s.code}\nللدخول مباشرة اضغط الرابط:\n${url}#/c/${s.code}`;
+  const msg = `مرحباً ${s.name}\nرمز دخولك إلى «اهزم الدقيقة»: ${s.code}\nللدخول مباشرة اضغط الرابط:\n${url}#/c/${s.code}`;
   let ph = (s.phone || '').replace(/[^0-9]/g, '');
   if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2);
   window.open('https://wa.me/' + (ph || '') + '?text=' + encodeURIComponent(msg), '_blank');
@@ -3047,8 +3047,8 @@ function rpRadar(les){ const n = les.length, R = 105, cx = 160, cy = 140, ang = 
 function rpPdfHtml(d, note){
   const m = rpSummary(d), les = (d.lessons || []).filter(x => x.t >= 3), today = new Date().toISOString().slice(0, 10), subj = SG('prof_subject').split('|').filter(Boolean)[0] || '';
   const name = fmtStu(d.name || ''), ini = (d.name || '?').trim().charAt(0), acc = m.acc, g0 = RP_GR(acc), ca = d.cls_acc;
-  const head = `<div class="rp4-hd"><img src="icon-192.png?i=8" alt=""><div class="grow"><h1>تقرير أداء الطالب</h1><small>تحدّي الدقيقة${d.cls ? ' · الصف ' + esc(d.cls) : ''}${subj ? ' · ' + esc(subj) : ''}</small></div><span class="rp4-dt">${rpDate(today, 1)}</span></div>`;
-  const foot = n => `<div class="rp4-ft"><span>${esc(d.school || 'تحدّي الدقيقة')}${d.teacher ? ' · المعلم: ' + esc(d.teacher) : ''}</span><span>${n} / 2</span></div>`;
+  const head = `<div class="rp4-hd"><img src="icon-192.png?i=8" alt=""><div class="grow"><h1>تقرير أداء الطالب</h1><small>اهزم الدقيقة${d.cls ? ' · الصف ' + esc(d.cls) : ''}${subj ? ' · ' + esc(subj) : ''}</small></div><span class="rp4-dt">${rpDate(today, 1)}</span></div>`;
+  const foot = n => `<div class="rp4-ft"><span>${esc(d.school || 'اهزم الدقيقة')}${d.teacher ? ' · المعلم: ' + esc(d.teacher) : ''}</span><span>${n} / 2</span></div>`;
   const diff = (a, b) => b == null ? '' : a >= b ? ` · <b class="g">أعلى بـ ${a - b}</b>` : ` · <b class="r">أقل بـ ${b - a}</b>`;
   const top = les.slice(0, 3), bars = les.slice(0, 8);
   const p1 = `<div class="rp4-pg">${head}<div class="rp4-bd">
@@ -3150,7 +3150,7 @@ function qrSvg(text){ try { const q = qrcode(0, 'M'); q.addData(text); q.make();
 ACTS['t-print-codes'] = async t => { ctx(t);
   const url = location.origin + location.pathname;
   let qr = false; try { await loadJs(QRJS, 'qrcode'); qr = !!window.qrcode; } catch(e){}
-  document.getElementById('print-area').innerHTML = `<h2 style="text-align:center;margin:0 0 10px">${esc(CK.cls.name)} — رموز الدخول إلى تحدّي الدقيقة</h2><p style="text-align:center;direction:ltr;margin:0 0 12px">${esc(url)}</p>` +
+  document.getElementById('print-area').innerHTML = `<h2 style="text-align:center;margin:0 0 10px">${esc(CK.cls.name)} — رموز الدخول إلى «اهزم الدقيقة»</h2><p style="text-align:center;direction:ltr;margin:0 0 12px">${esc(url)}</p>` +
     `<div class="pcards">${CK.students.map(s => `<div class="pcard${qr ? ' qr' : ''}">${qr ? `<div class="pq">${qrSvg(url + '#/c/' + s.code)}</div>` : ''}<div><b>${esc(s.name)}</b><div class="pc">${esc(s.code)}</div><small>${esc(s.student_no)}</small></div></div>`).join('')}</div>` + (qr ? '<p style="text-align:center;font-size:12px;margin-top:10px">امسح الرمز بكاميرا الجوال للدخول مباشرة، أو اكتب الرمز في الموقع.</p>' : '');
   /* v252: iPhone app can't open the print dialog, so show the cards first; print / share from there */
   const w = document.createElement('div'); w.className = 'pcv'; w.innerHTML = `<div class="pcv-bar"><button class="btn sm soft" data-x>إغلاق</button><b>بطاقات الدخول</b><button class="btn sm" data-p>🖨️ طباعة</button></div><p class="pcv-t">بطاقة لكل طالب فيها اسمه ورمزه وQR. تطبعها وتوزعها، والطالب يمسح الـQR بالجوال ويدخل على طول بدون ما يكتب شي.</p><div class="pcv-in">${document.getElementById('print-area').innerHTML}</div>`;
@@ -3206,7 +3206,7 @@ ACTS['cp-resume'] = async t => {
 ACTS['t-remind'] = t => {
   const s = (T.homeStats || []).find(x => x.c.id === t.dataset.c); if (!s) return;
   const left = s.rs.filter(r => !r.played_today).map(r => r.name);
-  const msg = `تذكير من تحدّي الدقيقة ⏱️\nجولة اليوم ما زالت مفتوحة لصف ${s.c.name} حتى منتصف الليل.\nلم يلعب بعد (${left.length}): ${left.join('، ')}\nادخلوا من هنا: ${location.origin + location.pathname}`;
+  const msg = `تذكير من «اهزم الدقيقة» ⏱️\nجولة اليوم ما زالت مفتوحة لصف ${s.c.name} حتى منتصف الليل.\nلم يلعب بعد (${left.length}): ${left.join('، ')}\nادخلوا من هنا: ${location.origin + location.pathname}`;
   open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 };
 ACTS['cp-new'] = async () => {
@@ -3338,7 +3338,7 @@ function cfSpan(start, total, q, hours){
   const pts = Math.max(2, total - ko), pe = addDays(start, pts - 1);
   return { points_end_date: pe, end_date: addDays(pe, ko) };
 }
-function cfAutoTitle(){ const cs = CL.classes.filter(c => CC.sel.has(c.id)); return cs.length === 1 ? 'مسابقة ' + cs[0].name : 'مسابقة تحدّي الدقيقة'; }
+function cfAutoTitle(){ const cs = CL.classes.filter(c => CC.sel.has(c.id)); return cs.length === 1 ? 'مسابقة ' + cs[0].name : 'مسابقة اهزم الدقيقة'; }
 const STAGE_STYLE = { primary: 'kids', middle: 'mid', secondary: 'mid', university: 'uni' };
 function cfAutoStyle(){ const c = CL.classes.find(x => CC.sel.has(x.id)); return (c && STAGE_STYLE[c.stage]) || (c && c.style) || 'mid'; }
 const cfQ = f => CC.ko ? Number(f.qualifiers.value) : 0;
@@ -3508,7 +3508,7 @@ ACTS['cp-save'] = async f => {
   if (CC.cu && CC.qtypes && !CC.qtypes.includes('curriculum')) CC.qtypes = ['curriculum'].concat(CC.qtypes);
   const ids = [...CC.sel];
   if (!ids.length) return toast('اختر صفاً واحداً على الأقل');
-  const p = { title: f.title.value.trim() || 'مسابقة تحدّي الدقيقة', start_date: f.start_date.value, points_end_date: f.points_end_date.value, end_date: f.end_date.value,
+  const p = { title: f.title.value.trim() || 'مسابقة اهزم الدقيقة', start_date: f.start_date.value, points_end_date: f.points_end_date.value, end_date: f.end_date.value,
     group_size: Number(f.group_size.value), qualifiers: Number(f.qualifiers.value), round_window_hours: Number(f.round_window_hours.value),
     curriculum_id: CC.cu || null, difficulty: CC.diff || 'normal', qtypes: CC.qtypes, lessons: CC.cu && CC.lessons && CC.lessons.length ? CC.lessons : null };
   if (CC.cus) { p.curricula = CC.cus.length > 1 ? CC.cus.slice() : null; p.curriculum_id = CC.cus[0] || null; if (CC.cus.length > 1) p.lessons = null; }
@@ -4563,7 +4563,7 @@ async function qShareIds(ids){
   try {
     const code = await rpc('share_questions', { p_ids: ids, p_title: T.name ? 'أسئلة ' + T.name : null });
     const url = location.origin + location.pathname + '#/t/qshare/' + code;
-    const msg = `أشاركك ${ids.length} سؤالاً في تحدّي الدقيقة. افتح الرابط لإضافتها إلى أسئلتك:\n${url}\nأو أدخل الرمز: ${code}`;
+    const msg = `أشاركك ${ids.length} سؤالاً في «اهزم الدقيقة». افتح الرابط لإضافتها إلى أسئلتك:\n${url}\nأو أدخل الرمز: ${code}`;
     modal(`<h3>مشاركة ${ids.length} سؤالاً</h3><p class="sub">أرسل الرمز أو الرابط لزميلك، وتُضاف الأسئلة عنده جاهزة.</p>
       <div class="qs-code">${code}</div>
       <a class="btn wa-btn" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${ic('send')} إرسال عبر واتساب</a>
@@ -5049,7 +5049,7 @@ ACTS['r-report-pdf'] = async t => {
   const wrap = document.createElement('div'); wrap.className = 'rp-pdf-host';
   const page = document.createElement('div'); page.className = 'rp-pdf'; page.dir = 'rtl';
   const body = src.cloneNode(true); body.querySelectorAll('.rp-acts,button').forEach(b => b.remove());
-  page.innerHTML = `<div class="rp-pdf-top"><img src="icon-192.png?i=8" alt=""><div><b>تحدّي الدقيقة</b><span>تقرير أداء الطالب</span></div><div class="rp-pdf-meta">${RS.lastCls ? esc(RS.lastCls) + '<br>' : ''}${esc(RS.name || '')}<br>${new Date().toLocaleDateString('ar-KW-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}</div></div>`;
+  page.innerHTML = `<div class="rp-pdf-top"><img src="icon-192.png?i=8" alt=""><div><b>اهزم الدقيقة</b><span>تقرير أداء الطالب</span></div><div class="rp-pdf-meta">${RS.lastCls ? esc(RS.lastCls) + '<br>' : ''}${esc(RS.name || '')}<br>${new Date().toLocaleDateString('ar-KW-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}</div></div>`;
   page.appendChild(body);
   page.insertAdjacentHTML('beforeend', `<div class="rp-pdf-foot">المعلم/ـة: ${esc(T.name || '')} · أُعدّ هذا التقرير آلياً من نتائج الجولات الرسمية</div>`);
   wrap.appendChild(page); document.body.appendChild(wrap); rpSplitWords(page);
@@ -5172,7 +5172,7 @@ async function tSettings(){
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق', val: 'تثبيت · بيانات' }),
       ADM.st && ADM.st.is ? sRow({ act: 'go', attrs: 'data-h="#/t/admin"', icon: 'lock', color: '#30B0C7', label: 'المشرف', val: 'المعلمين · الدعم' }) : '']) +
     sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
-    `<div class="set-f center">تحدّي الدقيقة · الإصدار ${APP_VER}</div>`, 'settings');
+    `<div class="set-f center">اهزم الدقيقة · الإصدار ${APP_VER}</div>`, 'settings');
 }
 function tSetGroup(k){
   const G = {
@@ -5192,7 +5192,7 @@ function tSetGroup(k){
   view(g[0], g[1], 'settings', '', '#/t/settings');
 }
 const APP_VER = '0.3';
-ACTS['st-about'] = () => modal(`<div class="aw-sheet"><h3>تحدّي الدقيقة</h3><p class="sub">الإصدار ${APP_VER} · تحديث ${String(document.querySelector('script[src*="app.js"]')?.src.split('v=')[1] || '')}</p></div>`);
+ACTS['st-about'] = () => modal(`<div class="aw-sheet"><h3>اهزم الدقيقة</h3><p class="sub">الإصدار ${APP_VER} · تحديث ${String(document.querySelector('script[src*="app.js"]')?.src.split('v=')[1] || '')}</p></div>`);
 ACTS['st-feedback'] = () => modal(`<h3>اقتراح أو مشكلة</h3><form class="col" data-form="st-feedback-send"><textarea class="input" name="b" rows="5" maxlength="2000" required placeholder="اكتب اقتراحك أو المشكلة اللي واجهتك..."></textarea><button class="btn" type="submit">${ic('send')} إرسال</button></form>`);
 ACTS['st-feedback-send'] = async f => {
   const { error } = await sb.from('feedback').insert({ body: f.b.value.trim() });
@@ -5468,7 +5468,7 @@ ACTS['ex-go'] = async () => {
 };
 function printTables(title, tables){
   let pa = document.getElementById('print-area'); if (!pa) { pa = document.createElement('div'); pa.id = 'print-area'; document.body.appendChild(pa); }
-  pa.innerHTML = `<div class="pt-doc"><h2>تحدّي الدقيقة · ${esc(title)}</h2>${tables.map(t => `<h3>${esc(t[0])}</h3><table class="pt"><thead><tr>${t[1][0].map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${t[1].slice(1).map(r => `<tr>${r.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`).join('')}</div>`;
+  pa.innerHTML = `<div class="pt-doc"><h2>اهزم الدقيقة · ${esc(title)}</h2>${tables.map(t => `<h3>${esc(t[0])}</h3><table class="pt"><thead><tr>${t[1][0].map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${t[1].slice(1).map(r => `<tr>${r.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`).join('')}</div>`;
   setTimeout(() => window.print(), 50);
 }
 async function tArchive(){
@@ -5758,8 +5758,8 @@ async function shareOrCopy(title, text, url){
   if (navigator.share) { try { await navigator.share({ title, text, url }); return; } catch(e){ if (e && e.name === 'AbortError') return; } }
   try { await navigator.clipboard.writeText(text + '\n' + url); toast('تم نسخ الرابط'); } catch(e){ copyBox(url); }
 }
-ACTS['st-share-students'] = () => shareOrCopy('تحدّي الدقيقة', 'ادخل إلى «تحدّي الدقيقة» برمزك:', location.origin + location.pathname);
-ACTS['st-invite'] = () => shareOrCopy('تحدّي الدقيقة', 'جرّب «تحدّي الدقيقة»: مسابقات صفية ممتعة لطلابك، 4 أسئلة في 60 ثانية. سجّل مجاناً:', location.origin + location.pathname + '#/t');
+ACTS['st-share-students'] = () => shareOrCopy('اهزم الدقيقة', 'ادخل إلى «اهزم الدقيقة» برمزك:', location.origin + location.pathname);
+ACTS['st-invite'] = () => shareOrCopy('اهزم الدقيقة', 'جرّب «اهزم الدقيقة»: مسابقات صفية ممتعة لطلابك، 4 أسئلة في 60 ثانية. سجّل مجاناً:', location.origin + location.pathname + '#/t');
 ACTS['st-install'] = () => modal(`<h3>تثبيت التطبيق</h3><div class="col"><div class="set-grp">
   <div class="set-row"><span class="set-ic" style="background:#2F80ED">1</span><span class="grow">افتح الرابط في Safari</span></div>
   <div class="set-row"><span class="set-ic" style="background:#2F80ED">2</span><span class="grow">اضغط زر المشاركة ⬆︎</span></div>
@@ -5806,7 +5806,7 @@ async function studentJoin(code){
   } catch(e){
     // not a class code: maybe the student's personal code typed in «انضم» → normal login
     if (/invalid_join/.test((e && e.message) || '') && code.length === 6) { location.hash = '#/c/' + code; return; }
-    $app.innerHTML = `<div class="hero">${LOGO}<h1>تحدّي الدقيقة</h1></div><div class="pad"><div class="err">${esc(errMsg(e))}</div><button class="btn" data-act="go-student" style="margin-top:14px">رجوع</button></div>`;
+    $app.innerHTML = `<div class="hero">${LOGO}<h1>اهزم الدقيقة</h1></div><div class="pad"><div class="err">${esc(errMsg(e))}</div><button class="btn" data-act="go-student" style="margin-top:14px">رجوع</button></div>`;
   }
 }
 function jnRender(step){

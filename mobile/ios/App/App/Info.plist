@@ -11,7 +11,7 @@
 		<string>ar</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-        <string>تحدّي الدقيقة</string>
+        <string>اهزم الدقيقة</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

@@ -1,4 +1,4 @@
-# تطبيق تحدّي الدقيقة للآيفون (Capacitor)
+# تطبيق اهزم الدقيقة للآيفون (Capacitor)
 
 غلاف آيفون يحمّل `https://beat60s.com` مباشرة. كل تحديث ينشر على الموقع يوصل للتطبيق فوراً بدون مراجعة أبل.
 صفحة `www/error.html` بس محلية، وتطلع إذا ما في إنترنت.
@@ -6,7 +6,7 @@
 | | |
 |---|---|
 | المعرّف | `com.beat60s.app` |
-| الاسم على الجوال | تحدّي الدقيقة |
+| الاسم على الجوال | اهزم الدقيقة |
 | الأجهزة | آيفون فقط (يشتغل على الآيباد بوضع الآيفون) |
 | الحد الأدنى | iOS 15 |
 | الاتجاه | عمودي |
@@ -31,7 +31,7 @@ Xcode › المشروع App › Signing & Capabilities › فعّل Automatical
 ## الرفع
 1. Xcode: اختر «Any iOS Device (arm64)» فوق، ثم Product › Archive.
 2. Organizer: Distribute App › App Store Connect › Upload.
-3. App Store Connect: التطبيق «تحدّي الدقيقة» › TestFlight للتجربة، ثم Submit for Review.
+3. App Store Connect: التطبيق «اهزم الدقيقة» › TestFlight للتجربة، ثم Submit for Review.
 4. كل إصدار جديد للتطبيق نفسه (مو للموقع): ارفع Version و Build في General › Identity.
 
 ## الأيقونة وشاشة البداية
