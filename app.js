@@ -1482,7 +1482,7 @@ ACTS['ob-open'] = () => obStart();
 ACTS['ob-demo'] = () => obStart(true);
 ACTS['ob-cardx'] = async () => { await saveSettings({ obCard: 1 }); rerender(); };
 /* ---- «تحدي جديد»: who → subject → how long → ready (one question per screen) ---- */
-const NW = { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, poll: null };
+const NW = { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, poll: null, startOff: 0, koQ: 8 };
 /* v153 prizes: optional text for 1st/2nd/3rd (competitions.prizes text[]); the app only shows it, the teacher hands it over */
 const PZ_MD = ['🥇', '🥈', '🥉'], PZ_AR = ['الأول', 'الثاني', 'الثالث'];
 const pzVal = a => a && a.some(Boolean) ? { prizes: a.map(x => x || '') } : {};
@@ -1527,7 +1527,7 @@ function subjTiles(c, sel, act, extra){
   return (mt ? `<div class="nw-lbl">موادي</div><div class="nw-tiles">${mt}</div>` : '') + `<div class="nw-lbl">أسئلة عامة</div><div class="nw-tiles">${gt}</div>`;
 }
 async function tNew(fresh){
-  if (fresh !== false && !NW.keep) Object.assign(NW, { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, diff: null, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
+  if (fresh !== false && !NW.keep) Object.assign(NW, { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
   const [cl, cp] = await Promise.all([sb.from('classes').select('*').eq('archived', false).order('created_at'), sb.from('competitions').select('id,class_id').eq('status', 'active')]);
   if (cl.error) throw cl.error;
   NW.classes = cl.data; NW.busy = new Set((cp.data || []).map(c => c.class_id));
@@ -1553,13 +1553,20 @@ function nwRender(){
     const names = sel.map(nwName).filter(Boolean);
     b = `<h2 class="nw-q">عن أي مادة؟</h2><p class="nw-note">اختر وحدة أو أكثر</p>
       ${subjTiles(c, sel, 'nw-subj')}
+      ${nwLesRow(sel)}
       <p class="nw-note">${names.length > 1 ? 'الأسئلة تجي خليط من: ' + esc(names.join('، ')) : ''}</p><div class="nw-sp"></div>
       <button class="btn nw-go" data-act="nw-subj-next" ${sel.length ? '' : 'disabled'}>التالي${sel.length ? ' (' + sel.length + ')' : ''}</button>`;
   }
   if (st === 3) {
     const end = addDays(todayKW(), NW.days - 1);
     b = `<h2 class="nw-q">كم يوم؟</h2><div class="nw-days">${[[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']].map(d => `<button class="${NW.days === d[0] ? 'on' : ''}" data-act="nw-days" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>
-      <p class="nw-note">يبدأ اليوم وينتهي ${esc(fmtDay(end))}</p>${pzRow(NW.prizes, 'nw')}<div class="nw-sp"></div><button class="btn nw-go" data-act="nw-start">ابدأ التحدي 🚀</button>`;
+      <p class="nw-note">${esc(nwSpanTxt())}</p>
+      <div class="nw-grp">
+        <button type="button" class="ce1-row" data-act="nw-opt" data-k="start"><span class="ce1-e">📅</span><span class="grow"><b>يبدأ</b></span><em class="nw-v">${esc(nwStartTxt())}</em><span class="ce1-ch">←</span></button>
+        <button type="button" class="ce1-row" data-act="nw-opt" data-k="diff"><span class="ce1-e">🎚️</span><span class="grow"><b>الصعوبة</b></span><em class="nw-v">${esc(nwDiffTxt())}</em><span class="ce1-ch">←</span></button>
+        <button type="button" class="ce1-row" data-act="nw-ko"><span class="ce1-e">⚔️</span><span class="grow"><b>مواجهة في النهاية</b><small>${NW.koQ ? 'يتأهل ' + NW.koQ + ' · آخر ' + Math.ceil(Math.log2(NW.koQ)) + ' أيام' : 'الأوائل يتنافسون وجهاً لوجه'}</small></span><span class="ios-sw ${NW.koQ ? 'on' : ''}"><i></i></span></button>
+        ${pzRow(NW.prizes, 'nw')}
+      </div><div class="nw-sp"></div><button class="btn nw-go" data-act="nw-start">ابدأ التحدي 🚀</button>`;
   }
   if (st === 4) {
     const m = NW.made || [];
@@ -1593,6 +1600,49 @@ ACTS['nw-subj-next'] = () => { const sel = NW.sel || []; if (!sel.length) return
   const cus = sel.filter(k => !NW_GEN.some(o => o[0] === k));
   NW.cus = cus; NW.cu = cus[0] || null; NW.gtypes = sel.filter(k => NW_GEN.some(o => o[0] === k));
   NW.subj = sel.length === 1 ? nwName(sel[0]) : sel.length === 2 ? sel.map(nwName).join(' و') : 'منوعة'; NW.step = 3; nwRender(); };
+/* v233 (Khalid): pick lessons (one subject) + start / difficulty / knockout rows on the last step */
+function nwLesCu(sel){ const cus = (sel || []).filter(k => !NW_GEN.some(o => o[0] === k)); return cus.length === 1 && cus.length === (sel || []).length ? cus[0] : null; }
+function nwLesRow(sel){ const cu = nwLesCu(sel); if (!cu) return '';
+  const ls = CFL[cu]; if (!ls) { nwLesLoad(cu).then(() => { if (NW.step === 2 && location.hash.indexOf('#/t/new') === 0) nwRender(); }); return ''; }
+  if (!ls.length) return '';
+  const n = NW.lessons && NW.lessons.length ? NW.lessons.length : 0;
+  return `<div class="nw-grp"><button type="button" class="ce1-row" data-act="nw-les" data-cu="${cu}"><span class="ce1-e">📚</span><span class="grow"><b>الدروس</b></span><em class="nw-v">${n ? n + ' من ' + ls.length : 'كلها (' + ls.length + ')'}</em><span class="ce1-ch">←</span></button></div>`; }
+async function nwLesLoad(cu){ if (CFL[cu]) return;
+  const r = await sb.from('questions').select('lesson').eq('curriculum_id', cu).eq('status', 'approved').not('lesson', 'is', null).order('created_at').limit(5000);
+  const cnt = {}, order = []; (r.data || []).forEach(q => { if (!cnt[q.lesson]) order.push(q.lesson); cnt[q.lesson] = (cnt[q.lesson] || 0) + 1; }); CFL[cu] = order.map(l => [l, cnt[l]]); }
+function nwLesSheet(cu){ const ls = CFL[cu] || [], on = new Set(NW.lessons && NW.lessons.length ? NW.lessons : ls.map(x => x[0])), all = on.size === ls.length;
+  return `<div class="aw-sheet nw-ls"><div class="nw-ls-h"><h3>أي دروس شرحت؟</h3><button type="button" class="nw-ls-all" data-act="nw-les-all" data-cu="${cu}">${all ? 'إلغاء الكل' : 'الكل'}</button></div>
+    <p class="sub">ضغطة طويلة على درس = من الأول لين هذا الدرس</p>
+    <div class="nw-ls-list">${ls.map(([l], i) => `<button type="button" class="nw-ls-r${on.has(l) ? ' on' : ''}" data-act="nw-les-t" data-cu="${cu}" data-i="${i}"><span class="nw-ls-c">${ic('check')}</span><span class="grow">${esc(l)}</span><small>${i + 1}</small></button>`).join('')}</div>
+    <button class="btn" data-act="nw-les-done" ${on.size ? '' : 'disabled'}>تم</button></div>`; }
+function nwLesSet(cu, set){ const ls = CFL[cu] || []; NW.lessons = set.size === ls.length ? null : ls.map(x => x[0]).filter(l => set.has(l));
+  const m = document.querySelector('.nw-ls'); if (m) m.outerHTML = nwLesSheet(cu); }
+const nwLesOn = cu => new Set(NW.lessons && NW.lessons.length ? NW.lessons : (CFL[cu] || []).map(x => x[0]));
+ACTS['nw-les'] = t => modal(nwLesSheet(t.dataset.cu));
+ACTS['nw-les-all'] = t => { const cu = t.dataset.cu, ls = CFL[cu] || [], on = nwLesOn(cu); nwLesSet(cu, on.size === ls.length ? new Set() : new Set(ls.map(x => x[0]))); };
+ACTS['nw-les-t'] = t => { if (NW.lpLong) { NW.lpLong = false; return; } const cu = t.dataset.cu, l = (CFL[cu] || [])[Number(t.dataset.i)]; if (!l) return; const on = nwLesOn(cu); on.has(l[0]) ? on.delete(l[0]) : on.add(l[0]); nwLesSet(cu, on); };
+ACTS['nw-les-done'] = () => { closeModals(); nwRender(); };
+(function(){ let tm = null;
+  document.addEventListener('pointerdown', e => { const r = e.target.closest && e.target.closest('.nw-ls-r'); if (!r) return; NW.lpLong = false; clearTimeout(tm);
+    tm = setTimeout(() => { NW.lpLong = true; const cu = r.dataset.cu, k = Number(r.dataset.i); nwLesSet(cu, new Set((CFL[cu] || []).slice(0, k + 1).map(x => x[0]))); haptic(); }, 450); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => document.addEventListener(ev, () => clearTimeout(tm)));
+  document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.nw-ls-r')) e.preventDefault(); });
+})();
+function nwStart(){ const d = todayKW(); if (NW.startOff === 7) { const w = new Date(d + 'T12:00:00').getDay(); return addDays(d, (7 - w) % 7 || 7); } return addDays(d, NW.startOff || 0); }
+const nwStartTxt = () => NW.startOff === 7 ? 'الأحد الجاي' : NW.startOff === 1 ? 'بكرة' : 'اليوم';
+const nwDiffTxt = () => { const k = NW.diff || (T.settings || {}).difficulty || 'normal', d = DIFF.find(x => x[0] === k); return d ? (k === 'adaptive' ? 'حسب الطالب' : d[1]) : 'متوسط'; };
+function nwSpanTxt(){ const st = nwStart(), sp = cfSpan(st, NW.days, NW.koQ, 24);
+  return 'من ' + fmtDay(st) + ' إلى ' + fmtDay(sp.end_date) + (NW.koQ ? ' · آخر ' + Math.ceil(Math.log2(NW.koQ)) + ' أيام مواجهات' : ''); }
+ACTS['nw-opt'] = t => { const k = t.dataset.k;
+  if (k === 'start') return modal(`<div class="aw-sheet"><h3>يبدأ</h3>${[[0, 'اليوم'], [1, 'بكرة'], [7, 'الأحد الجاي', 'بداية الأسبوع الدراسي']].map(o => cf3Opt('nw-set', 'start:' + o[0], (NW.startOff || 0) === o[0], o[1], o[2])).join('')}</div>`);
+  if (k === 'diff') { const cur = NW.diff || (T.settings || {}).difficulty || 'normal';
+    return modal(`<div class="aw-sheet"><h3>الصعوبة</h3>${DIFF.slice().sort((a, b) => (b[0] === 'adaptive') - (a[0] === 'adaptive')).map(d => cf3Opt('nw-set', 'diff:' + d[0], cur === d[0], d[0] === 'adaptive' ? 'حسب الطالب' : d[1], d[2])).join('')}</div>`); }
+  if (k === 'ko') return modal(`<div class="aw-sheet"><h3>كم يتأهل للمواجهة؟</h3><p class="sub">من كل صف، حسب ترتيب النقاط.</p>${[[4, 'دوران · يومان'], [8, '3 أدوار · 3 أيام'], [16, '4 أدوار · 4 أيام']].map(o => cf3Opt('nw-set', 'ko:' + o[0], NW.koQ === o[0], o[0] + ' طلاب', o[1])).join('')}</div>`);
+};
+ACTS['nw-set'] = t => { const [k, v] = t.dataset.v.split(':');
+  if (k === 'start') NW.startOff = Number(v); else if (k === 'diff') NW.diff = v; else if (k === 'ko') NW.koQ = Number(v);
+  closeModals(); nwRender(); };
+ACTS['nw-ko'] = () => { if (NW.koQ) { NW.koQ = 0; nwRender(); } else ACTS['nw-opt']({ dataset: { k: 'ko' } }); };
 ACTS['nw-days'] = t => { NW.days = Number(t.dataset.d); nwRender(); };
 ACTS['nw-cls'] = async f => {
   const name = f.n.value.replace(/\s+/g, ' ').trim(), stg = (f.querySelector('[name=st]:checked') || f.querySelector('[name=st]') || {}).value || defStage(f.n.value);
@@ -1605,7 +1655,7 @@ ACTS['nw-cls'] = async f => {
 ACTS['nw-start'] = async t => {
   if (NW.saving) return; NW.saving = true; t.setAttribute('aria-busy', 'true'); t.textContent = 'لحظة…';
   try {
-    const today = todayKW(), sp = cfSpan(today, NW.days, 8, 24), gid = crypto.randomUUID();
+    const today = nwStart(), sp = cfSpan(today, NW.days, NW.koQ, 24), gid = crypto.randomUUID();
     const cs = NW.classes.filter(c => NW.cls.includes(c.id));
     const title = cs.length === 1 ? `تحدي ${cs[0].name} · ${NW.subj}` : `تحدي ${NW.subj}`;
     if (!SG('prof_subject') && NW.cu && SUBJECTS.includes(NW.subj)) saveSettings({ prof_subject: NW.subj }).catch(() => {});
@@ -1626,7 +1676,7 @@ ACTS['nw-start'] = async t => {
     const qtypes = (cus2.length ? ['curriculum'] : []).concat(gts2.length ? gts2 : cus2.length ? [] : ['general', 'quick']);
     const multi = cus2.length > 1 ? { curricula: cus2 } : {};
     const r = await sb.from('competitions').insert(cs.map(c => Object.assign({ class_id: c.id, group_id: gid, title, start_date: today, points_end_date: sp.points_end_date, end_date: sp.end_date,
-      group_size: 6, qualifiers: 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: cus2.length > 1 ? null : NW.lessons || null }, multi, pzVal(NW.prizes))));
+      group_size: 6, qualifiers: NW.koQ || 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: cus2.length > 1 ? null : NW.lessons || null }, multi, pzVal(NW.prizes))));
     if (r.error) throw r.error;
     NW.made = [];
     for (const c of cs) { let code = c.join_code; if (!c.self_join || !code) code = await rpc('set_self_join', { p_class: c.id, p_on: true }); NW.made.push({ c, code }); }

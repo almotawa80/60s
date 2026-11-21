@@ -3034,3 +3034,17 @@ html body .t-nav{bottom:calc(env(safe-area-inset-bottom, 0px) + 12px)!important}
 html body .s-nav{bottom:calc(env(safe-area-inset-bottom, 0px) + 12px)!important}
 html body.wide .t-body{padding-bottom:calc(130px + env(safe-area-inset-bottom))}
 .sh:has(~ .s-nav){padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+/* v233 new challenge: lessons row + start/difficulty/knockout rows */
+.nw-grp{background:var(--card);border-radius:18px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.nw-grp .ce1-row{width:100%;border-radius:0;margin:0;background:transparent;box-shadow:none}
+.nw-grp .ce1-row+.ce1-row{border-top:.5px solid var(--line)}
+.nw-v{font-style:normal;color:var(--primary);font-weight:800;font-size:15px;white-space:nowrap}
+.nw-ls-h{display:flex;align-items:center;justify-content:space-between;gap:10px}.nw-ls-h h3{margin:0}
+.nw-ls-all{border:0;background:var(--soft,#F2F2F7);border-radius:999px;padding:7px 14px;font:inherit;font-weight:800;font-size:14px;color:var(--ink)}
+.nw-ls-list{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto;margin:8px 0 12px}
+.nw-ls-r{display:flex;align-items:center;gap:12px;border:0;background:var(--soft,#F2F2F7);border-radius:14px;padding:12px 14px;font:inherit;color:inherit;text-align:right;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.nw-ls-r .grow{font-weight:700;font-size:15.5px}.nw-ls-r small{color:var(--muted);font-weight:700}
+.nw-ls-c{width:26px;height:26px;border-radius:50%;border:2px solid #C7C7CC;display:grid;place-items:center;flex:none;color:transparent}
+.nw-ls-c .ico{width:15px;height:15px;stroke-width:3}
+.nw-ls-r.on .nw-ls-c{background:var(--primary);border-color:var(--primary);color:#fff}
+.nw-ls .btn{width:100%}
