@@ -4031,10 +4031,7 @@ function awFlag(r){
 ACTS['aw-start'] = t => {
   AW.cid = t && t.dataset && t.dataset.cid || null; const made = t && t.dataset && t.dataset.made;
   modal(`<div class="aw-sheet">${made ? `<div class="aw-made">✓ تم إنشاء «${esc(made)}»</div>` : ''}<h3>كيف تبي تضيف الطلبة؟</h3>
-    <button class="aw-opt main" data-act="aw-photo"><span class="aw-oi">📷</span><span class="grow"><b>تصوير كشف الأسماء</b><small>الأسرع لصف كامل</small></span></button>
-    <button class="aw-opt" data-act="aw-paste"><span class="aw-oi">✍️</span><span class="grow"><b>كتابة أو لصق الأسماء</b><small>اسم في كل سطر</small></span></button>
-    <button class="aw-opt" data-act="aw-file"><span class="aw-oi">📄</span><span class="grow"><b>ملف Excel</b><small>إذا عندك الكشف من نظام المدرسة</small></span></button>
-    <button class="aw-opt" data-act="aw-self"><span class="aw-oi">🔗</span><span class="grow"><b>الطلبة يسجّلون بأنفسهم</b><small>رابط أو QR ترسله للصف</small></span></button>${made ? '<button class="link aw-later" data-act="close-modal">لاحقاً</button>' : ''}</div>`);
+    <div class="st1-opts aw-sq"><button class="st1-o" data-act="aw-photo"><span>📷</span>تصوير الكشف<small>الأسرع</small></button><button class="st1-o" data-act="aw-paste"><span>✍️</span>كتابة الأسماء<small>أو لصقها</small></button><button class="st1-o" data-act="aw-file"><span>📄</span>ملف Excel<small>كشف المدرسة</small></button><button class="st1-o" data-act="aw-self"><span>🔗</span>يسجّلون بأنفسهم<small>رابط أو QR</small></button></div>${made ? '<button class="link aw-later" data-act="close-modal">لاحقاً</button>' : ''}</div>`);
 };
 /* v163: the file pickers may not be on the page (class page), so make them when needed */
 function awInput(id, accept, act){ let i = document.getElementById(id); if (!i) { i = document.createElement('input'); i.type = 'file'; i.id = id; i.accept = accept; i.className = 'hide'; i.dataset.change = act; document.body.appendChild(i); } return i; }
