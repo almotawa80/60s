@@ -2804,3 +2804,30 @@ body:not(.wide) .star-s.on{color:#F5B72B}
 body.dark:not(.wide) .star-s:not(.on){color:#3A3A3C;filter:none}
 html body .pv.pvx .dots .dot,html body .pv.pvx .dots .dot.cur,html body .pv.pvx .dots .dot.done{width:14px!important;height:14px!important;border-radius:50%!important;animation:none!important}
 html body .pv.pvx .dots .dot.cur:not(.done){box-shadow:0 0 0 3px rgba(200,16,46,.35)!important}
+/* v187: clearer text + calmer colours on student screens (badges first) */
+body:not(.wide){-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+body:not(.wide) .sh{letter-spacing:0}
+body:not(.wide) .sh b,body:not(.wide) .sh h1,body:not(.wide) .sh h2,body:not(.wide) .sh h3{font-weight:800}
+.bg2-h b{font-weight:800}.bg2-h span{color:#C7C7CC;font-weight:600}
+.bg2 b,.bg2-next b{font-weight:800;color:#FFFFFF}
+.bg2 small,.bg2-cnt,.bg2-st,.bg2-ds p,.bg2-c small,.bg2-c p,.bg2-hint,.bg2-steps small{color:#C7C7CC!important;font-weight:600}
+.bg2 small{font-size:13.5px;line-height:1.5}
+.bg2-cnt{font-size:13.5px;font-variant-numeric:tabular-nums}
+/* one surface colour for all cards; earned = gold tick only, no red frame/tint */
+.bg2,.bg2.on{background:#1C1C1E;border:1px solid #2C2C2E}
+.bg2.on .bg2-md{background:#2C2C2E}
+.bg2.off .bg2-md{opacity:.6}
+.bg2-ok{background:#F5B72B;color:#000}
+/* progress = gold everywhere (reward colour); red only for buttons */
+.bg2-bar{background:#3A3A3C}.bg2-bar i{background:#F5B72B}
+.bg2-next{background:#1C1C1E;border:1px solid #2C2C2E;color:#fff}
+.bg2-next .bg2-md{background:#2C2C2E}
+.bg2-next small{opacity:1;color:#C7C7CC}
+.bg2-nb{background:#3A3A3C}.bg2-nb i{background:#F5B72B}
+.bg2-tier i{background:#48484A}
+/* bottom bar: neutral dark, readable labels */
+body.dark .s-nav,body:not(.wide) .s-nav{background:#1C1C1E;border:1px solid #2C2C2E;box-shadow:0 6px 24px rgba(0,0,0,.6)}
+body:not(.wide) .s-nav button{color:#AEAEB2;font-weight:700;font-size:13px}
+body:not(.wide) .s-nav .i{opacity:.75}
+body:not(.wide) .s-nav button.on{color:#fff}
+body:not(.wide) .s-nav button.on .i{opacity:1}
