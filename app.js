@@ -476,6 +476,7 @@ ACTS['s-box'] = async t => {
   FX.win(false);
   const emo = document.getElementById('bx-emo'), hd = document.getElementById('bx-h'), act = document.getElementById('bx-act');
   if (r.prize) { emo.innerHTML = '<span class="bx bx-pop">' + r.prize + '</span>'; hd.textContent = 'ملصق جديد!'; act.innerHTML = '<p class="bx-note">مجموعتك ' + r.count + ' من ' + r.total + ' · تقدر تخليه شخصيتك من «أنا»</p>'; if (S.daily) S.daily.stickers = (S.daily.stickers || []).concat(r.prize); }
+  else if (r.xp) { emo.innerHTML = '<span class="bx bx-pop">⚡</span>'; hd.textContent = '+' + r.xp + ' نقطة لمستواك!'; act.innerHTML = '<p class="bx-note">كمّلت الملصقات كلها 🌟 الصندوق صار يعطيك نقاط مستوى</p>'; if (r.xp_total != null) lvlShow(r.xp_total); }
   else { emo.innerHTML = '<span class="bx bx-pop">🌟</span>'; hd.textContent = 'كمّلت المجموعة كلها!'; act.innerHTML = ''; }
 };
 /* knockout bracket (one head-to-head round per day after the points phase) + honor board */
