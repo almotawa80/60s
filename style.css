@@ -424,6 +424,8 @@ body.wide .t-top{position:sticky;top:0;z-index:30;padding:calc(10px + env(safe-a
 body.wide.scrolled .t-top{background:rgba(245,242,239,.78);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);box-shadow:0 .5px 0 var(--line)}
 body.wide .t-title{font-size:32px;font-weight:800;letter-spacing:-.02em;transition:font-size .2s}
 body.wide.scrolled .t-title{font-size:19px}
+/* v290: header height fixed so shrinking title can't bounce the scroll */
+body.wide .t-title{height:44px;line-height:44px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 body.wide .brand .logo{display:none}
 body.wide .t-body{gap:16px;padding-top:4px}
 /* cards: flat inset-grouped */
