@@ -2887,3 +2887,11 @@ html body .pv.pvx .dots .dot{padding:0!important;font-size:0!important;flex:none
 @media (orientation:landscape) and (max-height:500px) and (pointer:coarse){
   body::after{content:"📱\A لف جوالك للوضع العامودي";white-space:pre;position:fixed;inset:0;z-index:99999;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;font:800 22px/1.8 'Cairo',system-ui,sans-serif}
 }
+/* v202: onboarding round polish: round dots, centred last row, sticky next button */
+html body .obr-dots i{padding:0!important;flex:none;border-radius:50%!important;width:14px!important;height:14px!important}
+#ob .ob-g{display:flex!important;flex-wrap:wrap;justify-content:center;gap:10px}
+#ob .ob-g>.ob-t{flex:0 0 calc(50% - 5px);box-sizing:border-box}
+#ob .ob-g.g3>.ob-t{flex-basis:calc(33.333% - 7px)}
+#ob .obr-go{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:3}
+#ob .obr-go:not(.soft){box-shadow:0 5px 0 #8E0B21,0 -10px 24px 10px #000}
+.obr{padding-bottom:20px}
