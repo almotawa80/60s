@@ -3004,3 +3004,8 @@ html body .s-nav:has(.lens.drag) button.on:not(.hover) .nav-sq circle{fill:#7C7C
 html body .t-nav,html body .s-nav{transition:scale .35s cubic-bezier(.3,1.5,.45,1)}
 html body .t-nav:has(.lens.drag),html body .s-nav:has(.lens.drag){scale:1.025 1.04}
 @keyframes navBump{0%{scale:1}25%{scale:1.05 .92}55%{scale:.98 1.04}80%{scale:1.01 .99}100%{scale:1}}
+/* v226 (Khalid: too strong): soft, subtle bar reaction */
+html body .t-nav,html body .s-nav{transition:scale .45s cubic-bezier(.25,1.2,.4,1)}
+html body .t-nav:has(.lens.drag),html body .s-nav:has(.lens.drag){scale:1.008 1.012}
+html body .t-nav.bump,html body .s-nav.bump{animation:navBump2 .6s cubic-bezier(.25,.9,.35,1)}
+@keyframes navBump2{0%{scale:1}35%{scale:1.012 .985}70%{scale:.997 1.004}100%{scale:1}}
