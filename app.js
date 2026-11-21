@@ -704,17 +704,24 @@ async function arHome(){
   if (AR.h) arDraw(); else sPage('ar', '<div class="s-pgc"><div class="spin"></div></div>');
   try { AR.h = await rpc('arena_home', { p_token: S.token }); }
   catch(e){ if (AR.gen === g && S.tab === 'ar') sPage('ar', '<div class="s-pgc col"><div class="err">' + esc(errMsg(e)) + '</div><button class="btn" data-act="s-tab" data-t="ar">إعادة المحاولة</button></div>'); return; }
-  if (AR.gen === g && S.tab === 'ar') { arDraw(); if (AR.h.setup && !AR.asked) { AR.asked = true; arProfile(); } }
+  if (AR.gen === g && S.tab === 'ar') { arDraw(); if (AR.h.setup && !AR.asked) { AR.asked = true; arProfile(); } arNow(g); }
 }
+/* the green dot counts who is here right now (searching or inside a round); refreshed every 8s without redrawing the page */
+function arNow(g){ setTimeout(async () => { if (AR.gen !== g || S.tab !== 'ar' || !document.getElementById('ar-deck')) return;
+  try { const h = await rpc('arena_home', { p_token: S.token }); if (AR.gen !== g || S.tab !== 'ar') return; AR.h = h;
+    const top = document.getElementById('ar-now'); if (top) { top.hidden = !h.now; top.querySelector('b').textContent = h.now || 0; }
+    document.querySelectorAll('.ar-pill[data-s]').forEach(el => { const x = (h.subjects || []).find(y => y.s === el.dataset.s), n = x && x.now || 0; el.hidden = !n; el.querySelector('b').textContent = n; });
+  } catch(e){}
+  arNow(g); }, 8000); }
 function arDraw(){
   const h = AR.h, l = h.lvl, t = h.tier, subs = h.subjects || [];
   const gate = l.n < 11 ? 'بوابة 4 أسئلة عند مستوى 11' : l.n < 31 ? 'بوابة 6 أسئلة عند مستوى 31' : l.n < 60 ? 'القمة عند مستوى 60' : '⭐ ' + (l.stars || 0);
   sPage('ar', '<div class="ar">' +
-    '<div class="ar-top"><div><b class="ar-nm">' + esc(h.nick || '') + '</b><small>' + t.nq + ' أسئلة بالدقيقة</small></div>' + (h.players_today ? '<span class="ar-on"><i></i><b>' + h.players_today + '</b> لعبوا اليوم</span>' : '') + '</div>' +
+    '<div class="ar-top"><div><b class="ar-nm">' + esc(h.nick || '') + '</b><small>' + t.nq + ' أسئلة بالدقيقة</small></div>' + '<span class="ar-on" id="ar-now"' + (h.now ? '' : ' hidden') + '><i></i><b>' + (h.now || 0) + '</b> موجودين الحين</span>' + '</div>' +
     '<div class="ar-dial">' + arDial(l) + '<div class="ar-core"><button class="ar-avb" data-act="ar-pf" aria-label="غيّر لقبك وشكلك">' + arAv(h.avatar, h.nick, '', h.av) + '</button>' + '<div class="ar-lv">مستوى <b>' + l.n + '</b></div></div></div>' +
     '<div class="ar-under"><span><b>' + l.into + '</b> / ' + l.need + ' نقطة</span><span class="gate">' + gate + '</span></div>' +
     (subs.length ? '<div class="ar-deck" id="ar-deck">' + subs.map((x, i) => { const d = arSubj(x.s, i);
-        return '<button class="ar-card" style="--c:' + AR_COL[d.c][0] + '" data-act="ar-play" data-s="' + esc(x.s) + '">' + arArt(d) + '<span class="ar-pill">' + (x.played ? '<i></i>' + x.played + ' لعبوا اليوم' : 'جديد') + '</span><span class="ar-cn">' + esc(d.n) + '</span><span class="ar-cta">العب ' + ic('play') + '</span></button>'; }).join('') + '</div>' +
+        return '<button class="ar-card" style="--c:' + AR_COL[d.c][0] + '" data-act="ar-play" data-s="' + esc(x.s) + '">' + arArt(d) + '<span class="ar-pill" data-s="' + esc(x.s) + '"' + (x.now ? '' : ' hidden') + '><i></i><b>' + (x.now || 0) + '</b> يلعبون الحين</span><span class="ar-cn">' + esc(d.n) + '</span><span class="ar-cta">العب ' + ic('play') + '</span></button>'; }).join('') + '</div>' +
       (subs.length > 1 ? '<div class="ar-dots" id="ar-dots">' + subs.map((_, i) => '<i' + (i ? '' : ' class="on"') + '></i>').join('') + '</div>' : '')
       : '<p class="muted center">الأسئلة تنضاف قريب.</p>') + '</div>');
   const dk = document.getElementById('ar-deck');
@@ -727,16 +734,20 @@ ACTS['ar-play'] = async t => {
   AR.now = false;
   try {
     /* the search takes 10 to 25 seconds, like a real queue; the round is only created once it ends, so cancelling costs nothing */
-    const wait = 10000 + Math.random() * 15000, t0 = performance.now(), msgs = [esc(arSubj(s).n) + ' · قريب من مستواك', 'نطابق المستوى…', 'ندوّر بين اللاعبين…', 'قربنا…'];
+    let live = null, seeking = false, noSeek = false, lastSeek = -9999; const wait = 20000 + Math.random() * 10000, t0 = performance.now(), msgs = [esc(arSubj(s).n) + ' · قريب من مستواك', 'نطابق المستوى…', 'ندوّر بين اللاعبين…', 'قربنا…'];
     await new Promise(z => { const iv = setInterval(() => { const el = performance.now() - t0, n = document.getElementById('ar-fs'), fp = document.getElementById('ar-fp');
-      if (AR.gen !== g || !n) { clearInterval(iv); return z(); }
+      if (AR.gen !== g || !n) { if (seeking) return; clearInterval(iv); return z(); }
       n.textContent = Math.floor(el / 1000); fp.innerHTML = msgs[Math.min(msgs.length - 1, Math.floor(el / wait * msgs.length))];
-      if (el >= wait || AR.now) { clearInterval(iv); z(); } }, 250); });
-    if (AR.gen !== g) return;
-    const got = [await rpc('arena_start', { p_token: S.token, p_subject: s })];
+      /* ask the server every 1.5s: is someone else searching this subject right now? */
+      if (!seeking && !live && !noSeek && el - lastSeek >= 1500 && el < wait && !AR.now) { seeking = true; lastSeek = el;
+        rpc('arena_seek', { p_token: S.token, p_subject: s }).then(x => { if (x && x.round) live = x; }, () => { noSeek = true; }).then(() => { seeking = false; }); }
+      if ((el >= wait || AR.now || live) && !seeking) { clearInterval(iv); z(); } }, 250); });
+    if (AR.gen !== g) { if (live) rpc('arena_leave', { p_token: S.token, p_round: live.round }).catch(() => {}); return; }
+    const got = [live || await rpc('arena_start', { p_token: S.token, p_subject: s })];
     if (AR.gen !== g) return;
     { const hh = document.querySelector('.ar-find h2'), fp = document.getElementById('ar-fp'), fx = document.querySelector('.ar-fx'); if (hh) { hh.textContent = 'لقينا لك خصم! ⚔️'; if (fp) fp.textContent = (got[0].opp.name || '') + ' · مستوى ' + got[0].opp.lvl; document.querySelectorAll('.ar-fx').forEach(x => x.remove()); FX.tick && FX.tick(true); haptic(); await new Promise(z => setTimeout(z, 1100)); if (AR.gen !== g) return; } }
     AR.r = Object.assign(got[0], { pos: 0, me: [], op: [], emoN: 3, q: got[0].question });
+    arPoll(AR.r);
     await arVs(g); if (AR.gen !== g) return;
     arQ();
   } catch(e){ if (AR.gen === g) { toast(errMsg(e)); arHome(); } }
@@ -747,7 +758,7 @@ function arVs(g){
   $app.innerHTML = '<div class="ar-vs"><div class="half a">' + arAv(h.avatar, h.nick, '', h.av) + '<b>' + esc(h.nick || 'أنت') + '</b><small>مستوى ' + r.lvl + '</small></div>' +
     '<div class="half b"><small>مستوى ' + o.lvl + '</small><b>' + esc(o.name || '') + '</b>' + arAv(o.avatar, o.name, '', o.av) + '</div>' +
     '<div class="mid"><svg viewBox="0 0 112 112" aria-hidden="true"><circle cx="56" cy="56" r="50" fill="none" stroke="#2A2A2E" stroke-width="8"/><circle id="ar-cdr" cx="56" cy="56" r="50" fill="none" stroke="#F5B72B" stroke-width="8" stroke-linecap="round" stroke-dasharray="314.2 314.2" transform="rotate(-90 56 56)"/></svg><div class="num" id="ar-num" role="status"><span class="vs">VS</span></div></div>' +
-    '<p class="cap">' + esc(arSubj(r.subject).n) + ' · ' + r.nq + ' أسئلة · ' + r.secs + ' ثانية للسؤال</p></div>';
+    '<p class="cap">' + (r.live ? '<span class="ar-live"><i></i>مباشر</span> · ' : '') + esc(arSubj(r.subject).n) + ' · ' + r.nq + ' أسئلة · ' + r.secs + ' ثانية للسؤال</p></div>';
   return new Promise(res => { let c = 3; const col = { 3: '#FF453A', 2: '#FFD60A', 1: '#30D158' };
     const step = () => { if (AR.gen !== g) return res(); const n = document.getElementById('ar-num'), ring = document.getElementById('ar-cdr'); if (c === 0 || !n) return res();
       n.innerHTML = '<span style="color:' + col[c] + '">' + c + '</span>'; ring.style.stroke = col[c]; ring.style.strokeDashoffset = String(314.2 * (4 - c) / 3); FX.tick && FX.tick(c === 1); c--; setTimeout(step, 800); };
@@ -781,8 +792,8 @@ function arQ(){
 }
 ACTS['ar-ans'] = t => { if (AR.lock) return; AR.lock = true; AR.tm = null; arSubmit(Number(t.dataset.idx)); };
 ACTS['ar-now'] = t => { AR.now = true; t.disabled = true; };
-ACTS['ar-cancel'] = () => { AR.gen++; AR.busy = false; arHome(); };
-ACTS['ar-quit'] = async () => { if (!await ask('الجولة ما تنحسب لك.', { title: 'الخروج من الجولة؟', ok: 'خروج', cancel: 'أكمل الجولة', danger: true, safe: true })) return; AR.gen++; AR.tm = null; clearTimeout(AR.ot); arHome(); };
+ACTS['ar-cancel'] = () => { AR.gen++; AR.busy = false; rpc('arena_leave', { p_token: S.token, p_round: null }).catch(() => {}); arHome(); };
+ACTS['ar-quit'] = async () => { if (!await ask('الجولة ما تنحسب لك.', { title: 'الخروج من الجولة؟', ok: 'خروج', cancel: 'أكمل الجولة', danger: true, safe: true })) return; AR.gen++; AR.tm = null; clearTimeout(AR.ot); if (AR.r) { AR.r.dead = true; rpc('arena_leave', { p_token: S.token, p_round: AR.r.round }).catch(() => {}); } arHome(); };
 async function arSubmit(idx){
   const r = AR.r, g = AR.gen, pos = r.pos; AR.tm = null;
   const btns = $app.querySelectorAll('.opt'); btns.forEach(b => { b.disabled = true; });
@@ -792,15 +803,26 @@ async function arSubmit(idx){
     const ci = res.correct_index;
     btns.forEach((b, i) => { if (i === ci) { b.classList.add('good'); optMark(b, '✓', 'الإجابة الصحيحة'); } else if (i === idx) { b.classList.add('bad'); optMark(b, '✗', 'إجابتك، غير صحيحة'); } else b.classList.add('dim'); });
     r.me[pos] = !!res.correct; clearTimeout(AR.ot);
-    if (r.op[pos] === undefined) { const oa = (r.opp.ans || [])[pos]; r.op[pos] = !!(oa && oa.ok); }
+    if (!r.live && r.op[pos] === undefined) { const oa = (r.opp.ans || [])[pos]; r.op[pos] = !!(oa && oa.ok); }
     arTug();
     if (res.correct) FX.correct(btns[ci], 10 + (res.speed || 0), 1); else FX.wrong(idx != null ? btns[idx] : null, idx == null);
     const pop = document.getElementById('pop'); if (pop) { pop.className = 'pts-pop ' + (res.correct ? 'good' : 'bad'); pop.textContent = res.correct ? '+' + (10 + (res.speed || 0)) + ' نقطة' : (idx == null ? 'انتهى الوقت، الصحيحة بالأخضر' : 'الصحيحة بالأخضر 👆'); }
-    setTimeout(() => { if (AR.gen !== g) return; if (res.summary) return arResult(res.summary); r.pos = pos + 1; r.q = res.question; arQ(); }, res.correct ? 1200 : 2500);
+    setTimeout(() => { if (AR.gen !== g) return; if (res.summary) return arResult(res.summary); if (res.wait) return arWait(); r.pos = pos + 1; r.q = res.question; arQ(); }, res.correct ? 1200 : 2500);
   } catch(e){ if (AR.gen !== g) return; toast(errMsg(e)); arHome(); }
 }
+/* live rounds: the opponent's answers and reactions arrive by polling; the result waits until both have finished */
+function arPoll(r){ if (!r.live) return;
+  const tick = async () => { if (AR.r !== r || r.dead || r.done) return;
+    try { const p = await rpc('arena_peek', { p_token: S.token, p_round: r.round }); if (AR.r !== r || r.dead || r.done) return;
+      if (p) { r.op = (p.ans || []).map(Boolean); const em = p.emo || []; em.slice(r.oemo || 0).forEach(e => { if (!arMuted()) arBubble('ar-oav', e.k); }); r.oemo = em.length; arTug();
+        if (p.summary && r.waiting) return arResult(p.summary); } } catch(e){}
+    setTimeout(tick, r.waiting ? 900 : 1200); };
+  setTimeout(tick, 1200); }
+function arWait(){ const r = AR.r; r.waiting = true;
+  $app.innerHTML = '<div class="sh pvx ar-res ar-wait">' + arTugHtml() + '<div class="spin"></div><h1>ننتظر خصمك يخلص…</h1><p>النتيجة تطلع أول ما يجاوب آخر سؤال</p></div>'; }
 function arResult(sm){
   const r = AR.r, g = ++AR.gen, b = sm.before, a = sm.after, SEG = 14, f0 = Math.round(b.into / b.need * SEG), f1 = sm.up ? SEG : Math.round(a.into / a.need * SEG);
+  r.done = true;
   const head = { win: 'فزت بالشدّة!', draw: 'تعادل!', lose: 'قربت، الجاية لك' }[sm.result];
   $app.innerHTML = '<div class="sh pvx ar-res">' + arTugHtml() + '<h1>' + head + '</h1>' +
     '<div class="ar-gain"><span id="ar-gn">+0</span> <small>نقطة</small></div>' +

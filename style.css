@@ -3489,3 +3489,8 @@ html body:not(.wide)[data-theme] .input::placeholder{color:#8E8E93}
 .ar-fs::after{content:" ث";font-size:15px;color:#98989F}
 .ar-find .ar-fx{width:auto;padding-inline:34px;margin-top:10px}
 .ar-find .ar-fnow{margin-top:10px}.ar-find .ar-fnow+.ar-fx{margin-top:0}
+/* arena live: «مباشر» tag, waiting for the opponent, hidden pills */
+.ar-on[hidden],.ar-pill[hidden]{display:none!important}
+.ar-live{display:inline-flex;align-items:center;gap:5px;color:#30D158;font-weight:900}
+.ar-live i{width:8px;height:8px;border-radius:50%;background:#30D158;box-shadow:0 0 0 4px rgba(48,209,88,.25)}
+.ar-wait{justify-content:flex-start}.ar-wait .spin{margin:60px auto 8px}.ar-wait h1{font-size:24px}.ar-wait p{margin:0;color:#98989F;text-align:center}
