@@ -3017,3 +3017,15 @@ html body .s-nav:has(.lens.drag) button.on:not(.hover) .i{filter:grayscale(1)!im
 html body .s-nav:has(.lens.drag) button.hover .i{filter:none!important;opacity:1!important}
 html body .s-nav:has(.lens.drag) button.on:not(.hover){color:#AEAEB2!important}
 html body .s-nav:has(.lens.drag) button.hover{color:#fff!important}
+/* v228 (Khalid, iPhone compare): resting lens = dark pill; slimmer bars */
+html body.wide.dark .t-nav .lens:not(.drag):not(.move),html body:not(.wide) .s-nav .lens:not(.drag):not(.move){background:rgba(0,0,0,.55)!important}
+html body .t-nav{padding:4px 6px!important}
+html body .t-nav a{padding:2px 0!important}
+html body .t-nav .nav-ln{width:23px;height:23px}
+html body .t-nav a span{font-size:11.5px!important}
+html body .t-nav a.t-sq .nav-sq{width:42px;height:42px}
+html body .t-nav .lens,html body .s-nav .lens{top:4px;bottom:4px}
+html body .s-nav{height:60px}
+html body .s-nav button{min-height:50px;font-size:12px}
+html body .s-nav .i{font-size:21px}
+html body .s-nav .i.sq .nav-sq{width:44px;height:44px}
