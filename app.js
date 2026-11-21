@@ -5278,7 +5278,6 @@ function tRules(){
       ${lb === 'top' ? numRow('lb_n', 'عدد الأوائل') + swRow({ k: 'lb_me', label: 'يشوف ترتيبه دائماً', sub: 'حتى لو مو من الأوائل' }) : ''}
       <div class="rl2-row"><span>الأسماء عند الطلاب</span>${seg('names', nm, [['full', 'محمد أحمد العلي'], ['first_fam', 'محمد ع.'], ['first', 'محمد']])}</div>
       ${swRow({ k: 'lb_pts', label: 'إظهار نقاط الآخرين' })}
-      ${sRow({ act: 'go', attrs: 'data-h="#/t/tb"', label: 'إذا تساووا بالنقاط', val: esc(TBL[tbk[0]][0] + '، ثم ' + TBL[tbk[1]][0]) })}
     </div>`,
     'settings', '', '#/t/settings');
 }
@@ -5313,7 +5312,6 @@ function tRSet(){
       numRow('pts_e', 'سهل', auto), numRow('pts_m', 'متوسط', auto), numRow('pts_h', 'صعب', auto),
       sc !== 'correct' ? numRow('speed_pct', 'مكافأة السرعة') : '', sc === 'penalty' ? numRow('pen_pct', 'خصم الخطأ') : ''],
       `أعلى درجة بجولة «متوسط» تقريباً ${maxR} نقطة. التغيير يأثر على الجولات القادمة بس.`) +
-    sGrp('عند تساوي النقاط', [sRow({ act: 'go', attrs: 'data-h="#/t/tb"', label: 'ترتيب المعايير', val: esc(TBL[tbk[0]][0] + '، ثم ' + TBL[tbk[1]][0]) })]) +
     sGrp('لوحة المتصدرين للطلبة', [optRow('lb', 'اللوحة'), lb === 'top' ? numRow('lb_n', 'عدد المتصدرين') : '',
       swRow({ k: 'lb_pts', label: 'إظهار نقاط الطلبة الآخرين' }), swRow({ k: 'lb_me', label: 'إظهار ترتيب الطالب دائماً', sub: 'حتى لو مو من الأوائل' }), optRow('names', 'الأسماء في اللوحة')]),
     'settings', '', '#/t/sg/ch');
