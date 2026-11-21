@@ -419,7 +419,7 @@ ACTS['s-push'] = async t => {
     const reg = await navigator.serviceWorker.ready;
     const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(key) });
     await rpc('student_push_sub', { p_token: S.token, p_sub: sub.toJSON() });
-    LS.set('mc_push', '1'); closeModals(); document.querySelectorAll('.sp-bell').forEach(b => b.remove()); toast('تمام! يوصلك التذكير ورسائل معلمك 🔔');
+    LS.set('mc_push', '1'); document.querySelectorAll('[data-act="s-push-tab"]').forEach(b => { b.disabled = false; const i = b.querySelector('i'); if (i) i.textContent = '🔔'; }); closeModals(); document.querySelectorAll('.sp-bell').forEach(b => b.remove()); toast('تمام! يوصلك التذكير ورسائل معلمك 🔔');
   } catch(e){ t.disabled = false; toast('ما قدرنا نفعّل التذكير، جرّب بعدين'); }
 };
 /* v171 «صندوق بكرة» + «هدف الصف» (needs sql/box_goal.sql; silently absent before it) */
