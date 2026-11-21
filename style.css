@@ -2691,3 +2691,7 @@ html body.wide .t-body{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
 /* v167: bring back the liquid-glass lens under the active tab (hidden since v88) */
 html body.wide .t-nav .lens{display:block!important;top:4px;bottom:4px}
 html body.wide.dark .t-nav .lens{background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.07))}
+/* v168: practice = a real button (Khalid: link looked like text) */
+.sp-low .sp-prac{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:340px;min-height:56px;border:1.5px solid #48484A;border-radius:18px;background:#2C2C2E;color:#F5F5F7;font:inherit;font-weight:900;font-size:17px;box-shadow:0 5px 0 #0E0E10;cursor:pointer}
+.sp-low .sp-prac span{font-size:22px}
+.sp-low .sp-prac:active{transform:translateY(3px);box-shadow:0 2px 0 #0E0E10}

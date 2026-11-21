@@ -341,8 +341,8 @@ function renderHomeP(){
   const days = h.streak || 0, up = S.upMsg; S.upMsg = null;
   const pills = '<div class="sp-pills"><span class="sp-pill">مركزك ' + (h.rank || '-') + ' من ' + size + '</span>' + (days ? '<span class="sp-pill"><span class="flame">🔥</span> ' + days + (days === 1 ? ' يوم' : days === 2 ? ' يومين' : ' أيام') + '</span>' : '') + '</div>';
   let mid;
-  if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo">🎉</div><b>أحسنت! رجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
-    '<p class="sp-sub">الجولة الجاية بعد <b id="cd">' + cdText() + '</b></p></div>';
+  if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo">🎉</div><b>أحسنت! ارجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
+    '<p class="sp-sub">الجولة القادمة بعد <b id="cd">' + cdText() + '</b></p></div>';
   else mid = (h.rank > 1 && h.gap != null ? '<div class="sp-rival" id="rival">' + (h.gap > 0 ? 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى اللي فوقك 👀' : 'أنت متعادل مع اللي فوقك، جولة وحدة تكفي! 👀') + '</div>' : h.rank === 1 && h.total_points ? '<div class="sp-rival">أنت الأول 🏆 حافظ عليها</div>' : '') +
     pzLine((h.competition || {}).prizes, 'sp-prize') +
     '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>' +
@@ -352,7 +352,7 @@ function renderHomeP(){
     '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
     '</div></div>' +
     pills + '<div class="sp-mid">' + mid + '</div>' +
-    '<div class="sp-low"><button class="link" data-act="s-start" data-kind="practice">تدرّب بدون نقاط</button>' +
+    '<div class="sp-low"><button class="sp-prac" data-act="s-start" data-kind="practice"><span>🎯</span>تدرّب بدون نقاط</button>' +
     '</div></div>' + sNav('home');
   startCountdown();
   if (!h.played_today && h.rank > 1 && h.gap > 0 && !S.demo) rpc('class_leaderboard', { p_token: S.token }).then(lb => {
