@@ -2798,3 +2798,9 @@ html body[data-stage=s][data-theme] .pv.pvx .opts.kc.long .opt .txt{font-size:15
 .fr-b{box-shadow:0 0 0 3px #B0723A!important}
 .fr-s{box-shadow:0 0 0 3px #C7CDD4!important}
 .fr-g{box-shadow:0 0 0 3px #F5B72B,0 0 14px rgba(245,183,43,.45)!important}
+/* v186 fixes: stars colour in dark, filled from the right; uniform answer dots */
+.stars-row{direction:rtl}
+body:not(.wide) .star-s.on{color:#F5B72B}
+body.dark:not(.wide) .star-s:not(.on){color:#3A3A3C;filter:none}
+html body .pv.pvx .dots .dot,html body .pv.pvx .dots .dot.cur,html body .pv.pvx .dots .dot.done{width:14px!important;height:14px!important;border-radius:50%!important;animation:none!important}
+html body .pv.pvx .dots .dot.cur:not(.done){box-shadow:0 0 0 3px rgba(200,16,46,.35)!important}
