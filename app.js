@@ -1600,7 +1600,7 @@ ACTS['nw-subj-next'] = () => { const sel = NW.sel || []; if (!sel.length) return
   NW.cus = cus; NW.cu = cus[0] || null; NW.gtypes = sel.filter(k => NW_GEN.some(o => o[0] === k));
   NW.subj = sel.length === 1 ? nwName(sel[0]) : sel.length === 2 ? sel.map(nwName).join(' و') : 'منوعة'; NW.step = 3; nwRender(); };
 /* v233 (Khalid): pick lessons (one subject) + start / difficulty / knockout rows on the last step */
-function nwLesCu(sel){ const cus = (sel || []).filter(k => !NW_GEN.some(o => o[0] === k)); return cus.length === 1 && cus.length === (sel || []).length ? cus[0] : null; }
+function nwLesCu(sel){ const cus = (sel || []).filter(k => !NW_GEN.some(o => o[0] === k)); return cus.length === 1 ? cus[0] : null; }
 function nwLesRow(sel){ const cu = nwLesCu(sel); if (!cu) return '';
   const ls = CFL[cu]; if (!ls) { nwLesLoad(cu).then(() => { if (NW.step === 2 && location.hash.indexOf('#/t/new') === 0) nwRender(); }); return ''; }
   if (!ls.length) return '';
