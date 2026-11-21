@@ -1019,12 +1019,21 @@ const STYLE_SW = { kids: 'linear-gradient(135deg,#FFD9B0,#E3262F)', mid: 'linear
 const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png?i=2" alt=""></div>';
 const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['new', 'تحدي', 'plus'], ['questions', 'الأسئلة', 'help'], ['settings', 'الإعدادات', 'gear']];
 const NAV_EMO = { home:'🏠', classes:'👥', questions:'❓', settings:'⚙️' };
-const navIc = n => NAV_EMO[n[0]] ? `<span class="nav-emo" aria-hidden="true">${NAV_EMO[n[0]]}</span>` : n[0] === 'join' ? '<span class="join-ic" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' : n[0] === 'new' ? `<span class="plus-ic">${ic('plus')}</span>` : ic(n[2]);
+/* v211 (Khalid): line icons + «تحدي» = answer-squares logo (bigger, no label) + red count badges */
+const NAV_LN = {"home": '<svg class="nav-ln" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>', "classes": '<svg class="nav-ln" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c1.8.7 3 2.4 3.5 5.2"/></svg>', "questions": '<svg class="nav-ln" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>', "settings": '<svg class="nav-ln" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>'};
+const NAV_SQ = '<svg class="nav-sq" viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="nsq0"><path d="M15 4H37Q48 4 48 15V45Q48 48 45 48H15Q4 48 4 37V15Q4 4 15 4Z"/></clipPath><clipPath id="nsq1"><path d="M63 4H85Q96 4 96 15V37Q96 48 85 48H55Q52 48 52 45V15Q52 4 63 4Z"/></clipPath><clipPath id="nsq2"><path d="M15 52H45Q48 52 48 55V85Q48 96 37 96H15Q4 96 4 85V63Q4 52 15 52Z"/></clipPath><clipPath id="nsq3"><path d="M55 52H85Q96 52 96 63V85Q96 96 85 96H63Q52 96 52 85V55Q52 52 55 52Z"/></clipPath></defs><path d="M15 4H37Q48 4 48 15V45Q48 48 45 48H15Q4 48 4 37V15Q4 4 15 4Z" fill="var(--nsq)"/><circle cx="48" cy="48" r="17" fill="#0A84FF" clip-path="url(#nsq0)"/><path d="M63 4H85Q96 4 96 15V37Q96 48 85 48H55Q52 48 52 45V15Q52 4 63 4Z" fill="var(--nsq)"/><circle cx="52" cy="48" r="17" fill="#FF453A" clip-path="url(#nsq1)"/><path d="M15 52H45Q48 52 48 55V85Q48 96 37 96H15Q4 96 4 85V63Q4 52 15 52Z" fill="var(--nsq)"/><circle cx="48" cy="52" r="17" fill="#30D158" clip-path="url(#nsq2)"/><path d="M55 52H85Q96 52 96 63V85Q96 96 85 96H63Q52 96 52 85V55Q52 52 55 52Z" fill="var(--nsq)"/><circle cx="52" cy="52" r="17" fill="#FFD60A" clip-path="url(#nsq3)"/></svg>';
+const NB = (() => { try { return JSON.parse(LS.get('mc_nb') || '{}') || {}; } catch (e) { return {}; } })();
+const nbHtml = k => (k === 'home' || k === 'classes') ? `<em class="nb" data-nb="${k}"${NB[k] ? '' : ' hidden'}>${NB[k] > 99 ? '99+' : (NB[k] || '')}</em>` : '';
+function nbSet(k, n){ NB[k] = n || 0; LS.set('mc_nb', JSON.stringify(NB)); document.querySelectorAll('.nb[data-nb="' + k + '"]').forEach(e => { e.hidden = !NB[k]; e.textContent = NB[k] > 99 ? '99+' : (NB[k] || ''); }); }
+let NB_T = 0;
+function nbPending(){ if (Date.now() - NB_T < 60000 || !T.user) return; NB_T = Date.now();
+  sb.from('students').select('id,classes!inner(archived,teacher_id)', { count: 'exact', head: true }).eq('approved', false).eq('classes.archived', false).eq('classes.teacher_id', T.user.id).then(r => { if (!r.error) nbSet('classes', r.count || 0); }); }
+const navIc = n => n[0] === 'new' ? NAV_SQ : NAV_LN[n[0]] ? NAV_LN[n[0]] + nbHtml(n[0]) : ic(n[2]);
 
 function shell(title, body, active, top, back){
   return `<div class="t-top"><div class="brand">${back ? (back.indexOf('act:') === 0 ? `<button class="icon-btn back-btn" data-act="${back.slice(4)}" aria-label="رجوع">${ic('back')}</button>` : `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>`) : LOGO_S}<span class="t-title">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
     `<div class="t-body">${body}</div>` +
-    `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}${n[0] === 'new' ? ' t-plus' : ''}">${navIc(n)}<span>${n[1]}</span></a>`).join('')}</nav>`;
+    `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}${n[0] === 'new' ? ' t-sq' : ''}"${n[0] === 'new' ? ' aria-label="تحدي جديد"' : ''}>${navIc(n)}${n[0] === 'new' ? '' : `<span>${n[1]}</span>`}</a>`).join('')}</nav>` + (setTimeout(nbPending, 0) && '');
 }
 const NAVI = { prev: 0 };
 const PCACHE = {}; // last rendered teacher page per hash, shown instantly while fresh data loads
@@ -1368,6 +1377,7 @@ async function tHome(){
   const groups = {}, order = [];
   cp.data.forEach(c => { if (!classes.some(k => k.id === c.class_id)) return; const g = c.group_id || c.id; if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(c); });
   const res = await Promise.all(order.map(g => Promise.all(groups[g].map(c => rpc('teacher_class_results', { p_class: c.class_id }).catch(() => null)))));
+  { let left = 0; order.forEach((g, k) => { const c = groups[g][0], ph = phaseOf(c); if (c.paused_at || (ph !== 'points' && ph !== 'knockout')) return; left += res[k].filter(Boolean).flat().filter(r => !r.played_today).length; }); nbSet('home', left); }
   const cards = order.map((g, k) => {
     const cs = groups[g], c = cs[0], rs = res[k].filter(Boolean).flat(), n = rs.length, played = rs.filter(r => r.played_today).length;
     const names = cs.map(x => (classes.find(y => y.id === x.class_id) || {}).name).filter(Boolean).join('، ');
@@ -2053,7 +2063,7 @@ ACTS['c-eye'] = t => {
 };
 ACTS['s-approve'] = async t => {
   const id = t.dataset.id, { error } = await sb.from('students').update({ approved: true }).eq('id', id); if (error) return toast(errMsg(error));
-  for (const k in CL.students) (CL.students[k] || []).forEach(x => { if (x.id === id) x.approved = true; });
+  for (const k in CL.students) (CL.students[k] || []).forEach(x => { if (x.id === id) x.approved = true; }); nbSet('classes', Math.max(0, (NB.classes || 0) - 1)); NB_T = 0;
   renderClasses(); toast('تمت الموافقة ✓');
 };
 ACTS['s-reject'] = async t => {

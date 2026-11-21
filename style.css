@@ -2927,3 +2927,15 @@ html body .cin-n[data-n="1"]{color:#30D158!important;text-shadow:0 0 40px rgba(4
 .modal-back.mid .lvl-up{font-size:44px;margin-bottom:4px}
 .modal-back.mid .btn{width:100%;margin-top:8px}
 @keyframes midIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
+
+/* v211 teacher tab bar: line icons, «تحدي» = answer-squares logo (no label), red count badges */
+.t-nav a{position:relative}
+.t-nav .nav-ln{width:25px;height:25px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.t-nav a.on .nav-ln{stroke-width:2.3}
+.t-nav a.t-sq{justify-content:center}
+.t-nav .nav-sq{width:40px;height:40px;display:block;--nsq:#3A3A3C;transition:transform .2s}
+body.wide.dark .t-nav .nav-sq{--nsq:#48484A}
+.t-nav a.t-sq:active .nav-sq{transform:scale(.9)}
+.t-nav .nb{position:absolute;top:0;left:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#FF3B30;color:#fff;font-size:11px;font-style:normal;font-weight:900;line-height:18px;text-align:center;box-shadow:0 0 0 2px rgba(255,255,255,.9);pointer-events:none}
+body.wide.dark .t-nav .nb{box-shadow:0 0 0 2px #1C1C1E}
+.t-nav .nb[hidden]{display:none}
