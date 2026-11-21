@@ -380,6 +380,8 @@ function renderHomeP(){
 /* v176 permanent level ⚡ (sql/student_level.sql): level n starts at 50·n(n−1)/2 XP */
 const LVL_NAMES = [[1, 'مبتدئ'], [5, 'متحمّس'], [10, 'شاطر'], [15, 'بطل'], [20, 'أسطورة']];
 function lvlOf(xp){ let n = 1; while (25 * n * (n + 1) <= xp) n++; const lo = 25 * n * (n - 1), hi = 25 * n * (n + 1); return { n, lo, hi, name: LVL_NAMES.filter(x => n >= x[0]).pop()[1] }; }
+/* frame colour by level: bronze 1–4, silver 5–9, gold 10+ */
+function lvlFrame(){ const xp = S.daily && S.daily.xp; if (xp == null) return ''; const n = lvlOf(xp).n; return n >= 10 ? 'fr-g' : n >= 5 ? 'fr-s' : 'fr-b'; }
 function lvlShow(xp){
   if (xp == null) return; const L = lvlOf(xp), el = document.getElementById('lvl');
   if (el) { el.hidden = false; el.textContent = '⚡ مستوى ' + L.n; }
@@ -542,7 +544,7 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
   if (k === 'home') return renderHome();
   if (k === 'bd') return sPage('bd', '<div class="s-pgc">' + badgesHtml() + '</div>');
   if (k === 'me') { const h = S.home, n = (h.student.name || '?').trim();
-    return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><button class="s-me-av' + (h.student.avatar ? ' em' : '') + '" data-act="s-av" aria-label="اختر شخصيتك">' + esc(h.student.avatar || n.charAt(0)) + '<span class="s-av-ed">✏️</span></button><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small></div>' +
+    return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><button class="s-me-av ' + lvlFrame() + (h.student.avatar ? ' em' : '') + '" data-act="s-av" aria-label="اختر شخصيتك">' + esc(h.student.avatar || n.charAt(0)) + '<span class="s-av-ed">✏️</span></button><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small></div>' +
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
       '<div class="s-me-o">' + [['s-profile', '🪪', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
       '</div>'); }
@@ -550,7 +552,7 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
     sPage('lb', '<div class="s-pgc"><div class="spin"></div></div>');
     try { const res = await rpc('class_leaderboard', { p_token: S.token }); if (S.tab !== 'lb') return;
       const hidden = res && res.hidden, hp = !!(res && res.hide_pts), rows = res && res.rows ? res.rows : res;
-      const c = document.querySelector('.s-tabpg .s-pgc'); if (c) c.innerHTML = leadersHtml(rows, hidden, hp);
+      const c = document.querySelector('.s-tabpg .s-pgc'); if (c) { c.innerHTML = leadersHtml(rows, hidden, hp); const me = c.querySelector('.lbx-r.me'); if (me) setTimeout(() => me.scrollIntoView({ block: 'center', behavior: 'smooth' }), 150); }
     } catch(e){ toast(errMsg(e)); } }
 };
 ACTS['s-sound-tab'] = t => { const on = FX.toggle(); t.querySelector('i').textContent = on ? '🔊' : '🔇'; toast(on ? 'الصوت مفعّل' : 'الصوت مكتوم'); };
@@ -837,7 +839,7 @@ function showQuestion(st){
     '<div class="play pv pvx">' +
     '<div class="play-top"><button class="icon-btn pv-btn" data-act="s-quit" aria-label="الخروج للرئيسية">' + ic('home') + '</button>' +
     '<div class="pv-head"><b class="pv-pill">السؤال ' + st.position + ' من ' + st.total + '</b><div class="dots">' + dots + '</div>' +
-    (st.kind === 'practice' ? '<span class="pv-kind">تدريب</span>' : '') + '<span class="pv-pts" id="pvpts">⭐ ' + lg.reduce((a, x) => a + (x.p || 0), 0) + '</span></div>' +
+    (st.kind === 'practice' ? '<span class="pv-kind">تدريب</span>' : '') + (S.home && S.home.student && S.home.student.avatar && !S.demo ? '<span class="pv-av ' + lvlFrame() + '" id="pvav">' + esc(S.home.student.avatar) + '</span>' : '') + '<span class="pv-pts" id="pvpts">⭐ ' + lg.reduce((a, x) => a + (x.p || 0), 0) + '</span></div>' +
     '<button class="icon-btn pv-btn pv-snd" data-act="s-sound" aria-label="الصوت">' + ic(FX.on() ? 'sound' : 'mute') + '</button></div>' +
     '<div class="pvx-tm' + (st.position === st.total ? ' last' : '') + '" id="timer"><i id="tfill" hidden></i><div class="pvx-bar"><i id="tfg"></i></div><span><b id="tnum">' + Math.ceil(st.seconds_left) + '</b> ثانية</span></div>' +
     '<div class="pv-panel"><div class="qbox' + (q.image ? ' has-img' : '') + '">' + (q.image ? '<img class="q-img" src="' + esc(q.image) + '" alt="' + esc(q.image_alt || 'صورة مرفقة بالسؤال') + '">' : '') + '<span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
@@ -910,6 +912,7 @@ async function submit(idx, seq){
     const combo = comboN(st.position);
     if (seq) { if (r.correct) FX.correct(btns[seq[seq.length - 1]], r.points, combo); else FX.wrong(null, r.timeout); }
     else if (r.correct) FX.correct(btns[ci], r.points, combo); else FX.wrong(idx != null ? btns[idx] : null, idx == null || r.timeout);
+    { const av = document.getElementById('pvav'); if (av) { av.classList.remove('hop', 'nope'); void av.offsetWidth; av.classList.add(r.correct ? 'hop' : 'nope'); } }
     const dl = $app.querySelectorAll('.dots .dot')[st.position - 1]; if (dl) dl.classList.add('done', r.correct ? 'ok' : 'no');
     const pop = document.getElementById('pop');
     if (pop) {
@@ -973,13 +976,13 @@ async function showResult(sm){
     '<h2 class="center res-h">' + head + '</h2><p class="center muted" style="margin-top:-8px">' + sub + (sm && sm.kind === 'practice' ? ' · تدريب' : sm && sm.kind === 'knockout' ? ' · مواجهة التصفيات' : '') + '</p>' +
     (sm && sm.kind === 'knockout' ? '<p class="center sub">تُحسم المواجهة بعدد الإجابات الصحيحة ثم السرعة، وتظهر النتيجة في الرئيسية عندما ينهي منافسك.</p>' : '') +
     '<div class="stars-row">' + stars + '</div>' +
-    '<div class="center"><div class="big" id="bigpts">0</div><div class="muted">نقاط هذه الجولة</div></div>' +
-    (rankRow ? '<div class="rows card">' + rankRow + '</div>' : '') +
+    '<div class="center rs-st2"><div class="big" id="bigpts">0</div><div class="muted">نقاط هذه الجولة</div></div>' +
+    (rankRow ? '<div class="rows card rs-st3">' + rankRow + '</div>' : '') +
     (S.upMsg ? '<div class="s-up">' + S.upMsg + '</div>' : '') +
     reviewHtml() +
     '<button class="btn rv2-done" data-act="s-reload">تم</button></div></div>';
   const target = sm ? sm.total_points : 0, el = document.getElementById('bigpts'), t0 = performance.now();
-  if (FX.reduce()) { if (el) el.textContent = target; } else (function roll(t){ const k = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - k, 3); if (el) el.textContent = Math.round(target * e); if (k < 1) requestAnimationFrame(roll); })(t0);
+  if (FX.reduce()) { if (el) el.textContent = target; } else setTimeout(() => { const t1 = performance.now(); (function roll(t){ const k = Math.min(1, Math.max(0, (t - t1) / 1000)), e = 1 - Math.pow(1 - k, 3); if (el) el.textContent = Math.round(target * e); if (k < 1) requestAnimationFrame(roll); })(t1); }, 1500);
 }
 
 /* ======================================================

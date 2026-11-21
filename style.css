@@ -2785,3 +2785,16 @@ html body[data-stage=p][data-theme] .pv.pvx .opts.kc.long .opt .txt{font-size:17
 html body[data-stage=s][data-theme] .pv.pvx .pv-panel .qbox{font-size:20px}
 html body[data-stage=s][data-theme] .pv.pvx .opts.kc .opt .txt{font-size:17px!important}
 html body[data-stage=s][data-theme] .pv.pvx .opts.kc.long .opt .txt{font-size:15px!important}
+/* v185 staged result, avatar in round, level frame */
+.result .rs-st2{opacity:0;animation:rsIn .4s ease-out 1.4s forwards}
+.result .rs-st3,.result .s-up{opacity:0;animation:rsIn .4s ease-out 2.6s forwards}
+@keyframes rsIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.result .rs-st2,.result .rs-st3,.result .s-up{opacity:1;animation:none}}
+.pv-av{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#1C1C1E;font-size:20px;margin:4px 6px 0;vertical-align:middle;box-shadow:0 0 0 2px #48484A}
+.pv-av.hop{animation:avHop .5s cubic-bezier(.3,1.8,.5,1)}
+.pv-av.nope{animation:avNo .4s}
+@keyframes avHop{0%,100%{transform:translateY(0)}40%{transform:translateY(-12px) scale(1.15)}}
+@keyframes avNo{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.fr-b{box-shadow:0 0 0 3px #B0723A!important}
+.fr-s{box-shadow:0 0 0 3px #C7CDD4!important}
+.fr-g{box-shadow:0 0 0 3px #F5B72B,0 0 14px rgba(245,183,43,.45)!important}
