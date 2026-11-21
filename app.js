@@ -554,7 +554,7 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
   if (k === 'me') { const h = S.home, n = (h.student.name || '?').trim();
     return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><button class="s-me-av ' + lvlFrame() + (h.student.avatar ? ' em' : '') + '" data-act="s-av" aria-label="اختر شخصيتك">' + esc(h.student.avatar || n.charAt(0)) + '<span class="s-av-ed">✏️</span></button><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small></div>' +
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
-      '<div class="s-me-o">' + [['s-profile', '🪪', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
+      '<div class="s-me-o">' + [['s-profile', '🪪', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-push-tab', pushOn() ? '🔔' : '🔕', 'الإشعارات'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
       '</div>'); }
   if (k === 'lb') { if (S.demo) return toast('الترتيب يظهر في المسابقة الفعلية');
     sPage('lb', '<div class="s-pgc"><div class="spin"></div></div>');
@@ -562,6 +562,13 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
       const hidden = res && res.hidden, hp = !!(res && res.hide_pts), rows = res && res.rows ? res.rows : res;
       const c = document.querySelector('.s-tabpg .s-pgc'); if (c) { c.innerHTML = leadersHtml(rows, hidden, hp); const me = c.querySelector('.lbx-r.me'); if (me) setTimeout(() => me.scrollIntoView({ block: 'center', behavior: 'smooth' }), 150); }
     } catch(e){ toast(errMsg(e)); } }
+};
+function pushOn(){ return LS.get('mc_push') === '1' && !!window.Notification && Notification.permission === 'granted'; }
+ACTS['s-push-tab'] = async t => {
+  if (!pushOn()) return ACTS['s-push'](t);
+  if (!await ask('ما يوصلك تذكير الجولة ولا رسائل معلمك على الجوال. الرسائل تظل تحت الجرس 🔔.', { title: 'توقف الإشعارات؟', ok: 'إيقاف' })) return;
+  try { const r = await navigator.serviceWorker.ready, sub = await r.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch(e){}
+  LS.set('mc_push', '0'); const i = t.querySelector('i'); if (i) i.textContent = '🔕'; toast('وقفت الإشعارات');
 };
 ACTS['s-sound-tab'] = t => { const on = FX.toggle(); t.querySelector('i').textContent = on ? '🔊' : '🔇'; toast(on ? 'الصوت مفعّل' : 'الصوت مكتوم'); };
 ACTS['s-badges'] = () => modal('<div class="bg2-mod">' + badgesHtml() + '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button></div>');
