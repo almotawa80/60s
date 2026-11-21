@@ -617,7 +617,7 @@ function sPut(html){ const old = $app.querySelector(':scope > .s-nav'); $app.inn
 function sNav(cur){ const i = Math.max(0, S_TABS.indexOf(cur)), p = S.navPrev == null ? i : S.navPrev; S.navPrev = i;
   setTimeout(() => requestAnimationFrame(() => lensMove(document.querySelector('.s-nav'), i)), 20);
   return '<nav class="s-nav"><span class="lens" style="--i:' + p + ';--n:5"></span>' + [['home', S_LN.home, 'صفّي'], ['lb', S_LN.lb, 'الترتيب'], ['ar', '', 'الحلبة'], ['bd', S_LN.bd, 'شاراتي'], ['me', S_LN.me, 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + (x[0] === 'ar' ? ' s-ar' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (x[0] === 'ar' ? ' aria-label="الحلبة"' : '') + (cur === x[0] ? ' aria-current="page"' : '') + '>' + (x[0] === 'ar' ? '<span class="i sq">' + NAV_SQ + '</span>' : x[1] + '<span>' + x[2] + '</span>') + '</button>').join('') + '</nav>'; }
-function sPage(t, body){ const th = document.body.dataset.theme || 'mid'; S.tab = t; closeModals(); stopTimer(); clearInterval(S.cdT);
+function sPage(t, body){ const th = document.body.dataset.theme || 'mid'; { const cur = $app.querySelector(':scope > .sh'); if (cur && !cur.querySelector('.s-back')) S.pgSnap = cur.outerHTML; } S.tab = t; closeModals(); stopTimer(); clearInterval(S.cdT);
   sPut('<div class="sh s-tabpg pvx">' + body + '</div>' + sNav(t)); scrollTo(0, 0); }
 /* ===== v275 الحلبة (public arena), phase 1: 60 levels on a stopwatch dial, duel vs a recorded round, tug of war =====
    Server: sql/arena.sql (arena_home / arena_start / arena_served / arena_answer). */
@@ -1552,7 +1552,7 @@ function snapLayer(html, y, cls){
   const tt = L.querySelector('.pg-sc > .t-top'); if (tt && y > 0) { const c = tt.cloneNode(true); c.classList.add('pg-tt'); L.firstChild.prepend(c); }
   return L;
 }
-const pageEls = () => [...$app.querySelectorAll(':scope > .t-top, :scope > .t-body')];
+const pageEls = () => [...$app.querySelectorAll(':scope > .t-top, :scope > .t-body, :scope > .sh.s-tabpg')];
 function view(title, body, active, top, back){
   const h = location.hash, prev = NS.cur, first = h !== prev;
   if (first && body.indexOf('<div class="spin"></div>') === 0) {
@@ -6074,8 +6074,8 @@ function goBack(){
   if (location.hash.indexOf('#/t/') === 0 && !/^#\/t\/(home)?$/.test(location.hash)) return history.back();
 }
 let G = null;
-const canSwipeBack = () => !!$app.querySelector(':scope > .t-top .back-btn') && !document.querySelector('.modal-back,.dlg-back');
-function backTarget(){ const tp = NS.stack[NS.stack.length - 1]; if (tp) return tp; const b = $app.querySelector(':scope > .t-top .back-btn'), h = b && b.getAttribute('href'), c = h && PCACHE[h]; return { h, html: c ? (() => { const d = document.createElement('div'); d.innerHTML = shell(c.title, c.body, '', c.top, c.back); return [...d.querySelectorAll('.t-top,.t-body')].map(e => e.outerHTML).join(''); })() : '', y: 0, nostack: true }; }
+const canSwipeBack = () => !!($app.querySelector(':scope > .t-top .back-btn') || ($app.querySelector(':scope > .sh .s-back') && S.pgSnap)) && !document.querySelector('.modal-back,.dlg-back');
+function backTarget(){ if (!$app.querySelector(':scope > .t-top .back-btn') && $app.querySelector(':scope > .sh .s-back')) return { html: S.pgSnap, y: 0, nostack: true }; const tp = NS.stack[NS.stack.length - 1]; if (tp) return tp; const b = $app.querySelector(':scope > .t-top .back-btn'), h = b && b.getAttribute('href'), c = h && PCACHE[h]; return { h, html: c ? (() => { const d = document.createElement('div'); d.innerHTML = shell(c.title, c.body, '', c.top, c.back); return [...d.querySelectorAll('.t-top,.t-body')].map(e => e.outerHTML).join(''); })() : '', y: 0, nostack: true }; }
 function hScrollable(el){ for (; el && el !== document.body; el = el.parentElement) { if (el.scrollWidth > el.clientWidth + 2) { const o = getComputedStyle(el).overflowX; if (o === 'auto' || o === 'scroll') return true; } } return false; }
 document.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) { G = null; return; }
@@ -6083,7 +6083,7 @@ document.addEventListener('touchstart', e => {
   const t = e.touches[0], row = e.target.closest('.sw-main');
   const rw = row ? row.parentElement : null;
   const page = !row && canSwipeBack() && !hScrollable(e.target);
-  G = { x: t.clientX, y: t.clientY, t0: Date.now(), row, page, edge: !row && !page && (t.clientX > innerWidth - 28 || (!!$app.querySelector('.s-back') && !document.querySelector('.modal-back,.dlg-back') && !hScrollable(e.target))), dx: 0, lock: null,
+  G = { x: t.clientX, y: t.clientY, t0: Date.now(), row, page, edge: !row && !page && t.clientX > innerWidth - 28, dx: 0, lock: null,
     base: row ? (Number(row.dataset.off) || 0) : 0,
     wr: rw ? rw.querySelector('.sw-r').offsetWidth + 22 : 0, wl: rw ? rw.querySelector('.sw-l').offsetWidth + 22 : 0 };
   if (!row) document.querySelectorAll('.sw-main.open').forEach(r => { if (!e.target.closest('.sw-act')) { r.classList.remove('open'); r.style.transform = ''; r.dataset.off = 0; } });
@@ -6126,7 +6126,7 @@ function swipeEnd(cancel){
   g.L.style.transition = 'opacity .24s'; g.L.style.setProperty('--dim', go2 ? '0' : '.12');
   setTimeout(() => {
     document.documentElement.classList.remove('pg-lock');
-    if (go2) { NS.swipe = true; haptic(); const tp = g.tp; if (tp.nostack) { const b = $app.querySelector(':scope > .t-top .back-btn'); if (b && tp.h && tp.h !== location.hash) location.hash = tp.h; else { NS.swipe = false; g.L.remove(); $app.classList.remove('pg-anim'); if (b) b.click(); } } else location.hash = tp.h; }
+    if (go2) { NS.swipe = true; haptic(); const tp = g.tp; if (tp.nostack) { const b = $app.querySelector(':scope > .t-top .back-btn') || $app.querySelector(':scope > .sh .s-back'); if (b && tp.h && tp.h !== location.hash) location.hash = tp.h; else { NS.swipe = false; g.L.remove(); $app.classList.remove('pg-anim'); if (b) b.click(); } } else location.hash = tp.h; }
     else { g.L.remove(); g.els.forEach(el => { el.style.transition = ''; el.style.transform = ''; }); $app.classList.remove('pg-anim'); }
   }, 250);
 }
