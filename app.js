@@ -1079,12 +1079,29 @@ const NB = (() => { try { return JSON.parse(LS.get('mc_nb') || '{}') || {}; } ca
 const nbHtml = k => (k === 'home' || k === 'classes') ? `<em class="nb" data-nb="${k}"${NB[k] ? '' : ' hidden'}>${NB[k] > 99 ? '99+' : (NB[k] || '')}</em>` : '';
 function nbSet(k, n){ NB[k] = n || 0; LS.set('mc_nb', JSON.stringify(NB)); document.querySelectorAll('.nb[data-nb="' + k + '"]').forEach(e => { e.hidden = !NB[k]; e.textContent = NB[k] > 99 ? '99+' : (NB[k] || ''); }); }
 let NB_T = 0;
-function nbPending(){ if (Date.now() - NB_T < 60000 || !T.user) return; NB_T = Date.now();
+function nbPending(){ if (Date.now() - NB_T < 60000 || !T.user) return; NB_T = Date.now(); ntLoad();
   sb.from('students').select('id,classes!inner(archived,teacher_id)', { count: 'exact', head: true }).eq('approved', false).eq('classes.archived', false).eq('classes.teacher_id', T.user.id).then(r => { if (!r.error) nbSet('classes', r.count || 0); }); }
+/* ===== v274 teacher bell: computed notices (rpc teacher_notices), seen keys in LS ===== */
+const NT = { n: 0, items: [] };
+const ntSeen = () => { try { return JSON.parse(LS.get('mc_nt_seen') || '[]'); } catch(e){ return []; } };
+function ntItems(d){ const it = [], fn = x => fmtStu(x || '');
+  (d.pending || []).forEach(x => it.push({ k: 'p:' + x.cid + ':' + x.n, e: '🙋', t: x.n === 1 ? 'طالب جديد ينتظر موافقتك' : x.n + ' طلاب ينتظرون موافقتك', s: 'صف ' + x.cls, h: '#/t/class/' + x.cid, b: 'افتح' }));
+  (d.ended || []).forEach(x => it.push({ k: 'e:' + x.g, e: '🏆', t: 'خلص «' + x.title + '»', s: x.win ? 'الفايز: ' + fn(x.win) : 'ما لعب أحد', h: '#/t/results/' + x.cid + '/' + x.comp }));
+  (d.idle || []).forEach(x => it.push({ k: 'i:' + x.g + ':' + d.today, e: '😴', t: (x.n === 1 ? 'طالب ما لعب' : x.n + ' ما لعبوا') + ' من ٣ أيام', s: (x.names || []).map(fn).map(n => n.split(' ')[0]).join('، ') + (x.n > 3 ? ' وغيرهم' : ''), h: '#/t/ch/' + x.g, b: 'ذكّرهم' }));
+  (d.yd || []).forEach(x => it.push({ k: 'y:' + x.g + ':' + d.yday, e: '📊', t: 'ملخص ' + (cfDays(d.yday, d.today) === 1 ? 'أمس' : 'آخر يوم دراسي') + ': لعب ' + x.p + ' من ' + x.n, s: x.title, h: '#/t/ch/' + x.g }));
+  return it; }
+async function ntLoad(){ try { const d = await rpc('teacher_notices'); NT.items = ntItems(d || {}); } catch(e){ return; }
+  const seen = ntSeen(); NT.n = NT.items.filter(x => seen.indexOf(x.k) < 0).length;
+  document.querySelectorAll('.t-bell-n').forEach(el => { el.hidden = !NT.n; el.textContent = NT.n > 9 ? '9+' : NT.n; }); }
+ACTS['t-bell'] = () => { const seen = ntSeen(), it = NT.items.slice().sort((a, b) => (seen.indexOf(a.k) >= 0) - (seen.indexOf(b.k) >= 0));
+  modal(`<div class="aw-sheet nt-sheet"><h3>الإشعارات</h3>${it.length ? it.map(x => `<button class="nt-i${seen.indexOf(x.k) < 0 ? ' new' : ''}" data-act="nt-go" data-h="${esc(x.h)}"><i>${x.e}</i><span class="grow"><b>${esc(x.t)}</b><small>${esc(x.s || '')}</small></span>${x.b ? `<em>${x.b}</em>` : ''}</button>`).join('') : '<div class="nt-empty">ما فيه شي جديد 👌</div>'}</div>`);
+  try { LS.set('mc_nt_seen', JSON.stringify(seen.concat(NT.items.map(x => x.k).filter(k => seen.indexOf(k) < 0)).slice(-80))); } catch(e){}
+  NT.n = 0; document.querySelectorAll('.t-bell-n').forEach(el => { el.hidden = true; }); };
+ACTS['nt-go'] = t => { closeModals(); go(t.dataset.h); };
 const navIc = n => n[0] === 'new' ? NAV_SQ : NAV_LN[n[0]] ? NAV_LN[n[0]] + nbHtml(n[0]) : ic(n[2]);
 
 function shell(title, body, active, top, back){
-  return `<div class="t-top"><div class="brand">${back ? (back.indexOf('act:') === 0 ? `<button class="icon-btn back-btn" data-act="${back.slice(4)}" aria-label="رجوع">${ic('back')}</button>` : `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>`) : LOGO_S}<span class="t-title">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
+  return `<div class="t-top"><div class="brand">${back ? (back.indexOf('act:') === 0 ? `<button class="icon-btn back-btn" data-act="${back.slice(4)}" aria-label="رجوع">${ic('back')}</button>` : `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>`) : LOGO_S}<span class="t-title">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-bell" data-act="t-bell" aria-label="الإشعارات">${ic('bell')}<em class="t-bell-n"${NT.n ? '' : ' hidden'}>${NT.n > 9 ? '9+' : NT.n}</em></button><button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
     `<div class="t-body">${body}</div>` +
     `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}${n[0] === 'new' ? ' t-sq' : ''}"${n[0] === 'new' ? ' aria-label="تحدي جديد"' : ''}>${navIc(n)}${n[0] === 'new' ? '' : `<span>${n[1]}</span>`}</a>`).join('')}</nav>` + (setTimeout(nbPending, 0) && '');
 }

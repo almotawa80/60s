@@ -3293,3 +3293,17 @@ body.wide.dark .btn.danger,body.wide.dark .btn.dng-t{background:#2C2C2E!importan
 .rp4 .rp2-wk{color:#8A7563}
 .t-menu .tm-sq{margin-top:12px}
 .st1-o.dng,.st1-o.dng b{color:#FF453A}
+/* v274 teacher bell */
+.t-bell{position:relative;width:38px;height:38px;border-radius:50%;border:0;background:var(--soft,#2C2C2E);color:inherit;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.t-bell .ico{width:20px;height:20px}
+.t-bell-n{position:absolute;top:-3px;left:-3px;background:#C8102E;color:#fff;font-style:normal;font-size:11px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--bg,#000);line-height:1}
+.t-bell-n[hidden]{display:none}
+.nt-sheet{display:flex;flex-direction:column;gap:8px}
+.nt-i{display:flex;align-items:center;gap:12px;width:100%;text-align:start;background:var(--soft,#2C2C2E);border:0;border-radius:16px;padding:12px;color:inherit;font:inherit;cursor:pointer}
+.nt-i.new{box-shadow:inset -3px 0 0 #C8102E}
+.nt-i i{font-style:normal;font-size:22px;width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;flex:none}
+.nt-i .grow{min-width:0}
+.nt-i b{display:block;font-size:14.5px}
+.nt-i small{display:block;color:var(--muted,#C7C7CC);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nt-i em{font-style:normal;background:#C8102E;color:#fff;border-radius:10px;padding:6px 12px;font-size:13px;font-weight:700;flex:none}
+.nt-empty{text-align:center;color:var(--muted,#C7C7CC);padding:24px 0}
