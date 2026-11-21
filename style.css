@@ -2903,3 +2903,8 @@ html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(2)::bef
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(3)::before{top:-23px!important;left:-23px}
 html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(4)::before{top:-23px!important;right:-23px}
 html body[data-theme] .pv.pvx .opts .opt.good::before,html body[data-theme] .pv.pvx .opts .opt.bad::before{opacity:0}
+/* v204: inner corner less rounded so the colour shows as a true quarter circle (was a leaf) */
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(1){border-bottom-left-radius:10px!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(2){border-bottom-right-radius:10px!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(3){border-top-left-radius:10px!important}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(4){border-top-right-radius:10px!important}
