@@ -342,8 +342,8 @@ function renderHomeP(){
   const pills = '<div class="sp-pills"><span class="sp-pill">مركزك ' + (h.rank || '-') + ' من ' + size + '</span>' + (days ? '<span class="sp-pill"><span class="flame">🔥</span> ' + days + (days === 1 ? ' يوم' : days === 2 ? ' يومين' : ' أيام') + '</span>' : '') + (sh.shields ? '<span class="sp-pill" title="الدرع يحمي سلسلتك يوم غياب">🛡' + (sh.shields > 1 ? ' ×' + sh.shields : '') + '</span>' : '') + '</div>';
   if (sh.saved && !S.demo) { const k = 'mc_saved_' + (h.student.id || ''); if (LS.get(k) !== sh.saved) { LS.set(k, sh.saved); setTimeout(() => toast('🛡 درعك حمى سلسلتك!'), 600); } }
   let mid;
-  if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo">🎉</div><b>أحسنت! ارجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
-    '<p class="sp-sub">الجولة القادمة بعد <b id="cd">' + cdText() + '</b></p></div>';
+  if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo" id="bx-emo">🎉</div><b id="bx-h">أحسنت! ارجع بكرة</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
+    '<div id="bx-act"></div><p class="sp-sub">الجولة القادمة بعد <b id="cd">' + cdText() + '</b></p></div><div id="goal"></div>';
   else mid = (h.rank > 1 && h.gap != null ? '<div class="sp-rival" id="rival">' + (h.gap > 0 ? 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى اللي فوقك 👀' : 'أنت متعادل مع اللي فوقك، جولة وحدة تكفي! 👀') + '</div>' : h.rank === 1 && h.total_points ? '<div class="sp-rival">أنت الأول 🏆 حافظ عليها</div>' : '') +
     pzLine((h.competition || {}).prizes, 'sp-prize') +
     '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>' +
@@ -356,11 +356,39 @@ function renderHomeP(){
     '<div class="sp-low"><button class="sp-prac" data-act="s-start" data-kind="practice"><span>🎯</span>تدرّب بدون نقاط</button>' +
     '</div></div>' + sNav('home');
   startCountdown();
+  if (h.played_today && !S.demo) loadDaily();
   if (!h.played_today && h.rank > 1 && h.gap > 0 && !S.demo) rpc('class_leaderboard', { p_token: S.token }).then(lb => {
     const rows = Array.isArray(lb) ? lb : (lb && lb.rows) || [], me = rows.find(r => r.is_me), above = me && rows.filter(r => r.rank < me.rank).sort((a, b) => b.rank - a.rank)[0];
     const el = document.getElementById('rival'); if (el && above && above.name) el.innerHTML = 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى ' + esc(String(above.name).split(' ')[0]) + ' 👀';
   }).catch(() => {});
 }
+/* v171 «صندوق بكرة» + «هدف الصف» (needs sql/box_goal.sql; silently absent before it) */
+async function loadDaily(){
+  let d; try { d = await rpc('student_daily', { p_token: S.token }); } catch(e){ return; }
+  S.daily = d; if (!d || !document.getElementById('bx-h')) return;
+  const bx = d.box || {}, emo = document.getElementById('bx-emo'), hd = document.getElementById('bx-h'), act = document.getElementById('bx-act');
+  if (bx.ready) { emo.innerHTML = '<span class="bx bx-ready">🎁</span>'; hd.textContent = 'صندوقك جاهز!'; act.innerHTML = '<button class="sp-open" data-act="s-box">افتح الصندوق</button>'; }
+  else if (bx.locked) { emo.innerHTML = '<span class="bx bx-lock">🎁</span>'; hd.textContent = 'أحسنت! صندوقك ينفتح بكرة'; act.innerHTML = '<p class="bx-note">العب جولة بكرة وافتحه 🔒</p>'; }
+  const g = d.goal, el = document.getElementById('goal');
+  if (g && g.size > 1 && el) {
+    const pc = Math.min(100, Math.round(g.played / g.size * 100)), done = g.played >= g.need;
+    el.innerHTML = '<div class="goal"><div class="goal-t"><b>' + (done ? '⭐ الصف أخذ نجمة اليوم!' : '🎯 هدف الصف') + '</b><span>' + g.played + ' من ' + g.size + '</span></div>' +
+      '<div class="goal-bar"><i style="width:' + pc + '%"></i><em style="right:' + Math.round(g.need / g.size * 100) + '%"></em></div>' +
+      '<small>' + (done ? 'نجوم الصف: ' + g.stars + ' ⭐' : 'باقي ' + (g.need - g.played) + ' ويأخذ الصف نجمة ⭐' + (g.stars ? ' · عندكم ' + g.stars : '')) + '</small></div>';
+    if (done && !LS.get('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString())) { LS.set('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString(), '1'); setTimeout(() => FX.win(false), 400); }
+  }
+}
+ACTS['s-box'] = async t => {
+  if (S.boxing) return; S.boxing = true; t.disabled = true;
+  const b = document.querySelector('.bx'); if (b) b.className = 'bx bx-shake';
+  let r; try { [r] = await Promise.all([rpc('student_open_box', { p_token: S.token }), new Promise(z => setTimeout(z, 1300))]); } catch(e){ S.boxing = false; t.disabled = false; return toast(errMsg(e)); }
+  S.boxing = false;
+  if (!r || !r.ok) return loadDaily();
+  FX.win(false);
+  const emo = document.getElementById('bx-emo'), hd = document.getElementById('bx-h'), act = document.getElementById('bx-act');
+  if (r.prize) { emo.innerHTML = '<span class="bx bx-pop">' + r.prize + '</span>'; hd.textContent = 'ملصق جديد!'; act.innerHTML = '<p class="bx-note">مجموعتك ' + r.count + ' من ' + r.total + ' · تقدر تخليه شخصيتك من «أنا»</p>'; if (S.daily) S.daily.stickers = (S.daily.stickers || []).concat(r.prize); }
+  else { emo.innerHTML = '<span class="bx bx-pop">🌟</span>'; hd.textContent = 'كمّلت المجموعة كلها!'; act.innerHTML = ''; }
+};
 /* knockout bracket (one head-to-head round per day after the points phase) + honor board */
 async function loadKo(){
   const el0 = document.getElementById('ko'); if (el0) el0.innerHTML = '<div class="ko-load" role="status"><div class="spin sm"></div><span>جارٍ تحميل التصفيات…</span></div>';
@@ -498,8 +526,11 @@ ACTS['s-menu'] = () => {
 ACTS['s-sound-row'] = t => { const on = FX.toggle(); t.innerHTML = ic(on ? 'sound' : 'mute') + '<span>الصوت: ' + (on ? 'مفعّل' : 'مكتوم') + '</span>'; };
 ACTS['s-logout-ask'] = async () => { if (!await ask('تسجيل الخروج؟ ستحتاج رمزك للدخول مرة أخرى.')) return; closeModals(); ACTS['s-logout'](); };
 const S_AVS = ['🦁','🐯','🐼','🦊','🐨','🐸','🦉','🦅','🐬','🐢','🦄','🐉','🚀','⚽','🏆','⭐'];
-ACTS['s-av'] = () => { if (!S.home) return; S.avPick = S.home.student.avatar || '';
+ACTS['s-av'] = async () => { if (!S.home) return; S.avPick = S.home.student.avatar || '';
+  if (!S.daily && !S.demo) { try { S.daily = await rpc('student_daily', { p_token: S.token }); } catch(e){} }
+  const dl = S.daily || {}, own = dl.stickers || [], pool = dl.pool || [];
   modal('<div class="s-avs"><h3>اختر شخصيتك</h3><div class="s-avg">' + S_AVS.map(a => '<button class="' + (a === S.avPick ? 'on' : '') + '" data-act="s-avp" data-v="' + a + '">' + a + '</button>').join('') + '</div>' +
+    (pool.length ? '<h4 class="s-avh">🎁 ملصقات الصندوق ' + own.length + ' من ' + pool.length + '</h4><div class="s-avg">' + pool.map(a => own.indexOf(a) >= 0 ? '<button class="' + (a === S.avPick ? 'on' : '') + '" data-act="s-avp" data-v="' + a + '">' + a + '</button>' : '<button class="lk" disabled aria-label="مقفول">🔒</button>').join('') + '</div>' : '') +
     '<button class="btn" data-act="s-avs">حفظ</button>' + (S.home.student.avatar ? '<button class="btn soft" data-act="s-avs" data-v="">بدون شخصية</button>' : '') + '</div>'); };
 ACTS['s-avp'] = t => { S.avPick = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); };
 ACTS['s-avs'] = async t => { const v = t.dataset.v != null ? t.dataset.v : S.avPick; if (S.demo) { S.home.student.avatar = v; closeModals(); return ACTS['s-tab']({ dataset: { t: 'me' } }); }

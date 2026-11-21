@@ -2700,3 +2700,25 @@ html body .pv.pvx .dots .dot.done.ok{background:#30D158!important}
 html body .pv.pvx .dots .dot.done.no{background:#FF453A!important}
 .pts-pop.good.combo{animation:pop3d .45s;letter-spacing:0}
 .result.is-lose .rv2-dr{background:#C8102E;color:#fff;box-shadow:0 5px 0 #8E0B21}
+/* v171 box + class goal */
+.bx{display:inline-block;font-size:72px;line-height:1}
+.bx-lock{filter:grayscale(.6) brightness(.8);animation:bxw 3s infinite}
+.bx-ready{animation:bxb 1.2s infinite}
+.bx-shake{animation:bxs .25s infinite}
+.bx-pop{animation:bxp .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes bxw{0%,85%,100%{transform:rotate(0)}89%{transform:rotate(-8deg)}93%{transform:rotate(8deg)}97%{transform:rotate(-4deg)}}
+@keyframes bxb{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes bxs{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(10deg)}}
+@keyframes bxp{0%{transform:scale(.2)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.bx{animation:none!important}}
+.sp-open{width:100%;min-height:54px;border:0;border-radius:16px;background:#C8102E;color:#fff;font:800 18px Cairo,system-ui,sans-serif;box-shadow:0 5px 0 #8E0B21;cursor:pointer}
+.bx-note{margin:0;font-size:14px;opacity:.8}
+.goal{width:100%;max-width:360px;margin-top:12px;background:#1C1C1E;color:#F5F5F7;border-radius:18px;padding:12px 16px;box-sizing:border-box}
+.goal-t{display:flex;justify-content:space-between;align-items:center;font-size:15px}
+.goal-t span{opacity:.75;font-weight:700}
+.goal-bar{position:relative;height:10px;background:#2C2C2E;border-radius:99px;margin:8px 0 6px;overflow:visible}
+.goal-bar i{position:absolute;right:0;top:0;bottom:0;background:#30D158;border-radius:99px;transition:width .8s}
+.goal-bar em{position:absolute;top:-3px;bottom:-3px;width:2px;background:#F5B72B;border-radius:2px}
+.goal small{opacity:.75;font-size:13px}
+.s-avh{margin:14px 0 6px;font-size:15px}
+.s-avg button.lk{opacity:.35}
