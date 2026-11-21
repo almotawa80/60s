@@ -2895,3 +2895,11 @@ html body .obr-dots i{padding:0!important;flex:none;border-radius:50%!important;
 #ob .obr-go{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:3}
 #ob .obr-go:not(.soft){box-shadow:0 5px 0 #8E0B21,0 -10px 24px 10px #000}
 .obr{padding-bottom:20px}
+/* v203 (Khalid «تمام»): answer colour = rounded inner corner (like the new icon), not a side stripe */
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt{overflow:hidden}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt::before{top:auto!important;bottom:auto;left:auto;right:auto;width:46px!important;height:46px;border-radius:50%}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(1)::before{bottom:-23px;left:-23px}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(2)::before{bottom:-23px;right:-23px}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(3)::before{top:-23px!important;left:-23px}
+html body[data-theme] .pv.pvx .opts.kc:not(.tf):not(.ord) .opt:nth-child(4)::before{top:-23px!important;right:-23px}
+html body[data-theme] .pv.pvx .opts .opt.good::before,html body[data-theme] .pv.pvx .opts .opt.bad::before{opacity:0}
