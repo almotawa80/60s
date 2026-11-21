@@ -3048,3 +3048,5 @@ html body.wide .t-body{padding-bottom:calc(130px + env(safe-area-inset-bottom))}
 .nw-ls-c .ico{width:15px;height:15px;stroke-width:3}
 .nw-ls-r.on .nw-ls-c{background:var(--primary);border-color:var(--primary);color:#fff}
 .nw-ls .btn{width:100%}
+/* v234 (Khalid): less empty space under the tab bars, still clear of the home bar */
+html body .t-nav,html body .s-nav{bottom:max(10px, calc(env(safe-area-inset-bottom, 0px) - 6px))!important}
