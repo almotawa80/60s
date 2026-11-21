@@ -1513,21 +1513,24 @@ function subjList(c, extra){
   const mine = CU.list.filter(x => x.owner_id && x.owner_id === T.user.id && glob[x.id]);
   let cus = CU.list.filter(x => !x.owner_id && x.stage === (c.stage || 'primary') && glob[x.id]);
   if (g) { const exact = cus.filter(x => x.grade === g); if (exact.length) cus = exact; }
+  /* v239 (Khalid): only the teacher's own subjects (profile), others behind «مادة ثانية؟» */
+  let hid = 0; { const my = mySubjects(); if (my.length && !NW.allSubj) { const f = cus.filter(x => my.includes(x.subject) || (extra || []).includes(x.id)); hid = new Set(cus.map(x => x.subject)).size - new Set(f.map(x => x.subject)).size; if (f.length) cus = f; else hid = 0; } }
   const bySub = {}; cus.forEach(x => { (bySub[x.subject] = bySub[x.subject] || []).push(x); });
   const list = []; Object.keys(bySub).forEach(sb2 => { const xs = bySub[sb2]; (xs.length === 1 || g ? [xs[0]] : xs).forEach(x => list.push([x, xs.length === 1 || g ? glob[x.id] + ' سؤال' : gradeAr(x)])); });
   mine.forEach(x => list.push([x, glob[x.id] + ' سؤال']));
+  list.hid = hid;
   (extra || []).forEach(id => { if (!list.some(y => y[0].id === id)) { const x = CU.list.find(y => y.id === id); if (x) list.push([x, (glob[id] || 0) + ' سؤال']); } });
   return list;
 }
 function subjTiles(c, sel, act, extra, afterMine){
   const tile = (k, e, n, sm, off) => `<button type="button" class="nw-tile nw-mt${sel.includes(k) ? ' on' : ''}${off ? ' off' : ''}" data-act="${act}" data-k="${esc(k)}"${off ? ' disabled' : ''}><span class="nw-ck">${sel.includes(k) ? '✓' : ''}</span><span class="nw-e">${e}</span><b>${esc(n)}</b><small>${esc(sm)}</small></button>`;
   const gen = NW.gen || {};
-  const mt = subjList(c, extra).map(([x, sm]) => tile(x.id, SUBJ_EMOJI[x.subject] || '📚', String(x.subject).replace(/^(اللغة|التربية) /, ''), sm)).join('');
+  const sl = subjList(c, extra), mt = sl.map(([x, sm]) => tile(x.id, SUBJ_EMOJI[x.subject] || '📚', String(x.subject).replace(/^(اللغة|التربية) /, ''), sm)).join('');
   const gt = NW_GEN.map(o => tile(o[0], o[1], o[2], gen[o[0]] ? gen[o[0]] + ' سؤال' : 'قريباً', !gen[o[0]] && !sel.includes(o[0]))).join('');
-  return (mt ? `<div class="nw-lbl">موادي</div><div class="nw-tiles">${mt}</div>${afterMine || ''}` : '') + `<div class="nw-lbl">أسئلة عامة</div><div class="nw-tiles">${gt}</div>`;
+  return (mt ? `<div class="nw-lbl">موادي</div><div class="nw-tiles">${mt}</div>${afterMine || ''}${sl.hid ? `<button type="button" class="link nw-link nw-more-subj" data-act="nw-allsubj">مادة ثانية؟</button>` : ''}` : '') + `<div class="nw-lbl">أسئلة عامة</div><div class="nw-tiles">${gt}</div>`;
 }
 async function tNew(fresh){
-  if (fresh !== false && !NW.keep) Object.assign(NW, { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, les: {}, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
+  if (fresh !== false && !NW.keep) Object.assign(NW, { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, les: {}, allSubj: false, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
   const [cl, cp] = await Promise.all([sb.from('classes').select('*').eq('archived', false).order('created_at'), sb.from('competitions').select('id,class_id').eq('status', 'active')]);
   if (cl.error) throw cl.error;
   NW.classes = cl.data; NW.busy = new Set((cp.data || []).map(c => c.class_id));
@@ -1651,6 +1654,7 @@ ACTS['nw-set'] = t => { const [k, v] = t.dataset.v.split(':');
   if (k === 'start') NW.startOff = Number(v); else if (k === 'diff') NW.diff = v; else if (k === 'ko') NW.koQ = Number(v);
   closeModals(); nwRender(); };
 ACTS['nw-ko'] = () => { if (NW.koQ) { NW.koQ = 0; nwRender(); } else ACTS['nw-opt']({ dataset: { k: 'ko' } }); };
+ACTS['nw-allsubj'] = () => { NW.allSubj = true; const el = document.getElementById('ce-subj'); if (el) { el.innerHTML = ceTiles(); return; } nwRender(); };
 ACTS['nw-days'] = t => { NW.days = Number(t.dataset.d); nwRender(); };
 ACTS['nw-cls'] = async f => {
   const name = f.n.value.replace(/\s+/g, ' ').trim(), stg = (f.querySelector('[name=st]:checked') || f.querySelector('[name=st]') || {}).value || defStage(f.n.value);
