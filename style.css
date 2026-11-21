@@ -3109,3 +3109,7 @@ html body .t-nav .lens.live,html body .s-nav .lens.live{transition:transform .2s
 .cm2 .set-row.cm2-off{opacity:.35;pointer-events:none}
 a.btn,a.btn:visited,a.btn *{text-decoration:none!important}
 a.btn:not(.soft):not(.ghost),a.btn.h-go{color:#fff!important;opacity:1!important;-webkit-font-smoothing:antialiased}.btn.h-go{font-weight:800}
+/* v260 (Khalid: one look): choice rows look like the ⋯ squares — filled card, no outline unless chosen */
+.modal .aw-opt{background:var(--soft,#2C2C2E)!important;border:2px solid transparent!important;border-radius:18px!important;box-shadow:none!important}
+.modal .aw-opt.on{border-color:#C8102E!important}
+.modal .aw-opt small{color:var(--muted)}
