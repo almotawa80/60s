@@ -1420,7 +1420,10 @@ ACTS['t-forgot'] = async () => {
 async function authReturn(){
   const h = location.hash, rec = /type=recovery/.test(h);
   const err = (h.match(/error_description=([^&]+)/) || [])[1];
-  await sb.auth.getSession();
+  /* links made before v278 had «#/t/home#access_token=…», which supabase-js can't read: set the session by hand */
+  const at = (h.match(/access_token=([^&#]+)/) || [])[1], rt = (h.match(/refresh_token=([^&#]+)/) || [])[1];
+  const ss = await sb.auth.getSession();
+  if (at && rt && !(ss.data && ss.data.session)) { try { await sb.auth.setSession({ access_token: decodeURIComponent(at), refresh_token: decodeURIComponent(rt) }); } catch(e){} }
   history.replaceState(null, '', location.pathname + '#/t/home');
   if (err) toast(decodeURIComponent(err.replace(/\+/g, ' ')));
   await teacherRoute();
@@ -1441,7 +1444,7 @@ ACTS['t-auth'] = async f => {
   const email = f.email.value.trim(), password = f.password.value;
   try {
     if (T.authMode === 'up') {
-      const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name: (f.name.value || '').trim() }, emailRedirectTo: location.origin + location.pathname + '#/t/home' } });
+      const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name: (f.name.value || '').trim() }, emailRedirectTo: location.origin + location.pathname } });
       if (error) throw error;
       if (data.user && data.user.identities && !data.user.identities.length) { T.authMode = 'in'; T.authEmail = email; teacherAuth(); const b2 = document.getElementById('aerr'); if (b2) b2.innerHTML = '<div class="err">هذا البريد عنده حساب. سجّل الدخول بكلمة المرور.</div>'; return; }
       if (!data.session) { T.authEmail = email; return tCheckMail(email); }
@@ -1465,7 +1468,7 @@ function tCheckMail(email){
   scrollTo(0, 0);
 }
 ACTS['t-resend'] = async t => { const email = T.authEmail; if (!email || t.disabled) return; t.disabled = true;
-  const { error } = await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: location.origin + location.pathname + '#/t/home' } });
+  const { error } = await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: location.origin + location.pathname } });
   if (error) { t.disabled = false; return toast(/rate|seconds|security/i.test(error.message || '') ? 'انتظر شوي وحاول مرة ثانية' : errMsg(error)); }
   toast('أرسلناها مرة ثانية ✓'); let n = 60; t.textContent = 'أعد الإرسال بعد ' + n + ' ث';
   const iv = setInterval(() => { n--; if (!document.body.contains(t)) return clearInterval(iv); if (n <= 0) { clearInterval(iv); t.disabled = false; t.textContent = 'أعد إرسال الرسالة'; } else t.textContent = 'أعد الإرسال بعد ' + n + ' ث'; }, 1000); };
