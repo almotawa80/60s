@@ -169,6 +169,17 @@ section{padding-block:44px}
 
 <script>(function(){var p=document.getElementById('phone'),f=document.getElementById('appf');
 function fit(){f.style.transform='scale('+(p.clientWidth/390)+')'}
-fit();window.addEventListener('resize',fit);if(window.ResizeObserver)new ResizeObserver(fit).observe(p)})();</script>
+fit();window.addEventListener('resize',fit);if(window.ResizeObserver)new ResizeObserver(fit).observe(p)})();
+/* keep the page where the visitor left it: the app inside the frame must not move this page while it loads */
+(function(){try{history.scrollRestoration='manual'}catch(e){}
+var f=document.getElementById('appf'),p=document.getElementById('phone'),want=0,user=false,guard=true;
+function go(e){if(e)e.preventDefault();user=true;p.scrollIntoView({behavior:'smooth',block:'start'})}
+[].forEach.call(document.querySelectorAll('a[href="#phone"]'),function(a){a.addEventListener('click',go)});
+if(location.hash){try{history.replaceState(null,'',location.pathname)}catch(e){}}
+scrollTo(0,0);
+['touchstart','wheel','keydown','mousedown'].forEach(function(k){addEventListener(k,function(){user=true},{passive:true,capture:true})});
+addEventListener('scroll',function(){if(guard&&!user&&scrollY!==want)scrollTo(0,want)},{passive:true});
+function off(){setTimeout(function(){guard=false},1500)}
+if(f.contentDocument&&f.contentDocument.readyState==='complete')off();f.addEventListener('load',off);setTimeout(function(){guard=false},8000)})();</script>
 </body>
 </html>
