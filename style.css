@@ -3768,3 +3768,14 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 .sp-one .sp-prac:active{transform:translateY(3px);box-shadow:0 2px 0 #0E0E10}
 .sp-open.soft{background:#2C2C2E!important;box-shadow:none!important}
 .lb-goal:empty{display:none}.lb-goal{margin-bottom:12px}
+/* v371 subject sheet rows with switches + clear «many questions» button */
+.q4-rows{background:var(--card);border-radius:18px;overflow:hidden;margin-top:6px}
+.q4-rw{display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--line)}
+.q4-sw{flex:none;width:50px;height:30px;border-radius:15px;border:0;background:color-mix(in srgb,var(--ink) 22%,transparent);position:relative;cursor:pointer;transition:background .2s;padding:0}
+.q4-sw i{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:right .2s}
+.q4-sw.added{background:#30D158}.q4-sw.added i{right:23px}
+.q4-rt{flex:1;display:flex;align-items:center;gap:8px;background:none;border:0;color:var(--ink);font:inherit;text-align:start;padding:13px 0;cursor:pointer;min-width:0}
+.q4-rt b{display:block;font-size:15px;font-weight:800}.q4-rt small{display:block;font-size:12.5px;color:var(--muted);font-weight:700}
+.q4-chev{font-size:20px;color:var(--muted)}
+.q4-rnew{display:block;width:100%;background:none;border:0;color:var(--muted);font:inherit;font-size:14px;font-weight:700;padding:13px;cursor:pointer}
+.p3-many{display:block;width:100%;margin-top:10px;background:var(--card);border:1.5px solid var(--line);border-radius:16px;color:var(--ink);font:inherit;font-size:15px;font-weight:800;padding:13px;cursor:pointer}
