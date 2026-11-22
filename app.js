@@ -1934,6 +1934,7 @@ async function teacherRoute(){
     else if (page === 'join') tJoin();
     else if (page === 'class') await tClass(parts[1]);
     else if (page === 'questions') await tQuestions();
+    else if (page === 'subj') { QS.subj3 = decodeURIComponent(parts[1] || ''); SJ.open = null; await tQuestions(); }
     else if (page === 'qshare') { T.qf.status = 'approved'; await tQuestions(); qSharePreview(parts[1]); }
     else if (page === 'results') await tResults(parts[1], parts[2]);
     else if (page === 'ch') { CL.tab = 'comps'; CL.cur = null; await tClasses(); }
@@ -4031,6 +4032,7 @@ function qSelBar(){
     <button class="icon-btn" data-act="t-q-selx" aria-label="إلغاء التحديد">${ic('x')}</button></div>`;
 }
 function renderQuestions(){
+  if (sjOn()) return tSubjPage();
   const f = T.qf; if (!f.type) f.type = 'all';
   if (!['approved', 'draft', 'global'].includes(f.status)) f.status = 'approved';
   const nd = QS.list.filter(q => q.status === 'draft').length;
@@ -4120,6 +4122,8 @@ function q4By(cu){
 const q4Mine = (cu, l) => !QS.glob.some(q => q.curriculum_id === cu && (q.lesson || NO_LESSON) === l);
 function q4Open(html){ const open = document.querySelector('.modal .q4-sh'); if (open) { const mo = open.closest('.modal'), y = mo ? mo.scrollTop : 0; open.outerHTML = html; if (mo) mo.scrollTop = y; } else { closeModals(); modal(html); } }
 function q4SubjSheet(s){
+  if (sjOn()) { if (s) QS.subj3 = s; closeModals(); return renderQuestions(); }
+  if (s) { QS.subj3 = s; return go('#/t/subj/' + encodeURIComponent(s)); }
   const x = q4Subjects().find(y => y.s === s); if (!x) return;
   x.cus.sort((a, b) => (a.grade || 0) - (b.grade || 0));
   const cu = x.cus.find(c => c.id === QS.subjCu) || x.cus[0]; QS.subjCu = cu.id; QS.subj3 = s; QS.ed4 = false;
@@ -4157,8 +4161,45 @@ ACTS['q4-newl'] = async () => {
 ACTS['q4-led'] = t => { const l = (QS.les3 || [])[+t.dataset.i]; if (l != null) q4LedSheet(l); };
 /* v375 (Khalid): bank lessons are fixed: the teacher only switches them on/off (✓) and reports a wrong question.
    His own lessons (or his own subject) stay fully editable. The admin keeps the old controls. */
+
+/* v376 (Khalid «أبي طريقة لعرض الدروس أوضح»): a subject opens ONE page, not stacked sheets.
+   Top: lessons on + questions count + bar + «شغّل الكل / طفّ الكل». Each lesson: ✓ circle + name; the name opens its questions inline. */
+const SJ = { open: null };
+const sjOn = () => location.hash.indexOf('#/t/subj/') === 0;
+function tSubjPage(){
+  const s = QS.subj3, x = q4Subjects().find(y => y.s === s);
+  if (!x) return view(s || 'المادة', '<p class="sub center">ما لقيت هالمادة</p>', 'questions', '', '#/t/questions');
+  x.cus.sort((a, b) => (a.grade || 0) - (b.grade || 0));
+  const cu = x.cus.find(c => c.id === QS.subjCu) || x.cus[0]; QS.subjCu = cu.id;
+  const by = q4By(cu.id), les = Object.keys(by).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON)); QS.les3 = les;
+  const onL = les.filter(l => by[l].some(q4On)), qn = onL.reduce((n, l) => n + by[l].filter(q4On).length, 0);
+  const nq = n => n + ' ' + (n > 2 && n < 11 ? 'أسئلة' : 'سؤال');
+  const row = (l, i) => {
+    const on = by[l].some(q4On), open = SJ.open === l, qs = open ? q4LesQs(cu.id, l) : [], bank = q4Bank(cu.id, l);
+    const inner = !open ? '' : `<div class="sj-qs">${qs.map((q, k) => { const ord = q.payload && q.payload.kind === 'order';
+        return `<button class="sj-q" data-act="${bank ? 'q4-qv' : 'q4-qe'}" data-id="${q.id}"><em>${k + 1}</em><span class="grow"><b>${esc(q.body)}</b><small>${ord ? 'رتّب' : '✓ ' + esc(q.options[q.correct_index] || '')}</small></span></button>`; }).join('') || '<p class="p3-note">ما فيه أسئلة بعد</p>'}
+      ${bank ? '<p class="sj-note">أسئلة البنك ثابتة للكل. إذا لقيت سؤال غلط، اضغطه وبلّغ عنه.</p>'
+        : `<div class="q4-2"><button class="q4-addq" data-act="q4-qe" data-id="">＋ أضف سؤال</button><button class="q4-addq" data-act="q4-imp">📷 من صورة أو ملف</button></div>
+           <div class="sj-ed">${l === NO_LESSON ? '' : '<button data-act="q4-ren">✏️ تغيير الاسم</button>'}<button class="dng" data-act="q4-dell">حذف الدرس</button></div>`}</div>`;
+    return `<div class="sj-l${on ? ' on' : ''}${open ? ' open' : ''}"><div class="sj-lh"><button class="q4-ck${on ? ' added' : ''}" data-act="q4-tg" data-i="${i}" role="checkbox" aria-checked="${on}" aria-label="${esc(q4LN(cu.id, l))}">✓</button><button class="sj-lt" data-act="sj-open" data-i="${i}" aria-expanded="${open}"><span class="grow"><b>${esc(q4LN(cu.id, l))}</b><small>${nq(by[l].length)}${q4Mine(cu.id, l) ? ' · درسك' : ''}</small></span><span class="sj-ch">‹</span></button></div>${inner}</div>`;
+  };
+  view(`${SUBJ_EMOJI[s] || '📘'} ${esc(s)}`,
+    (x.cus.length > 1 ? `<div class="q4-chips sj-chips">${x.cus.map(c => `<button class="${c.id === cu.id ? 'on' : ''}" data-act="q4-gr" data-id="${c.id}">${esc(q4Gr(c))}</button>`).join('')}</div>` : '') +
+    `<div class="sj-hero"><div class="sj-n"><em>${onL.length}</em> من ${les.length} ${les.length > 2 && les.length < 11 ? 'دروس' : 'درس'} شغّالة · ${nq(qn)}</div><div class="sj-bar"><i style="width:${les.length ? Math.round(onL.length / les.length * 100) : 0}%"></i></div>
+      <div class="sj-2"><button data-act="q4-all"${onL.length === les.length ? ' disabled' : ''}>شغّل الكل</button><button data-act="sj-none"${onL.length ? '' : ' disabled'}>طفّ الكل</button></div></div>
+    <div class="sj-ls">${les.map(row).join('')}<button class="q4-rnew" data-act="q4-newl">＋ درس جديد</button></div>
+    ${ADM.st && ADM.st.is && !ADM.st.act && cu.owner_id && cu.owner_id === T.user.id ? `<button class="q4-all" data-act="q4-pub">📢 انشرها للكل</button>` : ''}
+    <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen"><input type="file" id="qocr" accept="image/*" class="hide" data-change="t-q-ocr-chosen">`,
+    'questions', '', '#/t/questions');
+}
+ACTS['sj-open'] = t => { const l = (QS.les3 || [])[+t.dataset.i]; if (l == null) return; SJ.open = SJ.open === l ? null : l; QS.led = l; haptic(); const y = scrollY; renderQuestions(); scrollTo(0, y); };
+ACTS['sj-none'] = async t => {
+  const ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && (QS.pick || new Set()).has(q.id)).map(q => q.id); if (!ids.length) return;
+  if (!await ask('ما يطلع أي درس من هالمادة للطلاب لين تشغّله.', { title: 'تطفي كل الدروس؟', ok: 'طفّ الكل', cancel: 'رجوع' })) return;
+  t.setAttribute('aria-busy', 'true'); if (await qPickSet(ids, false)) { renderQuestions(); toast('انطفت كل الدروس'); } else t.removeAttribute('aria-busy'); };
 const q4Bank = (cu, l) => { const c = CU.list.find(x => x.id === cu); return !q4Mine(cu, l) && !(c && c.owner_id && c.owner_id === T.user.id) && !(ADM.st && ADM.st.is); };
 function q4LedSheet(l){
+  if (sjOn()) { QS.led = l; SJ.open = l; closeModals(); return renderQuestions(); }
   QS.led = l; const cu = QS.subjCu, qs = q4LesQs(cu, l);
   if (q4Bank(cu, l)) return q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-back" aria-label="رجوع">→</button><h3>${esc(q4LN(cu, l))}</h3></div>
     <div class="q4-ql">${qs.map((q, k) => `<button class="q4-qr" data-act="q4-qv" data-id="${q.id}"><em>${k + 1}</em><span class="grow"><b>${esc(q.body)}</b></span></button>`).join('') || '<p class="p3-note">ما فيه أسئلة بعد</p>'}</div>
@@ -4172,11 +4213,11 @@ function q4LedSheet(l){
 }
 ACTS['q4-qv'] = t => { const q = QS.glob.find(x => x.id === t.dataset.id); if (!q) return; QS.qv = q.id;
   const ord = q.payload && q.payload.kind === 'order';
-  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-qvb" aria-label="رجوع">→</button><h3>السؤال</h3></div>
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="${sjOn() ? 'close-modal' : 'q4-qvb'}" aria-label="رجوع">→</button><h3>السؤال</h3></div>
     <p class="q4-qvb">${esc(q.body)}</p>
     <div class="q4-qvo">${q.options.map((o, k) => `<div class="${!ord && k === q.correct_index ? 'ok' : ''}">${ord ? (k + 1) + '. ' : ''}${esc(o)}${!ord && k === q.correct_index ? ' ✓' : ''}</div>`).join('')}</div>
     <button class="q4-rep" data-act="q4-rep">🚩 بلّغ عن خطأ</button>
-    <button class="p3-big" data-act="q4-qvb">رجوع</button></div>`); };
+    <button class="p3-big" data-act="${sjOn() ? 'close-modal' : 'q4-qvb'}">رجوع</button></div>`); };
 ACTS['q4-qvb'] = () => q4LedSheet(QS.led);
 ACTS['q4-rep'] = async t => {
   const q = QS.glob.find(x => x.id === QS.qv); if (!q) return;
@@ -4296,7 +4337,7 @@ ACTS['q4-qdel'] = async () => {
 ACTS['q4-all'] = async t => { const P = QS.pick || new Set(), ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && !P.has(q.id)).map(q => q.id); if (!ids.length) return;
   t.setAttribute('aria-busy', 'true'); if (await qPickSet(ids, true)) { renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast('انضافت كل الدروس ✓'); } else t.removeAttribute('aria-busy'); };
 ACTS['q4-done'] = () => { closeModals(); renderQuestions(); scrollTo(0, 0); };
-ACTS['q4-subj'] = t => { QS.subjCu = null; QS.ed4 = false; q4SubjSheet(t.dataset.s); };
+ACTS['q4-subj'] = t => { QS.subjCu = null; QS.ed4 = false; go('#/t/subj/' + encodeURIComponent(t.dataset.s)); };
 ACTS['q4-gr'] = t => { QS.subjCu = t.dataset.id; q4SubjSheet(QS.subj3); };
 ACTS['q4-tg'] = async t => {
   const l = (QS.les3 || [])[+t.dataset.i]; if (l == null) return;
