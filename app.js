@@ -4118,7 +4118,7 @@ function q4By(cu){
   return by;
 }
 const q4Mine = (cu, l) => !QS.glob.some(q => q.curriculum_id === cu && (q.lesson || NO_LESSON) === l);
-function q4Open(html){ const open = document.querySelector('.modal .q4-sh'); if (open) open.outerHTML = html; else { closeModals(); modal(html); } }
+function q4Open(html){ const open = document.querySelector('.modal .q4-sh'); if (open) { const mo = open.closest('.modal'), y = mo ? mo.scrollTop : 0; open.outerHTML = html; if (mo) mo.scrollTop = y; } else { closeModals(); modal(html); } }
 function q4SubjSheet(s){
   const x = q4Subjects().find(y => y.s === s); if (!x) return;
   x.cus.sort((a, b) => (a.grade || 0) - (b.grade || 0));
@@ -4128,8 +4128,8 @@ function q4SubjSheet(s){
   /* v371: one mode. Switch = lesson plays in challenges; tapping the name opens its questions */
   q4Open(`<div class="q4-sh"><div class="q4-shh"><span class="e">${SUBJ_EMOJI[s] || '📘'}</span><h3>${esc(s)}</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
     ${x.cus.length > 1 ? `<div class="q4-chips">${x.cus.map(c => `<button class="${c.id === cu.id ? 'on' : ''}" data-act="q4-gr" data-id="${c.id}">${esc(q4Gr(c))}</button>`).join('')}</div>` : ''}
-    <div class="q4-rows">${les.map((l, i) => { const on = by[l].some(q4On), n = by[l].length; return `<div class="q4-rw"><button class="q4-sw${on ? ' added' : ''}" data-act="q4-tg" data-i="${i}" role="switch" aria-checked="${on}" aria-label="${esc(q4LN(cu.id, l))}"><i></i></button><button class="q4-rt" data-act="q4-led" data-i="${i}"><span class="grow"><b>${esc(q4LN(cu.id, l))}</b><small>${n} ${n > 2 && n < 11 ? 'أسئلة' : 'سؤال'}${on ? ' · طلابك يلعبون منه' : ''}${q4Mine(cu.id, l) ? ' · درسك' : ''}</small></span><span class="q4-chev">‹</span></button></div>`; }).join('')}<button class="q4-rnew" data-act="q4-newl">＋ درس جديد</button></div>
-    <p class="p3-note">المفتاح الأخضر = يدخل في التحديات</p>
+    <div class="q4-rows">${les.map((l, i) => { const on = by[l].some(q4On), n = by[l].length; return `<div class="q4-rw"><button class="q4-ck${on ? ' added' : ''}" data-act="q4-tg" data-i="${i}" role="checkbox" aria-checked="${on}" aria-label="${esc(q4LN(cu.id, l))}">✓</button><button class="q4-rt" data-act="q4-led" data-i="${i}"><span class="grow"><b>${esc(q4LN(cu.id, l))}</b><small>${n} ${n > 2 && n < 11 ? 'أسئلة' : 'سؤال'}${on ? ' · طلابك يلعبون منه' : ''}${q4Mine(cu.id, l) ? ' · درسك' : ''}</small></span><span class="q4-chev">‹</span></button></div>`; }).join('')}<button class="q4-rnew" data-act="q4-newl">＋ درس جديد</button></div>
+    <p class="p3-note">الدرس اللي عليه ✓ يدخل في التحديات</p>
     ${les.some(l => !by[l].some(q4On)) ? `<button class="q4-all" data-act="q4-all">شغّل كل الدروس</button>` : ''}
     ${ADM.st && ADM.st.is && !ADM.st.act && cu.owner_id && cu.owner_id === T.user.id ? `<button class="q4-all" data-act="q4-pub">📢 انشرها للكل</button>` : ''}
     <button class="p3-big" data-act="q4-done">تم</button></div>`);
@@ -4580,7 +4580,7 @@ ACTS['t-save-q'] = async f => {
   }
   closeModals(); toast(f.id.value ? 'تم حفظ التعديل' : 'تمت إضافة السؤال ودخل البنك'); if (!f.id.value && T.qf.status !== 'approved') T.qf.status = 'approved'; renderQuestions();
 };
-function renderQuestionsKeepModal(){ const m = [...document.querySelectorAll('.modal-back')]; m.forEach(x => x.remove()); renderQuestions(); m.forEach(x => document.body.appendChild(x)); }
+function renderQuestionsKeepModal(){ const m = [...document.querySelectorAll('.modal-back')], ys = m.map(x => { const mo = x.querySelector('.modal'); return mo ? mo.scrollTop : 0; }); m.forEach(x => x.remove()); renderQuestions(); m.forEach((x, i) => { document.body.appendChild(x); const mo = x.querySelector('.modal'); if (mo) mo.scrollTop = ys[i]; }); }
 
 /* approve / reject with undo */
 function qSetStatus(ids, s, msg){
