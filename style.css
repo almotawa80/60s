@@ -3782,3 +3782,5 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 /* v372 rules page: advanced settings fold */
 .nw-set1.rl-more{margin-top:18px}.nw-set1.rl-more .rl-e{font-size:22px}
 .set-grp .nw-less{border-top:0}
+/* v373: bottom space only after the last squares grid (gap above «مواد أخرى») */
+.q5-sq:not(:last-child){padding-bottom:0}
