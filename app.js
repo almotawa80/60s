@@ -2132,7 +2132,7 @@ function subjList(c, extra){
   let cus = CU.list.filter(x => !x.owner_id && x.stage === (c.stage || 'primary') && glob[x.id]);
   if (g) { const exact = cus.filter(x => x.grade === g); if (exact.length) cus = exact; }
   /* v239 (Khalid): only the teacher's own subjects (profile), others behind «مادة ثانية؟» */
-  let hid = 0; { const my = mySubjects(); if (my.length && !NW.allSubj) { const f = cus.filter(x => my.includes(x.subject) || (extra || []).includes(x.id)); hid = new Set(cus.map(x => x.subject)).size - new Set(f.map(x => x.subject)).size; if (f.length) cus = f; else hid = 0; } }
+  let hid = 0; { const my = mySubjects(); if (my.length && !NW.allSubj) { const f = cus.filter(x => my.includes(x.subject) || (extra || []).includes(x.id)); hid = new Set(cus.map(x => x.subject)).size - new Set(f.map(x => x.subject)).size; cus = f; } }
   const bySub = {}; cus.forEach(x => { (bySub[x.subject] = bySub[x.subject] || []).push(x); });
   const list = []; Object.keys(bySub).forEach(sb2 => { const xs = bySub[sb2]; (xs.length === 1 || g ? [xs[0]] : xs).forEach(x => list.push([x, xs.length === 1 || g ? (x.grade ? gradeAr(x) + ' · ' : '') + glob[x.id] + ' سؤال' : gradeAr(x)])); });
   mine.forEach(x => list.push([x, glob[x.id] + ' سؤال']));
@@ -2143,10 +2143,16 @@ function subjList(c, extra){
 function subjTiles(c, sel, act, extra, afterMine){
   const tile = (k, e, n, sm, off) => `<button type="button" class="nw-tile nw-mt${sel.includes(k) ? ' on' : ''}${off ? ' off' : ''}" data-act="${act}" data-k="${esc(k)}"${off ? ' disabled' : ''}><span class="nw-ck">${sel.includes(k) ? '✓' : ''}</span><span class="nw-e">${e}</span><b>${esc(n)}</b><small>${esc(sm)}</small></button>`;
   const gen = NW.gen || {};
-  const sl = subjList(c, extra), mt = sl.map(([x, sm]) => tile(x.id, SUBJ_EMOJI[x.subject] || '📚', String(x.subject).replace(/^(اللغة|التربية) /, ''), sm)).join('');
+  const sl = subjList(c, extra);
+  /* v384 (Khalid): a subject he teaches with no questions yet shows greyed, never another teacher's subject in its place */
+  const none = mySubjects().filter(s => !sl.some(([x]) => x.subject === s));
+  const mt = sl.map(([x, sm]) => tile(x.id, SUBJ_EMOJI[x.subject] || '📚', String(x.subject).replace(/^(اللغة|التربية) /, ''), sm)).join('')
+    + none.map(s => tile('x:' + s, SUBJ_EMOJI[s] || '📚', String(s).replace(/^(اللغة|التربية) /, ''), 'ما فيها أسئلة بعد', true)).join('');
+  if (none.length) afterMine = (afterMine || '') + `<button type="button" class="link nw-link" data-act="nw-goq">＋ أضف أسئلة ${esc(none[0])}</button>`;
   const gt = NW_GEN.filter(o => gen[o[0]] || sel.includes(o[0])).map(o => tile(o[0], o[1], o[2], gen[o[0]] ? gen[o[0]] + ' سؤال' : '', false)).join('');
   return (mt ? `<div class="nw-lbl">موادي</div><div class="nw-tiles">${mt}</div>${afterMine || ''}${sl.hid ? `<button type="button" class="link nw-link nw-more-subj" data-act="nw-allsubj">مادة ثانية؟</button>` : ''}` : '') + (gt ? `<div class="nw-lbl">أسئلة عامة</div><div class="nw-tiles">${gt}</div>` : '');
 }
+ACTS['nw-goq'] = () => go('#/t/questions');
 async function tNew(fresh){
   /* v366 (Khalid): board mode has its own entry #/t/new/board (home card) */
   const brd = location.hash.indexOf('#/t/new/board') === 0;
