@@ -3735,3 +3735,7 @@ html body .bd .qbox.bd-q::before{display:none}
 body:not(.dark) .nw-bk{background:#fff;color:#1C1C1E;border-color:rgba(0,0,0,.1)}
 .nw-bk .ico{width:24px;height:24px}
 body:has(.nw-foot .nw-bk) .t-top .back-btn{display:none}
+/* v362: logout dialog shows the personal code */
+.dlg-code{margin:8px auto 2px;font-size:30px;font-weight:800;letter-spacing:3px;background:rgba(0,0,0,.06);border-radius:12px;padding:8px 14px;user-select:all;-webkit-user-select:all}
+body.dark .dlg-code,.sh .dlg-code{background:#1C1C1E}
+.dlg-cp{border:0;background:transparent;color:#0A84FF;font:inherit;font-size:14px;padding:6px;cursor:pointer}

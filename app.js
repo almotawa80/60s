@@ -151,7 +151,7 @@ function ask(msg, o){
   return new Promise(res => {
     const danger = o.danger != null ? o.danger : /حذف|إنهاء|الخروج/.test(msg);
     const el = document.createElement('div'); el.className = 'dlg-back';
-    el.innerHTML = `<div class="dlg" role="alertdialog" aria-modal="true"><div class="dlg-b">${o.title ? `<b>${esc(o.title)}</b>` : ''}<p>${esc(msg).replace(/\n/g, '<br>')}</p>` +
+    el.innerHTML = `<div class="dlg" role="alertdialog" aria-modal="true"><div class="dlg-b">${o.title ? `<b>${esc(o.title)}</b>` : ''}<p>${esc(msg).replace(/\n/g, '<br>')}</p>${o.html || ''}` +
       (o.input != null ? `<input class="dlg-in" ${o.readonly ? 'readonly' : ''} ${o.email ? 'type="email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false"' : ''} dir="${o.dir || 'auto'}" value="${esc(o.input)}" placeholder="${esc(o.placeholder || '')}">` : '') +
       `</div><div class="dlg-a">${o.alert ? '' : `<button type="button" data-r="0">${esc(o.cancel || 'إلغاء')}</button>`}<button type="button" data-r="1" class="${danger ? 'dng' : 'pri'}">${esc(o.ok || (danger ? (/حذف/.test(msg) ? 'حذف' : 'متابعة') : 'متابعة'))}</button></div></div>`;
     const inp = el.querySelector('.dlg-in'), ok = el.querySelector('[data-r="1"]');
@@ -957,7 +957,8 @@ ACTS['s-menu'] = () => {
     '<button class="sheet-i sheet-cancel" data-act="close-modal">إغلاق</button></div>');
 };
 ACTS['s-sound-row'] = t => { const on = FX.toggle(); t.innerHTML = ic(on ? 'sound' : 'mute') + '<span>الصوت: ' + (on ? 'مفعّل' : 'مكتوم') + '</span>'; };
-ACTS['s-logout-ask'] = async () => { if (!await ask('تسجيل الخروج؟ ستحتاج رمزك للدخول مرة أخرى.')) return; closeModals(); ACTS['s-logout'](); };
+ACTS['s-logout-ask'] = async () => { const code = LS.get('mc_code');
+  if (!await ask('تحتاجه عشان ترجع.', { title: code ? 'صوّر رمزك قبل ما تطلع' : 'تسجيل الخروج؟', html: code ? `<div class="dlg-code" dir="ltr">${esc(code)}</div><button type="button" class="dlg-cp" data-act="copy" data-v="${esc(code)}">📋 انسخ الرمز</button>` : '', cancel: 'رجوع', ok: 'اطلع', danger: true })) return; closeModals(); ACTS['s-logout'](); };
 const S_AVS = ['🦁','🐯','🐼','🦊','🐨','🐸','🦉','🦅','🐬','🐢','🦄','🐉','🚀','⚽','🏆','⭐'];
 ACTS['s-av'] = async () => { if (!S.home) return; S.avPick = S.home.student.avatar || '';
   if (!S.daily && !S.demo) { try { S.daily = await rpc('student_daily', { p_token: S.token }); } catch(e){} }
@@ -2193,8 +2194,9 @@ async function nwLive(){
   el.innerHTML = `<div class="nw-lh"><b>دخلوا الحين</b><em>${xs.length}</em></div>${xs.length ? xs.map(x => `<div class="nw-lr">${esc(x.name)}<span>جديد</span></div>`).join('') : '<div class="nw-lr nw-wait">ننتظر أول طالب… تتحدث القائمة لحالها</div>'}`;
 }
 ACTS['nw-back'] = () => { if (NW.step > 1 && !(NW.step === 2 && NW.skip1)) { NW.step--; nwRender(); } else go('#/t/home'); };
-ACTS['nw-cls-pick'] = t => { const id = t.dataset.id;
-  if (NW.busy.has(id) && !NW.multi) toast('هذا الصف عنده تحدي، الجديد بيحل مكانه');
+ACTS['nw-cls-pick'] = async t => { const id = t.dataset.id;
+  /* v362 (Khalid): confirm before replacing a running challenge */
+  if (NW.busy.has(id) && !NW.cls.includes(id)) { const c = NW.classes.find(x => x.id === id) || {}; if (!await ask('الجديد يوقف القديم، ونقاطه تنحفظ في «التحديات السابقة».', { title: (c.name || 'هذا الصف') + ' عنده تحدي شغّال', cancel: 'رجوع', ok: 'كمّل', danger: false })) return; }
   if (NW.multi) { NW.cls = NW.cls.includes(id) ? NW.cls.filter(x => x !== id) : NW.cls.concat(id); return nwRender(); }
   NW.cls = [id]; NW.step = 2; nwRender(); };
 ACTS['nw-multi'] = () => { NW.multi = true; NW.cls = []; nwRender(); };
@@ -6296,7 +6298,7 @@ ACTS['bd-reshuf'] = () => { bdSplit(); bdDraw(); };
 function bdFsOk(){ const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); return !!document.fullscreenEnabled && !ios && !(window.navigator.standalone) && innerWidth >= 900; }
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) setTimeout(() => { window.dispatchEvent(new Event('resize')); scrollTo(0, 0); }, 120); });
 ACTS['bd-fs'] = () => { const d = document.documentElement; if (document.fullscreenElement) document.exitFullscreen(); else if (d.requestFullscreen) d.requestFullscreen().catch(() => {}); };
-ACTS['bd-x'] = () => { BD.gen++; clearInterval(BD.tm); MG.end = null; MG.tap = null; S.locked = true; if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); nwRender(); };
+ACTS['bd-x'] = async () => { if (BD.st !== 'end' && BD.st !== 'teams' && !await ask('النتيجة ما تنحفظ.', { title: 'تطلع من اللعبة؟', cancel: 'نكمل', ok: 'اطلع', danger: true })) return; BD.gen++; clearInterval(BD.tm); MG.end = null; MG.tap = null; S.locked = true; if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); nwRender(); };
 ACTS['bd-start'] = () => { if (BD.teams.some(t => !t.m.length)) return toast('كل فريق يحتاج طالب واحد على الأقل'); BD.teams.forEach(t => { t.s = 0; t.used = []; }); BD.students.forEach(x => { x.ok = 0; }); BD.turn = 0; BD.rd = 0; BD.qr = 0; BD.st = 'q'; bdQ(); };
 ACTS['bd-again'] = () => ACTS['bd-start']();
 function bdPick(){ const t = BD.teams[BD.turn]; let left = t.m.filter(x => !t.used.includes(x.id)); if (!left.length) { t.used = []; left = t.m; } const w = left[Math.floor(Math.random() * left.length)]; t.used.push(w.id); BD.who = w; }
