@@ -6364,7 +6364,7 @@ function bdDraw(){
   if (BD.st === 'teams') {
     h = `<h2 class="bd-h">الفرق</h2>${BD.split === 'me' ? '<p class="bd-sub">اضغط اسم الطالب وينتقل للفريق اللي بعده</p>' : ''}
       <div class="bd-teams">${BD.teams.map((t, i) => `<div class="bd-tm" style="--c:${t.c}"><b>فريق ${t.n} <small>${t.m.length}</small></b><div>${t.m.map(x => `<button type="button" class="bd-nm" data-act="bd-move" data-t="${i}" data-id="${esc(x.id)}">${esc(x.n)}</button>`).join('')}</div></div>`).join('')}</div>
-      <div class="bd-acts">${BD.split === 'rand' ? '<button class="btn soft" data-act="bd-reshuf">🎲 قسّمهم من جديد</button>' : ''}<button class="btn" data-act="bd-start">▶ ابدأ · ${BD.T * BD.rn === 2 ? 'جولتين' : BD.T * BD.rn + ' جولات'}</button></div>`;
+      <div class="bd-acts">${BD.split === 'rand' ? '<button class="btn soft" data-act="bd-reshuf">🎲 قسّمهم من جديد</button>' : ''}<div class="bd-foot"><button type="button" class="nw-bk" data-act="bd-x" aria-label="رجوع">${ic('back')}</button><button class="btn" data-act="bd-start">▶ ابدأ · ${BD.T * BD.rn === 2 ? 'جولتين' : BD.T * BD.rn + ' جولات'}</button></div></div>`;
   } else if (BD.st === 'q') {
     const t = BD.teams[BD.turn], q = BD.q, game = q.game, ans = BD.ans;
     const head = `${bdTop()}<div class="bd-who"><span class="bd-sub">فريق ${t.n} · جولة ${BD.rd + 1}/${BD.rn} · سؤال ${BD.qr + 1}/${L[0]}</span><span class="bd-pick" style="--c:${t.c}">${esc(BD.who.n)}</span>${ans == null && !BD.wait ? '<button type="button" class="bd-dice" data-act="bd-dice">🎲 غيره</button>' : ''}</div>`;
@@ -6380,7 +6380,7 @@ function bdDraw(){
       ${stars.length ? `<p class="bd-stars">نجوم الحصة: <b>${stars.map(x => esc(x.n.split(' ')[0])).join('، ')}</b></p>` : ''}
       <div class="bd-acts"><button class="btn soft" data-act="bd-again">جولة ثانية بنفس الفرق</button><button class="btn" data-act="bd-x">تم</button></div>`;
   }
-  $app.innerHTML = `<div class="bd"><div class="bd-bar"><button type="button" class="bd-x" data-act="bd-x" aria-label="إغلاق">✕</button>${bdFsOk() ? '<button type="button" class="bd-fs" data-act="bd-fs">⛶ ملء الشاشة</button>' : ''}</div>${h}</div>`;
+  $app.innerHTML = `<div class="bd"><div class="bd-bar">${BD.st === 'teams' ? '' : '<button type="button" class="bd-x" data-act="bd-x" aria-label="إغلاق">✕</button>'}${bdFsOk() ? '<button type="button" class="bd-fs" data-act="bd-fs">⛶ ملء الشاشة</button>' : ''}</div>${h}</div>`;
   if (BD.st === 'end') setTimeout(() => FX.win && FX.win(false), 200);
 }
 function bdNextTxt(){ const L = BD_LV[BD.lv]; if (BD.qr + 1 < L[0]) return 'السؤال التالي ›'; const nt = BD.turn + 1 < BD.T ? BD.turn + 1 : BD.rd + 1 < BD.rn ? 0 : -1; return nt < 0 ? '🏆 النتيجة' : 'دور فريق ' + BD.teams[nt].n + ' ›'; }
