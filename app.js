@@ -2160,8 +2160,10 @@ function nwRender(){
       <button class="btn nw-go" data-act="nw-subj-next" ${sel.length ? '' : 'disabled'}>التالي${sel.length ? ' (' + sel.length + ')' : ''}</button>`;
   }
   if (st === 3) {
-    const end = addDays(todayKW(), NW.days - 1);
-    b = `<h2 class="nw-q">كم يوم؟</h2><div class="nw-days">${[[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']].map(d => `<button class="${NW.days === d[0] ? 'on' : ''}" data-act="nw-days" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>
+    const end = addDays(todayKW(), Math.max(1, NW.days) - 1);
+    const dz = `<h2 class="nw-q">كم يوم؟</h2><div class="nw-days"><button class="nw-now${NW.days === 0 ? ' on' : ''}" data-act="nw-days" data-d="0">⚡ الحين في الصف<small>يبدأ وينتهي بنفس الحصة</small></button>${[[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']].map(d => `<button class="${NW.days === d[0] ? 'on' : ''}" data-act="nw-days" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>`;
+    if (NW.days === 0) b = dz + bdOpts(); else
+    b = dz + `
       <p class="nw-note">${esc(nwSpanTxt())}</p>
       <div class="nw-grp">
         <button type="button" class="ce1-row" data-act="nw-opt" data-k="start"><span class="ce1-e">📅</span><span class="grow"><b>يبدأ</b></span><em class="nw-v">${esc(nwStartTxt())}</em><span class="ce1-ch">←</span></button>
@@ -6192,6 +6194,135 @@ if ('serviceWorker' in navigator) {
     setInterval(chk, 30 * 60 * 1000);
   }).catch(() => {});
 }
+/* v346: tap the active tab while scrolled down → smooth scroll to top (iOS style) */
+(() => { let on = false;
+  addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('.t-nav > a, .s-nav > button'); on = !!(b && b.classList.contains('on')); }, true);
+  addEventListener('click', e => { const b = e.target.closest && e.target.closest('.t-nav > a, .s-nav > button'); if (!b || !on) return; on = false;
+    if ($app.querySelector('.s-back, :scope > .t-top .back-btn')) { e.preventDefault(); e.stopImmediatePropagation(); return goBack(); }
+    if (scrollY < 10) return;
+    e.preventDefault(); e.stopImmediatePropagation(); upSlow(); }, true);
+  function upSlow(){ const y0 = scrollY, d = Math.min(900, 380 + y0 * .25), t0 = performance.now(); let stop = false;
+    const halt = () => { stop = true; }; addEventListener('touchstart', halt, { once: true, passive: true });
+    const f = t => { if (stop) return; const k = Math.min(1, (t - t0) / d), e2 = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; scrollTo(0, Math.round(y0 * (1 - e2))); if (k < 1) requestAnimationFrame(f); else removeEventListener('touchstart', halt); };
+    requestAnimationFrame(f); }
+})();
+/* ===== v357 «وضع السبورة» (Khalid «تمام» 2026-11-22, preview https://claude.ai/artifact/6zr1f3JEjDCyDDvmM9g4pB):
+   phones are banned in class, so one device (the teacher's / the smart board) runs the game. The class splits into teams,
+   each team plays a one-minute round (3×20 / 4×15 / 6×10), one student per question answers by touching the board or telling
+   the teacher. Optional memory games (same mini-games as the round). Nothing is saved to the server. ===== */
+const BD = { T: 2, split: 'rand', lv: 1, rn: 1, mg: false, teams: [], qs: [], st: 'teams', gen: 0 };
+const BD_LV = [[3, 20, '3 أسئلة', '20 ثانية · ابتدائي'], [4, 15, '4 أسئلة', '15 ثانية · متوسط'], [6, 10, '6 أسئلة', '10 ثواني · تحدي']];
+const BD_COL = [['الأحمر', '#FF453A'], ['الأزرق', '#0A84FF'], ['الأصفر', '#FFD60A'], ['الأخضر', '#30D158']];
+const BD_MG = ['squares', 'seq', 'pairs', 'where', 'cups'];
+const bdTouch = () => (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+function bdOpts(){
+  const c = (NW.classes || []).find(x => x.id === NW.cls[0]) || {};
+  if (BD.lvSet !== c.id) { BD.lvSet = c.id; BD.lv = stageOf(c.name) === 'p' ? 0 : 1; }
+  const chip = (on, act, d, h) => `<button type="button" class="bd-chip${on ? ' on' : ''}" data-act="${act}" data-v="${d}">${h}</button>`;
+  return `<div class="nw-grp bd-set">
+    <div class="bd-lb">كم فريق؟</div><div class="bd-row">${[2, 3, 4].map(n => chip(BD.T === n, 'bd-set-t', n, n)).join('')}</div>
+    <div class="bd-lb">التقسيم</div><div class="bd-row">${chip(BD.split === 'rand', 'bd-set-sp', 'rand', '🎲 عشوائي')}${chip(BD.split === 'me', 'bd-set-sp', 'me', '✋ أنا أقسمهم')}</div>
+    <div class="bd-lb">الجولة (دقيقة لكل فريق)</div><div class="bd-row">${BD_LV.map((l, i) => chip(BD.lv === i, 'bd-set-lv', i, `<b>${l[2]}</b><small>${l[3]}</small>`)).join('')}</div>
+    <div class="bd-lb">كم جولة لكل فريق؟</div><div class="bd-row">${[1, 2, 3].map(n => chip(BD.rn === n, 'bd-set-rn', n, n)).join('')}</div>
+    <button type="button" class="ce1-row bd-mgrow" data-act="bd-set-mg"><span class="ce1-e">🧠</span><span class="grow"><b>ألعاب الذكاء</b><small>الطالب يلمس السبورة بنفسه، تحتاج سبورة لمس. بدونها إنت تضغط اللي يقوله الطالب.</small></span><span class="bd-sw${BD.mg ? ' on' : ''}"><i></i></span></button>
+    ${BD.mg && !bdTouch() ? '<p class="bd-warn">هالجهاز ما فيه لمس، بتضغط إنت عن الطلاب.</p>' : ''}
+  </div><div class="nw-sp"></div><button class="btn nw-go" data-act="bd-go">📺 اعرضه بالصف</button>`;
+}
+ACTS['bd-set-t'] = t => { BD.T = Number(t.dataset.v); nwRender(); };
+ACTS['bd-set-sp'] = t => { BD.split = t.dataset.v; nwRender(); };
+ACTS['bd-set-lv'] = t => { BD.lv = Number(t.dataset.v); nwRender(); };
+ACTS['bd-set-rn'] = t => { BD.rn = Number(t.dataset.v); nwRender(); };
+ACTS['bd-set-mg'] = () => { BD.mg = !BD.mg; nwRender(); };
+function bdShuffle(a){ for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function bdSplit(){
+  const st = bdShuffle(BD.students.slice());
+  BD.teams = BD_COL.slice(0, BD.T).map(c => ({ n: c[0], c: c[1], m: [], s: 0 }));
+  st.forEach((x, i) => BD.teams[i % BD.T].m.push(x));
+}
+ACTS['bd-go'] = async t => {
+  if (BD.busy) return; BD.busy = true; t.setAttribute('aria-busy', 'true');
+  try {
+    const cus = NW.cus || (NW.cu ? [NW.cu] : []), gts = (NW.gtypes || []).filter(k => k !== 'memory');
+    const sel = 'id,body,options,correct_index,curriculum_id,lesson,payload,qtype';
+    const ors = (cus.length ? ['curriculum_id.in.(' + cus.join(',') + ')'] : []).concat(gts.length ? ['qtype.in.(' + gts.join(',') + ')'] : []);
+    const qa = sb.from('questions').select(sel).is('owner_id', null).eq('status', 'approved').or(ors.join(',') || 'qtype.in.(general,quick)').limit(3000);
+    const qb = sb.from('questions').select(sel).eq('owner_id', T.user.id).eq('status', 'approved').limit(2000);
+    const [a, b, s] = await Promise.all([qa, qb, sb.from('students').select('id,name,approved,class_id').in('class_id', NW.cls).order('name')]);
+    if (s.error) throw s.error;
+    const cuSet = new Set(cus), les = {}; cus.forEach(cu => { les[cu] = nwLesGet(cu); });
+    let pool = [...(a.data || []), ...(b.data || [])].filter(q => Array.isArray(q.options) && q.options.length >= 2 && !(q.payload && (q.payload.kind === 'order' || q.payload.kind === 'game')) &&
+      ((q.qtype || 'curriculum') === 'curriculum' ? cuSet.has(q.curriculum_id) && (!les[q.curriculum_id] || les[q.curriculum_id].includes(q.lesson)) : gts.includes(q.qtype)));
+    const seen = new Set(); pool = pool.filter(q => !seen.has(q.id) && seen.add(q.id));
+    BD.students = (s.data || []).filter(x => x.approved !== false).map(x => ({ id: x.id, n: String(x.name || '').trim(), ok: 0 }));
+    if (BD.students.length < BD.T) { toast('يحتاج ' + BD.T + ' طلاب على الأقل في الصف'); return; }
+    if (pool.length < 4) { toast('ما فيه أسئلة كافية لهذي المادة أو الدروس'); return; }
+    BD.qs = bdShuffle(pool); BD.qi = 0; bdSplit(); BD.st = 'teams'; BD.gen++; bdDraw();
+  } catch(e){ toast(errMsg(e)); }
+  finally { BD.busy = false; t.removeAttribute('aria-busy'); }
+};
+function bdTop(){ return `<div class="bd-top">${BD.teams.map((t, i) => `<div class="bd-sc${BD.st === 'q' && i === BD.turn ? ' turn' : ''}" style="--c:${t.c}"><span>${t.n}</span><em>${t.s}</em></div>`).join('')}</div>`; }
+function bdDraw(){
+  const L = BD_LV[BD.lv]; let h = '';
+  if (BD.st === 'teams') {
+    h = `<h2 class="bd-h">الفرق</h2>${BD.split === 'me' ? '<p class="bd-sub">اضغط اسم الطالب وينتقل للفريق اللي بعده</p>' : ''}
+      <div class="bd-teams">${BD.teams.map((t, i) => `<div class="bd-tm" style="--c:${t.c}"><b>فريق ${t.n} <small>${t.m.length}</small></b><div>${t.m.map(x => `<button type="button" class="bd-nm" data-act="bd-move" data-t="${i}" data-id="${esc(x.id)}">${esc(x.n)}</button>`).join('')}</div></div>`).join('')}</div>
+      <div class="bd-acts">${BD.split === 'rand' ? '<button class="btn soft" data-act="bd-reshuf">🎲 قسّمهم من جديد</button>' : ''}<button class="btn" data-act="bd-start">▶ ابدأ · ${BD.T * BD.rn === 2 ? 'جولتين' : BD.T * BD.rn + ' جولات'}</button></div>`;
+  } else if (BD.st === 'q') {
+    const t = BD.teams[BD.turn], q = BD.q, game = q.game, ans = BD.ans;
+    const head = `${bdTop()}<div class="bd-who"><span class="bd-sub">فريق ${t.n} · جولة ${BD.rd + 1}/${BD.rn} · سؤال ${BD.qr + 1}/${L[0]}</span><span class="bd-pick" style="--c:${t.c}">${esc(BD.who.n)}</span>${ans == null && !BD.wait ? '<button type="button" class="bd-dice" data-act="bd-dice">🎲 غيره</button>' : ''}</div>`;
+    if (BD.wait) h = head + `<div class="bd-call"><div class="bd-em">🧠</div><h2>سؤال ذكاء!</h2><p>تعال يا ${esc(BD.who.n)} للسبورة 👆</p><button class="btn" data-act="bd-gstart">جاهز</button></div>`;
+    else h = head + `<div class="bd-qrow"><div class="qbox bd-q"><span>${game ? '' : esc(q.body)}</span></div><div class="bd-ring" id="bd-ring" style="--p:100"><b id="bd-left">${BD.secs}</b></div></div>` +
+      (game ? '<div class="mg bd-mg" id="mg"></div>' : `<div class="bd-opts${q.options.length === 2 ? ' tf' : ''}">${q.options.map((o, i) => `<button type="button" class="bd-opt oc${i}${ans == null ? '' : i === q.correct_index ? ' good' : i === ans ? ' bad' : ' dim'}" data-act="bd-ans" data-i="${i}">${esc(o)}</button>`).join('')}</div>`) +
+      `<div class="bd-fb">${ans == null ? '' : BD.ok ? `<span class="ok">✓ صح! +10 لفريق ${t.n}</span>` : ans === -1 ? '<span class="no">انتهى الوقت</span>' : '<span class="no">✗ خطأ</span>'}</div>` +
+      (ans == null ? '' : `<button class="btn bd-next" data-act="bd-next">${bdNextTxt()}</button>`);
+  } else {
+    const o = BD.teams.slice().sort((a, b) => b.s - a.s), tie = o[1] && o[0].s === o[1].s, stars = BD.students.filter(x => x.ok).sort((a, b) => b.ok - a.ok).slice(0, 3);
+    h = `<h2 class="bd-h center">${tie ? 'تعادل! 🤝' : '🏆 فاز فريق ' + o[0].n}</h2>
+      <div class="bd-pod">${[o[1], o[0], o[2]].filter(Boolean).map(t => `<div><b style="color:${t.c}">${t.n}</b><small>${t.s}</small><i style="--c:${t.c};height:${t === o[0] ? 150 : t === o[1] ? 110 : 80}px">${t === o[0] ? '🥇' : t === o[1] ? '🥈' : '🥉'}</i></div>`).join('')}</div>
+      ${stars.length ? `<p class="bd-stars">نجوم الحصة: <b>${stars.map(x => esc(x.n.split(' ')[0])).join('، ')}</b></p>` : ''}
+      <div class="bd-acts"><button class="btn soft" data-act="bd-again">جولة ثانية بنفس الفرق</button><button class="btn" data-act="bd-x">تم</button></div>`;
+  }
+  $app.innerHTML = `<div class="bd"><div class="bd-bar"><button type="button" class="bd-x" data-act="bd-x" aria-label="إغلاق">✕</button>${document.fullscreenEnabled ? '<button type="button" class="bd-fs" data-act="bd-fs">⛶ ملء الشاشة</button>' : ''}</div>${h}</div>`;
+  if (BD.st === 'end') setTimeout(() => FX.win && FX.win(false), 200);
+}
+function bdNextTxt(){ const L = BD_LV[BD.lv]; if (BD.qr + 1 < L[0]) return 'السؤال التالي ›'; const nt = BD.turn + 1 < BD.T ? BD.turn + 1 : BD.rd + 1 < BD.rn ? 0 : -1; return nt < 0 ? '🏆 النتيجة' : 'دور فريق ' + BD.teams[nt].n + ' ›'; }
+ACTS['bd-move'] = t => { if (BD.split !== 'me') return; const i = Number(t.dataset.t), j = (i + 1) % BD.T, from = BD.teams[i], k = from.m.findIndex(x => x.id === t.dataset.id); if (k < 0) return; BD.teams[j].m.push(from.m.splice(k, 1)[0]); bdDraw(); };
+ACTS['bd-reshuf'] = () => { bdSplit(); bdDraw(); };
+ACTS['bd-fs'] = () => { const d = document.documentElement; if (document.fullscreenElement) document.exitFullscreen(); else if (d.requestFullscreen) d.requestFullscreen().catch(() => {}); };
+ACTS['bd-x'] = () => { BD.gen++; clearInterval(BD.tm); MG.end = null; MG.tap = null; S.locked = true; if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); nwRender(); };
+ACTS['bd-start'] = () => { if (BD.teams.some(t => !t.m.length)) return toast('كل فريق يحتاج طالب واحد على الأقل'); BD.teams.forEach(t => { t.s = 0; t.used = []; }); BD.students.forEach(x => { x.ok = 0; }); BD.turn = 0; BD.rd = 0; BD.qr = 0; BD.st = 'q'; bdQ(); };
+ACTS['bd-again'] = () => ACTS['bd-start']();
+function bdPick(){ const t = BD.teams[BD.turn]; let left = t.m.filter(x => !t.used.includes(x.id)); if (!left.length) { t.used = []; left = t.m; } const w = left[Math.floor(Math.random() * left.length)]; t.used.push(w.id); BD.who = w; }
+ACTS['bd-dice'] = () => { if (BD.ans != null) return; bdPick(); const e = $app.querySelector('.bd-pick'); if (e) { e.textContent = BD.who.n; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); } haptic(); };
+function bdQ(){
+  const L = BD_LV[BD.lv]; BD.ans = null; BD.ok = false; clearInterval(BD.tm); BD.gen++;
+  const game = BD.mg && BD.qr === L[0] - 1;
+  if (game) BD.q = { game: true, payload: { kind: 'game', g: BD_MG[Math.floor(Math.random() * BD_MG.length)], lv: BD.lv + 1 } };
+  else { BD.q = BD.qs[BD.qi % BD.qs.length]; BD.qi++; }
+  bdPick(); BD.secs = game ? Math.max(25, L[1]) : L[1]; BD.wait = game; bdDraw(); if (!game) bdTimer();
+}
+ACTS['bd-gstart'] = () => { BD.wait = false; bdDraw(); S.locked = false; const g = BD.gen;
+  MG.end = ok => { if (BD.gen !== g || BD.ans != null) return; bdDone(ok ? 1 : 0); };
+  mgStart({ question: BD.q, arena: true }); bdTimer(); };
+function bdTimer(){ const g = BD.gen, end = Date.now() + BD.secs * 1000;
+  BD.tm = setInterval(() => { if (BD.gen !== g || BD.ans != null) return clearInterval(BD.tm);
+    const left = Math.max(0, Math.ceil((end - Date.now()) / 1000)), e = document.getElementById('bd-left'), r = document.getElementById('bd-ring');
+    if (e) e.textContent = left; if (r) r.style.setProperty('--p', left * 100 / BD.secs); if (left <= 5 && left > 0 && FX.tick) FX.tick();
+    if (left <= 0) { clearInterval(BD.tm); bdDone(-1); } }, 250); }
+function bdDone(v){ /* v: option index, 1/0 for a game (won/lost), -1 timeout */
+  if (BD.ans != null) return; clearInterval(BD.tm); MG.tap = null; MG.end = null; S.locked = true;
+  const q = BD.q, ok = v !== -1 && (q.game ? v === 1 : v === q.correct_index);
+  BD.ans = q.game ? (v === -1 ? -1 : 9) : v; BD.ok = ok;
+  if (ok) { BD.teams[BD.turn].s += 10; BD.who.ok++; }
+  if (q.game) { const mg = document.getElementById('mg'); if (mg) mg.classList.add(ok ? 'won' : 'lost'); setTimeout(() => bdDraw(), 700); }
+  else bdDraw();
+  if (ok) FX.correct && FX.correct(q.game ? null : document.querySelector('.bd-opt.good'), 10, 1); else FX.wrong && FX.wrong(null, false);
+}
+ACTS['bd-ans'] = t => { if (BD.ans != null || BD.st !== 'q') return; haptic(); bdDone(Number(t.dataset.i)); };
+ACTS['bd-next'] = () => { const L = BD_LV[BD.lv]; BD.qr++;
+  if (BD.qr >= L[0]) { BD.qr = 0; BD.turn++; if (BD.turn >= BD.T) { BD.turn = 0; BD.rd++; if (BD.rd >= BD.rn) { BD.st = 'end'; return bdDraw(); } } }
+  bdQ(); };
+
 })();
 /* edit-student form: highlight the chosen chip */
 document.addEventListener('change', e => { const i = e.target; if (!i.closest || !i.closest('.se1-g,.se1-c')) return; i.closest('.se1-g,.se1-c').querySelectorAll('label').forEach(l => l.classList.toggle('on', l.contains(i))); });
@@ -6226,16 +6357,4 @@ document.addEventListener('change', e => { const i = e.target; if (!i.closest ||
       const sh = d.s.closest('.ce1-sh'); if (sh) sh.classList.remove('on'); else { const m = d.s.closest('.modal-back'); if (m) m.remove(); } }, 220);
   };
   document.addEventListener('touchend', end); document.addEventListener('touchcancel', end);
-})();
-/* v346: tap the active tab while scrolled down → smooth scroll to top (iOS style) */
-(() => { let on = false;
-  addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('.t-nav > a, .s-nav > button'); on = !!(b && b.classList.contains('on')); }, true);
-  addEventListener('click', e => { const b = e.target.closest && e.target.closest('.t-nav > a, .s-nav > button'); if (!b || !on) return; on = false;
-    if ($app.querySelector('.s-back, :scope > .t-top .back-btn')) { e.preventDefault(); e.stopImmediatePropagation(); return goBack(); }
-    if (scrollY < 10) return;
-    e.preventDefault(); e.stopImmediatePropagation(); upSlow(); }, true);
-  function upSlow(){ const y0 = scrollY, d = Math.min(900, 380 + y0 * .25), t0 = performance.now(); let stop = false;
-    const halt = () => { stop = true; }; addEventListener('touchstart', halt, { once: true, passive: true });
-    const f = t => { if (stop) return; const k = Math.min(1, (t - t0) / d), e2 = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; scrollTo(0, Math.round(y0 * (1 - e2))); if (k < 1) requestAnimationFrame(f); else removeEventListener('touchstart', halt); };
-    requestAnimationFrame(f); }
 })();
