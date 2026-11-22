@@ -1977,7 +1977,7 @@ async function tHome(){
   const hv = LS.get('mc_hv') || 'big', hvb = (k, i, l) => `<button class="${hv === k ? 'on' : ''}" data-act="h-view" data-v="${k}" aria-label="${l}">${i}</button>`;
   const html = cards.length ? `<div class="hv">${hvb('big', '<i class="hv-i1"></i>', 'مربعات كبيرة')}${hvb('two', '<i class="hv-i2"></i>', 'مربعين')}${hvb('list', '<i class="hv-i3"></i>', 'صفوف')}</div><div class="hcs hv-${hv}">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
   const obCard = cards.length && T.settings && T.settings.ob === 'skip' && !T.settings.obCard ? `<div class="ob-card"><button class="grow" data-act="ob-open"><b>👋 كمّل ملفك</b><small>المرحلة، المواد، المدرسة</small></button><button class="ob-cx" data-act="ob-cardx" aria-label="إغلاق">✕</button></div>` : '';
-  view('الرئيسية', obCard + html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
+  view('الرئيسية', obCard + html + `<a class="h-brd" href="#/t/new/board"><span class="h-brd-e">📺</span><span class="grow"><b>العب في الصف الحين</b><small>فرق على السبورة · ينتهي بنفس الحصة</small></span><i>‹</i></a><a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
 }
 ACTS['h-view'] = t => { LS.set('mc_hv', t.dataset.v); document.querySelectorAll('.hv button').forEach(b => b.classList.toggle('on', b === t)); const h = document.querySelector('.hcs'); if (h) h.className = 'hcs hv-' + t.dataset.v; haptic(); };
 /* ---- first-time profile: 3 quick skippable screens (stage, subjects, school + district) ---- */
@@ -2131,7 +2131,9 @@ function subjTiles(c, sel, act, extra, afterMine){
   return (mt ? `<div class="nw-lbl">موادي</div><div class="nw-tiles">${mt}</div>${afterMine || ''}${sl.hid ? `<button type="button" class="link nw-link nw-more-subj" data-act="nw-allsubj">مادة ثانية؟</button>` : ''}` : '') + (gt ? `<div class="nw-lbl">أسئلة عامة</div><div class="nw-tiles">${gt}</div>` : '');
 }
 async function tNew(fresh){
-  if (fresh !== false && !NW.keep) Object.assign(NW, { step: 1, cls: [], multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, les: {}, allSubj: false, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
+  /* v366 (Khalid): board mode has its own entry #/t/new/board (home card) */
+  const brd = location.hash.indexOf('#/t/new/board') === 0;
+  if (fresh !== false && !NW.keep) Object.assign(NW, { board: brd, step: 1, cls: [], multi: false, cu: null, subj: '', days: brd ? 0 : 7, made: null, lessons: null, les: {}, allSubj: false, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
   const [cl, cp] = await Promise.all([sb.from('classes').select('*').eq('archived', false).order('created_at'), sb.from('competitions').select('id,class_id').eq('status', 'active')]);
   if (cl.error) throw cl.error;
   NW.classes = cl.data; NW.busy = new Set((cp.data || []).map(c => c.class_id));
@@ -2164,7 +2166,7 @@ function nwRender(){
     const end = addDays(todayKW(), Math.max(1, NW.days) - 1);
     /* v365 (Khalid): duration first; other options folded into one «الإعدادات» row; «الحين في الصف» = small link under */
     const dz = `<h2 class="nw-q">كم يوم؟</h2><div class="nw-days">${NW.days === 0 ? `<button class="nw-now on" data-act="nw-days" data-d="0">⚡ الحين في الصف<small>يبدأ وينتهي بنفس الحصة</small></button>` : ''}${[[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']].map(d => `<button class="${NW.days === d[0] ? 'on' : ''}" data-act="nw-days" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>`;
-    if (NW.days === 0) b = dz + bdOpts(); else
+    if (NW.board) b = `<h2 class="nw-q">الفرق</h2>` + bdOpts(); else if (NW.days === 0) b = dz + bdOpts(); else
     b = dz + `
       <p class="nw-note">${esc(nwEndTxt())}</p>
       ${NW.more ? '' : `<button type="button" class="nw-set1" data-act="nw-more"><span class="ce1-e">⚙️</span><span class="grow"><b>الإعدادات</b><small>${esc(nwSumTxt())}</small></span><em>تعديل ←</em></button>`}
@@ -2174,7 +2176,7 @@ function nwRender(){
         <button type="button" class="ce1-row" data-act="nw-ko"><span class="ce1-e">⚔️</span><span class="grow"><b>مواجهة في النهاية</b><small>${NW.koQ ? 'يتأهل ' + NW.koQ + ' · آخر ' + Math.ceil(Math.log2(NW.koQ)) + ' أيام' : 'الأوائل يتنافسون وجهاً لوجه'}</small></span><span class="ios-sw ${NW.koQ ? 'on' : ''}"><i></i></span></button>
         ${pzRow(NW.prizes, 'nw')}
         <button type="button" class="nw-less" data-act="nw-more">إخفاء ⌃</button>
-      </div><button type="button" class="nw-nowl" data-act="nw-days" data-d="0">⚡ تبي تلعبه الحين في الصف؟</button><div class="nw-sp"></div><button class="btn nw-go" data-act="nw-start">ابدأ التحدي 🚀</button>`;
+      </div><div class="nw-sp"></div><button class="btn nw-go" data-act="nw-start">ابدأ التحدي 🚀</button>`;
   }
   if (st === 4) {
     const m = NW.made || [];
@@ -2185,7 +2187,7 @@ function nwRender(){
   const canBack = st > 1 && st < 4 && !(st === 2 && NW.skip1);
   /* v361 (Khalid): main button pinned at the bottom, small back arrow on its right; top arrow hidden (still there for swipe back) */
   if (st < 4) b = b.replace(/<button class="btn nw-go"[^>]*>[^<]*<\/button>(?![\s\S]*nw-go)/, m => `<div class="nw-foot">${canBack ? `<button type="button" class="nw-bk" data-act="nw-back" aria-label="رجوع">${ic('back')}</button>` : ''}${m}</div>`);
-  view('تحدي جديد', `<div class="nw">${dots}${b}</div>`, 'new', '', canBack ? 'act:nw-back' : '');
+  view(NW.board ? 'العب في الصف' : 'تحدي جديد', `<div class="nw${NW.board ? ' nw-brd' : ''}">${dots}${b}</div>`, 'new', '', canBack ? 'act:nw-back' : '');
   if (st === 4) { nwQr(); nwLive(); NW.poll = setInterval(() => { if (location.hash.indexOf('#/t/new') !== 0 || NW.step !== 4) return clearInterval(NW.poll); nwLive(); }, 5000); }
 }
 const fmtCode = c => String(c || '').replace(/^(...)(...)$/, '$1 $2');
