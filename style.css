@@ -3787,3 +3787,9 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 /* v374: lesson rows use a ✓ circle instead of a switch */
 .q4-ck{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid color-mix(in srgb,var(--ink) 35%,transparent);background:none;color:transparent;font-size:16px;font-weight:900;display:grid;place-items:center;padding:0;cursor:pointer;transition:background .12s,border-color .12s}
 .q4-ck.added{background:#30D158;border-color:#30D158;color:#fff}
+/* v375 bank question view + report */
+.q4-qvb{font-size:17px;font-weight:800;line-height:1.6;margin:6px 2px 12px}
+.q4-qvo{display:flex;flex-direction:column;gap:8px}
+.q4-qvo div{background:var(--card);border-radius:14px;padding:11px 14px;font-weight:700;border:1.5px solid transparent}
+.q4-qvo div.ok{border-color:#30D158;color:#30D158}
+.q4-rep{display:block;width:100%;margin-top:14px;background:none;border:1.5px solid var(--line);border-radius:14px;color:var(--ink);font:inherit;font-weight:700;padding:11px;cursor:pointer}
