@@ -5478,23 +5478,28 @@ function tRules(){
   const tbk = tbKeys();
   const card = (v, e, b, sm) => `<button class="rl-pc${sc === v ? ' on' : ''}" data-act="rl-sc" data-v="${v}"><span class="rl-e">${e}</span><span class="grow"><b>${b}</b><small>${sm}</small></span><span class="rl-n"></span></button>`;
   const seg = (k, cur, opts) => `<div class="rl-sg">${opts.map(o => `<button class="${cur === o[0] ? 'on' : ''}" data-act="rl-seg" data-k="${k}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>`;
+  /* v372: scoring + who sees the ranking on top; the rest folds under «⚙️ إعدادات متقدمة» */
+  const advSum = [optLabel('difficulty'), optLabel('show_ans') === 'بعد كل سؤال' ? 'الإجابة بعد كل سؤال' : optLabel('show_ans'), SG('shuffle') ? 'خلط ✓' : 'بدون خلط'].filter(Boolean).join(' · ');
   view('قواعد اللعب',
-    sGrp('الجولة', [optRow('difficulty', 'الصعوبة الافتراضية'), optRow('show_ans', 'إظهار الإجابة الصحيحة'),
-      swRow({ k: 'shuffle', label: 'خلط الخيارات', sub: 'الخيارات تنخلط، فكل طالب يشوفها بترتيب مختلف وما ينفع ينقل من غيره' }), swRow({ k: 'norep', label: 'لا تعيد سؤال جاوبه صح', sub: 'السؤال اللي جاوبه الطالب صح ما يرجع له، فيركز على الأسئلة الجديدة واللي غلط فيها' })],
-      '4 أسئلة × 15 ثانية (الابتدائي 3 × 20). الصعوبة تقدر تغيّرها لكل تحدي.') +
     `<div class="set-h">النقاط</div><div class="rl-pts">${card('correct', '✅', 'الصح بس', 'كل إجابة صح تاخذ نقاطها')}${card('speed', '⚡', 'الصح + السرعة', 'الأسرع ياخذ لين ' + SG('speed_pct') + '٪ زيادة')}${card('penalty', '⚖️', 'الصح + السرعة − الخطأ', 'والخطأ يخصم ' + SG('pen_pct') + '٪')}</div>
-    <div class="set-f">أعلى جولة تقريباً ${maxR} نقطة. التغيير يأثر على الجولات القادمة بس.</div>
-`+
+    <div class="set-f">أعلى جولة تقريباً ${maxR} نقطة. التغيير يأثر على الجولات القادمة بس.</div>` +
     `<div class="set-h">الترتيب عند الطلاب</div><div class="set-grp">
       <div class="rl2-row"><span>يشوف الطالب</span>${seg('lb', lb, [['all', 'كل الصف'], ['top', 'الأوائل بس'], ['hidden', 'ترتيبه بس']])}</div>
       ${lb === 'top' ? numRow('lb_n', 'عدد الأوائل') + swRow({ k: 'lb_me', label: 'يشوف ترتيبه دائماً', sub: 'حتى لو مو من الأوائل' }) : ''}
-      <div class="rl2-row"><span>الأسماء عند الطلاب</span>${seg('names', nm, [['full', 'محمد أحمد العلي'], ['first_fam', 'محمد ع.'], ['first', 'محمد']])}</div>
-      ${swRow({ k: 'lb_pts', label: 'إظهار نقاط الآخرين' })}
-    </div>`,
+    </div>` +
+    (RL.more
+      ? sGrp('متقدمة', [optRow('difficulty', 'الصعوبة الافتراضية'), optRow('show_ans', 'إظهار الإجابة الصحيحة'),
+          swRow({ k: 'shuffle', label: 'خلط الخيارات', sub: 'الخيارات تنخلط، فكل طالب يشوفها بترتيب مختلف وما ينفع ينقل من غيره' }), swRow({ k: 'norep', label: 'لا تعيد سؤال جاوبه صح', sub: 'السؤال اللي جاوبه الطالب صح ما يرجع له، فيركز على الأسئلة الجديدة واللي غلط فيها' }),
+          `<div class="rl2-row"><span>الأسماء عند الطلاب</span>${seg('names', nm, [['full', 'محمد أحمد العلي'], ['first_fam', 'محمد ع.'], ['first', 'محمد']])}</div>`,
+          swRow({ k: 'lb_pts', label: 'إظهار نقاط الآخرين' }),
+          `<button class="nw-less" data-act="rl-more">إخفاء ⌃</button>`],
+        '4 أسئلة × 15 ثانية (الابتدائي 3 × 20). الصعوبة تقدر تغيّرها لكل تحدي.')
+      : `<button class="nw-set1 rl-more" data-act="rl-more"><span class="rl-e">⚙️</span><span class="grow"><b>إعدادات متقدمة</b><small>${esc(advSum)}</small></span><em>تعديل ←</em></button>`),
     'settings', '', '#/t/settings');
 }
 ACTS['rl-sc'] = async t => { haptic(); await saveSettings({ scoring: t.dataset.v }); rerender(); };
 ACTS['rl-seg'] = async t => { haptic(); await saveSettings({ [t.dataset.k]: t.dataset.v }); rerender(); };
+ACTS['rl-more'] = () => { RL.more = !RL.more; haptic(); rerender(); };
 ACTS['rl-adv'] = () => { RL.adv = !RL.adv; rerender(); };
 /* ---- question settings (old page, kept for reference; routes now go to tRules) ---- */
 async function tQSet(){
