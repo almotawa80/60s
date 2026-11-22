@@ -1711,7 +1711,7 @@ function teacherAuth(){
     ${cfg.GOOGLE_LOGIN ? '<button type="button" class="btn ghost" data-act="t-oauth" data-p="google">المتابعة باستخدام Google</button>' : ''}
     ${cfg.APPLE_LOGIN ? '<button type="button" class="btn ghost" data-act="t-oauth" data-p="apple">المتابعة باستخدام Apple</button>' : ''}
   </form>
-  <div class="center"><button class="link" data-act="go-student">أنت طالب/ـة؟ دخول الطلبة</button></div></div></div>`;
+  <button class="ta-stu" data-act="go-student">🎒 أنت طالب؟ <b>ادخل برمزك</b></button></div></div>`;
 }
 ACTS['t-forgot'] = async () => {
   const cur = (document.getElementById('a-email') || {}).value || '';
