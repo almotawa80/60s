@@ -364,11 +364,13 @@ function renderHome(){
 function renderHomeP(){
   const h = S.home, th = document.body.dataset.theme || 'mid', size = h.class.size || 0;
   const days = h.streak || 0, up = S.upMsg, sh = h.shield || {}; S.upMsg = null;
-  const pills = '<div class="sp-pills"><span class="sp-pill">مركزك ' + (h.rank || '-') + ' من ' + size + '</span>' + (days ? '<span class="sp-pill"><span class="flame">🔥</span> ' + days + (days === 1 ? ' يوم' : days === 2 ? ' يومين' : ' أيام') + '</span>' : '') + (sh.shields ? '<span class="sp-pill" title="الدرع يحمي سلسلتك يوم غياب">🛡' + (sh.shields > 1 ? ' ×' + sh.shields : '') + '</span>' : '') + '<button class="sp-pill sp-lvl" id="lvl" data-act="s-lvl" hidden></button></div>';
+  const pills = '<div class="sp-pills"><span class="sp-pill">مركزك ' + (h.rank || '-') + ' من ' + size + '</span>' + (days ? '<span class="sp-pill"' + (sh.shields ? ' title="الدرع يحمي سلسلتك يوم غياب"' : '') + '><span class="flame">🔥</span> ' + days + (days === 1 ? ' يوم' : days === 2 ? ' يومين' : ' أيام') + (sh.shields ? ' 🛡' + (sh.shields > 1 ? '×' + sh.shields : '') : '') + '</span>' : sh.shields ? '<span class="sp-pill">🛡' + (sh.shields > 1 ? ' ×' + sh.shields : '') + '</span>' : '') + '</div>'; /* v369: 2 pills max; level lives in «أنا» */
   if (sh.saved && !S.demo) { const k = 'mc_saved_' + (h.student.id || ''); if (LS.get(k) !== sh.saved) { LS.set(k, sh.saved); setTimeout(() => toast('🛡 درعك حمى سلسلتك!'), 600); } }
   let mid;
-  if (h.played_today) mid = '<div class="sp-done"><div class="sp-emo" id="bx-emo">🎉</div><b id="bx-h">أحسنت! حياك باجر، كمّل التحدي 💪</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
-    '<div id="bx-act"></div><div class="sp-cd"><small>الجولة القادمة بعد</small><b id="cd">' + cdText() + '</b></div><div id="goal"></div>' + pushBtn() + '</div>';
+  /* v369 (Khalid): one card after playing = headline + countdown + ONE new-thing slot + practice */
+  if (h.played_today) mid = '<div class="sp-done sp-one"><div class="sp-emo" id="bx-emo">🎉</div><b id="bx-h">أحسنت! حياك باجر</b>' + (up ? '<div class="s-up">' + up + '</div>' : '') +
+    '<div class="sp-cd"><small>الجولة الجاية بعد</small><b id="cd">' + cdText() + '</b></div><div id="bx-act" class="sp-slot" hidden></div>' +
+    '<button class="sp-prac" data-act="s-start" data-kind="practice"><span>🎯</span>تدرّب بدون نقاط</button></div>';
   else {
     /* v183: one line above «العب», rotating daily between what applies (rival / leader, prize, streak) */
     const ln = [];
@@ -384,8 +386,8 @@ function renderHomeP(){
     '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
     '</div></div>' +
     pills + '<div class="sp-mid">' + mid + '</div><div id="my-subj"></div>' +
-    '<div class="sp-low"><button class="sp-prac" data-act="s-start" data-kind="practice"><span>🎯</span>تدرّب بدون نقاط</button>' +
-    '</div></div>' + sNav('home'));
+    (h.played_today ? '' : '<div class="sp-low"><button class="sp-prac" data-act="s-start" data-kind="practice"><span>🎯</span>تدرّب بدون نقاط</button></div>') +
+    '</div>' + sNav('home'));
   startCountdown();
   if (!S.demo) { loadDaily(); subjLoad(); }
   if (h.played_today && !S.demo && pushBtn() && !LS.get('mc_push_ask')) { LS.set('mc_push_ask', '1'); setTimeout(() => modal('<div class="s-avs center"><div class="lvl-up">🔔</div><h3>تبي نذكّرك؟</h3><p class="sub">نرسل لك تذكير وحد باليوم إذا ما لعبت، ورسائل معلمك توصلك على طول. وما فيه شي بالليل.</p><button class="btn" data-act="s-push">فعّل الإشعارات</button><button class="btn soft" data-act="close-modal">مو الحين</button></div>').classList.add('mid'), 1500); }
@@ -466,6 +468,8 @@ function dailyPaint(d){
   if (!d || !document.getElementById('bx-h')) return;
   const bx = d.box || {}, emo = document.getElementById('bx-emo'), hd = document.getElementById('bx-h'), act = document.getElementById('bx-act');
   const cst = (S.home && S.home.class && S.home.class.stage) || '', big = document.body.dataset.stage === 's' || /second|uni|ثانو|جامع/.test(cst);
+  const sr0 = d.star, me0 = sr0 && S.home && sr0.id === S.home.student.id;
+  if (bx.ready && !big) {} else if (me0 && S.home && S.home.played_today) { emo.innerHTML = '<span class="bx">⭐</span>'; act.innerHTML = '<div class="lv-next"><b>أنت نجم الأسبوع! تحسّنت ' + sr0.up + ' نقطة</b><button class="sp-open soft" data-act="s-share" data-k="star">📤 شارك</button></div>'; act.hidden = false; return; }
   if (big) { /* v326: secondary/university → level progress instead of the sticker box */
     if (S.home && S.home.played_today && d.xp != null) { const L = lvlOf(d.xp), left = L.hi - d.xp, pc = Math.round((d.xp - L.lo) / (L.hi - L.lo) * 100);
       emo.innerHTML = '<span class="bx">⚡</span>';
@@ -474,7 +478,10 @@ function dailyPaint(d){
   else if (bx.ready) { emo.innerHTML = '<span class="bx bx-ready">🎁</span>'; hd.textContent = 'صندوقك جاهز!'; act.innerHTML = '<button class="sp-open" data-act="s-box">افتح الصندوق</button>'; }
   else if (bx.locked) { emo.innerHTML = '<span class="bx bx-lock">🎁</span>'; hd.textContent = 'أحسنت! صندوقك ينفتح بكرة'; act.innerHTML = ''; }
   else if (bx.left && S.home && S.home.played_today) act.innerHTML = '<p class="bx-note">🎁 صندوق هدية بعد ' + (bx.left === 1 ? 'يوم لعب واحد' : bx.left === 2 ? 'يومين لعب' : bx.left + ' أيام لعب') + '</p>';
-  const g = d.goal, el = document.getElementById('goal');
+  act.hidden = !act.innerHTML;
+}
+function goalPaint(d){ /* v369: class goal + week star live on «الترتيب» */
+  const g = d && d.goal, el = document.getElementById('goal'); if (!el) return;
   const sr = d.star, me = sr && sr.id === S.home.student.id;
   if (g && g.size > 1 && el) {
     const pc = Math.min(100, Math.round(g.played / g.size * 100)), done = g.played >= g.need;
@@ -919,13 +926,13 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
   if (k === 'me') { const h = S.home, n = (h.student.name || '?').trim();
     return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><button class="s-me-av ' + lvlFrame() + (h.student.avatar ? ' em' : '') + '" data-act="s-av" aria-label="اختر شخصيتك">' + esc(h.student.avatar || n.charAt(0)) + '<span class="s-av-ed">✏️</span></button><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small></div>' +
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
-      '<div class="s-me-o">' + [['s-rep-me', '📊', 'تقريري'], ['s-profile', '🪪', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-push-tab', pushOn() ? '🔔' : '🔕', 'الإشعارات'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
+      '<div class="s-me-o">' + [['s-rep-me', '📊', 'تقريري'], ['s-lvl', '⚡', 'مستواي'], ['s-profile', '🪪', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-push-tab', pushOn() ? '🔔' : '🔕', 'الإشعارات'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
       '</div>'); }
   if (k === 'lb') { if (S.demo) return toast('الترتيب يظهر في التحدي الفعلي');
     sPage('lb', '<div class="s-pgc"><div class="spin"></div></div>');
     try { const res = await rpc('class_leaderboard', { p_token: S.token }); if (S.tab !== 'lb') return;
       const hidden = res && res.hidden, hp = !!(res && res.hide_pts), rows = res && res.rows ? res.rows : res;
-      const c = document.querySelector('.s-tabpg .s-pgc'); if (c) { c.innerHTML = leadersHtml(rows, hidden, hp); const me = c.querySelector('.lbx-r.me'); if (me) setTimeout(() => me.scrollIntoView({ block: 'center', behavior: 'smooth' }), 150); }
+      const c = document.querySelector('.s-tabpg .s-pgc'); if (c) { c.innerHTML = '<div id="goal" class="lb-goal"></div>' + leadersHtml(rows, hidden, hp); goalPaint(S.daily); const me = c.querySelector('.lbx-r.me'); if (me) setTimeout(() => me.scrollIntoView({ block: 'center', behavior: 'smooth' }), 150); }
     } catch(e){ toast(errMsg(e)); } }
 };
 function pushOn(){ if (isApp()) return LS.get('mc_push') === '1'; return LS.get('mc_push') === '1' && !!window.Notification && Notification.permission === 'granted'; }

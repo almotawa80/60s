@@ -3758,3 +3758,13 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 .nw-brd .nw-dots i.on{background:#0A84FF}
 /* v368: onboarding grade screen labels */
 .obr-lb{font-size:13px;font-weight:800;color:#C7C7CC;margin:12px 4px 6px;text-align:right}.obr-lb small{font-weight:500;color:#8E8E93}
+/* v369: student home after playing = one card (Khalid) */
+.sp-one .sp-slot{margin:14px 0 4px;background:rgba(0,0,0,.35);border-radius:18px;padding:12px}
+.sp-one .sp-slot[hidden]{display:none!important}
+.sp-one .sp-slot .lv-next{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.sp-one .sp-slot{align-self:stretch}
+.sp-one .sp-prac{display:flex;align-items:center;justify-content:center;gap:8px;align-self:stretch;margin-top:6px;min-height:52px;border:1.5px solid #48484A;border-radius:18px;background:#2C2C2E;color:#F5F5F7;font:inherit;font-weight:900;font-size:16px;box-shadow:0 5px 0 #0E0E10;cursor:pointer}
+.sp-one .sp-prac span{font-size:20px}
+.sp-one .sp-prac:active{transform:translateY(3px);box-shadow:0 2px 0 #0E0E10}
+.sp-open.soft{background:#2C2C2E!important;box-shadow:none!important}
+.lb-goal:empty{display:none}.lb-goal{margin-bottom:12px}
