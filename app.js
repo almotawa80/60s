@@ -6224,6 +6224,7 @@ function bdOpts(){
     <div class="bd-lb">التقسيم</div><div class="bd-row">${chip(BD.split === 'rand', 'bd-set-sp', 'rand', '🎲 عشوائي')}${chip(BD.split === 'me', 'bd-set-sp', 'me', '✋ أنا أقسمهم')}</div>
     <div class="bd-lb">الجولة (دقيقة لكل فريق)</div><div class="bd-row">${BD_LV.map((l, i) => chip(BD.lv === i, 'bd-set-lv', i, `<b>${l[2]}</b><small>${l[3]}</small>`)).join('')}</div>
     <div class="bd-lb">كم جولة لكل فريق؟</div><div class="bd-row">${[1, 2, 3].map(n => chip(BD.rn === n, 'bd-set-rn', n, n)).join('')}</div>
+    <p class="bd-sum">${(() => { const L = BD_LV[BD.lv], per = L[0] * BD.rn, tot = per * BD.T, m = BD.T * BD.rn; return `كل فريق يجاوب <b>${per} أسئلة</b>، والمجموع ${tot} سؤال · تقريباً ${m === 1 ? 'دقيقة' : m === 2 ? 'دقيقتين' : m + (m <= 10 ? ' دقايق' : ' دقيقة')} لعب`; })()}</p>
     <button type="button" class="ce1-row bd-mgrow" data-act="bd-set-mg"><span class="ce1-e">🧠</span><span class="grow"><b>ألعاب الذكاء</b><small>الطالب يلمس السبورة بنفسه، تحتاج سبورة لمس. بدونها إنت تضغط اللي يقوله الطالب.</small></span><span class="bd-sw${BD.mg ? ' on' : ''}"><i></i></span></button>
     ${BD.mg && !bdTouch() ? '<p class="bd-warn">هالجهاز ما فيه لمس، بتضغط إنت عن الطلاب.</p>' : ''}
   </div><div class="nw-sp"></div><button class="btn nw-go" data-act="bd-go">📺 اعرضه بالصف</button>`;

@@ -3723,3 +3723,4 @@ html body .bd .qbox.bd-q::before{display:none}
 .bd-pod i{display:block;width:clamp(80px,16vw,160px);border-radius:16px 16px 0 0;background:color-mix(in srgb,var(--c) 45%,transparent);font-style:normal;text-align:center;font-size:36px;padding-top:8px}
 .bd-pod small{color:#F5B72B;font-size:clamp(16px,2.4vw,26px)}
 .bd-stars{text-align:center;color:#C7C7CC;font-size:clamp(15px,2vw,22px);margin:0}.bd-stars b{color:#F5B72B}
+.bd-sum{margin:12px 2px 0;font-size:14px;color:#C7C7CC;line-height:1.6}.bd-sum b{color:#F5B72B}
