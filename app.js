@@ -2162,16 +2162,19 @@ function nwRender(){
   }
   if (st === 3) {
     const end = addDays(todayKW(), Math.max(1, NW.days) - 1);
-    const dz = `<h2 class="nw-q">كم يوم؟</h2><div class="nw-days"><button class="nw-now${NW.days === 0 ? ' on' : ''}" data-act="nw-days" data-d="0">⚡ الحين في الصف<small>يبدأ وينتهي بنفس الحصة</small></button>${[[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']].map(d => `<button class="${NW.days === d[0] ? 'on' : ''}" data-act="nw-days" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>`;
+    /* v365 (Khalid): duration first; other options folded into one «الإعدادات» row; «الحين في الصف» = small link under */
+    const dz = `<h2 class="nw-q">كم يوم؟</h2><div class="nw-days">${NW.days === 0 ? `<button class="nw-now on" data-act="nw-days" data-d="0">⚡ الحين في الصف<small>يبدأ وينتهي بنفس الحصة</small></button>` : ''}${[[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']].map(d => `<button class="${NW.days === d[0] ? 'on' : ''}" data-act="nw-days" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>`;
     if (NW.days === 0) b = dz + bdOpts(); else
     b = dz + `
-      <p class="nw-note">${esc(nwSpanTxt())}</p>
-      <div class="nw-grp">
+      <p class="nw-note">${esc(nwEndTxt())}</p>
+      ${NW.more ? '' : `<button type="button" class="nw-set1" data-act="nw-more"><span class="ce1-e">⚙️</span><span class="grow"><b>الإعدادات</b><small>${esc(nwSumTxt())}</small></span><em>تعديل ←</em></button>`}
+      <div class="nw-grp"${NW.more ? '' : ' hidden'}>
         <button type="button" class="ce1-row" data-act="nw-opt" data-k="start"><span class="ce1-e">📅</span><span class="grow"><b>يبدأ</b></span><em class="nw-v">${esc(nwStartTxt())}</em><span class="ce1-ch">←</span></button>
         <button type="button" class="ce1-row" data-act="nw-opt" data-k="diff"><span class="ce1-e">🎚️</span><span class="grow"><b>الصعوبة</b></span><em class="nw-v">${esc(nwDiffTxt())}</em><span class="ce1-ch">←</span></button>
         <button type="button" class="ce1-row" data-act="nw-ko"><span class="ce1-e">⚔️</span><span class="grow"><b>مواجهة في النهاية</b><small>${NW.koQ ? 'يتأهل ' + NW.koQ + ' · آخر ' + Math.ceil(Math.log2(NW.koQ)) + ' أيام' : 'الأوائل يتنافسون وجهاً لوجه'}</small></span><span class="ios-sw ${NW.koQ ? 'on' : ''}"><i></i></span></button>
         ${pzRow(NW.prizes, 'nw')}
-      </div><div class="nw-sp"></div><button class="btn nw-go" data-act="nw-start">ابدأ التحدي 🚀</button>`;
+        <button type="button" class="nw-less" data-act="nw-more">إخفاء ⌃</button>
+      </div><button type="button" class="nw-nowl" data-act="nw-days" data-d="0">⚡ تبي تلعبه الحين في الصف؟</button><div class="nw-sp"></div><button class="btn nw-go" data-act="nw-start">ابدأ التحدي 🚀</button>`;
   }
   if (st === 4) {
     const m = NW.made || [];
@@ -2251,6 +2254,9 @@ ACTS['nw-les-done'] = () => { closeModals(); nwRender(); };
 function nwStart(){ const d = todayKW(); if (NW.startOff === 7) { const w = new Date(d + 'T12:00:00').getDay(); return addDays(d, (7 - w) % 7 || 7); } return addDays(d, NW.startOff || 0); }
 const nwStartTxt = () => NW.startOff === 7 ? 'الأحد الجاي' : NW.startOff === 1 ? 'بكرة' : 'اليوم';
 const nwDiffTxt = () => { const k = NW.diff || (T.settings || {}).difficulty || 'normal', d = DIFF.find(x => x[0] === k); return d ? (k === 'adaptive' ? 'حسب الطالب' : d[1]) : 'متوسط'; };
+function nwEndTxt(){ const st = nwStart(), sp = cfSpan(st, NW.days, NW.koQ, 24); return 'من ' + (NW.startOff ? fmtDay(st) : 'اليوم') + ' لين ' + fmtDay(sp.end_date); }
+function nwSumTxt(){ const pz = NW.prizes && NW.prizes.some(Boolean); return [nwStartTxt() === 'اليوم' ? 'يبدأ اليوم' : 'يبدأ ' + nwStartTxt(), nwDiffTxt(), NW.koQ ? 'مواجهة' : 'بدون مواجهة', pz ? 'فيه جائزة' : 'بدون جائزة'].join(' · '); }
+ACTS['nw-more'] = () => { NW.more = !NW.more; nwRender(); };
 function nwSpanTxt(){ const st = nwStart(), sp = cfSpan(st, NW.days, NW.koQ, 24);
   return 'من ' + fmtDay(st) + ' إلى ' + fmtDay(sp.end_date) + (NW.koQ ? ' · آخر ' + Math.ceil(Math.log2(NW.koQ)) + ' أيام مواجهات' : ''); }
 ACTS['nw-opt'] = t => { const k = t.dataset.k;

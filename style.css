@@ -3745,3 +3745,10 @@ body.dark .dlg-code,.sh .dlg-code{background:#1C1C1E}
 /* v364: zero points = grey dash, lighter name (Khalid) */
 .cp-row.z .cp-pts{color:#636366!important;font-weight:500!important}
 .cp-row.z b{font-weight:500}
+/* v365: «كم يوم؟» simplified (Khalid) */
+.nw-set1{display:flex;align-items:center;gap:12px;width:100%;background:var(--card,#1C1C1E);border:1.5px solid rgba(255,255,255,.12);border-radius:18px;padding:14px;color:inherit;font:inherit;text-align:right;cursor:pointer}
+.nw-set1 .grow{display:flex;flex-direction:column;gap:2px;min-width:0}.nw-set1 b{font-size:16px}.nw-set1 small{color:#AEAEB2;font-size:13px}
+.nw-set1 em{font-style:normal;color:#ff4d5e;font-weight:700;font-size:14px;white-space:nowrap}
+.nw-less{display:block;width:100%;background:none;border:0;border-top:1px solid rgba(255,255,255,.08);color:#C7C7CC;font:inherit;font-size:14px;padding:12px;cursor:pointer}
+.nw-nowl{display:block;margin:4px auto 0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#C7C7CC;font:inherit;font-size:14px;padding:8px 14px;cursor:pointer}
+body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
