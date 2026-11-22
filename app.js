@@ -6282,12 +6282,16 @@ function bdDraw(){
       ${stars.length ? `<p class="bd-stars">نجوم الحصة: <b>${stars.map(x => esc(x.n.split(' ')[0])).join('، ')}</b></p>` : ''}
       <div class="bd-acts"><button class="btn soft" data-act="bd-again">جولة ثانية بنفس الفرق</button><button class="btn" data-act="bd-x">تم</button></div>`;
   }
-  $app.innerHTML = `<div class="bd"><div class="bd-bar"><button type="button" class="bd-x" data-act="bd-x" aria-label="إغلاق">✕</button>${document.fullscreenEnabled ? '<button type="button" class="bd-fs" data-act="bd-fs">⛶ ملء الشاشة</button>' : ''}</div>${h}</div>`;
+  $app.innerHTML = `<div class="bd"><div class="bd-bar"><button type="button" class="bd-x" data-act="bd-x" aria-label="إغلاق">✕</button>${bdFsOk() ? '<button type="button" class="bd-fs" data-act="bd-fs">⛶ ملء الشاشة</button>' : ''}</div>${h}</div>`;
   if (BD.st === 'end') setTimeout(() => FX.win && FX.win(false), 200);
 }
 function bdNextTxt(){ const L = BD_LV[BD.lv]; if (BD.qr + 1 < L[0]) return 'السؤال التالي ›'; const nt = BD.turn + 1 < BD.T ? BD.turn + 1 : BD.rd + 1 < BD.rn ? 0 : -1; return nt < 0 ? '🏆 النتيجة' : 'دور فريق ' + BD.teams[nt].n + ' ›'; }
 ACTS['bd-move'] = t => { if (BD.split !== 'me') return; const i = Number(t.dataset.t), j = (i + 1) % BD.T, from = BD.teams[i], k = from.m.findIndex(x => x.id === t.dataset.id); if (k < 0) return; BD.teams[j].m.push(from.m.splice(k, 1)[0]); bdDraw(); };
 ACTS['bd-reshuf'] = () => { bdSplit(); bdDraw(); };
+/* v358: iOS (iPhone/iPad, also the installed app) breaks the page layout after leaving fullscreen → no fullscreen button there;
+   elsewhere only on big screens (boards/laptops) */
+function bdFsOk(){ const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); return !!document.fullscreenEnabled && !ios && !(window.navigator.standalone) && innerWidth >= 900; }
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) setTimeout(() => { window.dispatchEvent(new Event('resize')); scrollTo(0, 0); }, 120); });
 ACTS['bd-fs'] = () => { const d = document.documentElement; if (document.fullscreenElement) document.exitFullscreen(); else if (d.requestFullscreen) d.requestFullscreen().catch(() => {}); };
 ACTS['bd-x'] = () => { BD.gen++; clearInterval(BD.tm); MG.end = null; MG.tap = null; S.locked = true; if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); nwRender(); };
 ACTS['bd-start'] = () => { if (BD.teams.some(t => !t.m.length)) return toast('كل فريق يحتاج طالب واحد على الأقل'); BD.teams.forEach(t => { t.s = 0; t.used = []; }); BD.students.forEach(x => { x.ok = 0; }); BD.turn = 0; BD.rd = 0; BD.qr = 0; BD.st = 'q'; bdQ(); };
