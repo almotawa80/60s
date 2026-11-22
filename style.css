@@ -3742,3 +3742,6 @@ body.dark .dlg-code,.sh .dlg-code{background:#1C1C1E}
 
 .nw:has(.nw-foot){padding-bottom:96px}
 .nw:has(.nw-foot) .nw-sp{display:none}
+/* v364: zero points = grey dash, lighter name (Khalid) */
+.cp-row.z .cp-pts{color:#636366!important;font-weight:500!important}
+.cp-row.z b{font-weight:500}
