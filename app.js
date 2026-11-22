@@ -2150,7 +2150,9 @@ function subjTiles(c, sel, act, extra, afterMine){
 async function tNew(fresh){
   /* v366 (Khalid): board mode has its own entry #/t/new/board (home card) */
   const brd = location.hash.indexOf('#/t/new/board') === 0;
-  if (fresh !== false && !NW.keep) Object.assign(NW, { board: brd, step: 1, cls: [], multi: false, cu: null, subj: '', days: brd ? 0 : 7, made: null, lessons: null, les: {}, allSubj: false, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
+  /* v380 (Khalid): coming back within 10 minutes continues from the same step */
+  const resume = NW.ts && Date.now() - NW.ts < 600000 && NW.step > 1 && NW.step < 4 && NW.board === brd;
+  if (fresh !== false && !NW.keep && !resume) Object.assign(NW, { board: brd, step: 1, cls: [], multi: false, cu: null, subj: '', days: brd ? 0 : 7, made: null, lessons: null, les: {}, allSubj: false, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
   const [cl, cp] = await Promise.all([sb.from('classes').select('*').eq('archived', false).order('created_at'), sb.from('competitions').select('id,class_id').eq('status', 'active')]);
   if (cl.error) throw cl.error;
   NW.classes = cl.data; NW.busy = new Set((cp.data || []).map(c => c.class_id));
@@ -2162,6 +2164,7 @@ async function tNew(fresh){
 }
 function nwRender(){
   clearInterval(NW.poll);
+  NW.ts = Date.now();
   const st = NW.step, dots = st < 4 ? `<div class="nw-dots">${[1, 2, 3].map(i => `<i class="${i <= st ? 'on' : ''}"></i>`).join('')}</div>` : '';
   let b = '';
   if (st === 1) {
