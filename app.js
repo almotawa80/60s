@@ -2179,6 +2179,8 @@ function nwRender(){
       <div class="nw-live" id="nw-live"></div><a class="link nw-link" href="#/t/home">تم ‹</a>`;
   }
   const canBack = st > 1 && st < 4 && !(st === 2 && NW.skip1);
+  /* v361 (Khalid): main button pinned at the bottom, small back arrow on its right; top arrow hidden (still there for swipe back) */
+  if (st < 4) b = b.replace(/<button class="btn nw-go"[^>]*>[^<]*<\/button>(?![\s\S]*nw-go)/, m => `<div class="nw-foot">${canBack ? `<button type="button" class="nw-bk" data-act="nw-back" aria-label="رجوع">${ic('back')}</button>` : ''}${m}</div>`);
   view('تحدي جديد', `<div class="nw">${dots}${b}</div>`, 'new', '', canBack ? 'act:nw-back' : '');
   if (st === 4) { nwQr(); nwLive(); NW.poll = setInterval(() => { if (location.hash.indexOf('#/t/new') !== 0 || NW.step !== 4) return clearInterval(NW.poll); nwLive(); }, 5000); }
 }
