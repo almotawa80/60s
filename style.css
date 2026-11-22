@@ -3784,3 +3784,6 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 .set-grp .nw-less{border-top:0}
 /* v373: bottom space only after the last squares grid (gap above «مواد أخرى») */
 .q5-sq:not(:last-child){padding-bottom:0}
+/* v374: lesson rows use a ✓ circle instead of a switch */
+.q4-ck{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid color-mix(in srgb,var(--ink) 35%,transparent);background:none;color:transparent;font-size:16px;font-weight:900;display:grid;place-items:center;padding:0;cursor:pointer;transition:background .12s,border-color .12s}
+.q4-ck.added{background:#30D158;border-color:#30D158;color:#fff}
