@@ -4112,7 +4112,7 @@ function q3Home(){
   const st = {}; mine.forEach(g => { const sj = cuOf(g.cu).subject; (st[sj] = st[sj] || { l: 0, n: 0 }); st[sj].l++; st[sj].n += g.n; });
   const sq = subs.sort((x, y) => (!!st[y.s]) - (!!st[x.s])).map(x => { const m = st[x.s]; return `<button class="q5-sb${m ? ' on' : ''}" data-act="q4-subj" data-s="${esc(x.s)}"><span class="e">${SUBJ_EMOJI[x.s] || '📘'}</span><b>${esc(x.s)}</b><small>${m ? `${m.l} ${m.l === 1 ? 'درس' : 'دروس'} · ${m.n} سؤال` : x.n + ' درس'}</small></button>`; });
   /* v261 (Khalid): «موادي» (profile subjects + ones with active lessons + own) first, then «مواد أخرى» */
-  const myS = new Set(mySubjects()); Object.keys(st).forEach(k => myS.add(k)); const keyOf = h => (h.match(/data-s="([^"]*)"/) || [])[1];
+  const myS = new Set(mySubjects()); if (!myS.size) Object.keys(st).forEach(k => myS.add(k)); /* v384 (Khalid): «موادي» = subjects in his account only; a ✓ subject outside them sits in «مواد أخرى», still green */ const keyOf = h => (h.match(/data-s="([^"]*)"/) || [])[1];
   let sqMine = sq.filter(h => myS.has(keyOf(h)) || (!myS.size && st[keyOf(h)])), sqOther = sq.filter(h => !sqMine.includes(h));
   /* v381 (UX review): a new teacher with no subjects of his own sees the bank subjects as «موادي», no empty section */
   /* v382 (Khalid): subjects in his account always sit in «موادي», even when the bank has nothing for them yet */
