@@ -5557,7 +5557,7 @@ function accForm(){
     <div class="ac-fd"><label>المواد</label><div class="ac-g g2">${SUBJECTS.filter(v => v !== 'عام' && v !== 'أخرى').map(v => chip('sj', v, v, sj.includes(v), SUBJ_EMOJI[v] || '📘')).join('')}</div></div>
     <div class="ac-fd"><label>المنطقة التعليمية</label><div class="ac-g g3">${OB_DIST.map(v => chip('d', v, v, d === v)).join('')}</div></div>
     <p class="ac-note">المدرسة والمادة واللقب تظهر للطلبة في ملفهم.</p>
-    <button class="p3-big ac-sv" type="button" data-act="ac-done">تم ✓</button></form>`;
+    </form>`;
 }
 function accCard(){
   const tags = [String(SG('prof_stage') || '').split('|').filter(Boolean).join('، '), mySubjects().map(v => (SUBJ_EMOJI[v] || '📘') + ' ' + v).join('  '), [SG('school'), SG('district')].filter(Boolean).join(' · ')];
