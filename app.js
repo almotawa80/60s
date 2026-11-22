@@ -5551,21 +5551,34 @@ function accForm(){
     <div class="ac-fd"><label>المواد</label><div class="ac-g g2">${SUBJECTS.filter(v => v !== 'عام' && v !== 'أخرى').map(v => chip('sj', v, v, sj.includes(v), SUBJ_EMOJI[v] || '📘')).join('')}</div></div>
     <div class="ac-fd"><label>المنطقة التعليمية</label><div class="ac-g g3">${OB_DIST.map(v => chip('d', v, v, d === v)).join('')}</div></div>
     <p class="ac-note">المدرسة والمادة واللقب تظهر للطلبة في ملفهم.</p>
-    <button class="p3-big ac-sv" type="submit" disabled>حفظ</button></form>`;
+    <button class="p3-big ac-sv" type="button" data-act="ac-done">تم ✓</button></form>`;
 }
 function accCard(){
   const tags = [String(SG('prof_stage') || '').split('|').filter(Boolean).join('، '), mySubjects().map(v => (SUBJ_EMOJI[v] || '📘') + ' ' + v).join('  '), [SG('school'), SG('district')].filter(Boolean).join(' · ')];
   const L = ['المرحلة', 'المواد', 'المدرسة'];
   return `<button class="ac-card" data-act="ac-open">${tags.map((v, i) => `<div class="ac-r"><span>${L[i]}</span><b>${v ? esc(v) : '<i>إضافة</i>'}</b></div>`).join('')}<div class="ac-ed">✏️ تعديل ملفي</div></button>`;
 }
-ACTS['ac-open'] = () => modal(`<div class="ac-sh"><div class="q4-shh"><h3>ملفي</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>${accForm()}</div>`);
-const acDirty = () => { const b = document.querySelector('.ac-sv'); if (b) b.disabled = false; };
+ACTS['ac-open'] = () => modal(`<div class="ac-sh"><div class="q4-shh"><h3>ملفي</h3><button class="q4-x" data-act="ac-done" aria-label="إغلاق">✕</button></div>${accForm()}</div>`);
+/* v383 (Khalid): «ملفي» saves by itself: a chip tap saves right away, name/school save when you leave the box. No save button. */
+const AC = {};
+const acDirty = () => { clearTimeout(AC.t); AC.t = setTimeout(acAuto, 500); };
+async function acAuto(){
+  clearTimeout(AC.t); const f = document.querySelector('.ac-f'); if (!f) return;
+  const on = k => [...f.querySelectorAll(`.ac-c.on[data-k="${k}"]`)].map(x => x.dataset.v);
+  const name = f.n.value.trim();
+  if (name && name !== T.name) { const { error } = await sb.from('teachers').update({ display_name: name }).eq('id', T.user.id); if (error) return toast(errMsg(error)); T.name = name; }
+  const p = { prof_title: on('t')[0] || '', school: f.s.value.trim().slice(0, 80), prof_stage: on('st').join('|'), prof_subject: on('sj').join('|'), district: on('d')[0] || '' };
+  if (Object.keys(p).every(k => (SG(k) || '') === p[k])) return;
+  await saveSettings(p); toast('انحفظ ✓'); const cd = document.querySelector('.ac-card'); if (cd) cd.outerHTML = accCard();
+}
+ACTS['ac-done'] = async () => { await acAuto(); closeModals(); };
 ACTS['ac-c'] = t => { const k = t.dataset.k, g = t.parentElement;
   if (k === 't' || k === 'd') g.querySelectorAll('.ac-c').forEach(x => x.classList.toggle('on', x === t && (k === 't' || !t.classList.contains('on'))));
   else t.classList.toggle('on');
   haptic(); acDirty(); };
-document.addEventListener('input', e => { if (e.target.closest && e.target.closest('.ac-f')) acDirty(); });
-ACTS['ac-save'] = async f => {
+document.addEventListener('change', e => { if (e.target.closest && e.target.closest('.ac-f')) acAuto(); });
+ACTS['ac-save'] = () => ACTS['ac-done']();
+ACTS['ac-save-old'] = async f => {
   const on = k => [...f.querySelectorAll(`.ac-c.on[data-k="${k}"]`)].map(x => x.dataset.v);
   const name = f.n.value.trim(); if (!name) return toast('اكتب اسمك');
   const btn = f.querySelector('.ac-sv'); btn.setAttribute('aria-busy', 'true');
