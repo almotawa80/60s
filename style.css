@@ -3724,3 +3724,7 @@ html body .bd .qbox.bd-q::before{display:none}
 .bd-pod small{color:#F5B72B;font-size:clamp(16px,2.4vw,26px)}
 .bd-stars{text-align:center;color:#C7C7CC;font-size:clamp(15px,2vw,22px);margin:0}.bd-stars b{color:#F5B72B}
 .bd-sum{margin:12px 2px 0;font-size:14px;color:#C7C7CC;line-height:1.6}.bd-sum b{color:#F5B72B}
+
+/* student entry on the teacher login: same clear outlined button as «أنا معلم» on the student screen */
+.ta .ta-stu{display:block;width:100%;min-height:54px;margin-top:16px;border:2px solid #F5B72B;border-radius:18px;background:#1C1C1E;color:#F5B72B;font:inherit;font-weight:800;font-size:16px;cursor:pointer}
+.ta .ta-stu b{color:#F5B72B;font-weight:800}
