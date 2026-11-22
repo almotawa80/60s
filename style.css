@@ -3833,3 +3833,4 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 .q4-where button{margin-inline-start:auto;background:none;border:0;color:var(--ink);text-decoration:underline;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .q4-tpl{display:block;margin:12px auto 0;background:none;border:0;color:var(--muted);font:inherit;font-size:14px;font-weight:700;text-decoration:underline;cursor:pointer}
 .q3-wr{width:100%;display:flex;align-items:center;gap:10px;text-align:start}.q3-wr .e{font-size:24px}
+.q5-sb.q5-emp{border-style:dashed}.q5-sb.q5-emp small{color:var(--ink)}

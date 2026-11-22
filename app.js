@@ -4109,6 +4109,9 @@ function q3Home(){
   const myS = new Set(mySubjects()); Object.keys(st).forEach(k => myS.add(k)); const keyOf = h => (h.match(/data-s="([^"]*)"/) || [])[1];
   let sqMine = sq.filter(h => myS.has(keyOf(h)) || (!myS.size && st[keyOf(h)])), sqOther = sq.filter(h => !sqMine.includes(h));
   /* v381 (UX review): a new teacher with no subjects of his own sees the bank subjects as «موادي», no empty section */
+  /* v382 (Khalid): subjects in his account always sit in «موادي», even when the bank has nothing for them yet */
+  const have = new Set(subs.map(x => x.s));
+  mySubjects().filter(x => !have.has(x)).forEach(x => sqMine.push(`<button class="q5-sb q5-emp" data-act="q5-empty" data-s="${esc(x)}"><span class="e">${SUBJ_EMOJI[x] || '📘'}</span><b>${esc(x)}</b><small>أضف أسئلتك</small></button>`));
   if (!sqMine.length) { sqMine = sqOther; sqOther = []; }
   if (ownAll) sqMine.splice(own ? sqMine.filter(h => / on"/.test(h)).length : sqMine.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
   if (0) sq.splice(own ? Object.keys(st).length : sq.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
@@ -5955,6 +5958,7 @@ function cuForm(c){
 }
 function cuGrades(stage, sel){ return `<button type="button" class="${!sel ? 'on' : ''}" data-act="cu-grade" data-v="">الكل</button>` + STAGE_GRADES[stage].map(g => `<button type="button" class="${sel === g ? 'on' : ''}" data-act="cu-grade" data-v="${g}">${g}</button>`).join(''); }
 ACTS['cu-add'] = () => { CU.fromQ = false; cuForm(); };
+ACTS['q5-empty'] = t => { CU.preS = t.dataset.s; ACTS['q5-newsubj'](); };
 ACTS['q5-newsubj'] = async () => { const r = await sb.from('classes').select('name,stage,archived'); CU.cls = (r.data || []).filter(c => !c.archived); CU.fromQ = true; cuForm(); };
 // v145: «مادة جديدة» from the questions page shows only the teacher's subjects and the grades of his classes
 function cuClassGrades(){
@@ -5971,9 +5975,10 @@ function cuClassGrades(){
 function cuNewQ(subjOpts){
   const mine = mySubjects().filter(x => subjOpts.includes(x)), gs = cuClassGrades();
   if (gs[0]) Object.assign(CU.form, { stage: gs[0].st, grade: gs[0].g }); if (mine.length === 1) CU.form.subject = mine[0];
+  const pre = CU.preS && subjOpts.includes(CU.preS) ? CU.preS : ''; CU.preS = null; if (pre) CU.form.subject = pre;
   const chip = (s, on) => `<button type="button" class="${on ? 'on' : ''}" data-act="cu-subj" data-v="${s}">${s}</button>`;
   const subj = mine.length ? mine.map(s => chip(s, CU.form.subject === s)).join('') + `<button type="button" class="cu-more" data-act="cu-more">غيرها…</button><span class="cu-rest hide">${subjOpts.filter(s => !mine.includes(s)).map(s => chip(s)).join('')}${chip('').replace('></button>', '>أخرى…</button>')}</span>` : subjOpts.map(s => chip(s)).join('') + chip('').replace('></button>', '>أخرى…</button>');
-  return `<h3>مادة جديدة</h3><form class="col" data-form="cu-save" data-id="">
+  return `<h3>${pre ? esc(pre) : 'مادة جديدة'}</h3>${pre ? '<p class="p3-note" style="text-align:start">ما فيها أسئلة جاهزة بعد. اختر الصف واضغط حفظ، وبعدها تضيف دروسك وأسئلتك.</p>' : ''}<form class="col" data-form="cu-save" data-id="">
     <div class="field"><label>المادة</label><div class="lv-chips wrap">${subj}</div><input class="input hide" id="cu-custom" name="custom" placeholder="اسم المادة" maxlength="60"></div>
     <div class="field"><label>الصف</label>${gs.length ? `<div class="lv-chips wrap">${gs.map((x, i) => `<button type="button" class="${i ? '' : 'on'}" data-act="cu-cg" data-s="${x.st}" data-g="${x.g || ''}">${esc(x.lb)}</button>`).join('')}<button type="button" data-act="t-add-class">＋ صف جديد</button></div>` : `<p class="p3-note">ما عندك صفوف للحين. ضيف صفك أول، وبعدها ارجع هني.</p><button type="button" class="btn soft" data-act="t-add-class">＋ ضيف صف</button>`}</div>
     <input type="hidden" name="title" value="">
