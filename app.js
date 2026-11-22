@@ -1934,7 +1934,7 @@ async function teacherRoute(){
     else if (page === 'join') tJoin();
     else if (page === 'class') await tClass(parts[1]);
     else if (page === 'questions') await tQuestions();
-    else if (page === 'subj') { QS.subj3 = decodeURIComponent(parts[1] || ''); SJ.open = null; await tQuestions(); }
+    else if (page === 'subj') { QS.subj3 = decodeURIComponent(parts[1] || ''); SJ.open = SJ.keep || null; SJ.keep = null; await tQuestions(); }
     else if (page === 'qshare') { T.qf.status = 'approved'; await tQuestions(); qSharePreview(parts[1]); }
     else if (page === 'results') await tResults(parts[1], parts[2]);
     else if (page === 'ch') { CL.tab = 'comps'; CL.cur = null; await tClasses(); }
@@ -4095,7 +4095,7 @@ function q3Home(){
   const mine = Object.values(G).filter(g => cuOf(g.cu)); QS.mine3 = mine;
   if (!mine.some(g => g.cu === T.qf.cu3)) T.qf.cu3 = mine.length ? mine[0].cu : '';
   const total = own + mine.reduce((a, g) => a + g.n, 0), days = Math.floor(total / QPD);
-  const tiles = mine.map((g, i) => { const c = cuOf(g.cu); return `<button class="q4-mt${QS.new3 === g.cu + '|' + g.l ? ' new' : ''}" data-act="q4-les" data-i="${i}"><span class="e">${SUBJ_EMOJI[c.subject] || '📘'}</span><b>${g.l === NO_LESSON ? 'أسئلة عامة' : esc(g.l)}</b><small>${esc(q4Gr(c))} · ${g.n} سؤال</small></button>`; }).join('')
+  const tiles = mine.map((g, i) => { const c = cuOf(g.cu); return `<button class="q4-mt${QS.new3 === g.cu + '|' + g.l ? ' new' : ''}" data-act="q4-les" data-i="${i}"><span class="e">${SUBJ_EMOJI[c.subject] || '📘'}</span><b>${g.l === NO_LESSON ? 'أسئلة بدون درس' : esc(g.l)}</b><small>${esc(q4Gr(c))} · ${g.n} سؤال</small></button>`; }).join('')
     + (own ? `<button class="q4-mt self" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own} سؤال</small></button>` : '');
   QS.new3 = null;
   const subs = q4Subjects(), mySub = new Set(mine.map(g => cuOf(g.cu).subject));
@@ -4107,15 +4107,21 @@ function q3Home(){
   const sq = subs.sort((x, y) => (!!st[y.s]) - (!!st[x.s])).map(x => { const m = st[x.s]; return `<button class="q5-sb${m ? ' on' : ''}" data-act="q4-subj" data-s="${esc(x.s)}"><span class="e">${SUBJ_EMOJI[x.s] || '📘'}</span><b>${esc(x.s)}</b><small>${m ? `${m.l} ${m.l === 1 ? 'درس' : 'دروس'} · ${m.n} سؤال` : x.n + ' درس'}</small></button>`; });
   /* v261 (Khalid): «موادي» (profile subjects + ones with active lessons + own) first, then «مواد أخرى» */
   const myS = new Set(mySubjects()); Object.keys(st).forEach(k => myS.add(k)); const keyOf = h => (h.match(/data-s="([^"]*)"/) || [])[1];
-  const sqMine = sq.filter(h => myS.has(keyOf(h)) || (!myS.size && st[keyOf(h)])), sqOther = sq.filter(h => !sqMine.includes(h));
+  let sqMine = sq.filter(h => myS.has(keyOf(h)) || (!myS.size && st[keyOf(h)])), sqOther = sq.filter(h => !sqMine.includes(h));
+  /* v381 (UX review): a new teacher with no subjects of his own sees the bank subjects as «موادي», no empty section */
+  if (!sqMine.length) { sqMine = sqOther; sqOther = []; }
   if (ownAll) sqMine.splice(own ? sqMine.filter(h => / on"/.test(h)).length : sqMine.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
   if (0) sq.splice(own ? Object.keys(st).length : sq.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
+  const gen = NW_GEN.map(([k, e, n]) => { const c = qGenQs(k).length; return `<button class="q5-sb q5-gen${c ? '' : ' soon'}" data-act="q5-gen" data-t="${k}"><span class="e">${e}</span><b>${n}</b><small>${c ? c + ' سؤال' : 'قريباً'}</small></button>`; }).join('');
   return `<div class="q4">
-    ${total ? `<div class="q4-days">عندك ${total} سؤال، تكفي ${daysAr(days)} ${days >= 7 ? '👍' : '⚠️'}</div>` : `<div class="q4-days low">اضغط مادة تحت وشغّل دروسها</div>`}
-    <button class="p3-big" data-act="q3-add">＋ أضف سؤال</button>
-    <div class="q5-lbl">موادي</div><div class="q5-hint">✅ الدروس اللي تشغّلها هنا هي اللي تطلع للطلاب في التحدي</div>
-    <div class="q5-sq">${sqMine.join('')}<button class="q5-sb q5-new" data-act="q5-newsubj"><span class="e">＋</span><b>مادة جديدة</b></button></div>
-    ${sqOther.length ? `<div class="q5-lbl q5-oth">مواد أخرى</div><div class="q5-sq q5-oth-sq">${sqOther.join('')}</div>` : ''}</div>`;
+    ${total ? `<div class="q4-days">عندك ${total} سؤال، تكفي ${daysAr(days)} ${days >= 7 ? '👍' : '⚠️'}</div>` : `<div class="q4-start"><b>👋 أول خطوة</b>اختر المادة، ثم علّم ✓ الدروس اللي تبي طلابك ينسألون منها</div>`}
+    ${total ? '<button class="p3-big" data-act="q3-add">＋ أضف سؤال</button>' : ''}
+    <div class="q5-lbl">موادي</div>${total ? '<div class="q5-hint">✅ الدروس اللي عليها ✓ هي اللي تطلع لطلابك في التحدي</div>' : ''}
+    <div class="q5-sq">${sqMine.join('')}</div>
+    ${sqOther.length ? `<div class="q5-lbl q5-oth">مواد أخرى</div><div class="q5-sq q5-oth-sq">${sqOther.join('')}</div>` : ''}
+    <button class="q5-newl" data-act="q5-newsubj">＋ مادتي مو موجودة</button>
+    <div class="q5-lbl">أسئلة منوّعة</div><div class="q5-sq">${gen}</div>
+    ${total ? '' : '<button class="q5-addl" data-act="q3-add">✍️ أو اكتب سؤالك بنفسك</button>'}</div>`;
 }
 const q4Gr = c => c.grade ? (c.stage === 'university' ? 'سنة ' + c.grade : (GRADES[c.grade - 1] || c.grade)).replace(/^ال/, '') : (STAGE_AR[c.stage] || '');
 // curricula that fit the teacher's classes (grade from the class name, else the whole stage)
@@ -4133,7 +4139,7 @@ function q4Subjects(){
   return Object.values(by);
 }
 const q4Key = (cu, l) => cu + '|' + l;
-const q4LN = (cu, l) => l === NO_LESSON ? 'أسئلة عامة' : ((((T.settings || {}).lesName) || {})[q4Key(cu, l)] || l);
+const q4LN = (cu, l) => l === NO_LESSON ? 'أسئلة بدون درس' : ((((T.settings || {}).lesName) || {})[q4Key(cu, l)] || l);
 const q4On = q => q.owner_id ? q.status === 'approved' : !!(QS.pick && QS.pick.has(q.id));
 function q4LesQs(cu, l){ return QS.glob.filter(q => q.curriculum_id === cu && (q.lesson || NO_LESSON) === l).concat(QS.list.filter(q => q.curriculum_id === cu && q.lesson === l && (q.status === 'approved' || q.status === 'draft'))); }
 function q4By(cu){
@@ -4199,30 +4205,33 @@ function tSubjPage(){
   const nq = n => n + ' ' + (n > 2 && n < 11 ? 'أسئلة' : 'سؤال');
   const row = (l, i) => {
     const on = by[l].some(q4On), open = SJ.open === l, qs = open ? q4LesQs(cu.id, l) : [], bank = q4Bank(cu.id, l);
-    const inner = !open ? '' : `<div class="sj-qs">${qs.map((q, k) => { const ord = q.payload && q.payload.kind === 'order';
+    const inner = !open ? '' : `<div class="sj-qs">${bank && qs.length ? '<p class="sj-note top">🚩 لقيت سؤال غلط؟ اضغطه وبلّغنا</p>' : ''}${qs.map((q, k) => { const ord = q.payload && q.payload.kind === 'order';
         return `<button class="sj-q" data-act="${bank ? 'q4-qv' : 'q4-qe'}" data-id="${q.id}"><em>${k + 1}</em><span class="grow"><b>${esc(q.body)}</b><small>${ord ? 'رتّب' : '✓ ' + esc(q.options[q.correct_index] || '')}</small></span></button>`; }).join('') || '<p class="p3-note">ما فيه أسئلة بعد</p>'}
-      ${bank ? '<p class="sj-note">أسئلة البنك ثابتة للكل. إذا لقيت سؤال غلط، اضغطه وبلّغ عنه.</p>'
-        : `<div class="q4-2"><button class="q4-addq" data-act="q4-qe" data-id="">＋ أضف سؤال</button><button class="q4-addq" data-act="q4-imp">📷 من صورة أو ملف</button></div>
+      ${bank ? ''
+        : `<div class="q4-2"><button class="q4-addq" data-act="q4-qe" data-id="">＋ أضف سؤال</button><button class="q4-addq" data-act="q4-imp">📷 صوّر ورقة أسئلة</button></div>
            <div class="sj-ed">${l === NO_LESSON ? '' : '<button data-act="q4-ren">✏️ تغيير الاسم</button>'}<button class="dng" data-act="q4-dell">حذف الدرس</button></div>`}</div>`;
-    return `<div class="sj-l${on ? ' on' : ''}${open ? ' open' : ''}"><div class="sj-lh"><button class="q4-ck${on ? ' added' : ''}" data-act="q4-tg" data-i="${i}" role="checkbox" aria-checked="${on}" aria-label="${esc(q4LN(cu.id, l))}">✓</button><button class="sj-lt" data-act="sj-open" data-i="${i}" aria-expanded="${open}"><span class="grow"><b>${esc(q4LN(cu.id, l))}</b><small>${nq(by[l].length)}${q4Mine(cu.id, l) ? ' · درسك' : ''}</small></span><span class="sj-ch">‹</span></button></div>${inner}</div>`;
+    return `<div class="sj-l${on ? ' on' : ''}${open ? ' open' : ''}"><div class="sj-lh"><button class="q4-ck${on ? ' added' : ''}" data-act="q4-tg" data-i="${i}" role="checkbox" aria-checked="${on}" aria-label="${esc(q4LN(cu.id, l))}">✓</button><button class="sj-lt" data-act="sj-open" data-i="${i}" aria-expanded="${open}"><span class="grow"><b>${esc(q4LN(cu.id, l))}</b><small>${on ? '<i class="sj-on">يطلع لطلابك</i> · ' : ''}${nq(by[l].length)}${q4Mine(cu.id, l) ? ' · درسك' : ''}</small></span><span class="sj-ch">${open ? 'إخفاء' : 'الأسئلة'}</span></button></div>${inner}</div>`;
   };
   view(`${SUBJ_EMOJI[s] || '📘'} ${esc(s)}`,
     (x.cus.length > 1 ? `<div class="q4-chips sj-chips">${x.cus.map(c => `<button class="${c.id === cu.id ? 'on' : ''}" data-act="q4-gr" data-id="${c.id}">${esc(q4Gr(c))}</button>`).join('')}</div>` : '') +
-    `<div class="sj-hero"><div class="sj-n"><em>${onL.length}</em> من ${les.length} ${les.length > 2 && les.length < 11 ? 'دروس' : 'درس'} شغّالة · ${nq(qn)}</div><div class="sj-bar"><i style="width:${les.length ? Math.round(onL.length / les.length * 100) : 0}%"></i></div>
-      <div class="sj-2"><button data-act="q4-all"${onL.length === les.length ? ' disabled' : ''}>شغّل الكل</button><button data-act="sj-none"${onL.length ? '' : ' disabled'}>طفّ الكل</button></div></div>
+    `<div class="sj-hero"><div class="sj-n"><em>${onL.length}</em> من ${les.length} ${les.length > 2 && les.length < 11 ? 'دروس' : 'درس'} تطلع لطلابك · ${nq(qn)}</div><div class="sj-bar"><i style="width:${les.length ? Math.round(onL.length / les.length * 100) : 0}%"></i></div>
+      ${onL.length < les.length ? '<div class="sj-2"><button data-act="q4-all">✓ علّم كل الدروس</button></div>' : ''}</div>
+    <p class="sj-tip">👇 علّم ✓ الدروس اللي تبي طلابك ينسألون منها</p>
     <div class="sj-ls">${les.map(row).join('')}<button class="q4-rnew" data-act="q4-newl">＋ درس جديد</button></div>
     ${ADM.st && ADM.st.is && !ADM.st.act && cu.owner_id && cu.owner_id === T.user.id ? `<button class="q4-all" data-act="q4-pub">📢 انشرها للكل</button>` : ''}
+    ${onL.length ? '<button class="sj-offall" data-act="sj-none">شيل ✓ من كل الدروس</button>' : ''}
     <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen"><input type="file" id="qocr" accept="image/*" class="hide" data-change="t-q-ocr-chosen">`,
     'questions', '', '#/t/questions');
 }
 ACTS['sj-open'] = t => { const l = (QS.les3 || [])[+t.dataset.i]; if (l == null) return; SJ.open = SJ.open === l ? null : l; QS.led = l; haptic(); const y = scrollY; renderQuestions(); scrollTo(0, y); };
 ACTS['sj-none'] = async t => {
   const ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && (QS.pick || new Set()).has(q.id)).map(q => q.id); if (!ids.length) return;
-  if (!await ask('ما يطلع أي درس من هالمادة للطلاب لين تشغّله.', { title: 'تطفي كل الدروس؟', ok: 'طفّ الكل', cancel: 'رجوع' })) return;
-  t.setAttribute('aria-busy', 'true'); if (await qPickSet(ids, false)) { renderQuestions(); toast('انطفت كل الدروس'); } else t.removeAttribute('aria-busy'); };
+  if (!await ask('ما يطلع أي درس من هالمادة لطلابك لين تعلّمه ✓ مرة ثانية.', { title: 'تشيل ✓ من كل الدروس؟', ok: 'شيل الكل', cancel: 'رجوع' })) return;
+  t.setAttribute('aria-busy', 'true'); if (await qPickSet(ids, false)) { renderQuestions(); toast('ما عاد يطلع شي من هالمادة'); } else t.removeAttribute('aria-busy'); };
 const q4Bank = (cu, l) => { const c = CU.list.find(x => x.id === cu); return !q4Mine(cu, l) && !(c && c.owner_id && c.owner_id === T.user.id) && !(ADM.st && ADM.st.is); };
 function q4LedSheet(l){
   if (sjOn()) { QS.led = l; SJ.open = l; closeModals(); return renderQuestions(); }
+  if (QS.subj3) { QS.led = l; SJ.open = SJ.keep = l; QS.qHome = false; closeModals(); return go('#/t/subj/' + encodeURIComponent(QS.subj3)); }
   QS.led = l; const cu = QS.subjCu, qs = q4LesQs(cu, l);
   if (q4Bank(cu, l)) return q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-back" aria-label="رجوع">→</button><h3>${esc(q4LN(cu, l))}</h3></div>
     <div class="q4-ql">${qs.map((q, k) => `<button class="q4-qr" data-act="q4-qv" data-id="${q.id}"><em>${k + 1}</em><span class="grow"><b>${esc(q.body)}</b></span></button>`).join('') || '<p class="p3-note">ما فيه أسئلة بعد</p>'}</div>
@@ -4236,18 +4245,18 @@ function q4LedSheet(l){
 }
 ACTS['q4-qv'] = t => { const q = QS.glob.find(x => x.id === t.dataset.id); if (!q) return; QS.qv = q.id;
   const ord = q.payload && q.payload.kind === 'order';
-  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="${sjOn() ? 'close-modal' : 'q4-qvb'}" aria-label="رجوع">→</button><h3>السؤال</h3></div>
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="${sjOn() ? 'close-modal' : QS.genT ? 'q5-genb' : 'q4-qvb'}" aria-label="رجوع">→</button><h3>السؤال</h3></div>
     <p class="q4-qvb">${esc(q.body)}</p>
     <div class="q4-qvo">${q.options.map((o, k) => `<div class="${!ord && k === q.correct_index ? 'ok' : ''}">${ord ? (k + 1) + '. ' : ''}${esc(o)}${!ord && k === q.correct_index ? ' ✓' : ''}</div>`).join('')}</div>
-    <button class="q4-rep" data-act="q4-rep">🚩 بلّغ عن خطأ</button>
-    <button class="p3-big" data-act="${sjOn() ? 'close-modal' : 'q4-qvb'}">رجوع</button></div>`); };
+    <button class="p3-big q4-repb" data-act="q4-rep">🚩 فيه غلط؟ بلّغنا</button>
+    <button class="p3-ghost muted" data-act="${sjOn() ? 'close-modal' : QS.genT ? 'q5-genb' : 'q4-qvb'}">رجوع</button></div>`); };
 ACTS['q4-qvb'] = () => q4LedSheet(QS.led);
 ACTS['q4-rep'] = async t => {
   const q = QS.glob.find(x => x.id === QS.qv); if (!q) return;
   const v = await ask('', { title: 'وش الغلط؟', input: '', placeholder: 'مثل: الجواب الصح هو …', ok: 'إرسال', danger: false }); if (!String(v || '').trim()) return;
   t.setAttribute('aria-busy', 'true');
-  const { error } = await sb.from('feedback').insert({ body: '🚩 بلاغ عن سؤال في البنك\nالسؤال: ' + q.body + '\nالخيارات: ' + q.options.join(' | ') + ' (الصح: ' + (q.options[q.correct_index] || '') + ')\nالدرس: ' + q4LN(QS.subjCu, QS.led) + '\nid: ' + q.id + '\nالملاحظة: ' + String(v).trim().slice(0, 500) });
-  t.removeAttribute('aria-busy'); if (error) return toast(errMsg(error)); toast('وصل البلاغ، شكراً 🙏'); q4LedSheet(QS.led);
+  const { error } = await sb.from('feedback').insert({ body: '🚩 بلاغ عن سؤال في البنك\nالسؤال: ' + q.body + '\nالخيارات: ' + q.options.join(' | ') + ' (الصح: ' + (q.options[q.correct_index] || '') + ')\nالدرس: ' + (QS.genT && !sjOn() ? (NW_GEN.find(g => g[0] === QS.genT) || [])[2] : q4LN(QS.subjCu, QS.led)) + '\nid: ' + q.id + '\nالملاحظة: ' + String(v).trim().slice(0, 500) });
+  t.removeAttribute('aria-busy'); if (error) return toast(errMsg(error)); toast('وصل البلاغ، شكراً 🙏'); if (QS.genT && !sjOn()) return q5GenSheet(QS.genT); q4LedSheet(QS.led);
 };
 ACTS['q4-back'] = () => q4SubjSheet(QS.subj3);
 ACTS['q4-ren'] = async () => {
@@ -4272,20 +4281,22 @@ ACTS['q4-dell'] = async () => {
 ACTS['q4-qe'] = t => { QS.q4q = null; q4QForm(t.dataset.id); };
 function q4QForm(id, pre){
   const q = id ? (QS.glob.find(x => x.id === id) || QS.list.find(x => x.id === id)) : null; QS.qe = id || '';
-  const o = q ? q.options.slice() : pre ? pre.options.slice(0, 4) : ['', '', '', '']; while (o.length < 4) o.push(''); const ci = q ? q.correct_index : pre ? -1 : 0;
+  const o = q ? q.options.slice() : pre ? pre.options.slice(0, 4) : ['', '', '', '']; while (o.length < 4) o.push(''); const ci = q ? q.correct_index : -1;
   const m = q ? (q.payload && q.payload.kind === 'order' ? 2 : q.options.length === 2 ? 1 : 0) : 0;
   const qq = QS.q4q, hd = pre && qq ? `سؤال ${qq.total - qq.list.length} من ${qq.total}` : q ? 'تعديل السؤال' : 'سؤال جديد';
-  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="${pre ? 'q4-qq-stop' : 'q4-bl'}" aria-label="رجوع">→</button><h3>${hd}</h3>${pre ? '<button class="q4-ed" data-act="q4-qq-skip">تخطّي</button>' : ''}</div>
+  const cuo = CU.list.find(c => c.id === QS.subjCu), where = !q && cuo ? `<div class="q4-where">يروح لـ: <b>${esc(cuo.subject)} · ${esc(q4LN(cuo.id, QS.led))}</b>${QS.qHome ? '<button type="button" data-act="q3-add">تغيير</button>' : ''}</div>` : '';
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="${pre ? 'q4-qq-stop' : QS.qHome ? 'close-modal' : 'q4-bl'}" aria-label="رجوع">→</button><h3>${hd}</h3>${pre ? '<button class="q4-ed" data-act="q4-qq-skip">تخطّي</button>' : ''}</div>${where}
     <form class="q4-qf m${m}" id="q4-qf" data-form="q4-qsave"><input type="hidden" name="m" value="${m}"><input type="hidden" name="tfa" value="${m === 1 ? (q.correct_index === 0 ? '1' : '0') : ''}">
     ${pre || q ? '' : `<div class="p3-seg">${['4 خيارات', 'صح أو خطأ', 'رتّب'].map((x, i) => `<button type="button" class="${i === m ? 'on' : ''}" data-act="q4-mode" data-m="${i}">${x}</button>`).join('')}</div>`}
-    <label for="q4b">السؤال</label><textarea class="input" id="q4b" name="b" required maxlength="400">${q ? esc(q.body) : pre ? esc(pre.body) : ''}</textarea>
-    <div class="q4-tf"><label>الجملة هذي…</label><div class="p3-tfb"><button type="button" class="t${m === 1 && q.correct_index === 0 ? ' on' : ''}" data-act="q4-tfa" data-v="1">✅ صح</button><button type="button" class="f${m === 1 && q.correct_index === 1 ? ' on' : ''}" data-act="q4-tfa" data-v="0">❌ خطأ</button></div></div>
+    <label for="q4b">السؤال</label><textarea class="input" id="q4b" name="b" maxlength="400" placeholder="اكتب السؤال هنا">${q ? esc(q.body) : pre ? esc(pre.body) : ''}</textarea>
+    <div class="q4-tf"><label>هل الجملة صح أو خطأ؟</label><div class="p3-tfb"><button type="button" class="t${m === 1 && q.correct_index === 0 ? ' on' : ''}" data-act="q4-tfa" data-v="1">✅ صح</button><button type="button" class="f${m === 1 && q.correct_index === 1 ? ' on' : ''}" data-act="q4-tfa" data-v="0">❌ خطأ</button></div></div>
     <div class="q4-or"><label>اكتبها بالترتيب الصحيح، والتطبيق يخلطها للطالب</label>${[0, 1, 2, 3].map(i => `<div class="p3-orr"><b>${'1234'[i]}</b><input class="input" name="r${i}" maxlength="60" value="${m === 2 ? esc(q.options[i] || '') : ''}" placeholder="${i < 3 ? 'مطلوب' : 'اختياري'}"></div>`).join('')}</div>
-    <div class="q4-mc"><label>${pre ? '👇 اضغط الدائرة جنب الإجابة الصحيحة' : 'الإجابات (اضغط الدائرة للصحيحة)'}</label>
-    ${o.slice(0, 4).map((v, j) => `<div class="q4-op"><button type="button" class="${j === ci ? 'ok' : ''}" data-act="q4-ok" data-j="${j}" aria-label="الإجابة الصحيحة">${j === ci ? '✓' : ''}</button><input class="input" name="o${j}" value="${esc(v)}" maxlength="120"></div>`).join('')}</div>
+    <div class="q4-mc"><label>اكتب الإجابات، واضغط ⭕ جنب الإجابة الصح</label>
+    ${o.slice(0, 4).map((v, j) => `<div class="q4-op"><button type="button" class="${j === ci ? 'ok' : ''}" data-act="q4-ok" data-j="${j}" aria-label="الإجابة الصحيحة">${j === ci ? '✓' : ''}</button><input class="input" name="o${j}" value="${esc(v)}" maxlength="120" placeholder="الإجابة ${j + 1}"></div>`).join('')}</div>
     <input type="hidden" name="c" value="${ci}">
-    <p class="p3-note">التعديل عندك بس، وما يتغيّر عند المعلمين الثانيين.</p>
+    ${q && !q.owner_id ? '<p class="p3-note">التعديل عندك بس، وما يتغيّر عند المعلمين الثانيين.</p>' : ''}
     <button class="p3-big" type="submit">حفظ</button></form>
+    ${!q && !pre ? '<button class="q5-addl" data-act="q4-imp">📷 عندك ورقة أسئلة؟ صوّرها</button>' : ''}
     ${q ? '<button class="q4-del" data-act="q4-qdel">حذف السؤال</button>' : ''}
     ${q && !q.owner_id ? `<button class="q4-rep" data-act="q-report" data-id="${q.id}">🚩 بلّغ عن خطأ في السؤال</button>` : ''}
     ${q && !q.owner_id && admBank() ? `<div class="q4-adm"><b>🛠 المشرف</b><button type="submit" form="q4-qf" name="all" value="1">حفظ التعديل للجميع</button><button data-act="adm-qdel" data-id="${q.id}" data-back="led">حذف من البنك للجميع</button></div>` : ''}</div>`);
@@ -4326,10 +4337,10 @@ ACTS['q4-qsave'] = async (f, ev) => {
 };
 /* import into the open lesson: photo (read, then confirm each) or Excel (preview, then add all) */
 ACTS['q4-imp'] = () => { q4File('q4ximg', 'image/*', 'q4-img'); q4File('q4xxl', '.xlsx,.xls,.csv', 'q4-xl');
-  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-bl" aria-label="رجوع">→</button><h3>أضف أسئلة للدرس</h3></div>
-    <button class="q5-imp" data-act="q4-pick" data-i="q4ximg"><span class="e">📷</span><b>صورة</b><small>ورقة أسئلة أو صفحة من الكتاب</small></button>
-    <button class="q5-imp" data-act="q4-pick" data-i="q4xxl"><span class="e">📊</span><b>ملف Excel</b><small>كل سؤال في سطر</small></button>
-    <button class="q4-del" data-act="t-q-template">تنزيل نموذج Excel</button></div>`); };
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-bl" aria-label="رجوع">→</button><h3>أضف أسئلة كثيرة</h3></div>
+    <button class="q5-imp" data-act="q4-pick" data-i="q4ximg"><span class="e">📷</span><b>صوّر ورقة أسئلة</b><small>من الكتاب أو من اختبار</small></button>
+    <button class="q5-imp" data-act="q4-pick" data-i="q4xxl"><span class="e">📊</span><b>ملف أسئلة من الكمبيوتر</b><small>ملف Excel، كل سؤال في سطر</small></button>
+    <button class="q4-tpl" data-act="t-q-template">تنزيل ملف جاهز تعبّيه</button></div>`); };
 function q4File(id, acc, ch){ let i = document.getElementById(id); if (!i) { i = document.createElement('input'); i.type = 'file'; i.id = id; i.accept = acc; i.className = 'hide'; i.dataset.change = ch; document.body.appendChild(i); } i.value = ''; return i; }
 ACTS['q4-pick'] = t => document.getElementById(t.dataset.i).click();
 ACTS['q4-xl'] = async t => { const file = t.files && t.files[0]; if (!file) return;
@@ -4358,7 +4369,7 @@ ACTS['q4-qdel'] = async () => {
   if (error) return toast(errMsg(error)); toast('انحذف السؤال'); await tQuestions(); q4LedSheet(QS.led);
 };
 ACTS['q4-all'] = async t => { const P = QS.pick || new Set(), ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && !P.has(q.id)).map(q => q.id); if (!ids.length) return;
-  t.setAttribute('aria-busy', 'true'); if (await qPickSet(ids, true)) { renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast('انضافت كل الدروس ✓'); } else t.removeAttribute('aria-busy'); };
+  t.setAttribute('aria-busy', 'true'); if (await qPickSet(ids, true)) { renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast('كل الدروس تطلع لطلابك ✓'); } else t.removeAttribute('aria-busy'); };
 ACTS['q4-done'] = () => { closeModals(); renderQuestions(); scrollTo(0, 0); };
 ACTS['q4-subj'] = t => { QS.subjCu = null; QS.ed4 = false; go('#/t/subj/' + encodeURIComponent(t.dataset.s)); };
 ACTS['q4-gr'] = t => { QS.subjCu = t.dataset.id; q4SubjSheet(QS.subj3); };
@@ -4367,13 +4378,13 @@ ACTS['q4-tg'] = async t => {
   const qs = q4LesQs(QS.subjCu, l), on = !t.classList.contains('added'); if (!qs.length) return toast('الدرس فاضي، افتحه وأضف أسئلة');
   t.classList.toggle('added', on); t.setAttribute('aria-busy', 'true'); haptic();
   if (!await q4SetOn(qs, on)) { t.classList.toggle('added', !on); t.removeAttribute('aria-busy'); return; }
-  t.removeAttribute('aria-busy'); if (on) QS.new3 = QS.subjCu + '|' + l; renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast(on ? 'انضاف لأسئلتك ✓' : 'انشال من أسئلتك');
+  t.removeAttribute('aria-busy'); if (on) QS.new3 = QS.subjCu + '|' + l; renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast(on ? 'صار يطلع لطلابك ✓' : 'ما عاد يطلع لطلابك');
 };
 function q4LesSheet(i){
   const g = (QS.mine3 || [])[i]; if (!g) return closeModals();
   const c = CU.list.find(x => x.id === g.cu), P = QS.pick || new Set();
   const qs = QS.glob.filter(q => q.curriculum_id === g.cu && (q.lesson || NO_LESSON) === g.l); QS.les4 = { i, ids: qs.map(q => q.id) };
-  const html = `<div class="q4-sh"><div class="q4-shh"><span class="e">${SUBJ_EMOJI[c.subject] || '📘'}</span><h3>${g.l === NO_LESSON ? 'أسئلة عامة' : esc(g.l)}</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
+  const html = `<div class="q4-sh"><div class="q4-shh"><span class="e">${SUBJ_EMOJI[c.subject] || '📘'}</span><h3>${g.l === NO_LESSON ? 'أسئلة بدون درس' : esc(g.l)}</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
     <p class="p3-note" style="text-align:start">${esc(c.subject)} · ${esc(q4Gr(c))} · ${qs.length} سؤال. اضغط أي سؤال تطفيه أو تشغّله، تقدر أكثر من واحد.</p>
     <div class="q4-qs">${qs.map(q => { const on = P.has(q.id); return `<button class="q4-qt${on ? ' added' : ''}" data-act="q4-q" data-id="${q.id}"><b>${esc(q.body)}</b><small>${esc(q.options[q.correct_index] || '')}</small></button>`; }).join('')}</div>
     ${qs.some(q => !P.has(q.id)) ? `<button class="q4-all" data-act="q4-qall" data-on="1">✓ شغّل كل الأسئلة</button>` : ''}
@@ -4414,7 +4425,35 @@ ACTS['q4-qall'] = async t => { const L = QS.les4; if (!L) return; t.setAttribute
 ACTS['q4-rm'] = async () => { const L = QS.les4; if (!L) return;
   if (await qPickSet(L.ids, false)) { closeModals(); renderQuestions(); toast('انشال الدرس'); } };
 /* add one question, like the preview: question, right answer, wrong ones filled in */
-ACTS['q3-add'] = async () => {
+/* v381 (UX review): ONE add-question form everywhere. From the home page we first ask where it goes (subject, lesson). */
+ACTS['q3-add'] = () => { QS.genT = null; QS.qHome = true; q3Where(null); };
+ACTS['q3-ws'] = t => q3Where(t.dataset.s);
+ACTS['q3-wl'] = t => { const l = (QS.les3 || [])[+t.dataset.i]; if (l == null) return; QS.led = l; q4QForm(''); };
+ACTS['q3-wcu'] = t => { QS.subjCu = t.dataset.id; q3Where(QS.subj3); };
+function q3Where(s){
+  const subs = q4Subjects(), myS = new Set(mySubjects());
+  if (!s && subs.length === 1) s = subs[0].s;
+  if (!s) return q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button><h3>السؤال لأي مادة؟</h3></div>
+    <div class="q4-rows">${subs.sort((a, b) => myS.has(b.s) - myS.has(a.s)).map(x => `<button class="q4-rt q3-wr" data-act="q3-ws" data-s="${esc(x.s)}"><span class="e">${SUBJ_EMOJI[x.s] || '📘'}</span><span class="grow"><b>${esc(x.s)}</b></span><span class="q4-chev">‹</span></button>`).join('')}</div></div>`);
+  const x = subs.find(y => y.s === s); if (!x) return; x.cus.sort((a, b) => (a.grade || 0) - (b.grade || 0));
+  const cu = x.cus.find(c => c.id === QS.subjCu) || x.cus[0]; QS.subjCu = cu.id; QS.subj3 = s;
+  const by = q4By(cu.id), les = Object.keys(by).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON)); QS.les3 = les;
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="${subs.length > 1 ? 'q3-add' : 'close-modal'}" aria-label="رجوع">→</button><h3>${SUBJ_EMOJI[s] || '📘'} لأي درس؟</h3></div>
+    ${x.cus.length > 1 ? `<div class="q4-chips">${x.cus.map(c => `<button class="${c.id === cu.id ? 'on' : ''}" data-act="q3-wcu" data-id="${c.id}">${esc(q4Gr(c))}</button>`).join('')}</div>` : ''}
+    <div class="q4-rows">${les.map((l, i) => `<button class="q4-rt q3-wr" data-act="q3-wl" data-i="${i}"><span class="grow"><b>${esc(q4LN(cu.id, l))}</b></span><span class="q4-chev">‹</span></button>`).join('')}<button class="q4-rnew" data-act="q4-newl">＋ درس جديد</button></div></div>`);
+}
+/* v381: general / quick / memory questions on the questions page (read-only, play when picked in a new challenge) */
+const qGenQs = k => (QS.glob || []).filter(q => q.qtype === k && !q.curriculum_id);
+ACTS['q5-gen'] = t => q5GenSheet(t.dataset.t);
+ACTS['q5-genb'] = () => q5GenSheet(QS.genT);
+function q5GenSheet(k){
+  const g = NW_GEN.find(x => x[0] === k); if (!g) return; QS.genT = k; const qs = qGenQs(k);
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><span class="e">${g[1]}</span><h3>${g[2]}</h3><button class="q4-x" data-act="close-modal" aria-label="إغلاق">✕</button></div>
+    <p class="q5-gnote">${qs.length ? `تطلع لطلابك إذا اخترت «${g[2]}» وقت ما تسوي التحدي.` : 'قريباً نضيف أسئلة هنا.'}</p>
+    ${qs.length ? `<div class="q4-ql">${qs.map((q, n) => `<button class="q4-qr" data-act="q4-qv" data-id="${q.id}"><em>${n + 1}</em><span class="grow"><b>${esc(q.body)}</b></span></button>`).join('')}</div><p class="sj-note">🚩 لقيت سؤال غلط؟ اضغطه وبلّغنا</p>` : ''}
+    <button class="p3-big" data-act="close-modal">تم</button></div>`);
+}
+ACTS['q3-add-old'] = async () => {
   await loadCurricula().catch(() => {});
   const cu = CU.list.find(c => c.id === T.qf.cu3);
   modal(`<form class="p3-add" data-form="q3-save"><h3>سؤال جديد</h3>${cu ? `<p class="p3-sub">${esc(cu.subject)} · ${gradeAr(cu)}</p>` : ''}
@@ -4502,12 +4541,12 @@ ACTS['t-qs'] = t => { T.qf.status = t.dataset.v; T.qf.g = ''; T.qf.gs = ''; T.qf
 ACTS['t-qf'] = t => { T.qf[t.dataset.k] = t.value; renderQuestions(); };
 ACTS['t-q-add-menu'] = () => {
   const here = T.qf.cu && CU.list.find(c => c.id === T.qf.cu);
-  modal(`<div class="aw-sheet"><h3>استيراد مجموعة أسئلة</h3>${here ? `<div class="aw-from">${esc(here.subject)} · ${gradeAr(here)}</div>` : ''}
-    <button class="aw-opt" data-act="m-run" data-a="t-q-ocr"><span class="aw-oi">📷</span><span class="grow"><b>تصوير ورقة أسئلة</b><small>من كتاب أو اختبار</small></span></button>
-    <button class="aw-opt" data-act="m-run" data-a="t-q-paste"><span class="aw-oi">📋</span><span class="grow"><b>لصق مجموعة أسئلة</b><small>سؤال في كل سطر</small></span></button>
-    <button class="aw-opt" data-act="m-run" data-a="t-q-import"><span class="aw-oi">📄</span><span class="grow"><b>ملف Excel</b><small>لعدد كبير من الأسئلة</small></span></button>
+  modal(`<div class="aw-sheet"><h3>أضف أسئلة كثيرة</h3>${here ? `<div class="aw-from">${esc(here.subject)} · ${gradeAr(here)}</div>` : ''}
+    <button class="aw-opt" data-act="m-run" data-a="t-q-ocr"><span class="aw-oi">📷</span><span class="grow"><b>صوّر ورقة أسئلة</b><small>من الكتاب أو من اختبار</small></span></button>
+    <button class="aw-opt" data-act="m-run" data-a="t-q-paste"><span class="aw-oi">📋</span><span class="grow"><b>الصق أسئلة مكتوبة</b><small>سؤال في كل سطر</small></span></button>
+    <button class="aw-opt" data-act="m-run" data-a="t-q-import"><span class="aw-oi">📄</span><span class="grow"><b>ملف أسئلة من الكمبيوتر</b><small>ملف Excel لعدد كبير</small></span></button>
     <button class="aw-opt" data-act="m-run" data-a="t-q-code"><span class="aw-oi">🔑</span><span class="grow"><b>رمز من زميل</b><small>أسئلة شاركها معلم آخر</small></span></button>
-    <button class="link" data-act="m-run" data-a="t-q-template">تنزيل نموذج Excel</button></div>`);
+    <button class="q4-tpl" data-act="m-run" data-a="t-q-template">تنزيل ملف جاهز تعبّيه</button></div>`);
 };
 ACTS['t-q-more'] = () => sheet('أسئلتي', [
   { act: 'm-run', attrs: 'data-a="t-q-selon"', icon: 'check', label: 'تحديد عدة أسئلة' },
