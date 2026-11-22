@@ -390,7 +390,7 @@ function renderHomeP(){
     '</div>' + sNav('home'));
   startCountdown();
   if (!S.demo) { loadDaily(); subjLoad(); }
-  if (h.played_today && !S.demo && pushBtn() && !LS.get('mc_push_ask')) { LS.set('mc_push_ask', '1'); setTimeout(() => modal('<div class="s-avs center"><div class="lvl-up">🔔</div><h3>تبي نذكّرك؟</h3><p class="sub">نرسل لك تذكير وحد باليوم إذا ما لعبت، ورسائل معلمك توصلك على طول. وما فيه شي بالليل.</p><button class="btn" data-act="s-push">فعّل الإشعارات</button><button class="btn soft" data-act="close-modal">مو الحين</button></div>').classList.add('mid'), 1500); }
+  if (h.played_today && !S.demo && pushBtn() && !LS.get('mc_push_ask')) { LS.set('mc_push_ask', '1'); popQ(3, () => modal('<div class="s-avs center"><div class="lvl-up">🔔</div><h3>تبي نذكّرك؟</h3><p class="sub">نرسل لك تذكير وحد باليوم إذا ما لعبت، ورسائل معلمك توصلك على طول. وما فيه شي بالليل.</p><button class="btn" data-act="s-push">فعّل الإشعارات</button><button class="btn soft" data-act="close-modal">مو الحين</button></div>').classList.add('mid')); }
   if (!h.played_today && h.rank > 1 && h.gap > 0 && !S.demo) rpc('class_leaderboard', { p_token: S.token }).then(lb => {
     const rows = Array.isArray(lb) ? lb : (lb && lb.rows) || [], me = rows.find(r => r.is_me), above = me && rows.filter(r => r.rank < me.rank).sort((a, b) => b.rank - a.rank)[0];
     const el = document.getElementById('rival'); if (el && above && above.name) el.innerHTML = 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى ' + esc(String(above.name).split(' ')[0]) + ' 👀';
@@ -405,7 +405,7 @@ function lvlShow(xp){
   if (xp == null) return; const L = lvlOf(xp), el = document.getElementById('lvl');
   if (el) { el.hidden = false; el.textContent = '⚡ مستوى ' + L.n; }
   const k = 'mc_lvl_' + (S.home && S.home.student.id || ''), was = Number(LS.get(k) || 0);
-  if (was && L.n > was) setTimeout(() => { FX.win(false); modal('<div class="s-avs center"><div class="lvl-up">⚡' + L.n + '</div><h3>وصلت مستوى ' + L.n + '!</h3><p class="sub">صرت «' + L.name + '». كمّل وتوصل أبعد 🚀</p>' + shBtn('level', { n: L.n, d: 'صار «' + L.name + '»' }) + '<button class="btn soft" data-act="close-modal">يلا!</button></div>'); }, 700);
+  if (was && L.n > was) popQ(2, () => { FX.win(false); modal('<div class="s-avs center"><div class="lvl-up">⚡' + L.n + '</div><h3>وصلت مستوى ' + L.n + '!</h3><p class="sub">صرت «' + L.name + '». كمّل وتوصل أبعد 🚀</p>' + shBtn('level', { n: L.n, d: 'صار «' + L.name + '»' }) + '<button class="btn soft" data-act="close-modal">يلا!</button></div>'); });
   LS.set(k, String(L.n));
 }
 ACTS['s-lvl'] = () => { const xp = (S.daily || {}).xp || 0, L = lvlOf(xp), pc = Math.round((xp - L.lo) / (L.hi - L.lo) * 100);
@@ -583,13 +583,17 @@ ACTS['bg2-det'] = t => { const b = bgVals().find(x => x.k === t.dataset.k); if (
     b.t.map((x, j) => '<div class="' + (j < l ? 'done' : '') + '"><i class="' + (b.t.length > 1 ? BG_LV[j][0] : 'rd') + '"></i>' + (b.t.length > 1 ? BG_LV[j][1] + ' · ' : '') + x + ' ' + b.u + '<small>' + (j < l ? '✓ كسبتها' : Math.min(b.v, x) + ' من ' + x) + '</small></div>').join('') +
     '</div><button class="btn" data-act="close-modal">تم</button></div>'); };
 /* new-badge popup: compares levels with the last ones this device saw; first visit only stores them */
+/* post-round popups one at a time: badge (1) → level (2) → push ask (3) */
+const PQ = []; let pqT;
+function popQ(p, fn){ PQ.push([p, fn]); PQ.sort((a, b) => a[0] - b[0]); pqRun(); }
+function pqRun(){ clearTimeout(pqT); pqT = setTimeout(() => { if (!PQ.length) return; if (document.querySelector('.modal-back,.bg2-win,.play')) return pqRun(); PQ.shift()[1](); pqRun(); }, 700); }
 function bgCheck(){ const h = S.home; if (!h || S.demo || !h.student || !h.student.id || !(h.badges || []).some(x => x.k === 'correct')) return;
   const key = 'mc_bg_' + h.student.id, bs = bgVals(), cur = {}; bs.forEach(b => cur[b.k] = bgLv(b));
   let old = null; try { old = JSON.parse(LS.get(key) || 'null'); } catch(e){}
   LS.set(key, JSON.stringify(cur));
   if (!old) return;
   const won = bs.filter(b => cur[b.k] > (old[b.k] || 0)).map(b => [b, cur[b.k]]);
-  if (won.length) bgWin(won); }
+  if (won.length) popQ(1, () => bgWin(won)); }
 function bgWin(won){
   document.querySelectorAll('.bg2-win').forEach(x => x.remove());
   const w = document.createElement('div'); w.className = 'bg2-win'; let left = won.slice();
