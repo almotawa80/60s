@@ -4155,14 +4155,36 @@ ACTS['q4-newl'] = async () => {
   if (!await q4SaveSettings()) return; q4LedSheet(n);
 };
 ACTS['q4-led'] = t => { const l = (QS.les3 || [])[+t.dataset.i]; if (l != null) q4LedSheet(l); };
+/* v375 (Khalid): bank lessons are fixed: the teacher only switches them on/off (✓) and reports a wrong question.
+   His own lessons (or his own subject) stay fully editable. The admin keeps the old controls. */
+const q4Bank = (cu, l) => { const c = CU.list.find(x => x.id === cu); return !q4Mine(cu, l) && !(c && c.owner_id && c.owner_id === T.user.id) && !(ADM.st && ADM.st.is); };
 function q4LedSheet(l){
   QS.led = l; const cu = QS.subjCu, qs = q4LesQs(cu, l);
+  if (q4Bank(cu, l)) return q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-back" aria-label="رجوع">→</button><h3>${esc(q4LN(cu, l))}</h3></div>
+    <div class="q4-ql">${qs.map((q, k) => `<button class="q4-qr" data-act="q4-qv" data-id="${q.id}"><em>${k + 1}</em><span class="grow"><b>${esc(q.body)}</b></span></button>`).join('') || '<p class="p3-note">ما فيه أسئلة بعد</p>'}</div>
+    <p class="p3-note">أسئلة البنك ثابتة للكل. إذا لقيت سؤال غلط، اضغطه وبلّغ عنه.</p>
+    <button class="p3-big" data-act="q4-back">تم</button></div>`);
   q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-back" aria-label="رجوع">→</button><h3>${esc(q4LN(cu, l))}</h3>${l === NO_LESSON ? '' : '<button class="q4-x" data-act="q4-ren" aria-label="تغيير الاسم">✏️</button>'}</div>
     <div class="q4-ql">${qs.map((q, k) => `<button class="q4-qr" data-act="q4-qe" data-id="${q.id}"><em>${k + 1}</em><span class="grow"><b>${esc(q.body)}</b></span>${q.owner_id && !q4Mine(cu, l) ? '<small>عدّلته</small>' : ''}</button>`).join('') || '<p class="p3-note">ما فيه أسئلة بعد</p>'}</div>
     <div class="q4-2"><button class="q4-addq" data-act="q4-qe" data-id="">＋ أضف سؤال</button><button class="q4-addq" data-act="q4-imp">📷 من صورة أو ملف</button></div>
     <button class="q4-del" data-act="q4-dell">حذف الدرس</button>
     <button class="p3-big" data-act="q4-back">تم ✓</button></div>`);
 }
+ACTS['q4-qv'] = t => { const q = QS.glob.find(x => x.id === t.dataset.id); if (!q) return; QS.qv = q.id;
+  const ord = q.payload && q.payload.kind === 'order';
+  q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="q4-qvb" aria-label="رجوع">→</button><h3>السؤال</h3></div>
+    <p class="q4-qvb">${esc(q.body)}</p>
+    <div class="q4-qvo">${q.options.map((o, k) => `<div class="${!ord && k === q.correct_index ? 'ok' : ''}">${ord ? (k + 1) + '. ' : ''}${esc(o)}${!ord && k === q.correct_index ? ' ✓' : ''}</div>`).join('')}</div>
+    <button class="q4-rep" data-act="q4-rep">🚩 بلّغ عن خطأ</button>
+    <button class="p3-big" data-act="q4-qvb">رجوع</button></div>`); };
+ACTS['q4-qvb'] = () => q4LedSheet(QS.led);
+ACTS['q4-rep'] = async t => {
+  const q = QS.glob.find(x => x.id === QS.qv); if (!q) return;
+  const v = await ask('', { title: 'وش الغلط؟', input: '', placeholder: 'مثل: الجواب الصح هو …', ok: 'إرسال', danger: false }); if (!String(v || '').trim()) return;
+  t.setAttribute('aria-busy', 'true');
+  const { error } = await sb.from('feedback').insert({ body: '🚩 بلاغ عن سؤال في البنك\nالسؤال: ' + q.body + '\nالخيارات: ' + q.options.join(' | ') + ' (الصح: ' + (q.options[q.correct_index] || '') + ')\nالدرس: ' + q4LN(QS.subjCu, QS.led) + '\nid: ' + q.id + '\nالملاحظة: ' + String(v).trim().slice(0, 500) });
+  t.removeAttribute('aria-busy'); if (error) return toast(errMsg(error)); toast('وصل البلاغ، شكراً 🙏'); q4LedSheet(QS.led);
+};
 ACTS['q4-back'] = () => q4SubjSheet(QS.subj3);
 ACTS['q4-ren'] = async () => {
   const cu = QS.subjCu, l = QS.led, v = await ask('', { title: 'اسم الدرس', input: q4LN(cu, l), ok: 'حفظ', danger: false }); const n = (v || '').trim().slice(0, 80); if (!n || n === q4LN(cu, l)) return;
