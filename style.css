@@ -3756,3 +3756,5 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 .h-brd{display:flex;align-items:center;gap:12px;margin-top:14px;background:linear-gradient(135deg,#0A3A7A,#1a1a40);border:1px solid rgba(255,255,255,.14);border-radius:22px;padding:16px;color:#fff;text-decoration:none}
 .h-brd-e{font-size:34px;line-height:1}.h-brd .grow{display:flex;flex-direction:column;gap:2px;min-width:0}.h-brd b{font-size:17px}.h-brd small{color:#C7D7F5;font-size:12.5px}.h-brd i{font-style:normal;font-size:20px;opacity:.8}
 .nw-brd .nw-dots i.on{background:#0A84FF}
+/* v368: onboarding grade screen labels */
+.obr-lb{font-size:13px;font-weight:800;color:#C7C7CC;margin:12px 4px 6px;text-align:right}.obr-lb small{font-weight:500;color:#8E8E93}

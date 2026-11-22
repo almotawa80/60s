@@ -1990,20 +1990,23 @@ async function obStart(demo){
   demo = demo === true;
   Object.assign(OB, { demo, st: new Set(demo ? [] : String(SG('prof_stage') || '').split('|').filter(Boolean)), sj: new Set(demo ? [] : mySubjects()), gr: null, grs: [], secs: new Set(), sec: null, made: null, school: SG('school') || '', d: SG('district') || '', more: false, edit: false, redo: false, pts: 0, hasCls: false, code: '', cname: '' });
   if (!demo) try { const r = await sb.from('classes').select('id').limit(1); OB.hasCls = !!(r.data && r.data.length); } catch(e){}
-  obStep(1);
+  obStep(2); /* v368 (Khalid): 3 screens = subjects → grade+section → class code; stage comes from the grade */
 }
-const obQn = () => OB.hasCls ? 2 : 3;
+const obQn = () => OB.hasCls ? 1 : 2;
 function obGrades(){ return [...OB.st].map(v => OB_STAGES.indexOf(v)).filter(i => i >= 0).sort().flatMap(i => NC_ST[i][2].map((g, k) => ({ st: NC_ST[i][0], g, l: NC_ST[i][0] === 'university' ? 'السنة ' + UNI_Y[k] : GRADES[g - 1] }))); }
 function obStep(n){
   OB.n = n; let el = document.getElementById('ob'); if (!el) { el = document.createElement('div'); el.id = 'ob'; document.body.appendChild(el); }
   const Q = obQn(), tile = (on, v, e, act) => `<button class="ob-t${on ? ' on' : ''}" data-act="${act || 'ob-pick'}" data-v="${esc(v)}">${e ? `<span class="e">${e}</span>` : ''}<b>${esc(v)}</b></button>`;
-  const head = n <= Q ? `<div class="obr-top"><span class="obr-pill">السؤال ${n} من ${Q}</span><span class="obr-pts">⭐ ${OB.pts}</span></div><div class="obr-dots">${Array.from({ length: Q }, (_, i) => `<i class="${i + 1 < n ? 'ok' : i + 1 === n ? 'cur' : ''}"></i>`).join('')}</div><div class="obr-bar"><i style="width:${100 - (n - 1) * 100 / Q}%"></i></div>` : '';
+  const qi = n - 1, head = n >= 2 && n <= 3 ? `<div class="obr-top"><span class="obr-pill">${n === 3 ? 'آخر خطوة' : 'السؤال ' + qi + ' من ' + Q}</span><span class="obr-pts">⭐ ${OB.pts}</span></div><div class="obr-dots">${Array.from({ length: Q + 1 }, (_, i) => `<i class="${i + 1 < qi ? 'ok' : i + 1 === qi ? 'cur' : ''}"></i>`).join('')}</div>` : '';
   const q = (t, sub) => `<div class="obr-q">${t}${sub ? `<small>${sub}</small>` : ''}</div>`;
   let b = '';
   if (n === 1) b = q('أي مراحل تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk">${OB_STAGES.map((v, i) => tile(OB.st.has(v), v, ['🎒', '📘', '🎓', '🏛️'][i])).join('')}</div><button class="btn obr-go" data-act="ob-next" ${OB.st.size ? '' : 'disabled'}>${OB.st.size ? `التالي (${OB.st.size} مختارة)` : 'اختر مرحلة أو أكثر'}</button>`;
   if (n === 2) b = q('أي مواد تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + (() => { const all = obSubjList(), cut = all.length > 9 && !OB.more, extra = [...OB.sj].filter(v => all.indexOf(v) < 0), sh = cut ? all.filter((v, i) => i < 8 || OB.sj.has(v)) : all;
       return `<div class="ob-g obr-chk ${sh.length + extra.length > 11 ? 'g4' : 'g3'} obr-sm">${sh.concat(extra).map(v => tile(OB.sj.has(v), v, SUBJ_EMOJI[v] || '📘')).join('')}${cut ? `<button class="ob-t" data-act="ob-more"><span class="e">➕</span><b>مواد أخرى</b></button>` : `<button class="ob-t" data-act="ob-other"><span class="e">✍️</span><b>اكتب مادة</b></button>`}</div>`; })() + `<button class="btn obr-go" data-act="ob-next" ${OB.sj.size ? '' : 'disabled'}>${OB.sj.size ? `التالي (${OB.sj.size} مختارة)` : 'اختر مادة أو أكثر'}</button>`;
-  if (n === 3) { const gs = obGrades(), on = g => OB.grs.some(x => x.st === g.st && x.g === g.g); b = q('أي صفوف تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk${gs.length > 4 ? ' g3' : ''}">${gs.map((g, k) => `<button class="ob-t${on(g) ? ' on' : ''}" data-act="ob-gr" data-k="${k}"><b>${esc(g.l)}</b></button>`).join('')}</div><button class="btn obr-go" data-act="ob-next" ${OB.grs.length ? '' : 'disabled'}>${OB.grs.length ? `التالي (${OB.grs.length} مختارة)` : 'اختر صف أو أكثر'}</button>`; }
+  if (n === 3) { const secs = secList().slice(0, 9), g0 = OB.grs[0];
+    b = q('أي صف تدرّس؟', 'نبدأ بصف واحد، وتضيف الباقي بعدين') + NC_ST.map(st => `<div class="obr-lb">${st[1] === 'جامعة' ? 'الجامعة' : 'ال' + st[1].replace(/ي$/, 'ية')}</div><div class="ob-g obr-chk g4 obr-sm">${st[2].map((g, k) => { const on = g0 && g0.st === st[0] && g0.g === g; return `<button class="ob-t${on ? ' on' : ''}" data-act="ob-gr1" data-st="${st[0]}" data-g="${g}" data-l="${esc(st[0] === 'university' ? 'السنة ' + UNI_Y[k] : GRADES[g - 1])}"><b>${esc(st[0] === 'university' ? 'السنة ' + UNI_Y[k] : GRADES[g - 1])}</b></button>`; }).join('')}</div>`).join('') +
+      (secs.length ? `<div class="obr-lb">الشعبة <small>(اختياري)</small></div><div class="ob-g obr-chk g4 obr-sm">${secs.map(x => `<button class="ob-t obr-sec${OB.sec === x ? ' on' : ''}" data-act="ob-sec1" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div>` : '') +
+      `<button class="btn obr-go" data-act="ob-finish" ${g0 ? '' : 'disabled'}>${g0 ? 'سوّ الصف' : 'اختر الصف'}</button>`; }
   if (n === 4) b = q('أي شعب؟', '<b class="obr-multi">☑️ اختر كل الشعب</b>') + `<div class="ob-g obr-chk g3">${secList().slice(0, 9).map(x => `<button class="ob-t obr-sec${OB.secs.has(x) ? ' on' : ''}" data-act="ob-sec" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div>${OB.secs.size ? `<button class="btn obr-go" data-act="ob-next">التالي (${OB.secs.size} مختارة)</button>` : `<button class="btn soft obr-go" data-act="ob-next">بدون شعبة</button>`}`;
   if (n === 5) {
     const row = (k, l, v) => `<button class="obr-row" data-act="ob-row" data-q="${k}"><span>${l}</span><b>${esc(v || '—')}</b><i>تعديل</i></button>`;
@@ -2023,10 +2026,10 @@ function obStep(n){
     b = `<div class="obr-hero"><div class="obr-big">📲</div><h2>رمز صفك</h2><div class="obr-code" dir="ltr">${esc(fmtCode(OB.code))}</div><p>أرسله لطلابك في الواتساب. أول ما يدخلون يطلعون عندك.</p></div>
       <button class="btn obr-go" data-act="c-share-wa" data-v="${esc(msg)}">شارك الرمز</button><button class="btn soft" data-act="ob-close">خذني للرئيسية</button>`;
   }
-  if (n <= Q) b = b.replace(/<button class="btn( soft)? obr-go" data-act="ob-next"[^>]*>.*?<\/button>/, m => `<div class="obr-nav">${n > 1 ? '<button class="btn soft obr-bk" data-act="ob-back" aria-label="رجوع">→</button>' : ''}${m}</div>`);
+  if (n === 2 || n === 3) b = b.replace(/<button class="btn( soft)? obr-go" data-act="ob-(next|finish)"[^>]*>.*?<\/button>/, m => `<div class="obr-nav">${n > 2 ? '<button class="btn soft obr-bk" data-act="ob-back" aria-label="رجوع">→</button>' : ''}${m}</div>`);
   el.innerHTML = `${OB.demo ? '<button class="obr-demo" data-act="ob-close">تجربة · لا يُحفظ شي ✕</button>' : ''}<div class="ob-b obr">${head}${b}</div><div class="obr-pop" id="obr-pop"></div>`;
 }
-function obClasses(){ const secs = OB.secs.size ? [...OB.secs] : [''], seen = new Set(), out = [];
+function obClasses(){ const secs = OB.sec ? [OB.sec] : OB.secs.size ? [...OB.secs] : [''], seen = new Set(), out = [];
   OB.grs.forEach(g => secs.forEach(sc => { const name = cnameOf(g.st, g.g, sc); if (!seen.has(name)) { seen.add(name); out.push({ name, st: g.st }); } })); return out; }
 function obAns(){
   if (OB.redo) { if (OB.n === 1 && !OB.hasCls) { OB.grs = []; return obStep(3); } OB.redo = false; return obStep(5); }
@@ -2034,14 +2037,16 @@ function obAns(){
   OB.pts += 10; haptic();
   const p = document.getElementById('obr-pop'); if (p) { p.textContent = '+10' + (OB.n >= obQn() ? ' · كاملة! 🏆' : OB.n === 3 ? ' · ما ينوقف 🔥🔥' : OB.n === 2 ? ' · مولّع 🔥' : ''); p.classList.remove('go'); void p.offsetWidth; p.classList.add('go'); }
   try { FX.tick && FX.tick(); } catch(e){}
-  setTimeout(() => obStep(OB.n >= obQn() ? 5 : OB.n + 1), 650);
+  setTimeout(() => { if (OB.n === 2 && OB.hasCls) { const f = document.createElement('button'); return ACTS['ob-finish'](f); } obStep(3); }, 650);
 }
 ACTS['ob-pick'] = t => { const v = t.dataset.v, set = OB.n === 1 ? OB.st : OB.sj; set.has(v) ? set.delete(v) : set.add(v); haptic(); obStep(OB.n); };
 ACTS['ob-next'] = () => obAns();
 ACTS['ob-more'] = () => { OB.more = true; obStep(2); };
 ACTS['ob-other'] = async () => { const v = await ask('اكتب اسم المادة', { title: 'مادة ثانية', input: '', placeholder: 'مثلاً: القرآن الكريم', ok: 'أضف', danger: false });
   const x = (v || '').trim().slice(0, 40); if (!x) return; OB.sj.add(x); obStep(2); };
-ACTS['ob-back'] = () => { if (OB.n > 1) { OB.edit = false; OB.redo = false; obStep(OB.n - 1); } };
+ACTS['ob-gr1'] = t => { OB.grs = [{ st: t.dataset.st, g: +t.dataset.g, l: t.dataset.l }]; const i = NC_ST.findIndex(x => x[0] === t.dataset.st); OB.st = new Set([OB_STAGES[i]]); haptic(); obStep(3); };
+ACTS['ob-sec1'] = t => { OB.sec = OB.sec === t.dataset.v ? null : t.dataset.v; haptic(); obStep(3); };
+ACTS['ob-back'] = () => { if (OB.n > 2) { OB.edit = false; OB.redo = false; obStep(OB.n - 1); } };
 ACTS['ob-gr'] = t => { const g = obGrades()[+t.dataset.k]; if (!g) return; const i = OB.grs.findIndex(x => x.st === g.st && x.g === g.g); i >= 0 ? OB.grs.splice(i, 1) : OB.grs.push(g); haptic(); obStep(3); };
 ACTS['ob-sec'] = t => { const v = t.dataset.v || ''; if (!v) return obAns(); OB.secs.has(v) ? OB.secs.delete(v) : OB.secs.add(v); haptic(); obStep(4); };
 ACTS['ob-row'] = t => { const k = +t.dataset.q; OB.edit = k !== 1; OB.redo = k === 1; obStep(k); };
@@ -2050,10 +2055,10 @@ ACTS['ob-more'] = () => { OB.more = true; obStep(5); };
 ACTS['ob-dist'] = t => { const sc = document.getElementById('ob-school'); if (sc) OB.school = sc.value; OB.d = OB.d === t.dataset.v ? '' : t.dataset.v; obStep(5); };
 document.addEventListener('input', e => { if (e.target.id === 'ob-school') OB.school = e.target.value; });
 ACTS['ob-finish'] = async t => {
-  if (!OB.st.size || !OB.sj.size || (!OB.hasCls && !OB.grs.length)) return toast('كمّل الإجابات أول');
+  if (!OB.sj.size || (!OB.hasCls && !OB.grs.length)) return toast('كمّل الإجابات أول');
   if (OB.demo) { OB.made = obClasses().map((c, i) => ({ name: c.name, code: 'DEMO1' + i })); OB.code = OB.made[0].code; OB.cname = OB.made[0].name; return obStep(6); }
   t.disabled = true; t.textContent = 'لحظة…';
-  const p = { ob: 'done', prof_stage: [...OB.st].join('|'), prof_subject: [...OB.sj].join('|') };
+  const p = { ob: 'done', prof_subject: [...OB.sj].join('|') }; if (OB.st.size) p.prof_stage = [...OB.st].join('|');
   if (OB.school.trim()) p.school = OB.school.trim().slice(0, 80);
   if (OB.d) p.district = OB.d;
   try {
@@ -2070,7 +2075,7 @@ ACTS['ob-finish'] = async t => {
     OB.code = OB.made[0].code; OB.cname = OB.made[0].name; OB.hasCls = true;
     Object.keys(PCACHE).forEach(h => delete PCACHE[h]);
     obStep(6);
-  } catch(e){ t.disabled = false; t.textContent = 'تمام، ادعُ طلابك 📲'; toast(errMsg(e)); }
+  } catch(e){ t.disabled = false; t.textContent = 'سوّ الصف'; toast(errMsg(e)); }
 };
 ACTS['ob-close'] = () => { const el = document.getElementById('ob'); if (el) el.remove(); location.hash = '#/t/home'; rerender(); };
 ACTS['ob-open'] = () => obStart();
