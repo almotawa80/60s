@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>اهزم الدقيقة · مسابقة صفك اليومية</title>
+<meta name="description" content="مسابقة يومية لصفك في دقيقة وحدة: أسئلة من المنهج، نقاط وترتيب، ومجاني للمعلم.">
+<meta name="theme-color" content="#000000">
+<meta property="og:title" content="اهزم الدقيقة">
+<meta property="og:description" content="مسابقة صفك اليومية في دقيقة وحدة.">
+<meta property="og:image" content="https://beat60s.com/icon-512.png">
+<link rel="icon" href="icon-192.png?i=10">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?i=10">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column. Rays hero with the logo, then a phone you can play, then the teacher's three steps, then one call to action. */
+:root{
+  color-scheme:dark;
+  --bg:#000; --card:#1C1C1E; --tile:#2C2C2E; --line:#3A3A3C;
+  --ink:#fff; --soft:#C7C7CC; --red:#C8102E; --red-d:#8E0B21; --ray:#D7102A;
+  --gold:#F5B72B; --ok:#34C759; --no:#FF453A;
+  --o0:#E0202E; --o1:#2F7BF6; --o2:#F5B72B; --o3:#34C759;
+  --font:'Cairo',-apple-system,system-ui,'Segoe UI',Tahoma,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;direction:rtl}
+.wrap{max-width:1000px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,p{margin:0}
+h1,h2{text-wrap:balance;font-weight:900;line-height:1.25}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+
+.hero{position:relative;overflow:hidden;text-align:center}
+.hero::before{content:"";position:absolute;inset:-20% -40%;
+  background:repeating-conic-gradient(from 0deg at 50% 38%,var(--ray) 0 7deg,#140205 7deg 15deg);
+  -webkit-mask-image:radial-gradient(closest-side at 50% 38%,#000 0,rgba(0,0,0,.55) 45%,transparent 100%);
+  mask-image:radial-gradient(closest-side at 50% 38%,#000 0,rgba(0,0,0,.55) 45%,transparent 100%);opacity:.9}
+.hero .wrap{position:relative;padding-block:36px 44px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.logo{width:min(300px,70vw);height:auto;filter:drop-shadow(0 14px 18px rgba(0,0,0,.6))}
+.kick{color:var(--gold);font-weight:900;font-size:18px}
+h1{font-size:clamp(34px,7vw,56px);text-shadow:0 3px 0 rgba(0,0,0,.7)}
+.lead{max-width:30em;color:var(--ink);font-weight:700;font-size:clamp(17px,2.6vw,20px);text-shadow:0 2px 0 rgba(0,0,0,.7)}
+.cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:54px;padding:0 26px;border:0;border-radius:16px;
+  background:var(--red);color:#fff;font-weight:900;font-size:18px;text-decoration:none;box-shadow:0 5px 0 var(--red-d)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--red-d)}
+.btn.dark{background:var(--tile);box-shadow:0 5px 0 #151516}
+
+section{padding-block:44px}
+.sec-h{text-align:center;margin-bottom:22px}
+.sec-h h2{font-size:clamp(26px,5vw,36px)}
+.sec-h p{color:var(--soft);font-weight:700;margin-top:6px}
+
+/* ---- playable phone ---- */
+.demo{display:grid;grid-template-columns:1fr;gap:22px;justify-items:center}
+.tip{order:-1;text-align:center;max-width:26em;min-height:3.4em}
+.tip b{display:block;color:var(--gold);font-weight:900;font-size:18px}
+.tip span{color:var(--soft);font-weight:700}
+.phone{width:min(340px,100%);aspect-ratio:340/690;max-width:100%;border-radius:46px;border:8px solid var(--tile);
+  box-shadow:0 0 0 2px #48484A,0 30px 60px rgba(0,0,0,.7);background:#000;overflow:hidden;position:relative}
+.scr{position:absolute;inset:0;display:flex;flex-direction:column;padding:22px 16px 18px;gap:12px}
+.top{display:flex;justify-content:space-between;align-items:center;font-weight:800}
+.pill{background:var(--card);border-radius:99px;padding:4px 12px;font-size:14px;font-weight:800;color:var(--soft)}
+.pill b{color:var(--gold)}
+/* home */
+.hello{font-weight:900;font-size:22px;line-height:1.2}
+.hello small{display:block;color:var(--soft);font-size:14px;font-weight:700}
+.mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center}
+.play{width:168px;height:168px;border-radius:50%;border:0;background:var(--red);color:#fff;font-weight:900;font-size:30px;line-height:1.2;
+  box-shadow:0 8px 0 var(--red-d),0 0 0 10px rgba(200,16,46,.22)}
+.play small{display:block;font-size:14px;font-weight:700}
+.play:active{transform:translateY(4px);box-shadow:0 4px 0 var(--red-d),0 0 0 10px rgba(200,16,46,.22)}
+.hint{color:var(--soft);font-weight:700;font-size:15px}
+/* countdown */
+.count{font-size:120px;font-weight:900;line-height:1}
+/* question */
+.bar{height:8px;border-radius:99px;background:var(--tile);overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:var(--red);border-radius:99px;transform-origin:right}
+.dots{display:flex;gap:6px;justify-content:center}
+.dots i{width:14px;height:14px;border-radius:50%;background:var(--tile)}
+.dots i.ok{background:var(--ok)} .dots i.no{background:var(--no)} .dots i.cur{background:var(--ink)}
+.qcard{flex:1;background:var(--card);border-radius:22px;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-weight:900;font-size:22px;line-height:1.4}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{position:relative;min-height:74px;border:0;border-radius:18px;background:var(--tile);color:#fff;font-weight:900;font-size:19px;overflow:hidden;padding:8px 6px 4px}
+.opt::before{content:"";position:absolute;inset:0 0 auto;height:6px;background:var(--c)}
+.opt.ok{background:var(--ok);color:#06310f} .opt.no{background:var(--no)} .opt:disabled{cursor:default}
+.combo{height:1.5em;text-align:center;color:var(--gold);font-weight:900}
+/* result */
+.medal{width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE58A,var(--gold) 60%,#B67C06);display:grid;place-items:center;font-size:46px;box-shadow:0 6px 0 #8a5c00}
+.stars{font-size:34px;letter-spacing:6px;color:var(--tile)}
+.stars b{color:var(--gold);font-weight:400}
+.pts{font-size:54px;font-weight:900;color:var(--red);line-height:1;font-variant-numeric:tabular-nums}
+.sbtn{width:100%;min-height:52px;border:0;border-radius:16px;background:var(--red);color:#fff;font-weight:900;font-size:18px;box-shadow:0 5px 0 var(--red-d)}
+.sbtn.dark{background:var(--tile);box-shadow:0 5px 0 #151516}
+/* leaderboard */
+.lb{flex:1;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;padding:8px 12px;font-weight:800}
+.row .n{width:22px;text-align:center;color:var(--soft)} .row .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .p{color:var(--gold);font-variant-numeric:tabular-nums}
+.row.me{outline:2px solid var(--gold)}
+
+/* ---- teacher ---- */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;counter-reset:s}
+.step{background:var(--card);border-radius:22px;padding:20px;display:flex;flex-direction:column;gap:6px}
+.step::before{counter-increment:s;content:counter(s);width:40px;height:40px;border-radius:50%;background:var(--gold);color:#000;font-weight:900;font-size:20px;display:grid;place-items:center}
+.step h3{font-size:20px;font-weight:900}
+.step p{color:var(--soft);font-weight:600}
+.today{margin:18px auto 0;max-width:420px;background:var(--card);border-radius:22px;padding:18px;text-align:center}
+.today small{color:var(--soft);font-weight:700}
+.today .big{font-size:34px;font-weight:900}
+.today .bar{margin-top:8px} .today .bar i{background:var(--ok);width:75%}
+.end{text-align:center;padding-block:36px 56px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.end p{color:var(--soft);font-weight:700}
+.soon{color:var(--soft);font-size:15px;font-weight:700}
+@media (min-width:820px){
+  .demo{grid-template-columns:1fr auto 1fr;align-items:center}
+  .tip{order:0;text-align:right;justify-self:end}
+  .tip b{font-size:22px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+.phone{aspect-ratio:390/800}
+.phone iframe{position:absolute;top:0;left:0;width:390px;height:800px;border:0;transform-origin:0 0;background:#000}
+.legal{display:flex;flex-wrap:wrap;gap:8px 22px;justify-content:center;margin-top:18px;font-size:15px;font-weight:700}
+.legal a{color:var(--soft)}
+</style>
+</head>
+<body style="margin:0">
+<header class="hero"><div class="wrap">
+  <img class="logo" alt="شعار اهزم الدقيقة: ساعة إيقاف ذهبية بين رقم 6 وحرف s" src="about-logo.webp" width="520" height="380">
+  <div class="kick">اهزم الدقيقة</div>
+  <h1>مسابقة صفك اليومية في دقيقة وحدة</h1>
+  <p class="lead">أسئلة من المنهج، جولة كل يوم، وترتيب يخلي الطلاب يتسابقون على المذاكرة.</p>
+  <div class="cta">
+    <a class="btn" href="#demo">جرّب جولة الحين</a>
+    <a class="btn dark" href="https://beat60s.com">ادخل التطبيق</a>
+  </div>
+</div></header>
+
+<section id="demo"><div class="wrap">
+  <div class="sec-h"><h2>جرّبها بنفسك</h2><p>هذا التطبيق نفسه، مو صور. اضغط «العب» وشوف.</p></div>
+  <div class="demo">
+    <div class="tip"><b>جولة تجريبية</b><span>4 أسئلة، 15 ثانية لكل سؤال، وكل ما جاوبت أسرع زادت نقاطك.</span></div>
+    <div class="phone" id="phone"><iframe id="appf" title="جولة تجريبية من تطبيق اهزم الدقيقة" src="./#/p/mid" loading="lazy" scrolling="no"></iframe></div>
+    <div></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-h"><h2>للمعلم: ثلاث خطوات وتبدأ</h2><p>مجاني للمعلم، وما ياخذ من حصتك شي.</p></div>
+  <div class="steps">
+    <div class="step"><h3>سوّ صفك</h3><p>اكتب أسماء طلابك أو صوّر الكشف، وشاركهم رمز الصف.</p></div>
+    <div class="step"><h3>اختر الدروس</h3><p>أسئلة جاهزة من المنهج، أو ضيف أسئلتك من صورة أو ملف.</p></div>
+    <div class="step"><h3>تابع بنظرة</h3><p>تشوف مين لعب اليوم ومين باقي، وتذكّرهم بضغطة.</p></div>
+  </div>
+  <div class="today"><small>لعبوا اليوم</small><div class="big">9 من 12</div><div class="bar"><i></i></div></div>
+</div></section>
+
+<footer class="wrap end">
+  <h2>خل صفك يتحدى الدقيقة</h2>
+  <p>يشتغل من المتصفح على أي جهاز، بدون تحميل.</p>
+  <a class="btn" href="https://beat60s.com">ابدأ مجاناً</a>
+  <div class="soon">قريباً على App Store</div>
+  <nav class="legal"><a href="privacy.html">الخصوصية</a><a href="privacy.html#support">الدعم</a></nav>
+</footer>
+
+<script>(function(){var p=document.getElementById('phone'),f=document.getElementById('appf');
+function fit(){f.style.transform='scale('+(p.clientWidth/390)+')'}
+fit();window.addEventListener('resize',fit);if(window.ResizeObserver)new ResizeObserver(fit).observe(p)})();</script>
+</body>
+</html>
