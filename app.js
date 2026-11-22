@@ -2225,9 +2225,12 @@ ACTS['nw-multi'] = () => { NW.multi = true; NW.cls = []; nwRender(); };
 ACTS['nw-next'] = () => { if (NW.cls.length) { NW.step = 2; nwRender(); } };
 const NW_GEN = [['general', '🌍', 'ثقافة عامة'], ['quick', '⚡', 'سرعة بديهة'], ['memory', '🧠', 'ذاكرة']];
 function nwName(k){ const o = NW_GEN.find(x => x[0] === k); if (o) return o[2]; const cu = CU.list.find(x => x.id === k); return cu ? String(cu.subject).replace(/^(اللغة|التربية) /, '') : ''; }
-ACTS['nw-subj'] = t => { const k = t.dataset.k, sel = NW.sel || (NW.sel = []); NW.sel = sel.includes(k) ? sel.filter(x => x !== k) : sel.concat(k); nwRender(); };
+ACTS['nw-subj'] = async t => { const k = t.dataset.k, sel = NW.sel || (NW.sel = []), add = !sel.includes(k); NW.sel = add ? sel.concat(k) : sel.filter(x => x !== k); nwRender();
+  if (!add || NW_GEN.some(o => o[0] === k)) return; if (!QS.glob || !QS.pick) { try { await qsLoad(); } catch(e){ return; } nwRender(); }
+  if ((NW.sel || []).includes(k) && Object.keys(q4By(k)).length && !nwPkOn(k)) nwPkSheet(k); };
 ACTS['nw-subj-next'] = () => { const sel = NW.sel || []; if (!sel.length) return;
   const cus = sel.filter(k => !NW_GEN.some(o => o[0] === k));
+  { const z = QS.glob && QS.pick ? cus.find(cu => Object.keys(q4By(cu)).length && !nwPkOn(cu)) : null; if (z) { toast('شغّل درس واحد على الأقل'); return nwPkSheet(z); } }
   NW.cus = cus; NW.cu = cus[0] || null; NW.gtypes = sel.filter(k => NW_GEN.some(o => o[0] === k));
   NW.subj = sel.length === 1 ? nwName(sel[0]) : sel.length === 2 ? sel.map(nwName).join(' و') : 'منوعة'; NW.step = 3; nwRender(); };
 /* v233 (Khalid): pick lessons (one subject) + start / difficulty / knockout rows on the last step */
@@ -2237,11 +2240,26 @@ function nwLesGet(cu){ const ls = (CFL[cu] || []).map(x => x[0]); NW.les = NW.le
   if (cu in NW.les) return NW.les[cu];
   if (NW.lessons && NW.lessons.length) { const f = ls.filter(l => NW.lessons.includes(l)); return f.length && f.length < ls.length ? f : null; }
   return null; }
+/* v379 (Khalid): lessons are chosen ONLY on the questions page (✓ = plays in every challenge). The challenge just shows
+   how many are on and «📚 غيّر الدروس» opens the same ✓ list. */
 function nwLesRow(sel){ const cus = nwLesCus(sel); if (!cus.length) return '';
-  const miss = cus.filter(cu => !CFL[cu]); if (miss.length) { Promise.all(miss.map(nwLesLoad)).then(() => { if (NW.step === 2 && location.hash.indexOf('#/t/new') === 0) nwRender(); }); return ''; }
-  const rows = cus.filter(cu => CFL[cu].length).map(cu => { const n = (nwLesGet(cu) || []).length, tot = CFL[cu].length;
-    return `<button type="button" class="ce1-row" data-act="nw-les" data-cu="${cu}"><span class="ce1-e">📚</span><span class="grow"><b>${cus.length > 1 ? 'دروس ' + esc(nwName(cu)) : 'الدروس'}</b></span><em class="nw-v">${n ? n + ' من ' + tot : 'كلها (' + tot + ')'}</em><span class="ce1-ch">←</span></button>`; }).join('');
+  if (!QS.glob || !QS.pick) { qsLoad().then(() => { if (NW.step === 2 && location.hash.indexOf('#/t/new') === 0) nwRender(); }, () => {}); return ''; }
+  const rows = cus.map(cu => { const by = q4By(cu), ls = Object.keys(by), on = ls.filter(l => by[l].some(q4On)), qn = on.reduce((n, l) => n + by[l].filter(q4On).length, 0);
+    if (!ls.length) return '';
+    return `<button type="button" class="ce1-row nw-pk-row${on.length ? '' : ' none'}" data-act="nw-pk" data-cu="${cu}"><span class="ce1-e">📚</span><span class="grow"><b>${cus.length > 1 ? 'دروس ' + esc(nwName(cu)) : 'الدروس'}</b><small>${on.length ? on.length + ' من ' + ls.length + ' شغّالة · ' + qn + ' سؤال' : 'ما فيه ولا درس شغّال'}</small></span><em class="nw-v">غيّر ←</em></button>`; }).join('');
   return rows ? `<div class="nw-grp">${rows}</div>` : ''; }
+function nwPkOn(cu){ const by = q4By(cu); return Object.keys(by).filter(l => by[l].some(q4On)).length; }
+function nwPkSheet(cu){ const by = q4By(cu), ls = Object.keys(by).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON)), c = CU.list.find(x => x.id === cu) || {};
+  NW.pkLs = ls; NW.pkCu = cu;
+  const html = `<div class="aw-sheet nw-pk"><h3>${SUBJ_EMOJI[c.subject] || '📘'} ${esc(nwName(cu))}</h3><p class="sub">اللي عليه ✓ يطلع للطلاب. نفس الاختيار اللي في صفحة الأسئلة.</p>
+    <div class="q4-rows">${ls.map((l, i) => { const on = by[l].some(q4On); return `<div class="q4-rw"><button class="q4-ck${on ? ' added' : ''}" data-act="nw-pk-t" data-i="${i}" role="checkbox" aria-checked="${on}" aria-label="${esc(q4LN(cu, l))}">✓</button><button class="q4-rt" data-act="nw-pk-t" data-i="${i}"><span class="grow"><b>${esc(q4LN(cu, l))}</b><small>${by[l].length} ${by[l].length > 2 && by[l].length < 11 ? 'أسئلة' : 'سؤال'}</small></span></button></div>`; }).join('')}</div>
+    <button class="btn" data-act="nw-pk-done">تم</button></div>`;
+  const open = document.querySelector('.modal .nw-pk'); if (open) { const mo = open.closest('.modal'), y = mo.scrollTop; open.outerHTML = html; mo.scrollTop = y; } else modal(html); }
+ACTS['nw-pk'] = t => nwPkSheet(t.dataset.cu);
+ACTS['nw-pk-t'] = async t => { const l = (NW.pkLs || [])[+t.dataset.i]; if (l == null) return; const qs = q4LesQs(NW.pkCu, l); if (!qs.length) return;
+  const on = !qs.some(q4On); const ck = t.closest('.q4-rw').querySelector('.q4-ck'); ck.classList.toggle('added', on); haptic();
+  if (!await q4SetOn(qs, on)) { ck.classList.toggle('added', !on); return; } nwPkSheet(NW.pkCu); };
+ACTS['nw-pk-done'] = () => { closeModals(); nwRender(); };
 async function nwLesLoad(cu){ if (CFL[cu]) return;
   const r = await sb.from('questions').select('lesson').eq('curriculum_id', cu).eq('status', 'approved').not('lesson', 'is', null).order('created_at').limit(5000);
   const cnt = {}, order = []; (r.data || []).forEach(q => { if (!cnt[q.lesson]) order.push(q.lesson); cnt[q.lesson] = (cnt[q.lesson] || 0) + 1; }); CFL[cu] = order.map(l => [l, cnt[l]]); }
@@ -2309,9 +2327,9 @@ ACTS['nw-start'] = async t => {
     {
       let qq = sb.from('questions').select('id').is('owner_id', null).eq('status', 'approved').limit(5000);
       const cus = NW.cus || (NW.cu ? [NW.cu] : []), gts = NW.gtypes || (NW.cu ? [] : ['general', 'quick']);
-      const ors = (cus.length ? ['curriculum_id.in.(' + cus.join(',') + ')'] : []).concat(gts.length ? ['qtype.in.(' + gts.join(',') + ')'] : []);
-      qq = qq.or(ors.join(',') || 'qtype.in.(general,quick)');
-      const [all, mine] = await Promise.all([qq, sb.from('question_picks').select('question_id').limit(20000)]);
+      const ors = gts.length ? ['qtype.in.(' + gts.join(',') + ')'] : []; /* v379: curriculum lessons come from the ✓ on the questions page, never auto-picked */
+      if (ors.length) qq = qq.or(ors.join(',')); else qq = null;
+      const [all, mine] = qq ? await Promise.all([qq, sb.from('question_picks').select('question_id').limit(20000)]) : [{ data: [] }, { data: [] }];
       const have = new Set((mine.data || []).map(x => x.question_id)), todo = (all.data || []).map(x => x.id).filter(id => !have.has(id));
       for (let i = 0; i < todo.length; i += 500) { const r = await sb.from('question_picks').insert(todo.slice(i, i + 500).map(id => ({ question_id: id }))); if (r.error) throw r.error; }
       if (QS.pick) todo.forEach(id => QS.pick.add(id));
@@ -2322,7 +2340,7 @@ ACTS['nw-start'] = async t => {
     const qtypes = (cus2.length ? ['curriculum'] : []).concat(gts2.length ? gts2 : cus2.length ? [] : ['general', 'quick']);
     const multi = cus2.length > 1 ? { curricula: cus2 } : {};
     const r = await sb.from('competitions').insert(cs.map(c => Object.assign({ class_id: c.id, group_id: gid, title, start_date: today, points_end_date: sp.points_end_date, end_date: sp.end_date,
-      group_size: 6, qualifiers: NW.koQ || 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: nwLesSave(cus2) }, multi, pzVal(NW.prizes))));
+      group_size: 6, qualifiers: NW.koQ || 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: null }, multi, pzVal(NW.prizes))));
     if (r.error) throw r.error;
     NW.made = [];
     for (const c of cs) { let code = c.join_code; if (!c.self_join || !code) code = await rpc('set_self_join', { p_class: c.id, p_on: true }); NW.made.push({ c, code }); }
@@ -3634,6 +3652,7 @@ document.addEventListener('input', e => { if (e.target.closest && e.target.close
 const CFL = {};
 async function cfLessons(){
   const el = document.getElementById('cf-les'); if (!el) return;
+  CC.lessons = []; el.innerHTML = ''; return; /* v379: lessons only on the questions page */
   const cu = CC.cu; if (!cu) { el.innerHTML = ''; return; }
   if (!CFL[cu]) { const r = await sb.from('questions').select('lesson').eq('curriculum_id', cu).eq('status', 'approved').not('lesson', 'is', null).order('created_at').limit(5000);
     const cnt = {}, order = []; (r.data || []).forEach(q => { if (!cnt[q.lesson]) order.push(q.lesson); cnt[q.lesson] = (cnt[q.lesson] || 0) + 1; }); CFL[cu] = order.map(l => [l, cnt[l]]); }
@@ -3742,7 +3761,9 @@ ACTS['cp-save'] = async f => {
 /* ---- questions ---- */
 const QPD = 4; // questions a student plays per day
 const qNorm = s => String(s || '').replace(/[ً-ْـ]/g, '').replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().toLowerCase();
-async function tQuestions(){
+async function tQuestions(){ await qsLoad(); renderQuestions(); }
+/* v379: loading split out so the new-challenge flow can read the ✓ lessons (picks) */
+async function qsLoad(){
   const [own, glob, st] = await Promise.all([
     sb.from('questions').select('*').eq('owner_id', T.user.id).order('created_at', { ascending: false }),
     sb.from('questions').select('id,body,options,correct_index,level,qtype,curriculum_id,lesson,image').is('owner_id', null).eq('status', 'approved').limit(5000),
@@ -3758,7 +3779,6 @@ async function tQuestions(){
   QS.stats = {}; (st || []).forEach(r => { QS.stats[r.question_id] = r; });
   qDupIndex();
   if (!QS.sel) QS.sel = new Set();
-  renderQuestions();
 }
 function qDupIndex(){
   const m = {}; QS.list.filter(q => q.source !== 'copy').concat(QS.glob).forEach(q => { const k = qNorm(q.body); if (k) (m[k] = m[k] || []).push(q.id); });
@@ -6342,7 +6362,7 @@ ACTS['bd-go'] = async t => {
   try {
     const cus = NW.cus || (NW.cu ? [NW.cu] : []), gts = (NW.gtypes || []).filter(k => k !== 'memory');
     const sel = 'id,body,options,correct_index,curriculum_id,lesson,payload,qtype';
-    const ors = (cus.length ? ['curriculum_id.in.(' + cus.join(',') + ')'] : []).concat(gts.length ? ['qtype.in.(' + gts.join(',') + ')'] : []);
+    const ors = gts.length ? ['qtype.in.(' + gts.join(',') + ')'] : []; /* v379: curriculum lessons come from the ✓ on the questions page, never auto-picked */
     const qa = sb.from('questions').select(sel).is('owner_id', null).eq('status', 'approved').or(ors.join(',') || 'qtype.in.(general,quick)').limit(3000);
     const qb = sb.from('questions').select(sel).eq('owner_id', T.user.id).eq('status', 'approved').limit(2000);
     const [a, b, s] = await Promise.all([qa, qb, sb.from('students').select('id,name,approved,class_id').in('class_id', NW.cls).order('name')]);
