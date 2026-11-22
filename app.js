@@ -2218,7 +2218,7 @@ async function nwLive(){
 ACTS['nw-back'] = () => { if (NW.step > 1 && !(NW.step === 2 && NW.skip1)) { NW.step--; nwRender(); } else go('#/t/home'); };
 ACTS['nw-cls-pick'] = async t => { const id = t.dataset.id;
   /* v362 (Khalid): confirm before replacing a running challenge */
-  if (NW.busy.has(id) && !NW.cls.includes(id)) { const c = NW.classes.find(x => x.id === id) || {}; if (!await ask('الجديد يوقف القديم، ونقاطه تنحفظ في «التحديات السابقة».', { title: (c.name || 'هذا الصف') + ' عنده تحدي شغّال', cancel: 'رجوع', ok: 'كمّل', danger: false })) return; }
+  if (!NW.board && NW.busy.has(id) && !NW.cls.includes(id)) { const c = NW.classes.find(x => x.id === id) || {}; if (!await ask('الجديد يوقف القديم، ونقاطه تنحفظ في «التحديات السابقة».', { title: (c.name || 'هذا الصف') + ' عنده تحدي شغّال', cancel: 'رجوع', ok: 'كمّل', danger: false })) return; }
   if (NW.multi) { NW.cls = NW.cls.includes(id) ? NW.cls.filter(x => x !== id) : NW.cls.concat(id); return nwRender(); }
   NW.cls = [id]; NW.step = 2; nwRender(); };
 ACTS['nw-multi'] = () => { NW.multi = true; NW.cls = []; nwRender(); };
