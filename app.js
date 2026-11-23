@@ -42,6 +42,7 @@ const ERR = {
 };
 function errMsg(e){
   const m = (e && e.message) || String(e);
+  if (/[\u0600-\u06FF]/.test(m)) return m;
   for (const k in ERR) if (m.includes(k)) return ERR[k];
   if (/Invalid login/i.test(m)) return 'البريد أو كلمة المرور غير صحيحة';
   if (/already registered/i.test(m)) return 'هذا البريد مسجّل مسبقاً، سجّل الدخول';
