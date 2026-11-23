@@ -2120,8 +2120,8 @@ const obSubjList = () => { const out = []; (OB.st.size ? [...OB.st] : ['متوس
 function nwGrade(c){ const n = (c && c.name) || ''; for (let i = GRADES.length - 1; i >= 0; i--) if (n.indexOf(GRADES[i]) >= 0) return i + 1; const m = n.match(/\d+/); return m ? Number(m[0]) : null; }
 async function qCounts(){
   const or = 'owner_id.is.null,owner_id.eq.' + T.user.id;
-  const [rg, r] = await Promise.all([sb.from('questions').select('qtype').or(or).eq('status', 'approved').in('qtype', ['general', 'quick', 'memory']).limit(10000),
-    sb.from('questions').select('curriculum_id').or(or).eq('status', 'approved').not('curriculum_id', 'is', null).limit(10000)]);
+  const [rg, r] = await Promise.all([sb.from('questions').select('qtype').or(or).eq('status', 'approved').in('qtype', ['general', 'quick', 'memory']).order('id').range(0, 999),
+    qPages(() => sb.from('questions').select('curriculum_id').or(or).eq('status', 'approved').not('curriculum_id', 'is', null).order('id'))]);
   NW.gen = {}; (rg.data || []).forEach(q => { NW.gen[q.qtype] = (NW.gen[q.qtype] || 0) + 1; });
   NW.glob = {}; (r.data || []).forEach(q => { NW.glob[q.curriculum_id] = (NW.glob[q.curriculum_id] || 0) + 1; });
 }
@@ -2338,7 +2338,7 @@ ACTS['nw-start'] = async t => {
       const cus = NW.cus || (NW.cu ? [NW.cu] : []), gts = NW.gtypes || (NW.cu ? [] : ['general', 'quick']);
       const ors = gts.length ? ['qtype.in.(' + gts.join(',') + ')'] : []; /* v379: curriculum lessons come from the ✓ on the questions page, never auto-picked */
       if (ors.length) qq = qq.or(ors.join(',')); else qq = null;
-      const [all, mine] = qq ? await Promise.all([qq, sb.from('question_picks').select('question_id').limit(20000)]) : [{ data: [] }, { data: [] }];
+      const [all, mine] = qq ? await Promise.all([qq, qPages(() => sb.from('question_picks').select('question_id').order('question_id'))]) : [{ data: [] }, { data: [] }];
       const have = new Set((mine.data || []).map(x => x.question_id)), todo = (all.data || []).map(x => x.id).filter(id => !have.has(id));
       for (let i = 0; i < todo.length; i += 500) { const r = await sb.from('question_picks').insert(todo.slice(i, i + 500).map(id => ({ question_id: id }))); if (r.error) throw r.error; }
       if (QS.pick) todo.forEach(id => QS.pick.add(id));
@@ -3615,7 +3615,7 @@ ACTS['cf-addready'] = async t => {
   const les = CC.cu && CC.lessons && CC.lessons.length ? new Set(CC.lessons) : null;
   const ids = (data || []).filter(x => x.qtype !== 'curriculum' || (CC.cu ? x.curriculum_id === CC.cu && (!les || les.has(x.lesson)) : true)).map(x => x.id);
   if (!ids.length) { toast('لا توجد أسئلة في البنك تناسب هذا الاختيار. أضف أسئلتك من صفحة الأسئلة'); t.remove(); return; }
-  if (!QS.pick) { const r = await sb.from('question_picks').select('question_id'); QS.pickOk = !r.error; QS.pick = new Set((r.data || []).map(x => x.question_id)); }
+  if (!QS.pick) { const r = await qPages(() => sb.from('question_picks').select('question_id').order('question_id')); QS.pickOk = !r.error; QS.pick = new Set((r.data || []).map(x => x.question_id)); }
   if (await qPickSet(ids, true)) { toast(`أُضيف ${ids.length} سؤالاً من البنك إلى أسئلتك ✓`); cfPool(CC.lastPd || 7); }
   else t.removeAttribute('aria-busy');
 };
@@ -3772,12 +3772,18 @@ const QPD = 4; // questions a student plays per day
 const qNorm = s => String(s || '').replace(/[ً-ْـ]/g, '').replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().toLowerCase();
 async function tQuestions(){ await qsLoad(); renderQuestions(); }
 /* v379: loading split out so the new-challenge flow can read the ✓ lessons (picks) */
+/* v387: the server returns at most 1000 rows per request, so the bank (1600+) and the picks must be read page by page */
+async function qPages(mk){
+  let all = [];
+  for (let i = 0; i < 20; i++) { const r = await mk().range(i * 1000, i * 1000 + 999); if (r.error) return r; all = all.concat(r.data || []); if ((r.data || []).length < 1000) break; }
+  return { data: all, error: null };
+}
 async function qsLoad(){
   const [own, glob, st] = await Promise.all([
     sb.from('questions').select('*').eq('owner_id', T.user.id).order('created_at', { ascending: false }),
-    sb.from('questions').select('id,body,options,correct_index,level,qtype,curriculum_id,lesson,image').is('owner_id', null).eq('status', 'approved').limit(5000),
+    qPages(() => sb.from('questions').select('id,body,options,correct_index,level,qtype,curriculum_id,lesson,image').is('owner_id', null).eq('status', 'approved').order('id')),
     rpc('question_stats', {}).catch(() => []),
-    sb.from('question_picks').select('question_id').then(r => r, () => ({})),
+    qPages(() => sb.from('question_picks').select('question_id').order('question_id')).then(r => r, () => ({})),
     sb.from('classes').select('name,stage').eq('archived', false).then(r => { QS.cls3 = r.data || []; }, () => {})
   ]).then(r => { QS.pickOk = !!(r[3] && !r[3].error && r[3].data); QS.pick = new Set(((r[3] && r[3].data) || []).map(x => x.question_id)); QS.hid = new Set(); return r; });
   if (own.error) throw own.error;
@@ -3786,7 +3792,7 @@ async function qsLoad(){
   QS.hidSet = new Set(((hd && hd.data) || []).map(x => x.question_id));
   QS.list = own.data; QS.glob = (glob.data || []).filter(q => !QS.hidSet.has(q.id)); QS.globalCount = QS.glob.length;
   /* v386: term / section / order per bank lesson (table curriculum_lessons; missing table = old flat list) */
-  const cl = await sb.from('curriculum_lessons').select('curriculum_id,lesson,term,grp,ord').limit(5000).then(r => r, () => ({}));
+  const cl = await qPages(() => sb.from('curriculum_lessons').select('curriculum_id,lesson,term,grp,ord').order('curriculum_id').order('lesson')).then(r => r, () => ({}));
   QS.cl = {}; ((cl && cl.data) || []).forEach(r => { (QS.cl[r.curriculum_id] = QS.cl[r.curriculum_id] || {})[r.lesson] = { t: r.term, g: r.grp || '', o: r.ord || 0 }; });
   QS.stats = {}; (st || []).forEach(r => { QS.stats[r.question_id] = r; });
   qDupIndex();
