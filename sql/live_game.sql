@@ -155,3 +155,15 @@ end $$;
 revoke all on function public.live_create(uuid, jsonb, int), public.live_t_state(uuid), public.live_t_act(uuid, text), public.student_live(uuid), public.live_join(uuid, uuid), public.live_s_state(uuid, uuid), public.live_answer(uuid, uuid, int) from public;
 grant execute on function public.live_create(uuid, jsonb, int), public.live_t_state(uuid), public.live_t_act(uuid, text) to authenticated;
 grant execute on function public.student_live(uuid), public.live_join(uuid, uuid), public.live_s_state(uuid, uuid), public.live_answer(uuid, uuid, int) to anon, authenticated;
+
+-- v410: resume card for the teacher
+create or replace function public.live_t_active() returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare g public.live_games;
+begin
+  select * into g from public.live_games where teacher_id = sup.uid() and status <> 'done' and created_at > now() - interval '3 hours' order by created_at desc limit 1;
+  if not found then return null; end if;
+  return jsonb_build_object('id', g.id, 'class_id', g.class_id, 'status', g.status);
+end $$;
+revoke all on function public.live_t_active() from public;
+grant execute on function public.live_t_active() to authenticated;

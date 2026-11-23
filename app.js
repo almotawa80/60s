@@ -2013,7 +2013,8 @@ async function tHome(){
   const html = cards.length ? `<div class="hv">${hvb('big', '<i class="hv-i1"></i>', 'مربعات كبيرة')}${hvb('two', '<i class="hv-i2"></i>', 'مربعين')}${hvb('list', '<i class="hv-i3"></i>', 'صفوف')}</div><div class="hcs hv-${hv}">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
   const obCard = cards.length && T.settings && T.settings.ob === 'skip' && !T.settings.obCard ? `<div class="ob-card"><button class="grow" data-act="ob-open"><b>👋 كمّل ملفك</b><small>المرحلة، المواد، المدرسة</small></button><button class="ob-cx" data-act="ob-cardx" aria-label="إغلاق">✕</button></div>` : '';
   const nbNote = classes.length ? await noBankNote(classes) : '';
-  view('الرئيسية', obCard + nbNote + html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
+  let lvNote = ''; try { const ga = classes.length ? await rpc('live_t_active') : null; if (ga) { const gc = classes.find(x => x.id === ga.class_id); if (gc) lvNote = `<button class="lv-card" data-act="lv-resume" data-id="${ga.id}" data-c="${gc.id}"><span>🔴</span><div><b>لعبة شغالة في ${esc(gc.name)}</b><small>ارجع لها</small></div><i>‹</i></button>`; } } catch(e){}
+  view('الرئيسية', obCard + lvNote + nbNote + html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
 }
 ACTS['h-view'] = t => { LS.set('mc_hv', t.dataset.v); document.querySelectorAll('.hv button').forEach(b => b.classList.toggle('on', b === t)); const h = document.querySelector('.hcs'); if (h) h.className = 'hcs hv-' + t.dataset.v; haptic(); };
 /* ---- first-time profile: 3 quick skippable screens (stage, subjects, school + district) ---- */
@@ -2504,6 +2505,7 @@ function livePoll(){
   };
   tick(); livePoll.t = setInterval(tick, 4000);
 }
+ACTS['lv-resume'] = async t => { try { const c = (await sb.from('classes').select('*').eq('id', t.dataset.c).single()).data; let code = c.join_code; if (!c.self_join || !code) code = await rpc('set_self_join', { p_class: c.id, p_on: true }); liveBoard(t.dataset.id, c, code); } catch(e){ toast(errMsg(e)); } };
 ACTS['lv-join'] = async t => { const id = t.dataset.id; try { await rpc('live_join', { p_token: S.token, p_game: id }); liveStudent(id); } catch(e){ toast('انتهت اللعبة'); } };
 function liveStudent(id){
   let el = document.getElementById('lvs'); if (el) el.remove();
