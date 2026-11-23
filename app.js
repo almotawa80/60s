@@ -2044,7 +2044,6 @@ function obStep(n){
     b = q('أي صف تدرّس؟', 'نبدأ بصف واحد، وتضيف الباقي بعدين') +
       `<div class="gp-seg">${NC_ST.map(x => `<button class="${x === cur ? 'on' : ''}" data-act="ob-gst" data-st="${x[0]}">${x[1]}</button>`).join('')}</div>` +
       `<div class="gp-grid${cur[2].length === 4 ? ' c2' : ''}">${cur[2].map((g, k) => { const on = g0 && g0.st === cur[0] && g0.g === g, l = gl(cur[0], g, k); return `<button class="gp-t${on ? ' on' : ''}" data-act="ob-gr1" data-st="${cur[0]}" data-g="${g}" data-l="${esc(l)}">${esc(l)}</button>`; }).join('')}</div>` +
-      (g0 && secs.length ? `<div class="gp-lb">الشعبة <small>(اختياري)</small></div><div class="gp-secs">${secs.map(x => `<button class="gp-s${OB.sec === x ? ' on' : ''}" data-act="ob-sec1" data-v="${esc(x)}">${esc(x)}</button>`).join('')}</div>` : '') +
       `<button class="btn obr-go" data-act="ob-finish" ${g0 ? '' : 'disabled'}>${g0 ? 'سوّ الصف' : 'اختر الصف'}</button>`; }
   if (n === 4) b = q('أي شعب؟', '<b class="obr-multi">☑️ اختر كل الشعب</b>') + `<div class="ob-g obr-chk g3">${secList().slice(0, 9).map(x => `<button class="ob-t obr-sec${OB.secs.has(x) ? ' on' : ''}" data-act="ob-sec" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div>${OB.secs.size ? `<button class="btn obr-go" data-act="ob-next">التالي (${OB.secs.size} مختارة)</button>` : `<button class="btn soft obr-go" data-act="ob-next">بدون شعبة</button>`}`;
   if (n === 5) {
