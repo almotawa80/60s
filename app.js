@@ -2258,16 +2258,20 @@ function nwLesRow(sel){ const cus = nwLesCus(sel); if (!cus.length) return '';
     return `<button type="button" class="ce1-row nw-pk-row${on.length ? '' : ' none'}" data-act="nw-pk" data-cu="${cu}"><span class="ce1-e">📚</span><span class="grow"><b>${cus.length > 1 ? 'دروس ' + esc(nwName(cu)) : 'الدروس'}</b><small>${on.length ? on.length + ' من ' + ls.length + ' شغّالة · ' + qn + ' سؤال' : 'ما فيه ولا درس شغّال'}</small></span><em class="nw-v">غيّر ←</em></button>`; }).join('');
   return rows ? `<div class="nw-grp">${rows}</div>` : ''; }
 function nwPkOn(cu){ const by = q4By(cu); return Object.keys(by).filter(l => by[l].some(q4On)).length; }
-function nwPkSheet(cu){ const by = q4By(cu), ls = Object.keys(by).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON)), c = CU.list.find(x => x.id === cu) || {};
+/* v389 (Khalid): same layout as the questions page: official lessons only, grouped by term and section */
+function nwPkSheet(cu){ const by = q4By(cu), c = CU.list.find(x => x.id === cu) || {}, M = (QS.cl || {})[cu] || {}, hasMap = Object.keys(by).some(l => M[l] && M[l].t);
+  let ls = Object.keys(by).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON));
+  if (hasMap) { ls = ls.filter(l => (M[l] && M[l].t) || c.owner_id || q4Mine(cu, l));
+    ls.sort((a, b) => { const x = M[a] || {}, y = M[b] || {}; return (x.t || 9) - (y.t || 9) || String(x.g || '').localeCompare(String(y.g || ''), 'ar') || (x.o || 999) - (y.o || 999); }); }
+  const gl = l => { const m = M[l]; return hasMap ? (m && m.t ? SJ_TN[m.t] + (m.g ? ' · ' + m.g : '') : 'دروسي') : ''; };
   NW.pkLs = ls; NW.pkCu = cu;
   const html = `<div class="aw-sheet nw-pk"><h3>${SUBJ_EMOJI[c.subject] || '📘'} ${esc(nwName(cu))}</h3><p class="sub">اللي عليه ✓ يطلع للطلاب. نفس الاختيار اللي في صفحة الأسئلة.</p>
-    <div class="q4-rows">${ls.map((l, i) => { const on = by[l].some(q4On); return `<div class="q4-rw"><button class="q4-ck${on ? ' added' : ''}" data-act="nw-pk-t" data-i="${i}" role="checkbox" aria-checked="${on}" aria-label="${esc(q4LN(cu, l))}">✓</button><button class="q4-rt" data-act="nw-pk-t" data-i="${i}"><span class="grow"><b>${esc(q4LN(cu, l))}</b><small>${by[l].length} ${by[l].length > 2 && by[l].length < 11 ? 'أسئلة' : 'سؤال'}</small></span></button></div>`; }).join('')}</div>
+    <div class="q4-rows">${ls.map((l, i) => { const on = by[l].some(q4On), hd = gl(l) !== (i ? gl(ls[i - 1]) : null) && gl(l) ? `<div class="nw-lbl" style="margin:14px 0 4px">${esc(gl(l))}</div>` : ''; return hd + `<div class="q4-rw"><button class="q4-ck${on ? ' added' : ''}" data-act="nw-pk-t" data-i="${i}" role="checkbox" aria-checked="${on}" aria-label="${esc(q4LN(cu, l))}">✓</button><button class="q4-rt" data-act="nw-pk-t" data-i="${i}"><span class="grow"><b>${esc(q4LN(cu, l))}</b><small>${by[l].length} ${by[l].length > 2 && by[l].length < 11 ? 'أسئلة' : 'سؤال'}</small></span></button></div>`; }).join('')}</div>
     <button class="btn" data-act="nw-pk-done">تم</button></div>`;
   const open = document.querySelector('.modal .nw-pk'); if (open) { const mo = open.closest('.modal'), y = mo.scrollTop; open.outerHTML = html; mo.scrollTop = y; } else modal(html); }
 ACTS['nw-pk'] = t => nwPkSheet(t.dataset.cu);
 ACTS['nw-pk-t'] = async t => { const l = (NW.pkLs || [])[+t.dataset.i]; if (l == null) return; const qs = q4LesQs(NW.pkCu, l); if (!qs.length) return;
-  const on = !qs.some(q4On); const ck = t.closest('.q4-rw').querySelector('.q4-ck'); ck.classList.toggle('added', on); haptic();
-  if (!await q4SetOn(qs, on)) { ck.classList.toggle('added', !on); return; } nwPkSheet(NW.pkCu); };
+  const on = !qs.some(q4On); haptic(); q4Fast(qs, on, () => nwPkSheet(NW.pkCu)); };
 ACTS['nw-pk-done'] = () => { closeModals(); nwRender(); };
 async function nwLesLoad(cu){ if (CFL[cu]) return;
   const r = await sb.from('questions').select('lesson').eq('curriculum_id', cu).eq('status', 'approved').not('lesson', 'is', null).order('created_at').limit(5000);
@@ -4276,16 +4280,16 @@ function sjBlocks(cu, les, by, row, nq){
 ACTS['sj-term'] = t => { SJ.term = +t.dataset.t; SJ.open = null; const y = scrollY; renderQuestions(); scrollTo(0, y); };
 ACTS['sj-fold'] = t => { const k = SJ.term + '|' + t.dataset.k, el = t.closest('.sj-sec'); SJ.fold[k] = !(el && el.classList.contains('fold')); haptic(); const y = scrollY; renderQuestions(); scrollTo(0, y); };
 /* v388 (Khalid): ✓ taps are instant: the screen changes first, the database follows in the background (rolled back with a message only if it fails) */
-async function q4Fast(qs, on){
+async function q4Fast(qs, on, after){
   const P = QS.pick || (QS.pick = new Set()), bank = qs.filter(q => !q.owner_id).map(q => q.id), own = qs.filter(q => q.owner_id);
   if (bank.length && !QS.pickOk) { toast('ميزة الإضافة من بنك الأسئلة تحتاج تحديث قاعدة البيانات أولاً'); return false; }
   const bT = bank.filter(id => on ? !P.has(id) : P.has(id)), oT = own.filter(q => (q.status === 'approved') !== on), prev = oT.map(q => q.status);
   bT.forEach(id => on ? P.add(id) : P.delete(id)); oT.forEach(q => { q.status = on ? 'approved' : 'draft'; }); Object.keys(POOL).forEach(k => delete POOL[k]);
-  const y = scrollY; if (sjOn()) renderQuestions(); else { renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); } scrollTo(0, y);
+  if (after) after(); else { const y = scrollY; if (sjOn()) renderQuestions(); else { renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); } scrollTo(0, y); }
   let error;
   if (bT.length) { if (on) { for (let i = 0; i < bT.length && !error; i += 500) ({ error } = await sb.from('question_picks').insert(bT.slice(i, i + 500).map(id => ({ question_id: id })))); } else { for (let i = 0; i < bT.length && !error; i += 200) ({ error } = await sb.from('question_picks').delete().in('question_id', bT.slice(i, i + 200))); } }
   if (!error && oT.length) ({ error } = await sb.from('questions').update({ status: on ? 'approved' : 'draft' }).in('id', oT.map(q => q.id)));
-  if (error) { bT.forEach(id => on ? P.delete(id) : P.add(id)); oT.forEach((q, i) => { q.status = prev[i]; }); toast('تعذّر الحفظ، تأكد من الاتصال وحاول مجدداً'); if (sjOn()) renderQuestions(); return false; }
+  if (error) { bT.forEach(id => on ? P.delete(id) : P.add(id)); oT.forEach((q, i) => { q.status = prev[i]; }); toast('تعذّر الحفظ، تأكد من الاتصال وحاول مجدداً'); if (after) after(); else if (sjOn()) renderQuestions(); return false; }
   return true;
 }
 ACTS['sj-allt'] = () => {
