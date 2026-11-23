@@ -3870,3 +3870,6 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 .gp-secs{display:flex;flex-wrap:wrap;gap:8px}
 .gp-s{min-width:52px;min-height:44px;padding:0 16px;border:1.5px solid transparent;border-radius:99px;background:#1C1C1E;color:#fff;font:inherit;font-size:16px;font-weight:800}
 .gp-s.on{background:#2A0C12;border-color:#C8102E}
+
+.h-nb{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:14px;background:#1C1C1E;border:1px solid #3A3A3C;border-radius:18px;color:#fff;text-decoration:none}
+.h-nb .e{font-size:28px}.h-nb .grow{display:flex;flex-direction:column;gap:2px;min-width:0}.h-nb b{font-size:15.5px}.h-nb small{color:#C7C7CC;font-size:13px}.h-nb i{font-style:normal;font-size:20px;color:#C7C7CC}

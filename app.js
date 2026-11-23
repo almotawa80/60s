@@ -1967,6 +1967,22 @@ async function teacherRoute(){
 ACTS['t-retry'] = () => teacherRoute();
 
 /* ---- home (dashboard) ---- */
+/* v402 (Khalid): tell the teacher when a class's grade has no ready questions in the bank */
+async function noBankNote(classes){
+  try {
+    await loadCurricula().catch(() => {});
+    const bad = [];
+    for (const c of classes) {
+      const g = nwGrade(c); if (!g) continue;
+      const ids = CU.list.filter(x => !x.owner_id && x.stage === (c.stage || 'primary') && x.grade === g).map(x => x.id);
+      let has = false;
+      if (ids.length) { const r = await sb.from('questions').select('id').in('curriculum_id', ids).eq('status', 'approved').limit(1); has = !!(r.data && r.data.length); }
+      if (!has) bad.push(c.name);
+    }
+    if (!bad.length) return '';
+    return `<a class="h-nb" href="#/t/questions"><span class="e">📚</span><span class="grow"><b>ما عندنا أسئلة جاهزة لـ ${esc(bad.join('، '))}</b><small>ضيف أسئلتك أنت من «الأسئلة»، ونضيف الجاهزة قريب</small></span><i>‹</i></a>`;
+  } catch (e) { return ''; }
+}
 async function tHome(){
   const [cl, cp] = await Promise.all([
     sb.from('classes').select('*').eq('archived', false).order('created_at'),
@@ -1995,7 +2011,8 @@ async function tHome(){
   const hv = LS.get('mc_hv') || 'big', hvb = (k, i, l) => `<button class="${hv === k ? 'on' : ''}" data-act="h-view" data-v="${k}" aria-label="${l}">${i}</button>`;
   const html = cards.length ? `<div class="hv">${hvb('big', '<i class="hv-i1"></i>', 'مربعات كبيرة')}${hvb('two', '<i class="hv-i2"></i>', 'مربعين')}${hvb('list', '<i class="hv-i3"></i>', 'صفوف')}</div><div class="hcs hv-${hv}">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
   const obCard = cards.length && T.settings && T.settings.ob === 'skip' && !T.settings.obCard ? `<div class="ob-card"><button class="grow" data-act="ob-open"><b>👋 كمّل ملفك</b><small>المرحلة، المواد، المدرسة</small></button><button class="ob-cx" data-act="ob-cardx" aria-label="إغلاق">✕</button></div>` : '';
-  view('الرئيسية', obCard + html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
+  const nbNote = classes.length ? await noBankNote(classes) : '';
+  view('الرئيسية', obCard + nbNote + html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
 }
 ACTS['h-view'] = t => { LS.set('mc_hv', t.dataset.v); document.querySelectorAll('.hv button').forEach(b => b.classList.toggle('on', b === t)); const h = document.querySelector('.hcs'); if (h) h.className = 'hcs hv-' + t.dataset.v; haptic(); };
 /* ---- first-time profile: 3 quick skippable screens (stage, subjects, school + district) ---- */
