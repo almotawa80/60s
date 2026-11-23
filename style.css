@@ -3834,3 +3834,19 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 .q4-tpl{display:block;margin:12px auto 0;background:none;border:0;color:var(--muted);font:inherit;font-size:14px;font-weight:700;text-decoration:underline;cursor:pointer}
 .q3-wr{width:100%;display:flex;align-items:center;gap:10px;text-align:start}.q3-wr .e{font-size:24px}
 .q5-sb.q5-emp{border-style:dashed}.q5-sb.q5-emp small{color:var(--ink)}
+/* v386 term tabs + section rows on the subject page */
+.sj-tabs{display:flex;background:var(--card);border-radius:16px;padding:4px;margin-bottom:12px}
+.sj-tabs button{flex:1;border:0;background:none;padding:10px 6px;border-radius:12px;font:inherit;font-weight:800;font-size:15.5px;color:var(--muted);cursor:pointer}
+.sj-tabs button.on{background:color-mix(in srgb,var(--ink) 12%,transparent);color:var(--ink)}
+.sj-tabs small{display:block;font-size:12px;font-weight:600;color:var(--muted)}
+.sj-cur{font-style:normal;font-size:11px;font-weight:700;color:#1F9D55;margin-inline-start:6px}
+.sj-sec{background:var(--card);border-radius:18px;margin-bottom:12px;overflow:hidden}
+.sj-sec>.sj-ls{border-radius:0;background:none;margin:0}
+.sj-sec.fold>.sj-ls{display:none}
+.sj-sh{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.sj-st{flex:1;min-width:0;background:none;border:0;padding:0;font:inherit;color:inherit;text-align:start;cursor:pointer}
+.sj-st b{display:block;font-size:16.5px;font-weight:800}
+.sj-st small{color:var(--muted);font-size:13px}
+.sj-chv{font-size:18px;color:var(--muted);transition:transform .2s}.sj-sec.fold .sj-chv{transform:rotate(90deg)}
+.q4-ck.part{border-color:#1F9D55;color:transparent;position:relative}.q4-ck.part::after{content:'–';position:absolute;inset:0;display:grid;place-items:center;color:#1F9D55;font-size:22px;line-height:1}
+.sj-newl{margin-top:2px;margin-bottom:110px}
