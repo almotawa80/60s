@@ -5585,11 +5585,11 @@ async function tSettings(){
   const sub = [mySubjects().join('، '), SG('school')].filter(Boolean).join(' · ');
   view('الإعدادات',
     `<button class="set-profile" data-act="go" data-h="#/t/account">${avatarHtml('big-av')}<div class="grow"><b>${esc(tName())}</b><div class="sub">${sub ? esc(sub) : `<span dir="ltr">${esc(T.user.email || '')}</span>`}</div></div><span class="set-chev">${ic('back')}</span></button>` +
-    sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/rules"', icon: 'trophy', color: '#C8102E', label: 'قواعد اللعب', val: 'النقاط · الترتيب' }),
-      sRow({ act: 'go', attrs: 'data-h="#/t/sset"', icon: 'users', color: '#1FA971', label: 'الطلاب والصفوف', val: 'الأسماء · الرسائل' }),
-      sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر', val: `<span id="mode-val">${(FONTS.find(f => f[0] === (LS.get('mc_fs') || 'm')) || FONTS[1])[1]}</span>` }),
-      sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق', val: 'تثبيت · بيانات' }),
-      ADM.st && ADM.st.is ? sRow({ act: 'go', attrs: 'data-h="#/t/admin"', icon: 'lock', color: '#30B0C7', label: 'المشرف', val: 'المعلمين · الدعم' }) : '']) +
+    sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/rules"', icon: 'trophy', color: '#C8102E', label: 'قواعد اللعب' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/sset"', icon: 'users', color: '#1FA971', label: 'الطلاب والصفوف' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر' }),
+      sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق' }),
+      ADM.st && ADM.st.is ? sRow({ act: 'go', attrs: 'data-h="#/t/admin"', icon: 'lock', color: '#30B0C7', label: 'المشرف' }) : '']) +
     sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
     `<div class="set-f center">اهزم الدقيقة · الإصدار ${APP_VER}</div>`, 'settings');
 }
