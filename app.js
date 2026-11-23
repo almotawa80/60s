@@ -1755,10 +1755,11 @@ ACTS['t-oauth'] = async t => {
   const { error } = await sb.auth.signInWithOAuth({ provider: t.dataset.p, options: { redirectTo: location.origin + location.pathname + '#/t/home' } });
   if (error) toast(errMsg(error));
 };
+const latinDig = v => String(v || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
 ACTS['t-auth'] = async f => {
   const box = document.getElementById('aerr');
   box.innerHTML = '';
-  const email = f.email.value.trim(), password = f.password.value;
+  const email = f.email.value.trim(), raw = f.password.value, password = latinDig(raw);
   try {
     if (T.authMode === 'up') {
       const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name: (f.name.value || '').trim() }, emailRedirectTo: location.origin + location.pathname } });
@@ -1766,7 +1767,8 @@ ACTS['t-auth'] = async f => {
       if (data.user && data.user.identities && !data.user.identities.length) { T.authMode = 'in'; T.authEmail = email; teacherAuth(); const b2 = document.getElementById('aerr'); if (b2) b2.innerHTML = '<div class="err">هذا البريد عنده حساب. سجّل الدخول بكلمة المرور.</div>'; return; }
       if (!data.session) { T.authEmail = email; return tCheckMail(email); }
     } else {
-      const { error } = await sb.auth.signInWithPassword({ email, password });
+      let { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error && raw !== password) ({ error } = await sb.auth.signInWithPassword({ email, password: raw }));
       if (error) throw error;
     }
     go('#/t/home');
@@ -6192,8 +6194,8 @@ ACTS['st-name'] = () => modal(`<h3>الاسم</h3><form class="col" data-form="t
 ACTS['st-pass'] = () => modal(`<h3>تغيير كلمة المرور</h3><form class="col" data-form="st-pass-save"><div class="field"><label for="np">كلمة المرور الجديدة</label><input class="input" id="np" name="p1" type="password" minlength="6" required dir="ltr"></div>
   <div class="field"><label for="np2">تأكيد كلمة المرور</label><input class="input" id="np2" name="p2" type="password" minlength="6" required dir="ltr"></div><button class="btn" type="submit">حفظ</button></form>`);
 ACTS['st-pass-save'] = async f => {
-  if (f.p2 && f.p1.value !== f.p2.value) return toast('كلمتا المرور غير متطابقتين');
-  const { error } = await sb.auth.updateUser({ password: f.p1.value });
+  if (f.p2 && latinDig(f.p1.value) !== latinDig(f.p2.value)) return toast('كلمتا المرور غير متطابقتين');
+  const { error } = await sb.auth.updateUser({ password: latinDig(f.p1.value) });
   if (error) return toast(errMsg(error)); closeModals(); toast('تم تغيير كلمة المرور');
 };
 async function shareOrCopy(title, text, url){
