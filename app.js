@@ -2154,6 +2154,7 @@ function subjTiles(c, sel, act, extra, afterMine){
 }
 ACTS['nw-goq'] = () => go('#/t/questions');
 async function tNew(fresh){
+  if ((!QS.glob || !QS.pick) && !QS.loading) { QS.loading = qsLoad().catch(() => {}).then(() => { QS.loading = null; }); } /* v391: start loading the bank now so the lessons row is ready at step 2 */
   /* v366 (Khalid): board mode has its own entry #/t/new/board (home card) */
   const brd = location.hash.indexOf('#/t/new/board') === 0;
   /* v380 (Khalid): coming back within 10 minutes continues from the same step */
@@ -3785,8 +3786,13 @@ async function tQuestions(){ if (location.hash.indexOf('#/t/subj/') !== 0) SJ.ba
 /* v379: loading split out so the new-challenge flow can read the ✓ lessons (picks) */
 /* v387: the server returns at most 1000 rows per request, so the bank (1600+) and the picks must be read page by page */
 async function qPages(mk){
+  /* v391: four pages at once (4000 rows covers the bank), more only if the last one was full */
   let all = [];
-  for (let i = 0; i < 20; i++) { const r = await mk().range(i * 1000, i * 1000 + 999); if (r.error) return r; all = all.concat(r.data || []); if ((r.data || []).length < 1000) break; }
+  for (let i = 0; i < 20; i += 4) {
+    const rs = await Promise.all([0, 1, 2, 3].map(k => mk().range((i + k) * 1000, (i + k) * 1000 + 999)));
+    for (const r of rs) { if (r.error) return r; all = all.concat(r.data || []); }
+    if ((rs[3].data || []).length < 1000) break;
+  }
   return { data: all, error: null };
 }
 async function qsLoad(){
