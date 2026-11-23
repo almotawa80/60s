@@ -2022,8 +2022,12 @@ function obStep(n){
   if (n === 2) b = q('أي مواد تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + (() => { const all = obSubjList(), cut = all.length > 9 && !OB.more, extra = [...OB.sj].filter(v => all.indexOf(v) < 0), sh = cut ? all.filter((v, i) => i < 8 || OB.sj.has(v)) : all;
       return `<div class="ob-g obr-chk ${sh.length + extra.length > 11 ? 'g4' : 'g3'} obr-sm">${sh.concat(extra).map(v => tile(OB.sj.has(v), v, SUBJ_EMOJI[v] || '📘')).join('')}${cut ? `<button class="ob-t" data-act="ob-more"><span class="e">➕</span><b>مواد أخرى</b></button>` : `<button class="ob-t" data-act="ob-other"><span class="e">✍️</span><b>اكتب مادة</b></button>`}</div>`; })() + `<button class="btn obr-go" data-act="ob-next" ${OB.sj.size ? '' : 'disabled'}>${OB.sj.size ? `التالي (${OB.sj.size} مختارة)` : 'اختر مادة أو أكثر'}</button>`;
   if (n === 3) { const secs = secList().slice(0, 9), g0 = OB.grs[0];
-    b = q('أي صف تدرّس؟', 'نبدأ بصف واحد، وتضيف الباقي بعدين') + NC_ST.map(st => `<div class="obr-lb">${st[1] === 'جامعة' ? 'الجامعة' : 'ال' + st[1].replace(/ي$/, 'ية')}</div><div class="ob-g obr-chk g4 obr-sm">${st[2].map((g, k) => { const on = g0 && g0.st === st[0] && g0.g === g; return `<button class="ob-t${on ? ' on' : ''}" data-act="ob-gr1" data-st="${st[0]}" data-g="${g}" data-l="${esc(st[0] === 'university' ? 'السنة ' + UNI_Y[k] : GRADES[g - 1])}"><b>${esc(st[0] === 'university' ? 'السنة ' + UNI_Y[k] : GRADES[g - 1])}</b></button>`; }).join('')}</div>`).join('') +
-      (secs.length ? `<div class="obr-lb">الشعبة <small>(اختياري)</small></div><div class="ob-g obr-chk g4 obr-sm">${secs.map(x => `<button class="ob-t obr-sec${OB.sec === x ? ' on' : ''}" data-act="ob-sec1" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div>` : '') +
+    const si0 = NC_ST.findIndex(x => OB.gst ? x[0] === OB.gst : g0 ? x[0] === g0.st : OB.st.has(OB_STAGES[NC_ST.indexOf(x)])), cur = NC_ST[si0 < 0 ? 0 : si0];
+    const gl = (st, g, k) => st === 'university' ? 'السنة ' + UNI_Y[k] : GRADES[g - 1];
+    b = q('أي صف تدرّس؟', 'نبدأ بصف واحد، وتضيف الباقي بعدين') +
+      `<div class="gp-seg">${NC_ST.map(x => `<button class="${x === cur ? 'on' : ''}" data-act="ob-gst" data-st="${x[0]}">${x[1]}</button>`).join('')}</div>` +
+      `<div class="gp-grid">${cur[2].map((g, k) => { const on = g0 && g0.st === cur[0] && g0.g === g, l = gl(cur[0], g, k); return `<button class="gp-t${on ? ' on' : ''}" data-act="ob-gr1" data-st="${cur[0]}" data-g="${g}" data-l="${esc(l)}">${esc(l)}</button>`; }).join('')}</div>` +
+      (g0 && secs.length ? `<div class="gp-lb">الشعبة <small>(اختياري)</small></div><div class="gp-secs">${secs.map(x => `<button class="gp-s${OB.sec === x ? ' on' : ''}" data-act="ob-sec1" data-v="${esc(x)}">${esc(x)}</button>`).join('')}</div>` : '') +
       `<button class="btn obr-go" data-act="ob-finish" ${g0 ? '' : 'disabled'}>${g0 ? 'سوّ الصف' : 'اختر الصف'}</button>`; }
   if (n === 4) b = q('أي شعب؟', '<b class="obr-multi">☑️ اختر كل الشعب</b>') + `<div class="ob-g obr-chk g3">${secList().slice(0, 9).map(x => `<button class="ob-t obr-sec${OB.secs.has(x) ? ' on' : ''}" data-act="ob-sec" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div>${OB.secs.size ? `<button class="btn obr-go" data-act="ob-next">التالي (${OB.secs.size} مختارة)</button>` : `<button class="btn soft obr-go" data-act="ob-next">بدون شعبة</button>`}`;
   if (n === 5) {
@@ -2062,6 +2066,7 @@ ACTS['ob-next'] = () => obAns();
 ACTS['ob-more'] = () => { OB.more = true; obStep(2); };
 ACTS['ob-other'] = async () => { const v = await ask('اكتب اسم المادة', { title: 'مادة ثانية', input: '', placeholder: 'مثلاً: القرآن الكريم', ok: 'أضف', danger: false });
   const x = (v || '').trim().slice(0, 40); if (!x) return; OB.sj.add(x); obStep(2); };
+ACTS['ob-gst'] = t => { OB.gst = t.dataset.st; haptic(); obStep(3); };
 ACTS['ob-gr1'] = t => { OB.grs = [{ st: t.dataset.st, g: +t.dataset.g, l: t.dataset.l }]; const i = NC_ST.findIndex(x => x[0] === t.dataset.st); OB.st = new Set([OB_STAGES[i]]); haptic(); obStep(3); };
 ACTS['ob-sec1'] = t => { OB.sec = OB.sec === t.dataset.v ? null : t.dataset.v; haptic(); obStep(3); };
 ACTS['ob-back'] = () => { if (OB.n > 2) { OB.edit = false; OB.redo = false; obStep(OB.n - 1); } };

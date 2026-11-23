@@ -3858,3 +3858,15 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 .nw-mode button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:6px 8px;border:0;border-radius:12px;background:transparent;color:#C7C7CC;font:inherit;font-size:14.5px;font-weight:800}
 .nw-mode button.on{background:#2C2C2E;color:#fff}
 .nw-mode svg{flex:none}
+
+/* v401 onboarding step 3: stage tabs + flat grade grid (one screen, no checkboxes for single choice) */
+.gp-seg{display:flex;gap:4px;padding:4px;margin:6px 0 16px;background:#1C1C1E;border-radius:16px}
+.gp-seg button{flex:1;min-height:44px;border:0;border-radius:12px;background:transparent;color:#C7C7CC;font:inherit;font-size:15px;font-weight:800}
+.gp-seg button.on{background:#2C2C2E;color:#fff}
+.gp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.gp-t{min-height:64px;border:1.5px solid transparent;border-radius:16px;background:#1C1C1E;color:#fff;font:inherit;font-size:17px;font-weight:800;padding:6px}
+.gp-t.on{background:#2A0C12;border-color:#C8102E}
+.gp-lb{margin:20px 4px 8px;color:#C7C7CC;font-size:14px;font-weight:700}.gp-lb small{font-weight:500}
+.gp-secs{display:flex;flex-wrap:wrap;gap:8px}
+.gp-s{min-width:52px;min-height:44px;padding:0 16px;border:1.5px solid transparent;border-radius:99px;background:#1C1C1E;color:#fff;font:inherit;font-size:16px;font-weight:800}
+.gp-s.on{background:#2A0C12;border-color:#C8102E}
