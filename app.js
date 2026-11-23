@@ -1755,6 +1755,8 @@ ACTS['t-oauth'] = async t => {
   const { error } = await sb.auth.signInWithOAuth({ provider: t.dataset.p, options: { redirectTo: location.origin + location.pathname + '#/t/home' } });
   if (error) toast(errMsg(error));
 };
+const pwBad = v => /[^\x20-\x7E]/.test(String(v || ''));
+const PW_MSG = 'كلمة المرور بأحرف وأرقام إنجليزية فقط (بدون عربي)';
 const latinDig = v => String(v || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
 ACTS['t-auth'] = async f => {
   const box = document.getElementById('aerr');
@@ -1762,6 +1764,7 @@ ACTS['t-auth'] = async f => {
   const email = f.email.value.trim(), raw = f.password.value, password = latinDig(raw);
   try {
     if (T.authMode === 'up') {
+      if (pwBad(raw)) throw new Error(PW_MSG);
       const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name: (f.name.value || '').trim() }, emailRedirectTo: location.origin + location.pathname } });
       if (error) throw error;
       if (data.user && data.user.identities && !data.user.identities.length) { T.authMode = 'in'; T.authEmail = email; teacherAuth(); const b2 = document.getElementById('aerr'); if (b2) b2.innerHTML = '<div class="err">هذا البريد عنده حساب. سجّل الدخول بكلمة المرور.</div>'; return; }
@@ -6194,6 +6197,7 @@ ACTS['st-name'] = () => modal(`<h3>الاسم</h3><form class="col" data-form="t
 ACTS['st-pass'] = () => modal(`<h3>تغيير كلمة المرور</h3><form class="col" data-form="st-pass-save"><div class="field"><label for="np">كلمة المرور الجديدة</label><input class="input" id="np" name="p1" type="password" minlength="6" required dir="ltr"></div>
   <div class="field"><label for="np2">تأكيد كلمة المرور</label><input class="input" id="np2" name="p2" type="password" minlength="6" required dir="ltr"></div><button class="btn" type="submit">حفظ</button></form>`);
 ACTS['st-pass-save'] = async f => {
+  if (pwBad(f.p1.value)) return toast(PW_MSG);
   if (f.p2 && latinDig(f.p1.value) !== latinDig(f.p2.value)) return toast('كلمتا المرور غير متطابقتين');
   const { error } = await sb.auth.updateUser({ password: latinDig(f.p1.value) });
   if (error) return toast(errMsg(error)); closeModals(); toast('تم تغيير كلمة المرور');
