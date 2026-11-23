@@ -358,6 +358,7 @@ function renderHome(){
     '<div class="s-row2"><button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button>' +
     '</div></div>' +
     '</div>' + sNav('home'));
+  livePoll();
   startCountdown();
   if ((ph === 'knockout' || ph === 'finished') && !S.demo) loadKo();
 }
@@ -386,7 +387,7 @@ function renderHomeP(){
     '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
     '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
     '</div></div>' +
-    pills + '<div class="sp-mid">' + mid + '</div><div id="my-subj"></div>' +
+    pills + '<div id="lv-slot"></div><div class="sp-mid">' + mid + '</div><div id="my-subj"></div>' +
     (h.played_today ? '' : '<div class="sp-low"><button class="sp-prac" data-act="s-start" data-kind="practice"><span>🎯</span>تدرّب بدون نقاط</button></div>') +
     '</div>' + sNav('home'));
   startCountdown();
@@ -2197,7 +2198,8 @@ async function tNew(fresh){
   nwRender();
 }
 const WB_IC = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M7 9h6M7 12h9"/><path d="M8 20l1.5-4M16 20l-1.5-4"/></svg>';
-const nwMode = () => `<div class="nw-mode" role="tablist"><button class="${NW.board ? '' : 'on'}" data-act="nw-mode" data-b="0">تحدي أيام</button><button class="${NW.board ? 'on' : ''}" data-act="nw-mode" data-b="1">${WB_IC}<span>العب في الصف الحين</span></button></div>`;
+const nwModes = () => NW.board ? `<div class="nw-modes"><button class="${NW.phones !== false ? 'on' : ''}" data-act="nw-ph" data-v="1"><span class="e">📱</span><b>بجوالات الطلاب</b><small>السؤال على السبورة والجواب من جوالاتهم</small></button><button class="${NW.phones === false ? 'on' : ''}" data-act="nw-ph" data-v="0"><span class="e">🖥</span><b>بدون جوالات</b><small>فرق على السبورة والمعلم يضغط</small></button></div>` : '';
+const nwMode = () => `<div class="nw-mode" role="tablist"><button class="${NW.board ? '' : 'on'}" data-act="nw-mode" data-b="0">تحدي أيام</button><button class="${NW.board ? 'on' : ''}" data-act="nw-mode" data-b="1">${WB_IC}<span>العب في الصف الحين</span></button></div>` + nwModes();
 function nwRender(){
   clearInterval(NW.poll);
   NW.ts = Date.now();
@@ -2263,6 +2265,7 @@ ACTS['nw-cls-pick'] = async t => { const id = t.dataset.id;
   if (!NW.board && NW.busy.has(id) && !NW.cls.includes(id)) { const c = NW.classes.find(x => x.id === id) || {}; if (!await ask('الجديد يوقف القديم، ونقاطه تنحفظ في «التحديات السابقة».', { title: (c.name || 'هذا الصف') + ' عنده تحدي شغّال', cancel: 'رجوع', ok: 'كمّل', danger: false })) return; }
   if (NW.multi) { NW.cls = NW.cls.includes(id) ? NW.cls.filter(x => x !== id) : NW.cls.concat(id); return nwRender(); }
   NW.cls = [id]; NW.step = 2; nwRender(); };
+ACTS['nw-ph'] = t => { NW.phones = t.dataset.v === '1'; nwRender(); };
 ACTS['nw-mode'] = t => { const b = t.dataset.b === '1'; if (NW.board === b) return; NW.board = b; NW.days = b ? 0 : 7; NW.cls = NW.skip1 ? NW.cls : []; NW.multi = false; nwRender(); };
 ACTS['nw-multi'] = () => { NW.multi = true; NW.cls = []; nwRender(); };
 ACTS['nw-next'] = () => { if (NW.cls.length) { NW.step = 2; nwRender(); } };
@@ -2275,7 +2278,7 @@ ACTS['nw-subj-next'] = () => { const sel = NW.sel || []; if (!sel.length) return
   const cus = sel.filter(k => !NW_GEN.some(o => o[0] === k));
   { const z = QS.glob && QS.pick ? cus.find(cu => Object.keys(q4By(cu)).length && !nwPkOn(cu)) : null; if (z) { toast('شغّل درس واحد على الأقل'); return nwPkSheet(z); } }
   NW.cus = cus; NW.cu = cus[0] || null; NW.gtypes = sel.filter(k => NW_GEN.some(o => o[0] === k));
-  NW.subj = sel.length === 1 ? nwName(sel[0]) : sel.length === 2 ? sel.map(nwName).join(' و') : 'منوعة'; NW.step = 3; nwRender(); };
+  NW.subj = sel.length === 1 ? nwName(sel[0]) : sel.length === 2 ? sel.map(nwName).join(' و') : 'منوعة'; if (NW.board && NW.phones !== false) return liveStart(); NW.step = 3; nwRender(); };
 /* v233 (Khalid): pick lessons (one subject) + start / difficulty / knockout rows on the last step */
 function nwLesCus(sel){ return (sel || []).filter(k => !NW_GEN.some(o => o[0] === k)); }
 /* chosen lessons per subject: null = all */
@@ -2408,6 +2411,127 @@ function tJoin(){
   view('انضم', `<form class="tj" data-form="t-join"><div class="tj-em">🎯</div><h2>عندك رمز؟</h2><input class="tj-in" name="code" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123" dir="ltr" aria-label="رمز الصف"><button class="btn tj-go" type="submit">ادخل</button><p class="sub">ادخل كطالب برمز الصف، مثلاً عشان تجرّب التحدي بعين طلابك.</p></form>`, 'join');
 }
 ACTS['t-join'] = f => { const v = normCode(f.code.value); if (v.length < 4) return toast('اكتب الرمز كامل'); location.hash = '#/j/' + encodeURIComponent(v); };
+/* ---- v409 «لعب مباشر في الصف»: the board shows the question, students answer on their phones (fun only) ---- */
+const LV = { tm: null, off: 0, revFor: -1, busy: false };
+function lvQ(q){ return q.body; }
+async function liveQs(){
+  const sel = 'id,body,options,correct_index,curriculum_id,lesson,payload,qtype,status';
+  const cus = NW.cus || (NW.cu ? [NW.cu] : []), gts = NW.gtypes || [];
+  const jobs = [];
+  if (cus.length) {
+    jobs.push(sb.from('questions').select(sel + ',question_picks!inner(teacher_id)').eq('question_picks.teacher_id', T.user.id).eq('status', 'approved').in('curriculum_id', cus).limit(2000));
+    jobs.push(sb.from('questions').select(sel).eq('owner_id', T.user.id).eq('status', 'approved').in('curriculum_id', cus).limit(2000));
+  }
+  if (gts.length) jobs.push(sb.from('questions').select(sel).is('owner_id', null).eq('status', 'approved').in('qtype', gts).limit(2000));
+  const rs = await Promise.all(jobs);
+  const les = {}; cus.forEach(cu => { try { les[cu] = nwLesGet(cu); } catch(e){ les[cu] = null; } });
+  let pool = []; rs.forEach(r => (r.data || []).forEach(q => pool.push(q)));
+  pool = pool.filter(q => Array.isArray(q.options) && q.options.length >= 2 && q.options.length <= 4 && q.correct_index != null && !(q.payload && (q.payload.kind === 'order' || q.payload.kind === 'game')) &&
+    (!q.curriculum_id || !les[q.curriculum_id] || les[q.curriculum_id].includes(q.lesson)));
+  const seen = new Set(); pool = pool.filter(q => !seen.has(q.id) && seen.add(q.id));
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  return pool.slice(0, 10).map(q => ({ body: q.body, options: q.options, c: q.correct_index }));
+}
+async function liveStart(){
+  if (LV.busy) return; LV.busy = true; toast('لحظة…');
+  try {
+    const cid = NW.cls[0], c = (NW.classes || []).find(x => x.id === cid) || {};
+    const qs = await liveQs();
+    if (qs.length < 4) { LV.busy = false; return toast('ما فيه أسئلة كافية (٤ على الأقل)، علّم دروس في «الأسئلة»'); }
+    let code = c.join_code; if (!c.self_join || !code) code = await rpc('set_self_join', { p_class: cid, p_on: true });
+    const id = await rpc('live_create', { p_class: cid, p_qs: qs, p_secs: 20 });
+    LV.busy = false; liveBoard(id, c, code);
+  } catch(e){ LV.busy = false; toast(errMsg(e)); }
+}
+function liveBoard(id, c, code){
+  let el = document.getElementById('lvb'); if (el) el.remove();
+  el = document.createElement('div'); el.id = 'lvb'; el.className = 'lvb'; document.body.appendChild(el);
+  const link = joinLink(code); let qrh = '';
+  loadJs(QRJS, 'qrcode').then(() => { qrh = qrSvg(link); lvbDraw.last = null; }).catch(() => {});
+  const st = { id, c, code, link, s: null };
+  const poll = async () => {
+    if (!document.getElementById('lvb')) { clearInterval(LV.tm); return; }
+    try { const s = await rpc('live_t_state', { p_game: id }); LV.off = Date.parse(s.now) - Date.now(); st.s = s; lvbDraw(el, st, () => qrh); lvbAuto(st); } catch(e){}
+  };
+  clearInterval(LV.tm); LV.tm = setInterval(poll, 1000); poll();
+  el.addEventListener('click', async e => {
+    const b = e.target.closest('[data-lv]'); if (!b) return;
+    const a = b.dataset.lv;
+    if (a === 'x') { if (st.s && st.s.status !== 'done') { try { await rpc('live_t_act', { p_game: id, p_act: 'end' }); } catch(x){} } clearInterval(LV.tm); el.remove(); return; }
+    try { await rpc('live_t_act', { p_game: id, p_act: a }); poll(); } catch(x){ toast(errMsg(x)); }
+  });
+}
+function lvbAuto(st){
+  const s = st.s; if (!s || s.status !== 'q' || LV.revFor === s.qi + ':' + st.id) return;
+  const left = s.secs * 1000 - (Date.now() + LV.off - Date.parse(s.q_at));
+  if (left <= 0 || (s.players.length && s.answered >= s.players.length)) { LV.revFor = s.qi + ':' + st.id; rpc('live_t_act', { p_game: st.id, p_act: 'reveal' }).catch(() => {}); }
+}
+function lvbDraw(el, st, qrf){
+  const s = st.s; if (!s) return; const L = ['أ', 'ب', 'ج', 'د'];
+  const pl = s.players || [], top = n => pl.slice(0, n).map((p, i) => `<div class="lv-row"><b>${i + 1}</b><span>${p.av || ''} ${esc(p.name)}</span><em>${p.pts}</em></div>`).join('');
+  let h = `<button class="lv-x" data-lv="x" aria-label="إنهاء">${ic('x')}</button>`;
+  if (s.status === 'lobby') {
+    h += `<div class="lv-t"><h1>العب في الصف الحين</h1><span class="lv-pill">${esc(st.c.name || '')}</span></div>
+      <div class="lv-join"><div><div class="lv-h">ادخل التطبيق beat60s.com واكتب رمز الصف</div><div class="lv-code" dir="ltr">${esc(fmtCode(st.code))}</div></div><div class="lv-qr">${qrf()}</div></div>
+      <div class="lv-chips">${pl.map(p => `<span class="lv-chip">${p.av || ''} ${esc(p.name)}</span>`).join('') || '<span class="lv-h">ننتظر الطلاب…</span>'}</div>
+      <div class="lv-h">${pl.length} لاعب دخلوا · ${s.n} أسئلة · ٢٠ ثانية لكل سؤال · للمتعة بس</div>
+      <button class="lv-go" data-lv="start" ${pl.length ? '' : 'disabled'}>ابدأ ▶</button>`;
+  } else if (s.status === 'q') {
+    const left = Math.max(0, s.secs * 1000 - (Date.now() + LV.off - Date.parse(s.q_at))), pct = Math.round(left / (s.secs * 1000) * 100);
+    h += `<div class="lv-t"><span class="lv-pill">السؤال ${s.qi + 1} من ${s.n}</span><span class="lv-pill">${s.answered} جاوبوا من ${pl.length}</span></div>
+      <div class="lv-bar"><i style="width:${pct}%"></i></div><div class="lv-q">${esc(s.q.body)}</div>
+      <div class="lv-opts">${s.q.options.map((o, i) => `<div class="lv-o"><b>${L[i]}</b> ${esc(o)}</div>`).join('')}</div>
+      <button class="lv-go lv-sm" data-lv="reveal">أظهر الجواب</button>`;
+  } else if (s.status === 'reveal') {
+    const tot = (s.votes || []).reduce((a, b) => a + b, 0) || 1;
+    h += `<div class="lv-t"><span class="lv-pill">النتيجة</span></div><div class="lv-q">${esc(s.q.body)}</div>
+      <div class="lv-opts">${s.q.options.map((o, i) => `<div class="lv-o ${i === s.c ? 'ok' : 'no'}"><i style="width:${Math.round((s.votes[i] || 0) / tot * 100)}%"></i><span><b>${L[i]}</b> ${esc(o)}</span><em>${s.votes[i] || 0}</em></div>`).join('')}</div>
+      <div class="lv-top">${top(3)}</div><button class="lv-go" data-lv="next">${s.qi + 1 >= s.n ? 'الفائزون' : 'السؤال التالي'} ◀</button>`;
+  } else {
+    h += `<div class="lv-t"><h1>🏆 الفائزون</h1><span class="lv-pill">للمتعة بس</span></div><div class="lv-pod">${pl.slice(0, 3).map((p, i) => `<div class="p${i + 1}">${['🥇', '🥈', '🥉'][i]}<b>${p.av || ''} ${esc(p.name)}</b><small>${p.pts}</small></div>`).join('')}</div><button class="lv-go" data-lv="x">إنهاء</button>`;
+  }
+  const key = s.status + s.qi + pl.length + (s.answered || 0) + (s.status === 'q' ? '' : '');
+  if (s.status === 'q') { const bar = el.querySelector('.lv-bar i'); if (bar && el.dataset.k === 'q' + s.qi + pl.length) { bar.style.width = Math.round(Math.max(0, s.secs * 1000 - (Date.now() + LV.off - Date.parse(s.q_at))) / (s.secs * 1000) * 100) + '%'; const p2 = el.querySelector('.lv-t .lv-pill:last-child'); if (p2) p2.textContent = s.answered + ' جاوبوا من ' + pl.length; return; } el.dataset.k = 'q' + s.qi + pl.length; }
+  else el.dataset.k = '';
+  el.innerHTML = h;
+}
+/* student side */
+function livePoll(){
+  clearInterval(livePoll.t);
+  const tick = async () => {
+    const slot = document.getElementById('lv-slot'); if (!slot) { clearInterval(livePoll.t); return; }
+    try { const g = await rpc('student_live', { p_token: S.token }); slot.innerHTML = g ? `<button class="lv-card" data-act="lv-join" data-id="${g.id}"><span>🔴</span><div><b>لعبة مباشرة الحين</b><small>انضم</small></div><i>‹</i></button>` : ''; } catch(e){}
+  };
+  tick(); livePoll.t = setInterval(tick, 4000);
+}
+ACTS['lv-join'] = async t => { const id = t.dataset.id; try { await rpc('live_join', { p_token: S.token, p_game: id }); liveStudent(id); } catch(e){ toast('انتهت اللعبة'); } };
+function liveStudent(id){
+  let el = document.getElementById('lvs'); if (el) el.remove();
+  el = document.createElement('div'); el.id = 'lvs'; el.className = 'lvs'; document.body.appendChild(el);
+  let off = 0, last = '';
+  const draw = s => {
+    const L = ['أ', 'ب', 'ج', 'د'];
+    let h = `<div class="lvs-top"><span>⭐ ${s.pts}</span><span>${s.status === 'lobby' ? '' : 'مركزك ' + s.rank + ' من ' + s.players}</span></div>`;
+    if (s.status === 'lobby') h += `<div class="lvs-mid"><div class="e">✅</div><b>دخلت!</b><small>ننتظر المعلم يبدأ… (${s.players} دخلوا)</small></div>`;
+    else if (s.status === 'q') {
+      const left = Math.max(0, s.secs * 1000 - (Date.now() + off - Date.parse(s.q_at))), pct = Math.round(left / (s.secs * 1000) * 100);
+      h += `<div class="lvs-bar"><i style="width:${pct}%"></i></div><div class="lvs-q">${esc(s.q.body)}</div><div class="lvs-o">${s.q.options.map((o, i) => `<button class="${s.choice === i ? 'pick' : ''}" data-i="${i}" ${s.choice != null ? 'disabled' : ''}><b>${L[i]}</b> ${esc(o)}</button>`).join('')}</div>${s.choice != null ? '<div class="lvs-wait">انحفظ جوابك ✓ ننتظر الباقي…</div>' : ''}`;
+    } else if (s.status === 'reveal') h += `<div class="lvs-mid"><div class="e">${s.choice == null ? '⏱' : s.ok ? '🎉' : '💪'}</div><b>${s.choice == null ? 'انتهى الوقت' : s.ok ? 'صح! +' + s.got + ' نقطة' : 'غلط'}</b><small>الجواب: ${esc(s.q.options[s.c])}</small></div>`;
+    else h += `<div class="lvs-mid"><div class="e">${s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : s.rank === 3 ? '🥉' : '🎮'}</div><b>المركز ${s.rank} من ${s.players}</b><small>${s.pts} نقطة · للمتعة بس</small><button class="lvs-back" data-lv="back">رجوع</button></div>`;
+    const k = s.status + s.qi + (s.choice == null ? 'n' : s.choice) + s.pts + s.rank + s.players;
+    if (s.status === 'q' && k === last) { const b = el.querySelector('.lvs-bar i'); if (b) b.style.width = Math.round(Math.max(0, s.secs * 1000 - (Date.now() + off - Date.parse(s.q_at))) / (s.secs * 1000) * 100) + '%'; return; }
+    last = k; el.innerHTML = h;
+  };
+  const tm = setInterval(async () => {
+    if (!document.getElementById('lvs')) return clearInterval(tm);
+    try { const s = await rpc('live_s_state', { p_token: S.token, p_game: id }); off = Date.parse(s.now) - Date.now(); draw(s); } catch(e){ clearInterval(tm); el.remove(); }
+  }, 1000);
+  el.addEventListener('click', async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.lv === 'back') { clearInterval(tm); el.remove(); loadHome(); return; }
+    if (b.dataset.i !== undefined) { try { await rpc('live_answer', { p_token: S.token, p_game: id, p_choice: +b.dataset.i }); haptic(); } catch(x){} }
+  });
+}
 ACTS['h-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tHome().catch(e => { toast('ما زال التحميل متعذّراً. تأكد من الاتصال'); t.removeAttribute('aria-busy'); t.textContent = 'إعادة المحاولة'; }); };
 ACTS['h-res-idle'] = t => { RS.sort = 'idle'; RS.q = ''; location.hash = '#/t/results/' + t.dataset.c; };
 
