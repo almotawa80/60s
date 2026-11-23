@@ -1989,7 +1989,7 @@ async function tHome(){
   const hv = LS.get('mc_hv') || 'big', hvb = (k, i, l) => `<button class="${hv === k ? 'on' : ''}" data-act="h-view" data-v="${k}" aria-label="${l}">${i}</button>`;
   const html = cards.length ? `<div class="hv">${hvb('big', '<i class="hv-i1"></i>', 'مربعات كبيرة')}${hvb('two', '<i class="hv-i2"></i>', 'مربعين')}${hvb('list', '<i class="hv-i3"></i>', 'صفوف')}</div><div class="hcs hv-${hv}">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
   const obCard = cards.length && T.settings && T.settings.ob === 'skip' && !T.settings.obCard ? `<div class="ob-card"><button class="grow" data-act="ob-open"><b>👋 كمّل ملفك</b><small>المرحلة، المواد، المدرسة</small></button><button class="ob-cx" data-act="ob-cardx" aria-label="إغلاق">✕</button></div>` : '';
-  view('الرئيسية', obCard + html + `<a class="h-brd" href="#/t/new/board"><span class="h-brd-e">📺</span><span class="grow"><b>العب في الصف الحين</b><small>فرق على السبورة · ينتهي بنفس الحصة</small></span><i>‹</i></a><a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
+  view('الرئيسية', obCard + html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
 }
 ACTS['h-view'] = t => { LS.set('mc_hv', t.dataset.v); document.querySelectorAll('.hv button').forEach(b => b.classList.toggle('on', b === t)); const h = document.querySelector('.hcs'); if (h) h.className = 'hcs hv-' + t.dataset.v; haptic(); };
 /* ---- first-time profile: 3 quick skippable screens (stage, subjects, school + district) ---- */
@@ -2169,6 +2169,8 @@ async function tNew(fresh){
   if (NW.step === 1 && NW.classes.length === 1 && free.length === 1) { NW.cls = [free[0].id]; NW.step = 2; NW.skip1 = true; } else NW.skip1 = false;
   nwRender();
 }
+const WB_IC = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M7 9h6M7 12h9"/><path d="M8 20l1.5-4M16 20l-1.5-4"/></svg>';
+const nwMode = () => `<div class="nw-mode" role="tablist"><button class="${NW.board ? '' : 'on'}" data-act="nw-mode" data-b="0">تحدي أيام</button><button class="${NW.board ? 'on' : ''}" data-act="nw-mode" data-b="1">${WB_IC}<span>العب في الصف الحين</span></button></div>`;
 function nwRender(){
   clearInterval(NW.poll);
   NW.ts = Date.now();
@@ -2177,7 +2179,7 @@ function nwRender(){
   if (st === 1) {
     if (!NW.classes.length) b = `<h2 class="nw-q">اسم صفك؟</h2><form class="nw-col" data-form="nw-cls"><input class="nw-in" name="n" maxlength="40" placeholder="مثال: رابع أ" autocomplete="off" required>
       ${(() => { const o = stOpts(STAGES); return o.length > 1 ? `<div class="nw-stg">${o.map((x, i) => `<label><input type="radio" name="st" value="${x[0]}" ${i ? '' : 'checked'}><span>${x[1]}</span></label>`).join('')}</div>` : `<input type="hidden" name="st" value="${o[0][0]}">`; })()}<button class="btn nw-go" type="submit">التالي</button></form>`;
-    else b = `<h2 class="nw-q">لمين التحدي؟</h2><div class="nw-tiles">${NW.classes.map(c => { const busy = NW.busy.has(c.id), on = NW.cls.includes(c.id); return `<button class="nw-tile${on ? ' on' : ''}${busy ? ' busy' : ''}" data-act="nw-cls-pick" data-id="${c.id}"><span class="nw-e">👥</span><b>${esc(c.name)}</b><small>${busy ? 'عنده تحدي الحين' : STAGE_AR[c.stage] || ''}</small></button>`; }).join('')}</div>
+    else b = nwMode() + `<h2 class="nw-q">لمين التحدي؟</h2><div class="nw-tiles">${NW.classes.map(c => { const busy = NW.busy.has(c.id), on = NW.cls.includes(c.id); return `<button class="nw-tile${on ? ' on' : ''}${busy ? ' busy' : ''}" data-act="nw-cls-pick" data-id="${c.id}"><span class="nw-e">👥</span><b>${esc(c.name)}</b><small>${busy ? 'عنده تحدي الحين' : STAGE_AR[c.stage] || ''}</small></button>`; }).join('')}</div>
       ${NW.multi ? `<button class="btn nw-go" data-act="nw-next" ${NW.cls.length ? '' : 'disabled'}>التالي (${NW.cls.length})</button>` : NW.classes.length > 1 ? `<button class="link nw-link" data-act="nw-multi">أكثر من صف؟</button>` : ''}`;
   }
   if (st === 2) {
@@ -2187,7 +2189,7 @@ function nwRender(){
     if (NW.sel && NW.glob) { const ok = new Set(subjList(c).map(y => y[0].id)); NW.sel = NW.sel.filter(k => NW_GEN.some(o => o[0] === k) || ok.has(k)); }
     const sel = NW.sel || (NW.sel = []);
     const names = sel.map(nwName).filter(Boolean);
-    b = `<h2 class="nw-q">عن أي مادة؟</h2><p class="nw-note">اختر وحدة أو أكثر</p>
+    b = (NW.skip1 ? nwMode() : '') + `<h2 class="nw-q">عن أي مادة؟</h2><p class="nw-note">اختر وحدة أو أكثر</p>
       ${subjTiles(c, sel, 'nw-subj', undefined, nwLesRow(sel))}
       <p class="nw-note">${names.length > 1 ? 'الأسئلة تجي خليط من: ' + esc(names.join('، ')) : ''}</p><div class="nw-sp"></div>
       <button class="btn nw-go" data-act="nw-subj-next" ${sel.length ? '' : 'disabled'}>التالي${sel.length ? ' (' + sel.length + ')' : ''}</button>`;
@@ -2234,6 +2236,7 @@ ACTS['nw-cls-pick'] = async t => { const id = t.dataset.id;
   if (!NW.board && NW.busy.has(id) && !NW.cls.includes(id)) { const c = NW.classes.find(x => x.id === id) || {}; if (!await ask('الجديد يوقف القديم، ونقاطه تنحفظ في «التحديات السابقة».', { title: (c.name || 'هذا الصف') + ' عنده تحدي شغّال', cancel: 'رجوع', ok: 'كمّل', danger: false })) return; }
   if (NW.multi) { NW.cls = NW.cls.includes(id) ? NW.cls.filter(x => x !== id) : NW.cls.concat(id); return nwRender(); }
   NW.cls = [id]; NW.step = 2; nwRender(); };
+ACTS['nw-mode'] = t => { const b = t.dataset.b === '1'; if (NW.board === b) return; NW.board = b; NW.days = b ? 0 : 7; NW.cls = NW.skip1 ? NW.cls : []; NW.multi = false; nwRender(); };
 ACTS['nw-multi'] = () => { NW.multi = true; NW.cls = []; nwRender(); };
 ACTS['nw-next'] = () => { if (NW.cls.length) { NW.step = 2; nwRender(); } };
 const NW_GEN = [['general', '🌍', 'ثقافة عامة'], ['quick', '⚡', 'سرعة بديهة'], ['memory', '🧠', 'ذاكرة']];
