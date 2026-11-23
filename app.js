@@ -4483,12 +4483,20 @@ async function q4QNext(){ const o = QS.q4q, q = o && o.list.shift(); if (q) retu
 ACTS['q4-qq-skip'] = () => q4QNext();
 ACTS['q4-qq-stop'] = () => { if (QS.q4q) QS.q4q.list = []; q4QNext(); };
 ACTS['q4-qdel'] = async () => {
+  /* v408 (Khalid): no confirm dialog, instant close; DB work happens in the background */
   const id = QS.qe, q = QS.glob.find(x => x.id === id) || QS.list.find(x => x.id === id); if (!q) return;
-  if (!await ask('ينشال من عندك بس.', { title: 'حذف السؤال؟', ok: 'حذف', danger: true })) return;
-  let error;
-  if (q.owner_id) ({ error } = await sb.from('questions').delete().eq('id', id));
-  else { if (!await qPickSet([id], false)) return; ({ error } = await sb.from('question_hides').insert({ question_id: id })); }
-  if (error) return toast(errMsg(error)); toast('انحذف السؤال'); await tQuestions(); q4LedSheet(QS.led);
+  const gi = QS.glob.indexOf(q), li = QS.list.indexOf(q);
+  if (gi >= 0) QS.glob.splice(gi, 1); if (li >= 0) QS.list.splice(li, 1);
+  closeModals(); toast('انحذف السؤال'); try { q4LedSheet(QS.led); } catch (e) {}
+  (async () => {
+    let error;
+    try {
+      if (q.owner_id) ({ error } = await sb.from('questions').delete().eq('id', id));
+      else { if (!await qPickSet([id], false)) throw new Error('pick'); ({ error } = await sb.from('question_hides').insert({ question_id: id })); }
+    } catch (e) { error = e; }
+    if (error) { toast('تعذّر الحذف، رجع السؤال'); }
+    await tQuestions().catch(() => {});
+  })();
 };
 ACTS['q4-all'] = async t => { const P = QS.pick || new Set(), ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && !P.has(q.id)).map(q => q.id); if (!ids.length) return;
   t.setAttribute('aria-busy', 'true'); if (await qPickSet(ids, true)) { renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast('كل الدروس تطلع لطلابك ✓'); } else t.removeAttribute('aria-busy'); };
