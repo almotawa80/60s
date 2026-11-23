@@ -2181,7 +2181,10 @@ function nwRender(){
   }
   if (st === 2) {
     /* v161: pick one or more: the teacher's subjects + general categories (Khalid) */
-    const c = NW.classes.find(x => x.id === NW.cls[0]) || {}, sel = NW.sel || (NW.sel = []);
+    const c = NW.classes.find(x => x.id === NW.cls[0]) || {};
+    /* v390: a subject picked earlier (another class / grade) that isn't shown as a tile must not stay selected */
+    if (NW.sel && NW.glob) { const ok = new Set(subjList(c).map(y => y[0].id)); NW.sel = NW.sel.filter(k => NW_GEN.some(o => o[0] === k) || ok.has(k)); }
+    const sel = NW.sel || (NW.sel = []);
     const names = sel.map(nwName).filter(Boolean);
     b = `<h2 class="nw-q">عن أي مادة؟</h2><p class="nw-note">اختر وحدة أو أكثر</p>
       ${subjTiles(c, sel, 'nw-subj', undefined, nwLesRow(sel))}
@@ -2236,7 +2239,7 @@ const NW_GEN = [['general', '🌍', 'ثقافة عامة'], ['quick', '⚡', 'س
 function nwName(k){ const o = NW_GEN.find(x => x[0] === k); if (o) return o[2]; const cu = CU.list.find(x => x.id === k); return cu ? String(cu.subject).replace(/^(اللغة|التربية) /, '') : ''; }
 ACTS['nw-subj'] = async t => { const k = t.dataset.k, sel = NW.sel || (NW.sel = []), add = !sel.includes(k); NW.sel = add ? sel.concat(k) : sel.filter(x => x !== k); nwRender();
   if (!add || NW_GEN.some(o => o[0] === k)) return; if (!QS.glob || !QS.pick) { try { await qsLoad(); } catch(e){ return; } nwRender(); }
-  if ((NW.sel || []).includes(k) && Object.keys(q4By(k)).length && !nwPkOn(k)) nwPkSheet(k); };
+  if ((NW.sel || []).includes(k) && Object.keys(q4By(k)).length && !nwPkOn(k)) ACTS["nw-pk"]({ dataset: { cu: k } }); };
 ACTS['nw-subj-next'] = () => { const sel = NW.sel || []; if (!sel.length) return;
   const cus = sel.filter(k => !NW_GEN.some(o => o[0] === k));
   { const z = QS.glob && QS.pick ? cus.find(cu => Object.keys(q4By(cu)).length && !nwPkOn(cu)) : null; if (z) { toast('شغّل درس واحد على الأقل'); return nwPkSheet(z); } }
@@ -2253,10 +2256,13 @@ function nwLesGet(cu){ const ls = (CFL[cu] || []).map(x => x[0]); NW.les = NW.le
    how many are on and «📚 غيّر الدروس» opens the same ✓ list. */
 function nwLesRow(sel){ const cus = nwLesCus(sel); if (!cus.length) return '';
   if (!QS.glob || !QS.pick) { qsLoad().then(() => { if (NW.step === 2 && location.hash.indexOf('#/t/new') === 0) nwRender(); }, () => {}); return ''; }
-  const rows = cus.map(cu => { const by = q4By(cu), ls = Object.keys(by), on = ls.filter(l => by[l].some(q4On)), qn = on.reduce((n, l) => n + by[l].filter(q4On).length, 0);
+  const rows = cus.map(cu => { const by = q4By(cu), ls = q4VisLes(cu, by), on = ls.filter(l => by[l].some(q4On)), qn = on.reduce((n, l) => n + by[l].filter(q4On).length, 0);
     if (!ls.length) return '';
-    return `<button type="button" class="ce1-row nw-pk-row${on.length ? '' : ' none'}" data-act="nw-pk" data-cu="${cu}"><span class="ce1-e">📚</span><span class="grow"><b>${cus.length > 1 ? 'دروس ' + esc(nwName(cu)) : 'الدروس'}</b><small>${on.length ? on.length + ' من ' + ls.length + ' شغّالة · ' + qn + ' سؤال' : 'ما فيه ولا درس شغّال'}</small></span><em class="nw-v">غيّر ←</em></button>`; }).join('');
+    return `<button type="button" class="ce1-row nw-pk-row${on.length ? '' : ' none'}" data-act="nw-pk" data-cu="${cu}"><span class="ce1-e">📚</span><span class="grow"><b>${cus.length > 1 ? 'دروس ' + esc(nwName(cu)) + ' · ' + esc(q4Gr(CU.list.find(x => x.id === cu) || {})) : 'الدروس'}</b><small>${on.length ? on.length + ' من ' + ls.length + ' شغّالة · ' + qn + ' سؤال' : 'ما فيه ولا درس شغّال'}</small></span><em class="nw-v">غيّر ←</em></button>`; }).join('');
   return rows ? `<div class="nw-grp">${rows}</div>` : ''; }
+/* v390: official lessons only (same rule as the questions page) */
+function q4VisLes(cu, by){ by = by || q4By(cu); const M = (QS.cl || {})[cu] || {}, c = CU.list.find(x => x.id === cu) || {}; let ls = Object.keys(by);
+  if (ls.some(l => M[l] && M[l].t)) ls = ls.filter(l => (M[l] && M[l].t) || c.owner_id || q4Mine(cu, l)); return ls; }
 function nwPkOn(cu){ const by = q4By(cu); return Object.keys(by).filter(l => by[l].some(q4On)).length; }
 /* v389 (Khalid): same layout as the questions page: official lessons only, grouped by term and section */
 function nwPkSheet(cu){ const by = q4By(cu), c = CU.list.find(x => x.id === cu) || {}, M = (QS.cl || {})[cu] || {}, hasMap = Object.keys(by).some(l => M[l] && M[l].t);
@@ -2269,7 +2275,8 @@ function nwPkSheet(cu){ const by = q4By(cu), c = CU.list.find(x => x.id === cu) 
     <div class="q4-rows">${ls.map((l, i) => { const on = by[l].some(q4On), hd = gl(l) !== (i ? gl(ls[i - 1]) : null) && gl(l) ? `<div class="nw-lbl" style="margin:14px 0 4px">${esc(gl(l))}</div>` : ''; return hd + `<div class="q4-rw"><button class="q4-ck${on ? ' added' : ''}" data-act="nw-pk-t" data-i="${i}" role="checkbox" aria-checked="${on}" aria-label="${esc(q4LN(cu, l))}">✓</button><button class="q4-rt" data-act="nw-pk-t" data-i="${i}"><span class="grow"><b>${esc(q4LN(cu, l))}</b><small>${by[l].length} ${by[l].length > 2 && by[l].length < 11 ? 'أسئلة' : 'سؤال'}</small></span></button></div>`; }).join('')}</div>
     <button class="btn" data-act="nw-pk-done">تم</button></div>`;
   const open = document.querySelector('.modal .nw-pk'); if (open) { const mo = open.closest('.modal'), y = mo.scrollTop; open.outerHTML = html; mo.scrollTop = y; } else modal(html); }
-ACTS['nw-pk'] = t => nwPkSheet(t.dataset.cu);
+/* v390 (Khalid «التصميم مختلف»): «غيّر الدروس» in a new challenge opens the very same subject page (tabs, sections, ✓); back returns to the challenge */
+ACTS['nw-pk'] = t => { const cu = t.dataset.cu, c = CU.list.find(x => x.id === cu); if (!c) return; QS.subj3 = c.subject; QS.subjCu = cu; SJ.back = '#/t/new'; go('#/t/subj/' + encodeURIComponent(c.subject)); };
 ACTS['nw-pk-t'] = async t => { const l = (NW.pkLs || [])[+t.dataset.i]; if (l == null) return; const qs = q4LesQs(NW.pkCu, l); if (!qs.length) return;
   const on = !qs.some(q4On); haptic(); q4Fast(qs, on, () => nwPkSheet(NW.pkCu)); };
 ACTS['nw-pk-done'] = () => { closeModals(); nwRender(); };
@@ -3774,7 +3781,7 @@ ACTS['cp-save'] = async f => {
 /* ---- questions ---- */
 const QPD = 4; // questions a student plays per day
 const qNorm = s => String(s || '').replace(/[ً-ْـ]/g, '').replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().toLowerCase();
-async function tQuestions(){ await qsLoad(); renderQuestions(); }
+async function tQuestions(){ if (location.hash.indexOf('#/t/subj/') !== 0) SJ.back = null; await qsLoad(); renderQuestions(); }
 /* v379: loading split out so the new-challenge flow can read the ✓ lessons (picks) */
 /* v387: the server returns at most 1000 rows per request, so the bank (1600+) and the picks must be read page by page */
 async function qPages(mk){
@@ -4244,7 +4251,7 @@ function tSubjPage(){
     ${sjBlocks(cu, les, by, row, nq) || `<div class="sj-ls">${les.map(row).join('')}<button class="q4-rnew" data-act="q4-newl">＋ درس جديد</button></div>`}
     ${ADM.st && ADM.st.is && !ADM.st.act && cu.owner_id && cu.owner_id === T.user.id ? `<button class="q4-all" data-act="q4-pub">📢 انشرها للكل</button>` : ''}
     <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen"><input type="file" id="qocr" accept="image/*" class="hide" data-change="t-q-ocr-chosen">`,
-    'questions', '', '#/t/questions');
+    'questions', '', SJ.back || '#/t/questions');
 }
 /* v386 (Khalid): lessons grouped by term (tabs) and section/unit (a ✓ marks the whole section) */
 const SJ_CUR = () => { const m = new Date().getMonth() + 1; return m >= 9 || m === 1 ? 1 : 2; };
@@ -4450,7 +4457,7 @@ ACTS['q4-qdel'] = async () => {
 ACTS['q4-all'] = async t => { const P = QS.pick || new Set(), ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && !P.has(q.id)).map(q => q.id); if (!ids.length) return;
   t.setAttribute('aria-busy', 'true'); if (await qPickSet(ids, true)) { renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast('كل الدروس تطلع لطلابك ✓'); } else t.removeAttribute('aria-busy'); };
 ACTS['q4-done'] = () => { closeModals(); renderQuestions(); scrollTo(0, 0); };
-ACTS['q4-subj'] = t => { QS.subjCu = null; QS.ed4 = false; go('#/t/subj/' + encodeURIComponent(t.dataset.s)); };
+ACTS['q4-subj'] = t => { SJ.back = null; QS.subjCu = null; QS.ed4 = false; go('#/t/subj/' + encodeURIComponent(t.dataset.s)); };
 ACTS['q4-gr'] = t => { QS.subjCu = t.dataset.id; q4SubjSheet(QS.subj3); };
 ACTS['q4-tg'] = async t => {
   const l = (QS.les3 || [])[+t.dataset.i]; if (l == null) return;
