@@ -3873,3 +3873,5 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 
 .h-nb{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:14px;background:#1C1C1E;border:1px solid #3A3A3C;border-radius:18px;color:#fff;text-decoration:none}
 .h-nb .e{font-size:28px}.h-nb .grow{display:flex;flex-direction:column;gap:2px;min-width:0}.h-nb b{font-size:15.5px}.h-nb small{color:#C7C7CC;font-size:13px}.h-nb i{font-style:normal;font-size:20px;color:#C7C7CC}
+.gp-grid.c2{grid-template-columns:repeat(2,1fr)}
+#ob .gp-secs+.obr-go,#ob .gp-grid+.obr-go{margin-top:28px}
