@@ -4218,7 +4218,9 @@ function tSubjPage(){
   if (!x) return view(s || 'المادة', '<p class="sub center">ما لقيت هالمادة</p>', 'questions', '', '#/t/questions');
   x.cus.sort((a, b) => (a.grade || 0) - (b.grade || 0));
   const cu = x.cus.find(c => c.id === QS.subjCu) || x.cus[0]; QS.subjCu = cu.id;
-  const by = q4By(cu.id), les = Object.keys(by).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON)); QS.les3 = les;
+  const by = q4By(cu.id); let les = Object.keys(by).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON));
+  { const M = (QS.cl || {})[cu.id] || {}; if (les.some(l => M[l] && M[l].t)) les = les.filter(l => (M[l] && M[l].t) || cu.owner_id || q4Mine(cu.id, l)); } /* v388: official lessons only */
+  QS.les3 = les;
   const onL = les.filter(l => by[l].some(q4On)), qn = onL.reduce((n, l) => n + by[l].filter(q4On).length, 0);
   const nq = n => n + ' ' + (n > 2 && n < 11 ? 'أسئلة' : 'سؤال');
   const row = (l, i) => {
@@ -4233,11 +4235,10 @@ function tSubjPage(){
   view(`${SUBJ_EMOJI[s] || '📘'} ${esc(s)}`,
     (x.cus.length > 1 ? `<div class="q4-chips sj-chips">${x.cus.map(c => `<button class="${c.id === cu.id ? 'on' : ''}" data-act="q4-gr" data-id="${c.id}">${esc(q4Gr(c))}</button>`).join('')}</div>` : '') +
     `<div class="sj-hero"><div class="sj-n"><em>${onL.length}</em> من ${les.length} ${les.length > 2 && les.length < 11 ? 'دروس' : 'درس'} تطلع لطلابك · ${nq(qn)}</div><div class="sj-bar"><i style="width:${les.length ? Math.round(onL.length / les.length * 100) : 0}%"></i></div>
-      ${onL.length < les.length ? '<div class="sj-2"><button data-act="q4-all">✓ علّم كل الدروس</button></div>' : ''}</div>
+      ${les.some(l => by[l].length) ? `<div class="sj-2"><button data-act="sj-allt">${onL.length < les.length ? 'تحديد الكل' : 'إلغاء تحديد الكل'}</button></div>` : ''}</div>
     <p class="sj-tip">👇 علّم ✓ الدروس اللي تبي طلابك ينسألون منها</p>
     ${sjBlocks(cu, les, by, row, nq) || `<div class="sj-ls">${les.map(row).join('')}<button class="q4-rnew" data-act="q4-newl">＋ درس جديد</button></div>`}
     ${ADM.st && ADM.st.is && !ADM.st.act && cu.owner_id && cu.owner_id === T.user.id ? `<button class="q4-all" data-act="q4-pub">📢 انشرها للكل</button>` : ''}
-    ${onL.length ? '<button class="sj-offall" data-act="sj-none">شيل ✓ من كل الدروس</button>' : ''}
     <input type="file" id="qxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-q-chosen"><input type="file" id="qocr" accept="image/*" class="hide" data-change="t-q-ocr-chosen">`,
     'questions', '', '#/t/questions');
 }
@@ -4248,14 +4249,16 @@ function sjBlocks(cu, les, by, row, nq){
   const M = (QS.cl || {})[cu.id] || {};
   if (!les.some(l => M[l] && M[l].t)) return null;
   const has = l => by[l].length > 0, isOn = l => by[l].some(q4On);
-  const terms = [...new Set(les.filter(l => M[l] && M[l].t).map(l => M[l].t))].sort();
+  /* v388 (Khalid): one design for every subject: both terms always show, even if one has no lessons yet */
+  const terms = [...new Set([1, 2, ...les.filter(l => M[l] && M[l].t).map(l => M[l].t)])].sort();
   if (!terms.includes(SJ.term)) SJ.term = terms.includes(SJ_CUR()) ? SJ_CUR() : terms[0];
   const ord = l => (M[l] && M[l].o) || 999, byOrd = (a, b) => ord(a) - ord(b) || String(a).localeCompare(String(b), 'ar');
   const inT = les.filter(l => M[l] && M[l].t === SJ.term), gm = {};
   inT.forEach(l => { const g = M[l].g || ''; (gm[g] = gm[g] || []).push(l); });
   const groups = Object.keys(gm).map(g => ({ g, ls: gm[g].sort(byOrd) })).sort((a, b) => ord(a.ls[0]) - ord(b.ls[0]) || a.g.localeCompare(b.g, 'ar'));
-  const un = les.filter(l => !(M[l] && M[l].t)).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON));
-  if (un.length) groups.push({ g: 'دروس ثانية', ls: un, other: true });
+  /* v388 (Khalid): the bank shows only the official book lessons; unlisted bank lessons are hidden, the teacher's own lessons stay */
+  const un = les.filter(l => !(M[l] && M[l].t) && (cu.owner_id || q4Mine(cu.id, l))).sort((a, b) => (a === NO_LESSON) - (b === NO_LESSON));
+  if (un.length && SJ.term === terms[0]) groups.push({ g: 'دروس ثانية', ls: un, other: true });
   SJ.groups = groups;
   const tabs = terms.length > 1 ? `<div class="sj-tabs">${terms.map(t => { const ls = les.filter(l => M[l] && M[l].t === t), n = ls.filter(isOn).length;
     return `<button class="${t === SJ.term ? 'on' : ''}" data-act="sj-term" data-t="${t}">${SJ_TN[t]}${t === SJ_CUR() ? '<i class="sj-cur">الحالي</i>' : ''}<small>${n} من ${ls.length} شغّالة</small></button>`; }).join('')}</div>` : '';
@@ -4268,16 +4271,32 @@ function sjBlocks(cu, les, by, row, nq){
     if (flat) return `<div class="sj-ls" style="margin-bottom:12px">${rows}</div>`;
     return `<div class="sj-sec${fold ? ' fold' : ''}"><div class="sj-sh"><button class="q4-ck${st}" data-act="sj-sec" data-k="${i}" role="checkbox" aria-checked="${st === ' added'}" aria-label="علّم ${esc(gr.g)} كله">✓</button><button class="sj-st" data-act="sj-fold" data-k="${i}"><b>${esc(gr.g)}</b><small>${n ? `<i class="sj-on">${n} من ${all.length} تطلع</i> · ` : all.length + ' ' + (all.length > 2 && all.length < 11 ? 'دروس' : 'درس') + ' · '}${nq(n ? q : all.reduce((a, l) => a + by[l].length, 0))}</small></button><span class="sj-chv">‹</span></div><div class="sj-ls">${rows}</div></div>`;
   }).join('');
-  return tabs + secs + `<button class="q4-rnew sj-newl" data-act="q4-newl">＋ درس جديد</button>`;
+  return tabs + (groups.length ? '' : '<p class="sub center" style="margin:22px 0">دروس هذا الفصل قريباً</p>') + secs + `<button class="q4-rnew sj-newl" data-act="q4-newl">＋ درس جديد</button>`;
 }
 ACTS['sj-term'] = t => { SJ.term = +t.dataset.t; SJ.open = null; const y = scrollY; renderQuestions(); scrollTo(0, y); };
 ACTS['sj-fold'] = t => { const k = SJ.term + '|' + t.dataset.k, el = t.closest('.sj-sec'); SJ.fold[k] = !(el && el.classList.contains('fold')); haptic(); const y = scrollY; renderQuestions(); scrollTo(0, y); };
+/* v388 (Khalid): ✓ taps are instant: the screen changes first, the database follows in the background (rolled back with a message only if it fails) */
+async function q4Fast(qs, on){
+  const P = QS.pick || (QS.pick = new Set()), bank = qs.filter(q => !q.owner_id).map(q => q.id), own = qs.filter(q => q.owner_id);
+  if (bank.length && !QS.pickOk) { toast('ميزة الإضافة من بنك الأسئلة تحتاج تحديث قاعدة البيانات أولاً'); return false; }
+  const bT = bank.filter(id => on ? !P.has(id) : P.has(id)), oT = own.filter(q => (q.status === 'approved') !== on), prev = oT.map(q => q.status);
+  bT.forEach(id => on ? P.add(id) : P.delete(id)); oT.forEach(q => { q.status = on ? 'approved' : 'draft'; }); Object.keys(POOL).forEach(k => delete POOL[k]);
+  const y = scrollY; if (sjOn()) renderQuestions(); else { renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); } scrollTo(0, y);
+  let error;
+  if (bT.length) { if (on) { for (let i = 0; i < bT.length && !error; i += 500) ({ error } = await sb.from('question_picks').insert(bT.slice(i, i + 500).map(id => ({ question_id: id })))); } else { for (let i = 0; i < bT.length && !error; i += 200) ({ error } = await sb.from('question_picks').delete().in('question_id', bT.slice(i, i + 200))); } }
+  if (!error && oT.length) ({ error } = await sb.from('questions').update({ status: on ? 'approved' : 'draft' }).in('id', oT.map(q => q.id)));
+  if (error) { bT.forEach(id => on ? P.delete(id) : P.add(id)); oT.forEach((q, i) => { q.status = prev[i]; }); toast('تعذّر الحفظ، تأكد من الاتصال وحاول مجدداً'); if (sjOn()) renderQuestions(); return false; }
+  return true;
+}
+ACTS['sj-allt'] = () => {
+  const cu = QS.subjCu, ls = (QS.les3 || []).filter(l => q4LesQs(cu, l).length); if (!ls.length) return;
+  const on = !ls.every(l => q4LesQs(cu, l).some(q4On)); haptic(); q4Fast(ls.flatMap(l => q4LesQs(cu, l)), on);
+};
 ACTS['sj-sec'] = async t => {
   const gr = (SJ.groups || [])[+t.dataset.k]; if (!gr) return;
   const cu = QS.subjCu, ls = gr.ls.filter(l => q4LesQs(cu, l).length); if (!ls.length) return toast('الدروس هذي فاضية');
   const on = !ls.every(l => q4LesQs(cu, l).some(q4On)), qs = ls.flatMap(l => q4LesQs(cu, l));
-  t.setAttribute('aria-busy', 'true'); haptic();
-  if (await q4SetOn(qs, on)) { renderQuestions(); toast(on ? 'كل دروس القسم تطلع لطلابك ✓' : 'ما عاد يطلع شي من القسم'); } else t.removeAttribute('aria-busy');
+  haptic(); q4Fast(qs, on);
 };
 ACTS['sj-open'] = t => { const l = (QS.les3 || [])[+t.dataset.i]; if (l == null) return; SJ.open = SJ.open === l ? null : l; QS.led = l; haptic(); const y = scrollY; renderQuestions(); scrollTo(0, y); };
 ACTS['sj-none'] = async t => {
@@ -4432,9 +4451,7 @@ ACTS['q4-gr'] = t => { QS.subjCu = t.dataset.id; q4SubjSheet(QS.subj3); };
 ACTS['q4-tg'] = async t => {
   const l = (QS.les3 || [])[+t.dataset.i]; if (l == null) return;
   const qs = q4LesQs(QS.subjCu, l), on = !t.classList.contains('added'); if (!qs.length) return toast('الدرس فاضي، افتحه وأضف أسئلة');
-  t.classList.toggle('added', on); t.setAttribute('aria-busy', 'true'); haptic();
-  if (!await q4SetOn(qs, on)) { t.classList.toggle('added', !on); t.removeAttribute('aria-busy'); return; }
-  t.removeAttribute('aria-busy'); if (on) QS.new3 = QS.subjCu + '|' + l; renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast(on ? 'صار يطلع لطلابك ✓' : 'ما عاد يطلع لطلابك');
+  haptic(); if (on) QS.new3 = QS.subjCu + '|' + l; q4Fast(qs, on);
 };
 function q4LesSheet(i){
   const g = (QS.mine3 || [])[i]; if (!g) return closeModals();
