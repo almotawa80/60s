@@ -1917,7 +1917,7 @@ ACTS['adm-one'] = t => {
 };
 ACTS['adm-del'] = async t => {
   const x = (ADM.d.list || []).find(r => r.id === t.dataset.id); if (!x) return;
-  if (!await ask(`تنحذف صفوفه (${nf(x.classes)}) وطلابه (${nf(x.students)}) وكل شي له، وما ترجع.`, { title: `حذف حساب ${x.name || x.email || ''}؟`, ok: 'حذف' })) return;
+  if (!await ask(`تنحذف صفوفه (${nf(x.classes)}) وطلابه (${nf(x.students)}) وكل شي له، وما ترجع. اكتب «حذف» للتأكيد.`, { title: `حذف حساب ${x.name || x.email || ''}؟`, input: '', require: 'حذف', ok: 'حذف الحساب', danger: true })) return;
   try { await rpc('admin_delete_teacher', { p_teacher: x.id }); closeModals(); toast('انحذف الحساب'); ADM.d.list = ADM.d.list.filter(r => r.id !== x.id); admRender(); }
   catch(e){ toast(/function|not find/i.test(String(e.message)) ? 'شغّل ملف admin_delete.sql أول' : errMsg(e)); }
 };
