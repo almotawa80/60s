@@ -2044,8 +2044,8 @@ function obStep(n){
   const q = (t, sub) => `<div class="obr-q">${t}${sub ? `<small>${sub}</small>` : ''}</div>`;
   let b = '';
   if (n === 1) b = q('أي مراحل تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + `<div class="ob-g obr-chk">${OB_STAGES.map((v, i) => tile(OB.st.has(v), v, ['🎒', '📘', '🎓', '🏛️'][i])).join('')}</div><button class="btn obr-go" data-act="ob-next" ${OB.st.size ? '' : 'disabled'}>${OB.st.size ? `التالي (${OB.st.size} مختارة)` : 'اختر مرحلة أو أكثر'}</button>`;
-  if (n === 2) b = q('أي مواد تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + (() => { const all = obSubjList(), cut = all.length > 9 && !OB.more, extra = [...OB.sj].filter(v => all.indexOf(v) < 0), sh = cut ? all.filter((v, i) => i < 8 || OB.sj.has(v)) : all;
-      return `<div class="ob-g obr-chk ${sh.length + extra.length > 11 ? 'g4' : 'g3'} obr-sm">${sh.concat(extra).map(v => tile(OB.sj.has(v), v, SUBJ_EMOJI[v] || '📘')).join('')}${cut ? `<button class="ob-t" data-act="ob-more"><span class="e">➕</span><b>مواد أخرى</b></button>` : `<button class="ob-t" data-act="ob-other"><span class="e">✍️</span><b>اكتب مادة</b></button>`}</div>`; })() + `<button class="btn obr-go" data-act="ob-next" ${OB.sj.size ? '' : 'disabled'}>${OB.sj.size ? `التالي (${OB.sj.size} مختارة)` : 'اختر مادة أو أكثر'}</button>`;
+  if (n === 2) b = q('أي مواد تدرّس؟', '<b class="obr-multi">☑️ اختر كل اللي تدرّسها</b>') + (() => { const all = OB_BANK, cut = false, extra = [...OB.sj].filter(v => all.indexOf(v) < 0), sh = cut ? all.filter((v, i) => i < 8 || OB.sj.has(v)) : all;
+      return `<div class="ob-g obr-chk ${sh.length + extra.length > 11 ? 'g4' : 'g3'} obr-sm">${sh.concat(extra).map(v => tile(OB.sj.has(v), v, SUBJ_EMOJI[v] || '📘')).join('')}${cut ? `<button class="ob-t" data-act="ob-more"><span class="e">➕</span><b>مواد أخرى</b></button>` : `<button class="ob-t" data-act="ob-other"><span class="e">✍️</span><b>أخرى</b></button>`}</div>`; })() + `<button class="btn obr-go" data-act="ob-next" ${OB.sj.size ? '' : 'disabled'}>${OB.sj.size ? `التالي (${OB.sj.size} مختارة)` : 'اختر مادة أو أكثر'}</button>`;
   if (n === 3) { const secs = secList().slice(0, 9), g0 = OB.grs[0];
     const si0 = NC_ST.findIndex(x => OB.gst ? x[0] === OB.gst : g0 ? x[0] === g0.st : OB.st.has(OB_STAGES[NC_ST.indexOf(x)])), cur = NC_ST[si0 < 0 ? 0 : si0];
     const gl = (st, g, k) => st === 'university' ? 'السنة ' + UNI_Y[k] : GRADES[g - 1];
@@ -2151,6 +2151,8 @@ const OB_SUBJ = { 'ابتدائي': ['التربية الإسلامية', 'ال�
   'متوسط': ['التربية الإسلامية', 'اللغة العربية', 'الرياضيات', 'العلوم', 'اللغة الإنجليزية', 'الاجتماعيات', 'الحاسوب'],
   'ثانوي': ['التربية الإسلامية', 'القرآن الكريم', 'اللغة العربية', 'اللغة الإنجليزية', 'الرياضيات', 'الكيمياء', 'الفيزياء', 'الأحياء', 'الجيولوجيا', 'المعلوماتية', 'الفرنسية', 'التاريخ', 'الجغرافيا', 'علم النفس', 'الفلسفة', 'الدستور'],
   'جامعة': ['التربية الإسلامية', 'اللغة العربية', 'اللغة الإنجليزية', 'الرياضيات', 'العلوم', 'الحاسوب'] };
+/* v411 (Khalid): only the subjects that have ready bank questions + «أخرى» */
+const OB_BANK = ['التربية الإسلامية', 'اللغة العربية', 'الرياضيات', 'العلوم', 'اللغة الإنجليزية', 'الاجتماعيات'];
 const obSubjList = () => { const out = []; (OB.st.size ? [...OB.st] : ['متوسط']).forEach(st => (OB_SUBJ[st] || []).forEach(x => { if (out.indexOf(x) < 0) out.push(x); })); [...OB.sj].forEach(x => { if (out.indexOf(x) < 0) out.push(x); }); return out; };
 function nwGrade(c){ const n = (c && c.name) || ''; for (let i = GRADES.length - 1; i >= 0; i--) if (n.indexOf(GRADES[i]) >= 0) return i + 1; const m = n.match(/\d+/); return m ? Number(m[0]) : null; }
 async function qCounts(){
