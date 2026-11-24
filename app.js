@@ -1975,7 +1975,13 @@ ACTS['t-retry'] = () => teacherRoute();
 
 /* ---- home (dashboard) ---- */
 /* v402 (Khalid): tell the teacher when a class's grade has no ready questions in the bank */
+const NBC = { k: '', t: 0, v: '' };
 async function noBankNote(classes){
+  const key = classes.map(c => c.id + c.name).join('|');
+  if (NBC.k === key && Date.now() - NBC.t < 600000) return NBC.v;
+  const v = await noBankNote0(classes); NBC.k = key; NBC.t = Date.now(); NBC.v = v; return v;
+}
+async function noBankNote0(classes){
   try {
     await loadCurricula().catch(() => {});
     const bad = [];
@@ -1991,6 +1997,7 @@ async function noBankNote(classes){
   } catch (e) { return ''; }
 }
 async function tHome(){
+  const gaP = rpc('live_t_active').catch(() => null);
   const [cl, cp] = await Promise.all([
     sb.from('classes').select('*').eq('archived', false).order('created_at'),
     sb.from('competitions').select('*').eq('status', 'active').order('created_at', { ascending: false })
@@ -2018,8 +2025,9 @@ async function tHome(){
   const hv = LS.get('mc_hv') || 'big', hvb = (k, i, l) => `<button class="${hv === k ? 'on' : ''}" data-act="h-view" data-v="${k}" aria-label="${l}">${i}</button>`;
   const html = cards.length ? `<div class="hv">${hvb('big', '<i class="hv-i1"></i>', 'مربعات كبيرة')}${hvb('two', '<i class="hv-i2"></i>', 'مربعين')}${hvb('list', '<i class="hv-i3"></i>', 'صفوف')}</div><div class="hcs hv-${hv}">${cards.join('')}</div>` : `<div class="h-empty"><div class="h-em">🚀</div><b>ما عندك تحدي الحين</b><small>3 خطوات وتخلص</small></div><a class="btn h-go" href="#/t/new">ابدأ تحدي 🚀</a>`;
   const obCard = cards.length && T.settings && T.settings.ob === 'skip' && !T.settings.obCard ? `<div class="ob-card"><button class="grow" data-act="ob-open"><b>👋 كمّل ملفك</b><small>المرحلة، المواد، المدرسة</small></button><button class="ob-cx" data-act="ob-cardx" aria-label="إغلاق">✕</button></div>` : '';
-  const nbNote = classes.length ? await noBankNote(classes) : '';
-  let lvNote = ''; try { const ga = classes.length ? await rpc('live_t_active') : null; if (ga) { const gc = classes.find(x => x.id === ga.class_id); if (gc) lvNote = `<button class="lv-card" data-act="lv-resume" data-id="${ga.id}" data-c="${gc.id}"><span>🔴</span><div><b>لعبة شغالة في ${esc(gc.name)}</b><small>ارجع لها</small></div><i>‹</i></button>`; } } catch(e){}
+  const nbKey = classes.map(c => c.id + c.name).join('|'), nbNote = '<div id="nb-slot">' + (NBC.k === nbKey ? NBC.v : '') + '</div>';
+  if (classes.length && !(NBC.k === nbKey && Date.now() - NBC.t < 600000)) noBankNote(classes).then(v => { const sl = document.getElementById('nb-slot'); if (sl) sl.innerHTML = v; });
+  let lvNote = ''; try { const ga = classes.length ? await gaP : null; if (ga) { const gc = classes.find(x => x.id === ga.class_id); if (gc) lvNote = `<button class="lv-card" data-act="lv-resume" data-id="${ga.id}" data-c="${gc.id}"><span>🔴</span><div><b>لعبة شغالة في ${esc(gc.name)}</b><small>ارجع لها</small></div><i>‹</i></button>`; } } catch(e){}
   view('الرئيسية', obCard + lvNote + nbNote + html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
 }
 ACTS['h-view'] = t => { LS.set('mc_hv', t.dataset.v); document.querySelectorAll('.hv button').forEach(b => b.classList.toggle('on', b === t)); const h = document.querySelector('.hcs'); if (h) h.className = 'hcs hv-' + t.dataset.v; haptic(); };
