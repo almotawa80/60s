@@ -2049,10 +2049,10 @@ function obStep(n){
   if (n === 3) { const secs = secList().slice(0, 9), g0 = OB.grs[0];
     const si0 = NC_ST.findIndex(x => OB.gst ? x[0] === OB.gst : g0 ? x[0] === g0.st : OB.st.has(OB_STAGES[NC_ST.indexOf(x)])), cur = NC_ST[si0 < 0 ? 0 : si0];
     const gl = (st, g, k) => st === 'university' ? 'السنة ' + UNI_Y[k] : GRADES[g - 1];
-    b = q('أي صف تدرّس؟', 'نبدأ بصف واحد، وتضيف الباقي بعدين') +
+    b = q('أي صفوف تدرّس؟', 'اختر صف أو أكثر، وتضيف الباقي بعدين') +
       `<div class="gp-seg">${NC_ST.map(x => `<button class="${x === cur ? 'on' : ''}" data-act="ob-gst" data-st="${x[0]}">${x[1]}</button>`).join('')}</div>` +
-      `<div class="gp-grid${cur[2].length === 4 ? ' c2' : ''}">${cur[2].map((g, k) => { const on = g0 && g0.st === cur[0] && g0.g === g, l = gl(cur[0], g, k); return `<button class="gp-t${on ? ' on' : ''}" data-act="ob-gr1" data-st="${cur[0]}" data-g="${g}" data-l="${esc(l)}">${esc(l)}</button>`; }).join('')}</div>` +
-      `<button class="btn obr-go" data-act="ob-finish" ${g0 ? '' : 'disabled'}>${g0 ? 'سوّ الصف' : 'اختر الصف'}</button>`; }
+      `<div class="gp-grid${cur[2].length === 4 ? ' c2' : ''}">${cur[2].map((g, k) => { const on = OB.grs.some(x => x.st === cur[0] && x.g === g), l = gl(cur[0], g, k); return `<button class="gp-t${on ? ' on' : ''}" data-act="ob-gr1" data-st="${cur[0]}" data-g="${g}" data-l="${esc(l)}">${esc(l)}</button>`; }).join('')}</div>` +
+      `<button class="btn obr-go" data-act="ob-finish" ${g0 ? '' : 'disabled'}>${g0 ? (OB.grs.length > 1 ? 'سوّ الصفوف (' + OB.grs.length + ')' : 'سوّ الصف') : 'اختر الصف'}</button>`; }
   if (n === 4) b = q('أي شعب؟', '<b class="obr-multi">☑️ اختر كل الشعب</b>') + `<div class="ob-g obr-chk g3">${secList().slice(0, 9).map(x => `<button class="ob-t obr-sec${OB.secs.has(x) ? ' on' : ''}" data-act="ob-sec" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div>${OB.secs.size ? `<button class="btn obr-go" data-act="ob-next">التالي (${OB.secs.size} مختارة)</button>` : `<button class="btn soft obr-go" data-act="ob-next">بدون شعبة</button>`}`;
   if (n === 5) {
     const row = (k, l, v) => `<button class="obr-row" data-act="ob-row" data-q="${k}"><span>${l}</span><b>${esc(v || '—')}</b><i>تعديل</i></button>`;
@@ -2091,7 +2091,7 @@ ACTS['ob-more'] = () => { OB.more = true; obStep(2); };
 ACTS['ob-other'] = async () => { const v = await ask('اكتب اسم المادة', { title: 'مادة ثانية', input: '', placeholder: 'مثلاً: القرآن الكريم', ok: 'أضف', danger: false });
   const x = (v || '').trim().slice(0, 40); if (!x) return; OB.sj.add(x); obStep(2); };
 ACTS['ob-gst'] = t => { OB.gst = t.dataset.st; haptic(); obStep(3); };
-ACTS['ob-gr1'] = t => { OB.grs = [{ st: t.dataset.st, g: +t.dataset.g, l: t.dataset.l }]; const i = NC_ST.findIndex(x => x[0] === t.dataset.st); OB.st = new Set([OB_STAGES[i]]); haptic(); obStep(3); };
+ACTS['ob-gr1'] = t => { const st = t.dataset.st, g = +t.dataset.g, i = OB.grs.findIndex(x => x.st === st && x.g === g); if (i >= 0) OB.grs.splice(i, 1); else OB.grs.push({ st, g, l: t.dataset.l }); OB.st = new Set(OB.grs.map(x => OB_STAGES[NC_ST.findIndex(y => y[0] === x.st)])); haptic(); obStep(3); };
 ACTS['ob-sec1'] = t => { OB.sec = OB.sec === t.dataset.v ? null : t.dataset.v; haptic(); obStep(3); };
 ACTS['ob-back'] = () => { if (OB.n > 2) { OB.edit = false; OB.redo = false; obStep(OB.n - 1); } };
 ACTS['ob-gr'] = t => { const g = obGrades()[+t.dataset.k]; if (!g) return; const i = OB.grs.findIndex(x => x.st === g.st && x.g === g.g); i >= 0 ? OB.grs.splice(i, 1) : OB.grs.push(g); haptic(); obStep(3); };
