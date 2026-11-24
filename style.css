@@ -3920,3 +3920,6 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 .lvs-wait{text-align:center;color:#C7C7CC;font-weight:700}
 .lvs-mid{margin:auto;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}.lvs-mid .e{font-size:72px}.lvs-mid b{font-size:26px}.lvs-mid small{color:#C7C7CC;font-size:16px}
 .lvs-back{margin-top:16px;min-height:52px;padding:0 36px;border:0;border-radius:16px;background:#C8102E;box-shadow:0 5px 0 #8E0B21;color:#fff;font:inherit;font-size:18px;font-weight:800}
+
+/* v411 student delete account */
+.s-del-me{display:block;margin:22px auto 6px;background:none;border:0;color:#FF6B6B;font:700 14px inherit;font-family:inherit;padding:10px 16px;cursor:pointer}

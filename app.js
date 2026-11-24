@@ -933,7 +933,7 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
     return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><button class="s-me-av ' + lvlFrame() + (h.student.avatar ? ' em' : '') + '" data-act="s-av" aria-label="اختر شخصيتك">' + esc(h.student.avatar || n.charAt(0)) + '<span class="s-av-ed">✏️</span></button><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small></div>' +
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
       '<div class="s-me-o">' + [['s-rep-me', '📊', 'تقريري'], ['s-lvl', '⚡', 'مستواي'], ['s-profile', '🪪', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-push-tab', pushOn() ? '🔔' : '🔕', 'الإشعارات'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
-      '</div>'); }
+      '<button class="s-del-me" data-act="s-del-me">🗑 حذف حسابي</button></div>'); }
   if (k === 'lb') { if (S.demo) return toast('الترتيب يظهر في التحدي الفعلي');
     sPage('lb', '<div class="s-pgc"><div class="spin"></div></div>');
     try { const res = await rpc('class_leaderboard', { p_token: S.token }); if (S.tab !== 'lb') return;
@@ -970,6 +970,12 @@ ACTS['s-menu'] = () => {
     '<button class="sheet-i sheet-cancel" data-act="close-modal">إغلاق</button></div>');
 };
 ACTS['s-sound-row'] = t => { const on = FX.toggle(); t.innerHTML = ic(on ? 'sound' : 'mute') + '<span>الصوت: ' + (on ? 'مفعّل' : 'مكتوم') + '</span>'; };
+ACTS['s-del-me'] = async () => {
+  if (S.demo) return toast('هذا تجريبي');
+  if (!await ask('تنحذف نقاطك وكل بياناتك، وما ترجع. اكتب «حذف» للتأكيد.', { title: 'حذف حسابك؟', input: '', require: 'حذف', ok: 'حذف حسابي', danger: true })) return;
+  try { await rpc('student_delete_me', { p_token: S.token }); } catch(e){ return toast(errMsg(e)); }
+  closeModals(); ACTS['s-logout'](); toast('تم حذف حسابك');
+};
 ACTS['s-logout-ask'] = async () => { const code = LS.get('mc_code');
   if (!await ask('تحتاجه عشان ترجع.', { title: code ? 'صوّر رمزك قبل ما تطلع' : 'تسجيل الخروج؟', html: code ? `<div class="dlg-code" dir="ltr">${esc(code)}</div><button type="button" class="dlg-cp" data-act="copy" data-v="${esc(code)}">📋 انسخ الرمز</button>` : '', cancel: 'رجوع', ok: 'اطلع', danger: true })) return; closeModals(); ACTS['s-logout'](); };
 const S_AVS = ['🦁','🐯','🐼','🦊','🐨','🐸','🦉','🦅','🐬','🐢','🦄','🐉','🚀','⚽','🏆','⭐'];
@@ -5754,7 +5760,8 @@ async function tSettings(){
       sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق' }),
       ADM.st && ADM.st.is ? sRow({ act: 'go', attrs: 'data-h="#/t/admin"', icon: 'lock', color: '#30B0C7', label: 'المشرف' }) : '']) +
-    sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
+    sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`,
+      `<button class="set-row danger-row" data-act="st-del-acc"><span class="grow center">حذف حسابي</span></button>`], 'حذف الحساب يمسح بياناتك نهائياً.') +
     `<div class="set-f center">اهزم الدقيقة · الإصدار ${APP_VER}</div>`, 'settings');
 }
 function tSetGroup(k){
