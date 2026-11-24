@@ -3934,3 +3934,6 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 #ob .obs{display:grid!important;grid-template-columns:repeat(3,1fr)!important;margin-top:16px}
 #ob .obs>.ob-t:last-child{grid-column:1/-1!important;width:100%}
 #ob .obs+.obr-go{margin-top:22px}
+/* v425 result: correct count line */
+.rs-ok{text-align:center;font-size:17px;color:#C7C7CC;margin:2px 0 6px}.rs-ok b{color:#fff;font-weight:800}
+html body .t-nav a.t-sq .nav-sq{width:30px;height:30px}

@@ -379,7 +379,6 @@ function renderHomeP(){
     if (h.rank > 1 && h.gap != null) ln.push('<div class="sp-rival" id="rival">' + (h.gap > 0 ? 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى اللي فوقك 👀' : 'أنت متعادل مع اللي فوقك، جولة وحدة تكفي! 👀') + '</div>');
     else if (h.rank === 1 && h.total_points) ln.push('<div class="sp-rival">أنت الأول 🏆 حافظ عليها</div>');
     const pz = pzLine((h.competition || {}).prizes, 'sp-prize'); if (pz) ln.push(pz);
-    if (days) ln.push('<div class="sp-rival">لا تطفي الشعلة 🔥 ' + days + (days === 1 ? ' يوم' : days === 2 ? ' يومين' : ' أيام') + '</div>');
     const di = Math.floor(Date.now() / 864e5);
     mid = (ln.length ? ln[di % ln.length] : '') + '<button class="sp-play" data-act="s-start" data-kind="official"><span>▶ العب<small>جولة اليوم · دقيقة</small></span></button>';
   }
@@ -1462,8 +1461,9 @@ async function showResult(sm){
     '<div class="result ' + (win ? 'is-win' : lose ? 'is-lose' : '') + '"><div class="medal-wrap">' + (win ? '<div class="rays"></div>' : '') + '<div class="medal">' + ic(lose ? 'star' : 'trophy') + '</div></div>' +
     '<h2 class="center res-h">' + head + '</h2><p class="center muted" style="margin-top:-8px">' + sub + (sm && sm.kind === 'practice' ? ' · تدريب' : sm && sm.kind === 'knockout' ? ' · مواجهة التصفيات' : '') + '</p>' +
     (sm && sm.kind === 'knockout' ? '<p class="center sub">تُحسم المواجهة بعدد الإجابات الصحيحة ثم السرعة، وتظهر النتيجة في الرئيسية عندما ينهي منافسك.</p>' : '') +
+    (sm ? '<div class="rs-ok">جاوبت صح على <b>' + (sm.correct_count || 0) + ' من ' + qn + '</b></div>' : '') +
     '<div class="stars-row">' + stars + '</div>' +
-    '<div class="center rs-st2"><div class="big" id="bigpts">0</div><div class="muted">نقاط هذه الجولة</div></div>' +
+    '<div class="center rs-st2"><div class="big" id="bigpts">0</div><div class="muted">' + (sm && sm.kind === 'practice' ? 'نقاط التدريب (ما تنحسب في الترتيب)' : 'نقاط هذه الجولة') + '</div></div>' +
     (rankRow ? '<div class="rows card rs-st3">' + rankRow + '</div>' : '') +
     (S.upMsg ? '<div class="s-up">' + S.upMsg + '</div>' : '') +
     (sm && sm.kind !== 'practice' && sm.total_points > 0 ? shBtn('pts', { n: toAr(sm.total_points), p: perfect }, '📤 تحدّى أصحابك') : '') +
@@ -1574,7 +1574,7 @@ const navIc = n => n[0] === 'new' ? NAV_SQ : NAV_LN[n[0]] ? NAV_LN[n[0]] + nbHtm
 function shell(title, body, active, top, back){
   return `<div class="t-top"><div class="brand">${back ? (back.indexOf('act:') === 0 ? `<button class="icon-btn back-btn" data-act="${back.slice(4)}" aria-label="رجوع">${ic('back')}</button>` : `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>`) : LOGO_S}<span class="t-title${String(title).length > 19 ? ' t-xl' : String(title).length > 13 ? ' t-lg' : ''}">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-bell" data-act="t-bell" aria-label="الإشعارات">${ic('bell')}<em class="t-bell-n"${NT.n ? '' : ' hidden'}>${NT.n > 9 ? '9+' : NT.n}</em></button><button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
     `<div class="t-body">${body}</div>` +
-    `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}${n[0] === 'new' ? ' t-sq' : ''}"${n[0] === 'new' ? ' aria-label="تحدي جديد"' : ''}>${navIc(n)}${n[0] === 'new' ? '' : `<span>${n[1]}</span>`}</a>`).join('')}</nav>` + (setTimeout(nbPending, 0) && '');
+    `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}${n[0] === 'new' ? ' t-sq' : ''}"${n[0] === 'new' ? ' aria-label="تحدي جديد"' : ''}>${navIc(n)}<span>${n[1]}</span></a>`).join('')}</nav>` + (setTimeout(nbPending, 0) && '');
 }
 const NAVI = { prev: 0 };
 const PCACHE = {}; // last rendered teacher page per hash, shown instantly while fresh data loads
@@ -2224,7 +2224,7 @@ async function tNew(fresh){
 }
 const WB_IC = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M7 9h6M7 12h9"/><path d="M8 20l1.5-4M16 20l-1.5-4"/></svg>';
 const nwModes = () => NW.board ? `<div class="nw-modes"><button class="${NW.phones !== false ? 'on' : ''}" data-act="nw-ph" data-v="1"><span class="e">📱</span><b>بجوالات الطلاب</b><small>السؤال على السبورة والجواب من جوالاتهم</small></button><button class="${NW.phones === false ? 'on' : ''}" data-act="nw-ph" data-v="0"><span class="e">🖥</span><b>بدون جوالات</b><small>فرق على السبورة والمعلم يضغط</small></button></div>` : '';
-const nwMode = () => `<div class="nw-mode" role="tablist"><button class="${NW.board ? '' : 'on'}" data-act="nw-mode" data-b="0">تحدي أيام</button><button class="${NW.board ? 'on' : ''}" data-act="nw-mode" data-b="1">${WB_IC}<span>العب في الصف الحين</span></button></div>` + nwModes();
+const nwMode = () => `<div class="nw-mode" role="tablist"><button class="${NW.board ? '' : 'on'}" data-act="nw-mode" data-b="0">تحدي يومي</button><button class="${NW.board ? 'on' : ''}" data-act="nw-mode" data-b="1">${WB_IC}<span>جولة مباشرة في الحصة</span></button></div>` + nwModes();
 function nwRender(){
   clearInterval(NW.poll);
   NW.ts = Date.now();
@@ -2277,7 +2277,7 @@ function nwRender(){
   view(NW.board ? 'العب في الصف' : 'تحدي جديد', `<div class="nw${NW.board ? ' nw-brd' : ''}">${dots}${b}</div>`, 'new', '', canBack ? 'act:nw-back' : '');
   if (st === 4) { nwQr(); nwLive(); NW.poll = setInterval(() => { if (location.hash.indexOf('#/t/new') !== 0 || NW.step !== 4) return clearInterval(NW.poll); nwLive(); }, 5000); }
 }
-const fmtCode = c => String(c || '').replace(/^(...)(...)$/, '$1 $2');
+const fmtCode = c => String(c || '');
 async function nwQr(){ try { await loadJs(QRJS, 'qrcode'); document.querySelectorAll('.nw-qr').forEach(el => { el.innerHTML = qrSvg(el.dataset.link); }); } catch(e){} }
 async function nwLive(){
   const el = document.getElementById('nw-live'); if (!el || !NW.made) return;
