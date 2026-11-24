@@ -3934,4 +3934,3 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 #ob .obs{display:grid!important;grid-template-columns:repeat(3,1fr)!important;margin-top:16px}
 #ob .obs>.ob-t:last-child{grid-column:1/-1!important;width:100%}
 #ob .obs+.obr-go{margin-top:22px}
-.t-menu .tm-head{margin-top:44px}

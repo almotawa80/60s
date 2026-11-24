@@ -127,7 +127,7 @@ function modal(html){
   el.addEventListener('click', e => { if (e.target === el) el.remove(); });
   el._opener = document.activeElement;
   document.body.appendChild(el);
-  if (!el.querySelector('[data-act="close-modal"],.aw-rh')) { const x = document.createElement('button'); x.type = 'button'; x.className = 'modal-x'; x.dataset.act = 'close-modal'; x.setAttribute('aria-label', 'إغلاق'); x.innerHTML = ic('x'); el.querySelector('.modal').prepend(x); }
+  if (!el.querySelector('[data-act="close-modal"],.aw-rh') && (el.querySelector('input,textarea,select') || el.querySelector('.modal').scrollHeight > 560)) { const x = document.createElement('button'); x.type = 'button'; x.className = 'modal-x'; x.dataset.act = 'close-modal'; x.setAttribute('aria-label', 'إغلاق'); x.innerHTML = ic('x'); el.querySelector('.modal').prepend(x); }
   const mo = el.querySelector('.modal'), h = mo.querySelector('h3,.sheet-t'); if (h) { h.id = h.id || 'mh' + Date.now(); mo.setAttribute('aria-labelledby', h.id); }
   setTimeout(() => { if (document.contains(el) && !el.contains(document.activeElement)) mo.focus({ preventScroll: true }); }, 30);
   /* give focus back to whatever opened the modal once it is gone */
