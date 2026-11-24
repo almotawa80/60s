@@ -932,8 +932,8 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
   if (k === 'me') { const h = S.home, n = (h.student.name || '?').trim();
     return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><button class="s-me-av ' + lvlFrame() + (h.student.avatar ? ' em' : '') + '" data-act="s-av" aria-label="اختر شخصيتك">' + esc(h.student.avatar || n.charAt(0)) + '<span class="s-av-ed">✏️</span></button><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small></div>' +
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
-      '<div class="s-me-o">' + [['s-rep-me', '📊', 'تقريري'], ['s-lvl', '⚡', 'مستواي'], ['s-profile', '🪪', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-push-tab', pushOn() ? '🔔' : '🔕', 'الإشعارات'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
-      '<button class="s-del-me" data-act="s-del-me">🗑 حذف حسابي</button></div>'); }
+      '<div class="s-me-o">' + [['s-rep-me', '📊', 'تقريري'], ['s-lvl', '⚡', 'مستواي'], ['s-profile', '🪪', 'ملفي'], ['s-switch', '🔄', 'غيّر اللاعب'], ['s-sound-tab', FX.on() ? '🔊' : '🔇', 'الصوت'], ['s-push-tab', pushOn() ? '🔔' : '🔕', 'الإشعارات'], ['s-del-me', '🗑', 'حذف حسابي'], ['s-logout-ask', '🚪', 'خروج']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
+      '</div>'); }
   if (k === 'lb') { if (S.demo) return toast('الترتيب يظهر في التحدي الفعلي');
     sPage('lb', '<div class="s-pgc"><div class="spin"></div></div>');
     try { const res = await rpc('class_leaderboard', { p_token: S.token }); if (S.tab !== 'lb') return;
