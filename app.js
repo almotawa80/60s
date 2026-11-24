@@ -1578,6 +1578,10 @@ function shell(title, body, active, top, back){
 }
 const NAVI = { prev: 0 };
 const PCACHE = {}; // last rendered teacher page per hash, shown instantly while fresh data loads
+/* v422 (Khalid: 1-2s blank on every screen after reopen): keep the main tabs' last render across app restarts */
+const PC_KEEP = ['#/t/home', '#/t/classes', '#/t/questions', '#/t/settings', '#/t/comps'];
+function pcSave(){ try { const o = { _u: T.user && T.user.id }; PC_KEEP.forEach(h => { if (PCACHE[h]) o[h] = PCACHE[h]; }); LS.set('mc_pc', JSON.stringify(o)); } catch(e){} }
+function pcLoad(uid){ try { const o = JSON.parse(LS.get('mc_pc') || '{}'); if (o._u && o._u !== uid) { LS.del('mc_pc'); return; } Object.keys(o).forEach(h => { if (h !== '_u' && !PCACHE[h]) PCACHE[h] = o[h]; }); } catch(e){} }
 /* appearance: light / dark / auto */
 const MQ = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
 function applyMode(){
@@ -1659,7 +1663,7 @@ function viewRaw(title, body, active, top, back){
     const want = { class: 'classes', results: 'home', comps: 'home', qshare: 'questions' }[hp] || hp;
     const isTab = k => NAV.some(n => n[0] === k);
     if (isTab(want) && isTab(active) && active !== want) return;
-    if (body.indexOf('<div class="spin"></div>') !== 0) PCACHE[location.hash] = { title, body, top, back };
+    if (body.indexOf('<div class="spin"></div>') !== 0) { PCACHE[location.hash] = { title, body, top, back }; if (PC_KEEP.includes(location.hash)) { clearTimeout(pcSave.t); pcSave.t = setTimeout(pcSave, 800); } }
   }
   const i0 = NAV.findIndex(n => n[0] === active), i = Math.max(0, i0);
   const nav = $app.querySelector(':scope > .t-nav'), oldTop = $app.querySelector(':scope > .t-top'), oldBody = $app.querySelector(':scope > .t-body');
@@ -1804,7 +1808,7 @@ ACTS['t-resend'] = async t => { const email = T.authEmail; if (!email || t.disab
   toast('أرسلناها مرة ثانية ✓'); tResendCd(t); };
 function tResendCd(t){ if (!t) return; let n = 60; t.disabled = true; t.textContent = 'أعد الإرسال بعد ' + n + ' ث';
   const iv = setInterval(() => { n--; if (!document.body.contains(t)) return clearInterval(iv); if (n <= 0) { clearInterval(iv); t.disabled = false; t.textContent = 'أعد إرسال الرسالة'; } else t.textContent = 'أعد الإرسال بعد ' + n + ' ث'; }, 1000); }
-ACTS['t-logout'] = async () => { await sb.auth.signOut(); T.user = null; teacherAuth(); };
+ACTS['t-logout'] = async () => { LS.del('mc_pc'); Object.keys(PCACHE).forEach(h => delete PCACHE[h]); await sb.auth.signOut(); T.user = null; teacherAuth(); };
 
 /* ---- admin: dashboard + support access (view only until «تفعيل الدعم») ---- */
 const ADM = { st: null, tab: 'act', d: null };
@@ -1929,10 +1933,13 @@ async function teacherRoute(){
   setTheme('mid');
   const { data } = await sb.auth.getSession();
   if (!data.session) return teacherAuth();
-  await admLoad(); admApply(data.session.user);
   const parts = location.hash.replace(/^#\/t\/?/, '').split('/');
   const page = parts[0] || 'home';
-  const cached = PCACHE[location.hash];
+  if (!ADM.st) pcLoad(data.session.user.id);
+  let cached = PCACHE[location.hash];
+  if (cached && !ADM.st) view(cached.title, cached.body, page, cached.top, cached.back);
+  await admLoad(); admApply(data.session.user);
+  if (ADM.st && ADM.st.act) { Object.keys(PCACHE).forEach(h => delete PCACHE[h]); LS.del('mc_pc'); cached = null; }
   if (cached) view(cached.title, cached.body, page, cached.top, cached.back); else view('', '<div class="spin"></div>', page);
   try {
     if (!T.name) {
