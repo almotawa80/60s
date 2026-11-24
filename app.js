@@ -2748,12 +2748,12 @@ function renderChallenge(gid){
   const rows = st.slice().sort((a, b) => CST(b.id).pts - CST(a.id).pts || a.name.localeCompare(b.name, 'ar'));
   const names = ks.map(k => (CL.byId[k.class_id] || {}).name).filter(Boolean).join('، ');
   CL.chg = gid;
-  const body = `<div class="ch1"><div class="ch-sub">${esc(names)}</div>
+  const body = `<div class="ch1"><div class="ch-sub">${esc(names)}</div><div id="ch-warn"></div>
     <div class="ch-hero"><small>لعبوا اليوم</small><div class="ch-big"><b>${played}</b> <span>من ${n}</span></div><div class="ch-bar"><i style="width:${n ? played * 100 / n : 0}%"></i></div>
     ${left && !c.paused_at && ph === 'points' ? `<button class="btn ch-rem" data-act="ch-remind">🔔 ذكّر الباقين (${left})</button>` : ''}</div>
     <div class="ch-acts">${[['cp-try', '🎮', 'جرّب'], ['ch-code', '🔗', 'الرمز'], ['ch-edit', '✏️', 'تعديل'], ['ch-det', '📊', 'التفاصيل']].map(o => `<button class="ch-a" data-act="ch-run" data-a="${o[0]}" data-g="${esc(gid)}"><span>${o[1]}</span>${o[2]}</button>`).join('')}</div>
     <div class="ch-2">${c.paused_at ? `<button class="ch-b" data-act="cp-resume" data-g="${esc(gid)}">▶️ استئناف</button>` : `<button class="ch-b" data-act="cp-pause" data-g="${esc(gid)}">⏸ إيقاف مؤقت</button>`}<button class="ch-b end" data-act="cp-end" data-g="${esc(gid)}">🏁 إنهاء</button></div>
-    <p class="ch-meta">${esc(meta)}</p><div id="ch-warn"></div><div id="ch-star"></div>
+    <p class="ch-meta">${esc(meta)}</p><div id="ch-star"></div>
     ${rows.length ? `<div class="ch-lh">${CL.chSel ? `<button class="link" data-act="ch-all">${CL.chSel.size === rows.length ? 'إلغاء الكل' : 'اختر الكل'}</button><button class="link" data-act="ch-sel-x">إلغاء</button>` : `<span></span><button class="link" data-act="ch-sel">✉️ رسالة</button>`}</div>
     <div class="cp-list${CL.chSel ? ' picking' : ''}">${rows.map((x, i) => { const k = CST(x.id); return `<button class="cp-row${k.today ? '' : ' dim'}${k.pts ? '' : ' z'}${CL.chSel && CL.chSel.has(x.id) ? ' on' : ''}" data-act="${CL.chSel ? 'ch-pick' : 'ch-stu'}" data-id="${x.id}">${CL.chSel ? '<i class="ch-ck">✓</i>' : ''}<span class="cp-rk">${!k.pts ? '' : i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="grow"><b>${x.avatar ? esc(x.avatar) + ' ' : ''}${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b>${multi ? `<small class="ch-cls">${esc(x._c || '')}</small>` : ''}</span><span class="cp-pts">${k.pts || '—'}</span></button>`; }).join('')}</div>`
       : `<div class="cl-empty sm"><b>ما فيه طلاب بعد</b><small>شارك رمز الصف من ⋯</small></div>`}</div>`;
@@ -2770,6 +2770,7 @@ async function chStar(ks){
 async function chWarn(c){
   let n = 0; try { n = await rpc('question_pool', { p_types: c.qtypes || ['curriculum', 'general', 'quick'], p_cu: c.curriculum_id || null, p_lessons: c.lessons && c.lessons.length ? c.lessons : null }); } catch(e){ return; }
   const el = document.getElementById('ch-warn'); if (!el) return; if (n >= 4) { el.innerHTML = ''; return; }
+  const rm = document.querySelector('.ch-rem'); if (rm) rm.remove();
   el.innerHTML = `<div class="ch-warn"><b>⚠️ ما فيه أسئلة كافية</b><small>الطلاب ما يقدرون يلعبون حتى تضيف أسئلة</small><button class="btn" data-act="ch-fill">أضف الأسئلة الجاهزة</button></div>`;
 }
 ACTS['ch-fill'] = async t => { const c = chComps()[0]; if (!c) return;
