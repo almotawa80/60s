@@ -2212,11 +2212,12 @@ async function tNew(fresh){
   /* v380 (Khalid): coming back within 10 minutes continues from the same step */
   const resume = NW.ts && Date.now() - NW.ts < 600000 && NW.step > 1 && NW.step < 4 && NW.board === brd;
   if (fresh !== false && !NW.keep && !resume) Object.assign(NW, { board: brd, step: 1, cls: [], multi: false, cu: null, subj: '', days: brd ? 0 : 7, made: null, lessons: null, les: {}, allSubj: false, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
+  /* v423 (Khalid: ＋ تحدي slow): subjects/question counts load in the background; only step 2 waits for them */
+  const prep = Promise.all([loadCurricula().catch(() => {}), qCounts().catch(() => {})]);
+  NW.prepP = prep; prep.then(() => { if (NW.prepP === prep) NW.prepP = null; });
   const [cl, cp] = await Promise.all([sb.from('classes').select('*').eq('archived', false).order('created_at'), sb.from('competitions').select('id,class_id').eq('status', 'active')]);
   if (cl.error) throw cl.error;
   NW.classes = cl.data; NW.busy = new Set((cp.data || []).map(c => c.class_id));
-  await loadCurricula().catch(() => {});
-  await qCounts();
   const free = NW.classes.filter(c => !NW.busy.has(c.id));
   if (NW.step === 1 && NW.classes.length === 1 && free.length === 1) { NW.cls = [free[0].id]; NW.step = 2; NW.skip1 = true; } else NW.skip1 = false;
   nwRender();
@@ -2235,7 +2236,8 @@ function nwRender(){
     else b = nwMode() + `<h2 class="nw-q">لمين التحدي؟</h2><div class="nw-tiles">${NW.classes.map(c => { const busy = NW.busy.has(c.id), on = NW.cls.includes(c.id); return `<button class="nw-tile${on ? ' on' : ''}${busy ? ' busy' : ''}" data-act="nw-cls-pick" data-id="${c.id}"><span class="nw-e">👥</span><b>${esc(c.name)}</b><small>${busy ? 'عنده تحدي الحين' : STAGE_AR[c.stage] || ''}</small></button>`; }).join('')}</div>
       ${NW.multi ? `<button class="btn nw-go" data-act="nw-next" ${NW.cls.length ? '' : 'disabled'}>التالي (${NW.cls.length})</button>` : NW.classes.length > 1 ? `<button class="link nw-link" data-act="nw-multi">أكثر من صف؟</button>` : ''}`;
   }
-  if (st === 2) {
+  if (st === 2 && NW.prepP) { const p = NW.prepP; p.then(() => { if (NW.step === 2 && location.hash.indexOf('#/t/new') === 0) nwRender(); }); b = (NW.skip1 ? nwMode() : '') + '<div class="spin"></div>'; }
+  else if (st === 2) {
     /* v161: pick one or more: the teacher's subjects + general categories (Khalid) */
     const c = NW.classes.find(x => x.id === NW.cls[0]) || {};
     /* v390: a subject picked earlier (another class / grade) that isn't shown as a tile must not stay selected */
