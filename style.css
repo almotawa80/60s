@@ -3923,3 +3923,11 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 
 /* v411 student delete account */
 .s-del-me{display:block;margin:22px auto 6px;background:none;border:0;color:#FF6B6B;font:700 14px inherit;font-family:inherit;padding:10px 16px;cursor:pointer}
+
+/* v415 onboarding subjects: 3x2 grid + one slim «أخرى» row */
+#ob .obs{gap:10px}
+#ob .obs>.ob-t{min-height:104px;box-shadow:none;border:1.5px solid transparent;border-radius:18px}
+#ob .obs>.ob-t.on{border-color:#30D158}
+#ob .obs>.ob-t:last-child{grid-column:1/-1;min-height:56px;flex-direction:row;gap:10px;justify-content:center;background:transparent;border:1.5px dashed #636366}
+#ob .obs>.ob-t:last-child::before{display:none}
+#ob .obs>.ob-t:last-child .e{font-size:20px}
