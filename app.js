@@ -2052,7 +2052,7 @@ function obStep(n){
     b = q('أي صفوف تدرّس؟', 'اختر صف أو أكثر، وتضيف الباقي بعدين') +
       `<div class="gp-seg">${NC_ST.map(x => `<button class="${x === cur ? 'on' : ''}" data-act="ob-gst" data-st="${x[0]}">${x[1]}</button>`).join('')}</div>` +
       `<div class="gp-grid${cur[2].length === 4 ? ' c2' : ''}">${cur[2].map((g, k) => { const on = OB.grs.some(x => x.st === cur[0] && x.g === g), l = gl(cur[0], g, k); return `<button class="gp-t${on ? ' on' : ''}" data-act="ob-gr1" data-st="${cur[0]}" data-g="${g}" data-l="${esc(l)}">${esc(l)}</button>`; }).join('')}</div>` +
-      `<button class="btn obr-go" data-act="ob-finish" ${g0 ? '' : 'disabled'}>${g0 ? (OB.grs.length > 1 ? 'سوّ الصفوف (' + OB.grs.length + ')' : 'سوّ الصف') : 'اختر الصف'}</button>`; }
+      `<button class="btn obr-go" data-act="ob-finish" ${g0 ? '' : 'disabled'}>${g0 ? (OB.grs.length > 1 ? 'أنشئ الصفوف (' + OB.grs.length + ')' : 'أنشئ الصف') : 'اختر الصف'}</button>`; }
   if (n === 4) b = q('أي شعب؟', '<b class="obr-multi">☑️ اختر كل الشعب</b>') + `<div class="ob-g obr-chk g3">${secList().slice(0, 9).map(x => `<button class="ob-t obr-sec${OB.secs.has(x) ? ' on' : ''}" data-act="ob-sec" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div>${OB.secs.size ? `<button class="btn obr-go" data-act="ob-next">التالي (${OB.secs.size} مختارة)</button>` : `<button class="btn soft obr-go" data-act="ob-next">بدون شعبة</button>`}`;
   if (n === 5) {
     const row = (k, l, v) => `<button class="obr-row" data-act="ob-row" data-q="${k}"><span>${l}</span><b>${esc(v || '—')}</b><i>تعديل</i></button>`;
@@ -2122,7 +2122,7 @@ ACTS['ob-finish'] = async t => {
     OB.code = OB.made[0].code; OB.cname = OB.made[0].name; OB.hasCls = true;
     Object.keys(PCACHE).forEach(h => delete PCACHE[h]);
     obStep(6);
-  } catch(e){ t.disabled = false; t.textContent = 'سوّ الصف'; toast(errMsg(e)); }
+  } catch(e){ t.disabled = false; t.textContent = 'أنشئ الصف'; toast(errMsg(e)); }
 };
 ACTS['ob-close'] = () => { const el = document.getElementById('ob'); if (el) el.remove(); location.hash = '#/t/home'; rerender(); };
 ACTS['ob-open'] = () => obStart();
