@@ -6704,10 +6704,15 @@ ACTS['bd-go'] = async t => {
     const ors = gts.length ? ['qtype.in.(' + gts.join(',') + ')'] : []; /* v379: curriculum lessons come from the ✓ on the questions page, never auto-picked */
     const qa = sb.from('questions').select(sel).is('owner_id', null).eq('status', 'approved').or(ors.join(',') || 'qtype.in.(general,quick)').limit(3000);
     const qb = sb.from('questions').select(sel).eq('owner_id', T.user.id).eq('status', 'approved').limit(2000);
-    const [a, b, s] = await Promise.all([qa, qb, sb.from('students').select('id,name,approved,class_id').in('class_id', NW.cls).order('name')]);
+    /* v427: bank curriculum questions of the chosen subjects count too (picked ones; whole subject if none picked) */
+    const qc = cus.length ? sb.from('questions').select(sel).is('owner_id', null).eq('status', 'approved').in('curriculum_id', cus).limit(3000) : Promise.resolve({ data: [] });
+    const qp = cus.length ? qPages(() => sb.from('question_picks').select('question_id').order('question_id')).then(r => r, () => ({})) : Promise.resolve({});
+    const [a, b, s, c, p] = await Promise.all([qa, qb, sb.from('students').select('id,name,approved,class_id').in('class_id', NW.cls).order('name'), qc, qp]);
     if (s.error) throw s.error;
+    const pk = new Set(((p && p.data) || []).map(x => x.question_id)), cq = (c.data || []).filter(q => (q.qtype || 'curriculum') === 'curriculum');
+    const pkCu = new Set(cq.filter(q => pk.has(q.id)).map(q => q.curriculum_id)), cq2 = cq.filter(q => !pkCu.has(q.curriculum_id) || pk.has(q.id));
     const cuSet = new Set(cus), les = {}; cus.forEach(cu => { les[cu] = nwLesGet(cu); });
-    let pool = [...(a.data || []), ...(b.data || [])].filter(q => Array.isArray(q.options) && q.options.length >= 2 && !(q.payload && (q.payload.kind === 'order' || q.payload.kind === 'game')) &&
+    let pool = [...(a.data || []), ...(b.data || []), ...cq2].filter(q => Array.isArray(q.options) && q.options.length >= 2 && !(q.payload && (q.payload.kind === 'order' || q.payload.kind === 'game')) &&
       ((q.qtype || 'curriculum') === 'curriculum' ? cuSet.has(q.curriculum_id) && (!les[q.curriculum_id] || les[q.curriculum_id].includes(q.lesson)) : gts.includes(q.qtype)));
     const seen = new Set(); pool = pool.filter(q => !seen.has(q.id) && seen.add(q.id));
     BD.students = (s.data || []).filter(x => x.approved !== false).map(x => ({ id: x.id, n: String(x.name || '').trim(), ok: 0 }));
