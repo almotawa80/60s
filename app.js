@@ -1144,15 +1144,17 @@ function demoStart(th){
   document.body.classList.remove('wide');
   setTheme(['kids', 'mid', 'uni'].includes(th) ? th : 'mid'); applyMode();
   S.demo = { pts: 0, ok: 0 };
-  try { const dq = JSON.parse(LS.get('mc_demoq') || 'null'); S.demoQ = Array.isArray(dq) && dq.length >= 4 ? dq : null; } catch(e){ S.demoQ = null; }
+  try { const dq = JSON.parse(LS.get('mc_demoq') || 'null'); S.demoQ = Array.isArray(dq) && (dq.length >= 4 || dq.length === 1) ? dq : null; } catch(e){ S.demoQ = null; }
   S.home = { class: { name: 'صف تجريبي', size: 24, style: th }, student: { name: 'طالب تجريبي' }, competition: { days_left_points: 4 }, phase: 'points', total_points: 120, rank: 3, gap: 40, streak: 2, wrong_count: 0, badges: [{ k: 'fast', n: 4 }, { k: 'first', n: 1 }, { k: 'practice', n: 9 }, { k: 'streak', n: 2 }, { k: 'perfect', n: 0 }, { k: 'correct', n: 18 }] };
+  /* one question only (admin «جرّب السؤال»): straight into the question, no home screen */
+  if (S.demoQ && S.demoQ.length === 1) { S.log = []; S.gen = (S.gen || 0) + 1; return demoQ(1); }
   renderHome();
 }
 function demoQ(pos){
   if (pos === 1) { S.demo.pts = 0; S.demo.ok = 0; }
   const q = (S.demoQ || DEMO_Q)[pos - 1], ord = q.payload && q.payload.kind === 'order';
   S.demoPerm = ord ? q.options.map((_, k) => k).sort(() => Math.random() - .5) : null;
-  showQuestion({ attempt_id: 0, kind: 'practice', position: pos, total: 4, seconds_left: 15, question: { body: q.body, options: ord ? S.demoPerm.map(k => q.options[k]) : q.options, payload: q.payload || null } });
+  showQuestion({ attempt_id: 0, kind: 'practice', position: pos, total: (S.demoQ || DEMO_Q).length, seconds_left: 15, question: { body: q.body, options: ord ? S.demoPerm.map(k => q.options[k]) : q.options, payload: q.payload || null } });
 }
 function demoSubmit(idx, seq){
   const st = S.cur, q = (S.demoQ || DEMO_Q)[st.position - 1], ok = seq ? seq.every((x, k) => S.demoPerm[x] === k) : idx === q.c, d = S.demo;
@@ -1167,7 +1169,7 @@ function demoSubmit(idx, seq){
   else if (ok) FX.correct(btns[q.c], pts); else FX.wrong(idx != null ? btns[idx] : null, idx == null);
   const pop = document.getElementById('pop');
   if (pop) { pop.className = 'pts-pop ' + (ok ? 'good' : 'bad'); pop.textContent = ok ? '+' + pts + ' نقطة' : (idx == null ? 'انتهى الوقت' : 'إجابة غير صحيحة'); }
-  setTimeout(() => { if (S.demo !== d || S.cur !== st || !$app.querySelector('.play')) return; if (st.position >= 4) showResult({ kind: 'practice', correct_count: S.demo.ok, total_points: S.demo.pts }); else demoQ(st.position + 1); }, 1500);
+  setTimeout(() => { if (S.demo !== d || S.cur !== st || !$app.querySelector('.play')) return; const n = (S.demoQ || DEMO_Q).length; if (n === 1) { const x = document.getElementById('pv-x'); if (x) x.click(); return; } if (st.position >= n) showResult({ kind: 'practice', correct_count: S.demo.ok, total_points: S.demo.pts }); else demoQ(st.position + 1); }, 1500);
 }
 
 /* ---- play ---- */
@@ -1249,7 +1251,7 @@ function showQuestion(st){
   runTimer(st.seconds_left, st.secs);
   if (isGame) mgStart(st);
 }
-/* ---- memory mini-games: question payload {kind:'game', g:'squares'|'seq'|'pairs'|'where'|'cups', lv} ----
+/* ---- memory mini-games: question payload {kind:'game', g:'squares'|'seq'|'pairs'|'where'|'cups'|'diff'|'path'|'digits', lv} ----
    options are ['نجحت','ما نجحت'] with correct_index 0: the client plays the game and submits 0 (won) or 1 (lost). The round timer runs the whole time. */
 const MG = { tap: null };
 const mgSleep = ms => new Promise(r => setTimeout(r, ms));
@@ -1317,6 +1319,44 @@ async function mgStart(st){
     mgSay('وين كان ' + E[t] + ' ؟');
     MG.tap = i => { pos.forEach((c, j) => { cell(c).textContent = E[j]; });
       if (i === pos[t]) { cell(i).classList.add('ok'); mgEnd(true); } else { cell(i).classList.add('no'); cell(pos[t]).classList.add('ok'); mgEnd(false); } };
+  } else if (p.g === 'diff') {
+    /* what changed? shapes show, hide for a moment, come back with one of them replaced */
+    const E = ['🍎', '🚗', '📚', '⚽', '🌙', '⭐', '🐪', '🌴', '🕌', '🎈', '🐟', '🦅'], k = at([3, 4, 5, 6]), pos = mgPick(9, k), em = mgPick(E.length, k + 1).map(i => E[i]), t = Math.floor(Math.random() * k);
+    box.innerHTML = mgGrid(3); mgSay('احفظ الأشكال');
+    await mgSleep(300); if (!live()) return; pos.forEach((c, i) => { cell(c).textContent = em[i]; });
+    await mgSleep(1300 + k * 350); if (!live()) return; pos.forEach(c => { cell(c).textContent = ''; });
+    await mgSleep(450); if (!live()) return; pos.forEach((c, i) => { cell(c).textContent = i === t ? em[k] : em[i]; });
+    mgSay('أي شكل تغيّر؟');
+    MG.tap = i => { if (!pos.includes(i)) return;
+      if (i === pos[t]) { cell(i).classList.add('ok'); mgEnd(true); } else { cell(i).classList.add('no'); cell(pos[t]).classList.add('ok'); mgEnd(false); } };
+  } else if (p.g === 'path') {
+    /* a connected path lights up step by step on a 4x4 grid; walk it again in the same order */
+    const n = 4, k = at([4, 5, 6, 7]); let pt = [], pos = 0;
+    for (let tries = 0; tries < 200 && pt.length !== k; tries++) { pt = [Math.floor(Math.random() * 16)];
+      while (pt.length < k) { const c = pt[pt.length - 1], x = c % n, y = (c - x) / n;
+        const nb = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]].filter(([a, b]) => a >= 0 && b >= 0 && a < n && b < n).map(([a, b]) => b * n + a).filter(v => !pt.includes(v));
+        if (!nb.length) break; pt.push(nb[Math.floor(Math.random() * nb.length)]); } }
+    box.innerHTML = mgGrid(n); mgSay('تابع الطريق');
+    await mgSleep(400);
+    for (const c of pt) { if (!live()) return; cell(c).classList.add('lit'); FX.tick(); await mgSleep(330); }
+    await mgSleep(500); if (!live()) return; pt.forEach(c => cell(c).classList.remove('lit'));
+    mgSay('امشِ نفس الطريق بالضغط أو السحب'); box.firstChild.classList.add('drag');
+    MG.tap = i => { if (cell(i).classList.contains('ok')) return;
+      if (i !== pt[pos]) { cell(i).classList.add('no'); pt.forEach(c => { if (c !== i) cell(c).classList.add('lit'); }); return mgEnd(false); }
+      cell(i).classList.add('ok'); pos++; if (pos === pt.length) mgEnd(true); };
+  } else if (p.g === 'digits') {
+    /* digits flash one at a time; type them back in order on a keypad */
+    const k = at([3, 4, 5, 6]), d = []; let typed = '';
+    for (let i = 0; i < k; i++) { let x; do { x = Math.floor(Math.random() * 10); } while (x === d[i - 1]); d.push(x); }
+    box.innerHTML = '<div class="mg-big" id="mg-big"></div>'; mgSay('احفظ الأرقام بالترتيب');
+    const big = box.firstChild;
+    await mgSleep(400);
+    for (const x of d) { if (!live()) return; big.textContent = x; FX.tick(); await mgSleep(600); if (!live()) return; big.textContent = ''; await mgSleep(150); }
+    if (!live()) return; mgSay('اكتب الأرقام بالترتيب');
+    box.innerHTML = '<div class="mg-num"><div class="mg-typed" id="mg-typed">' + '·'.repeat(k) + '</div><div class="mg-keys">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(x => '<button type="button" class="mg-k" data-act="mg-c" data-c="' + x + '">' + x + '</button>').join('') + '</div></div>';
+    const out = box.querySelector('.mg-typed');
+    MG.tap = i => { if (i !== d[typed.length]) { out.textContent = d.join(''); out.classList.add('no'); return mgEnd(false); }
+      typed += i; out.textContent = typed + '·'.repeat(k - typed.length); if (typed.length === k) { out.classList.add('ok'); mgEnd(true); } };
   } else {
     const moves = at([4, 6, 8, 10]), sp = at([380, 320, 260, 210]), slot = [0, 1, 2], ball = Math.floor(Math.random() * 3);
     box.innerHTML = '<div class="mg-cups">' + [0, 1, 2].map(i => '<button type="button" class="mg-cup' + (i === ball ? ' ball' : '') + '" data-act="mg-c" data-c="' + i + '" aria-label="كوب" style="--x:' + i + ';transition-duration:' + sp + 'ms"><b></b><i></i></button>').join('') + '</div>';
@@ -4552,9 +4592,13 @@ ACTS['q4-qv'] = t => { const q = QS.glob.find(x => x.id === t.dataset.id); if (!
   q4Open(`<div class="q4-sh"><div class="q4-shh"><button class="q4-x" data-act="${sjOn() ? 'close-modal' : QS.genT ? 'q5-genb' : 'q4-qvb'}" aria-label="رجوع">→</button><h3>السؤال</h3></div>
     <p class="q4-qvb">${esc(q.body)}</p>
     <div class="q4-qvo">${q.options.map((o, k) => `<div class="${!ord && k === q.correct_index ? 'ok' : ''}">${ord ? (k + 1) + '. ' : ''}${esc(o)}${!ord && k === q.correct_index ? ' ✓' : ''}</div>`).join('')}</div>
+    ${ADM.st && ADM.st.is ? '<button class="p3-big" data-act="q4-try">🎮 جرّب السؤال</button>' : ''}
     <button class="p3-big q4-repb" data-act="q4-rep">🚩 فيه غلط؟ بلّغنا</button>
     <button class="p3-ghost muted" data-act="${sjOn() ? 'close-modal' : QS.genT ? 'q5-genb' : 'q4-qvb'}">رجوع</button></div>`); };
 ACTS['q4-qvb'] = () => q4LedSheet(QS.led);
+/* admin: play this one question exactly as a student sees it (no challenge, no points, nothing saved) */
+ACTS['q4-try'] = () => { const q = QS.glob.find(x => x.id === QS.qv); if (!q) return;
+  LS.set('mc_demoq', JSON.stringify([{ body: q.body, options: q.options, c: q.correct_index, payload: q.payload || null }])); closeModals(); themePreview('mid'); };
 ACTS['q4-rep'] = async t => {
   const q = QS.glob.find(x => x.id === QS.qv); if (!q) return;
   const v = await ask('', { title: 'وش الغلط؟', input: '', placeholder: 'مثل: الجواب الصح هو …', ok: 'إرسال', danger: false }); if (!String(v || '').trim()) return;
@@ -6699,7 +6743,7 @@ if ('serviceWorker' in navigator) {
 const BD = { T: 2, split: 'rand', lv: 1, rn: 1, mg: false, teams: [], qs: [], st: 'teams', gen: 0 };
 const BD_LV = [[3, 20, '3 أسئلة', '20 ثانية · ابتدائي'], [4, 15, '4 أسئلة', '15 ثانية · متوسط'], [6, 10, '6 أسئلة', '10 ثواني · تحدي']];
 const BD_COL = [['الأحمر', '#FF453A'], ['الأزرق', '#0A84FF'], ['الأصفر', '#FFD60A'], ['الأخضر', '#30D158']];
-const BD_MG = ['squares', 'seq', 'pairs', 'where', 'cups'];
+const BD_MG = ['squares', 'seq', 'pairs', 'where', 'cups', 'diff', 'path', 'digits'];
 const bdTouch = () => (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
 function bdOpts(){
   const c = (NW.classes || []).find(x => x.id === NW.cls[0]) || {};
