@@ -4099,3 +4099,29 @@ html body.wide.dark .nw-dots i.on{background:#C8102E!important;border-color:#F03
 html body.wide.dark .nw-dots i.on::before{color:#fff}html body.wide.dark .nw-dots i.on::after{color:#fff}
 html body.wide.dark .set-grp .set-row{background:transparent!important}
 html body.wide.dark .set-profile .avatar{box-shadow:0 0 0 3px #140306,0 0 0 5px #C8102E}
+/* v442 student «أنا» page (Khalid's ChatGPT design) */
+html body:not(.wide) .sh.pvx .s-me{position:relative;overflow:hidden;isolation:isolate;background:linear-gradient(160deg,#2a0a10,#121214 70%)!important;border:1.5px solid rgba(200,16,46,.6);box-shadow:0 0 24px rgba(200,16,46,.25);padding:22px 12px 14px!important}
+html body:not(.wide) .sh.pvx .s-me::before{content:"";position:absolute;inset:-60%;z-index:-1;background:repeating-conic-gradient(from 3deg at 50% 38%,rgba(200,16,46,.12) 0 6deg,transparent 6deg 14deg);-webkit-mask:radial-gradient(circle at 50% 38%,#000 8%,transparent 45%);mask:radial-gradient(circle at 50% 38%,#000 8%,transparent 45%)}
+html body:not(.wide) .sh.pvx .s-me-av{width:110px!important;height:110px!important;font-size:44px!important;box-shadow:0 0 0 4px #140306,0 0 0 7px #E3B23C,0 0 26px rgba(227,178,60,.45)!important}
+html body:not(.wide) .sh.pvx .s-me-av.em{font-size:58px!important}
+html body:not(.wide) .sh.pvx .s-me b{font-size:26px;margin-top:8px}
+.s-me-st{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;margin-top:14px}
+.s-me-st span{background:#1a0609;border:1.5px solid rgba(200,16,46,.55);border-radius:18px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.s-me-st small{font-size:12px!important;font-weight:700;color:#E5E5EA!important;opacity:1!important;white-space:nowrap}
+html body:not(.wide) .sh.pvx .s-me-st b{color:#E3B23C;font-size:22px;font-weight:900;margin:0}
+html body:not(.wide) .sh.pvx .s-me-o.s-me-3{display:grid;grid-template-columns:repeat(3,1fr)!important;gap:10px}
+html body:not(.wide) .sh.pvx .s-me-o.s-me-3>button{grid-column:auto!important;min-height:104px;background:linear-gradient(160deg,#24090e,#141416)!important;border:1.5px solid rgba(200,16,46,.55)!important;box-shadow:0 0 14px rgba(200,16,46,.18)!important;font-size:17px}
+.s-me-o.s-me-3 button i{font-size:34px!important;margin-bottom:6px}
+.s-me-l{margin-top:14px;background:linear-gradient(160deg,#1d0b0f,#141416);border:1.5px solid rgba(200,16,46,.45);border-radius:22px;overflow:hidden;padding:0 4px}
+.s-me-l button{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:0 14px;background:none;border:0;color:#fff;font:inherit;font-weight:700;font-size:17px;cursor:pointer;text-align:start}
+.s-me-l button+button{border-top:1px solid #2C2C2E}
+.s-me-l i{font-style:normal;font-size:22px;width:28px;text-align:center}
+.s-me-l .grow{flex:1}
+.s-me-l .chev{direction:ltr;unicode-bidi:isolate;font-style:normal;color:#C7C7CC;font-size:24px}
+.s-me-l .sw{width:52px;height:30px;border-radius:999px;background:#3A3A3C;position:relative;flex:0 0 auto;transition:background .2s}
+.s-me-l .sw::after{content:"";position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:right .2s}
+.s-me-l .sw.on{background:#C8102E;box-shadow:0 0 10px rgba(200,16,46,.6)}.s-me-l .sw.on::after{right:25px}
+html body:not(.wide) .sh.pvx .btn.s-me-t{margin-top:14px}
+.s-me-x{display:flex;justify-content:space-between;margin:16px 6px 6px}
+.s-me-x button{background:none;border:0;color:#C7C7CC;font:inherit;font-weight:700;font-size:16px;padding:8px;cursor:pointer}
+.s-me-x button.dng{color:#FF453A}
