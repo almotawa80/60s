@@ -4286,3 +4286,36 @@ html body .ar-logo:not(#z){width:min(62%,250px)!important;max-width:250px!import
 html body .ar-vs .ar-logo:not(#z){width:min(46%,180px)!important}
 .sh.pvx.ar-find{padding-top:calc(max(18px,env(safe-area-inset-top)) + 150px)!important}
 .ar-vs .a{padding-top:max(140px,calc(env(safe-area-inset-top) + 124px))!important}
+/* v462 teacher login (Khalid's ChatGPT design): rays, gold-framed icon, red glowing card */
+html body .ta:not(#z){position:relative;overflow:hidden;background:#000;isolation:isolate}
+.ta::after{content:"";position:absolute;left:-30%;right:-30%;height:70%;z-index:-1;pointer-events:none;bottom:-45%;background:repeating-conic-gradient(from 2deg at 50% 62%,rgba(226,18,47,.6) 0 5deg,transparent 5deg 12deg);-webkit-mask:radial-gradient(ellipse 50% 50% at 50% 62%,#000 0%,rgba(0,0,0,.45) 45%,transparent 100%);mask:radial-gradient(ellipse 50% 50% at 50% 62%,#000 0%,rgba(0,0,0,.45) 45%,transparent 100%)}
+html body .ta .hero:not(#z){padding:0 0 12px;background:none}
+.ta .ta-hero{display:block;width:100%;max-width:520px;height:auto;margin:0 auto -34px;-webkit-mask:linear-gradient(#000 70%,transparent);mask:linear-gradient(#000 70%,transparent);pointer-events:none}
+html body .ta .hero h1:not(#z){display:flex;align-items:center;justify-content:center;gap:12px;font-size:40px;font-weight:900;font-style:italic;line-height:1.25;margin:0;text-shadow:0 3px 0 rgba(0,0,0,.6)}
+.ta .hero h1::before,.ta .hero h1::after{content:"";flex:0 1 54px;height:22px;background:linear-gradient(#E2122F,#E2122F) 0 0/100% 4px no-repeat,linear-gradient(#E2122F,#E2122F) 0 9px/78% 4px no-repeat,linear-gradient(#E2122F,#E2122F) 0 18px/56% 4px no-repeat;-webkit-mask:linear-gradient(90deg,#000,transparent);mask:linear-gradient(90deg,#000,transparent)}
+.ta .hero h1::before{transform:scaleX(-1)}
+html body .ta .hero p:not(#z){display:flex;align-items:center;justify-content:center;gap:12px;font-size:17px;font-weight:700;color:#E5E5EA!important;margin:4px 0 0}
+.ta .hero p::before,.ta .hero p::after{content:"";flex:0 1 50px;height:3px;border-radius:2px;background:linear-gradient(90deg,#E3B23C,transparent)}
+.ta .hero p::before{transform:scaleX(-1)}
+html body .ta .card:not(#z){background:rgba(14,6,8,.92)!important;border:2px solid #E2122F!important;border-radius:28px;padding:20px 18px;box-shadow:0 0 22px rgba(226,18,47,.6),inset 0 0 18px rgba(226,18,47,.12)!important}
+html body .ta .tabs:not(#z){background:#1C1C1E!important;border:1.5px solid #3A3A3C;border-radius:16px;padding:0;overflow:visible}
+html body .ta .tabs button:not(#z){min-height:50px;border-radius:15px;font-size:17px;font-weight:800;color:#fff!important}
+html body .ta .tabs button.on:not(#z){background:linear-gradient(#F0183A,#B50E28)!important;box-shadow:0 0 0 2px #E3B23C,0 0 16px rgba(226,18,47,.6)!important}
+html body .ta .field label:not(#z){color:#fff;font-weight:800;font-size:16px}
+html body .ta .input:not(#z){background:#1E1E21!important;border:1.5px solid #E2122F!important;border-radius:16px;min-height:54px;box-shadow:0 0 10px rgba(226,18,47,.35)}
+html body .ta .input:focus:not(#z){border-color:#E3B23C!important}
+html body .ta .link.forgot:not(#z){align-self:flex-start;color:#E5E5EA!important;padding-bottom:5px;border-bottom:2px solid #E3B23C;border-radius:0}
+html body .ta .btn[type=submit]:not(#z){min-height:66px;border-radius:20px;font-size:26px;font-weight:900;background:linear-gradient(#F0183A,#B50E28)!important;border:2.5px solid #E3B23C!important;box-shadow:0 0 22px rgba(226,18,47,.6)!important;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+html body .ta .ta-stu:not(#z){min-height:60px;border-radius:20px;background:rgba(10,10,10,.85);border:2.5px solid #E3B23C;font-size:19px;font-weight:900;box-shadow:0 0 14px rgba(227,178,60,.3)}
+.ta .pw-eye{opacity:1;filter:grayscale(1) brightness(2)}
+html body .ta .hero h1:not(#z){white-space:nowrap;font-size:36px;gap:10px;padding:0 14px}
+html body .ta .hero p:not(#z){white-space:nowrap;font-size:15px;padding:0 14px;margin-top:0}
+.ta .hero h1::before,.ta .hero h1::after,.ta .hero p::before,.ta .hero p::after{flex:1 1 0;max-width:60px;min-width:16px}
+.ta .ta-hero{width:86%;margin-bottom:-40px}
+html body .ta .card:not(#z){padding:16px 16px;gap:10px}
+html body .ta .btn[type=submit]:not(#z){min-height:58px;font-size:23px}
+html body .ta .ta-stu:not(#z){min-height:54px;font-size:17px;margin-top:12px}
+html body .ta .pad:not(#z){padding-top:4px}
+.ta .ta-hero{width:100%;margin-bottom:-52px;-webkit-mask:radial-gradient(ellipse 62% 62% at 50% 44%,#000 55%,transparent 100%);mask:radial-gradient(ellipse 62% 62% at 50% 44%,#000 55%,transparent 100%)}
+.ta .hero h1,.ta .hero p{position:relative;z-index:1}
+.ta .hero h1::before,.ta .hero h1::after,.ta .hero p::before,.ta .hero p::after{max-width:74px}

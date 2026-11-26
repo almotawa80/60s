@@ -1779,7 +1779,7 @@ function go(h){ if (location.hash === h) route(); else location.hash = h; }
 function teacherAuth(){
   const up = T.authMode === 'up';
   $app.innerHTML = `
-  <div class="ta"><div class="hero">${LOGO}<h1>اهزم الدقيقة</h1><p>منصة تحديات تعليمية للمدارس</p></div>
+  <div class="ta"><div class="hero"><img class="ta-hero" src="img/logo-hero.webp" alt="" draggable="false"><h1>اهزم الدقيقة</h1><p>منصة تحديات تعليمية للمدارس</p></div>
   <div class="pad col"><form class="card col" data-form="t-auth" autocomplete="on" method="post" action="#">
     <div class="tabs"><button type="button" class="${up ? '' : 'on'}" data-act="t-mode" data-mode="in">تسجيل الدخول</button><button type="button" class="${up ? 'on' : ''}" data-act="t-mode" data-mode="up">إنشاء حساب</button></div>
     ${up ? '<div class="field"><label for="a-name">الاسم</label><input class="input" id="a-name" name="name" required></div>' : ''}
