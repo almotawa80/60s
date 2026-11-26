@@ -24,6 +24,7 @@ const ERR = {
   no_questions: 'لم يتم تحديد أسئلة',
   invalid_code: 'الرمز غير صحيح، تأكد منه وحاول مرة أخرى',
   invalid_session: 'انتهت الجلسة، أدخل الرمز من جديد',
+  del_pending: 'حسابك بينحذف',
   already_played_today: 'أنهيت جولتك الرسمية اليوم، عد غداً',
   official_not_open: 'الجولة الرسمية غير متاحة الآن',
   no_competition: 'ما فيه تحدي لصفك الحين',
@@ -280,6 +281,12 @@ function stageOf(name){
   if (!g) { const W = ['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر','الحادي عشر','الثاني عشر']; for (let i = W.length - 1; i >= 0; i--) if (t.indexOf(W[i]) >= 0) { g = i + 1; break; } }
   return !g ? 'm' : g <= 5 ? 'p' : g <= 9 ? 'm' : 's';
 }
+/* v457: account deletion requested → locked screen with 14-day undo */
+async function delPending(){ let d = null; try { d = await rpc('student_delete_status', { p_token: S.token }); } catch(e){}
+  const u = d && d.until ? new Date(d.until).toLocaleDateString('ar-KW-u-nu-latn', { day: 'numeric', month: 'long' }) : '';
+  $app.innerHTML = '<div class="sh pvx s-delp"><div class="s-delp-i">🗑️</div><h2>حسابك بينحذف</h2><p>' + (u ? 'ينحذف نهائياً يوم ' + esc(u) + '.' : 'ينحذف نهائياً بعد 14 يوم.') + '<br>تقدر تتراجع قبلها.</p>' +
+    '<button class="btn" data-act="s-del-undo">تراجع عن الحذف</button><button class="btn ghost" data-act="s-logout">خروج</button></div>'; }
+ACTS['s-del-undo'] = async t => { t.disabled = true; try { await rpc('student_delete_cancel', { p_token: S.token }); toast('رجع حسابك 👍'); loadHome(); } catch(e){ t.disabled = false; toast(errMsg(e)); } };
 async function loadHome(){
   stopTimer(); S.gen = (S.gen || 0) + 1; clearTimeout(S.nextT); S.cur = null;
   document.body.classList.remove('wide');
@@ -287,6 +294,7 @@ async function loadHome(){
   try { S.home = await rpc('student_home', { p_token: S.token }); }
   catch(e){
     if (String(e.message || '').includes('invalid_session')) { profSave(profs().filter(p => p.token !== S.token)); LS.del('mc_token'); S.token = null; return studentLogin(); }
+    if (String(e.message || '').includes('del_pending')) return delPending();
     $app.innerHTML = '<div class="pad col"><div class="err">' + esc(errMsg(e)) + '</div><button class="btn" data-act="s-reload">إعادة المحاولة</button></div>';
     return;
   }
@@ -977,9 +985,9 @@ ACTS['s-menu'] = () => {
 ACTS['s-sound-row'] = t => { const on = FX.toggle(); t.innerHTML = ic(on ? 'sound' : 'mute') + '<span>الصوت: ' + (on ? 'مفعّل' : 'مكتوم') + '</span>'; };
 ACTS['s-del-me'] = async () => {
   if (S.demo) return toast('هذا تجريبي');
-  if (!await ask('تنحذف نقاطك وكل بياناتك، وما ترجع. اكتب «حذف» للتأكيد.', { title: 'حذف حسابك؟', input: '', require: 'حذف', ok: 'حذف حسابي', danger: true })) return;
+  if (!await ask('ينقفل حسابك الحين، وينحذف نهائياً بعد 14 يوم. تقدر تتراجع قبلها. اكتب «حذف» للتأكيد.', { title: 'حذف حسابك؟', input: '', require: 'حذف', ok: 'حذف حسابي', danger: true })) return;
   try { await rpc('student_delete_me', { p_token: S.token }); } catch(e){ return toast(errMsg(e)); }
-  closeModals(); ACTS['s-logout'](); toast('تم حذف حسابك');
+  closeModals(); delPending();
 };
 ACTS['s-logout-ask'] = async () => { const code = LS.get('mc_code');
   if (!await ask('تحتاجه عشان ترجع.', { title: code ? 'صوّر رمزك قبل ما تطلع' : 'تسجيل الخروج؟', html: code ? `<div class="dlg-code" dir="ltr">${esc(code)}</div><button type="button" class="dlg-cp" data-act="copy" data-v="${esc(code)}">📋 انسخ الرمز</button>` : '', cancel: 'رجوع', ok: 'اطلع', danger: true })) return; closeModals(); ACTS['s-logout'](); };
@@ -1203,6 +1211,7 @@ ACTS['s-start'] = async (t) => {
     if (document.contains(t)) { t.removeAttribute('aria-busy'); t.innerHTML = lbl; }
     toast(errMsg(e));
     if (String(e.message || '').includes('invalid_session')) ACTS['s-logout']();
+    else if (String(e.message || '').includes('del_pending')) delPending();
     else if (/already_played|official_not_open/.test(String(e.message || ''))) loadHome();
   } finally { S.starting = false; }
 };
@@ -2887,7 +2896,7 @@ function classPage(c){
     : st0.length ? `<div class="cp-code"><small>كل طالب له رمز دخول خاص</small><button class="btn cp-share" data-act="c-send">شارك رموز الطلاب</button></div>` : '';
   return `<div class="cp1" data-cid="${c.id}">${box}<div class="cp-list">` +
     nw.map(x => `<div class="cp-row"><span class="grow"><b>${esc(x.name)}</b> <span class="cn-tag">جديد</span></span><button class="cn-ok" data-act="s-approve" data-id="${x.id}" aria-label="موافقة">✓</button><button class="cn-no" data-act="s-reject" data-id="${x.id}" aria-label="حذف">✕</button></div>`).join('') +
-    st.map((x, i) => `<button class="cp-row" data-act="s-card" data-id="${x.id}"><span class="cp-rk">${i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}</b></span><span class="chev">${ic('back')}</span></button>`).join('') +
+    st.map((x, i) => `<button class="cp-row" data-act="s-card" data-id="${x.id}"><span class="cp-rk">${i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}</b>${x.del_req ? ' <span class="cn-tag cn-del">طلب حذف</span>' : ''}</span><span class="chev">${ic('back')}</span></button>`).join('') +
     `<form class="cl-add1 cp-add" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="اكتب اسم طالب" autocomplete="off" enterkeyhint="send"><button class="btn sm" type="submit">إضافة</button></form>` +
     `<button class="cp-many" data-act="aw-start" data-cid="${c.id}">📷 أضف أسماء كثيرة من صورة أو Excel</button></div></div>`;
 }

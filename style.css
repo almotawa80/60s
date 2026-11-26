@@ -4270,3 +4270,8 @@ html body .bg2.on .bg2-md:not(#z)::after{background:radial-gradient(circle at 50
 .ar-pfp{display:flex;flex-direction:column;align-items:center;gap:8px;margin:6px auto 4px;border:0;background:none;color:#F5B72B;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
 .ar-pfp .ar-av{width:110px;height:110px;font-size:56px}
 .ar-pfp span{border:1.5px solid #E3B23C;border-radius:999px;padding:4px 16px}
+/* v457 deletion pending */
+.s-delp{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px max(24px,env(safe-area-inset-left));text-align:center}
+.s-delp-i{font-size:64px}.s-delp h2{margin:0;font-size:28px}.s-delp p{margin:0 0 10px;color:#C7C7CC;line-height:1.8}
+.s-delp .btn{min-width:240px}
+.cn-tag.cn-del{background:#3a0a12;color:#FF6B7F}
