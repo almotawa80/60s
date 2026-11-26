@@ -1585,7 +1585,7 @@ const QS = { list: [], glob: [], globalCount: 0, stats: {}, q: '', sel: new Set(
 const TYPE_AR = { curriculum: 'منهج', general: 'عام', quick: 'سرعة بديهة', memory: 'ذاكرة' };
 const LEVEL_AR = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' };
 const STATUS_AR = { draft: 'مسودة', approved: 'متاح', rejected: 'مرفوض' };
-const STYLE_AR = { kids: 'مرح · ابتدائي', mid: 'مرح قليلاً · متوسط', uni: 'هادئ · ثانوي وجامعة' };
+const STYLE_AR = { kids: 'مرح · ابتدائي', mid: 'مرح قليلاً · متوسط', uni: 'هادئ · ثانوي' };
 const STYLE_SW = { kids: 'linear-gradient(135deg,#FFD9B0,#E3262F)', mid: 'linear-gradient(135deg,#C8102E,#F5B72B)', uni: 'linear-gradient(135deg,#FAF6F3,#7A1220)' };
 const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png?i=10" alt=""></div>';
 const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['new', 'تحدي', 'plus'], ['questions', 'الأسئلة', 'help'], ['settings', 'الإعدادات', 'gear']];
@@ -1779,7 +1779,7 @@ function go(h){ if (location.hash === h) route(); else location.hash = h; }
 function teacherAuth(){
   const up = T.authMode === 'up';
   $app.innerHTML = `
-  <div class="ta"><div class="hero">${LOGO}<h1>اهزم الدقيقة</h1><p>منصة تحديات تعليمية للمدارس والجامعات</p></div>
+  <div class="ta"><div class="hero">${LOGO}<h1>اهزم الدقيقة</h1><p>منصة تحديات تعليمية للمدارس</p></div>
   <div class="pad col"><form class="card col" data-form="t-auth" autocomplete="on" method="post" action="#">
     <div class="tabs"><button type="button" class="${up ? '' : 'on'}" data-act="t-mode" data-mode="in">تسجيل الدخول</button><button type="button" class="${up ? 'on' : ''}" data-act="t-mode" data-mode="up">إنشاء حساب</button></div>
     ${up ? '<div class="field"><label for="a-name">الاسم</label><input class="input" id="a-name" name="name" required></div>' : ''}
@@ -2095,7 +2095,7 @@ async function tHome(){
 }
 ACTS['h-view'] = t => { LS.set('mc_hv', t.dataset.v); document.querySelectorAll('.hv button').forEach(b => b.classList.toggle('on', b === t)); const h = document.querySelector('.hcs'); if (h) h.className = 'hcs hv-' + t.dataset.v; haptic(); };
 /* ---- first-time profile: 3 quick skippable screens (stage, subjects, school + district) ---- */
-const OB_STAGES = ['ابتدائي', 'متوسط', 'ثانوي', 'جامعة'];
+const OB_STAGES = ['ابتدائي', 'متوسط', 'ثانوي'];
 const OB_DIST = ['العاصمة', 'حولي', 'الفروانية', 'الجهراء', 'الأحمدي', 'مبارك الكبير'];
 const OB = {};
 /* v194: onboarding is a challenge round (no skip): stage → subjects → grade → section → profile summary (tap to edit, «المزيد» = school/district) → class code */
@@ -2619,7 +2619,7 @@ ACTS['h-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = '�
 ACTS['h-res-idle'] = t => { RS.sort = 'idle'; RS.q = ''; location.hash = '#/t/results/' + t.dataset.c; };
 
 /* ---- quick-start wizard ---- */
-const STAGES = [['primary', 'ابتدائي', 'الصفوف 1–5', 'kids', 'star'], ['middle', 'متوسط', 'الصفوف 6–9', 'mid', 'layers'], ['secondary', 'ثانوي', 'الصفوف 10–12', 'mid', 'chart'], ['university', 'جامعة', 'طلبة الجامعة', 'uni', 'trophy']];
+const STAGES = [['primary', 'ابتدائي', 'الصفوف 1–5', 'kids', 'star'], ['middle', 'متوسط', 'الصفوف 6–9', 'mid', 'layers'], ['secondary', 'ثانوي', 'الصفوف 10–12', 'mid', 'chart']];
 const QTYPES = [['curriculum', 'المنهج', 'أسئلة من مادتك', 'layers'], ['general', 'معلومات عامة', 'ثقافة ومعرفة', 'help'], ['quick', 'سرعة بديهة', 'حساب وألغاز', 'clock'], ['memory', 'الذاكرة', 'تذكّر وترتيب', 'star']];
 const SUBJECTS = ['عام', 'اللغة العربية', 'الرياضيات', 'العلوم', 'التربية الإسلامية', 'اللغة الإنجليزية', 'الاجتماعيات', 'الحاسوب', 'أخرى'];
 const METHODS = [['manual', 'إضافة يدوية', 'اكتب اسم الصف وأسماء الطلبة', 'edit'], ['file', 'رفع ملف Excel', 'عدة صفوف دفعة واحدة', 'upload'], ['self', 'يسجّل الطلبة عبر الرابط', 'رابط يسجل به الطلبة بأنفسهم', 'user']];
@@ -3218,7 +3218,7 @@ ACTS['c-del'] = async t => {
 const GRADES = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر', 'الحادي عشر', 'الثاني عشر'];
 const genderSeg = (name, cur, opts) => `<div class="tabs seg-g">${opts.map(x => `<label class="${(cur || '') === x[0] ? 'on' : ''}"><input type="radio" name="${name}" value="${x[0]}" ${(cur || '') === x[0] ? 'checked' : ''}>${x[1]}</label>`).join('')}</div>`;
 /* new class: stage → grade → section → gender, name builds itself */
-const NC_ST = [['primary', 'ابتدائي', [1, 2, 3, 4, 5]], ['middle', 'متوسط', [6, 7, 8, 9]], ['secondary', 'ثانوي', [10, 11, 12]], ['university', 'جامعة', [1, 2, 3, 4]]];
+const NC_ST = [['primary', 'ابتدائي', [1, 2, 3, 4, 5]], ['middle', 'متوسط', [6, 7, 8, 9]], ['secondary', 'ثانوي', [10, 11, 12]]];
 const UNI_Y = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة'];
 const NC = {};
 function ncName(){ if (NC.custom) return NC.custom; return cnameOf(NC.stage, NC.grade, NC.sec); }
@@ -3736,7 +3736,7 @@ ACTS['cp-end'] = async t => {
   const { error } = await sb.from('competitions').update({ status: 'finished' }).eq('group_id', t.dataset.g);
   if (error) return toast(errMsg(error)); await tClasses();
 };
-const CF_STYLES = [['kids', 'مرح', 'ابتدائي'], ['mid', 'مرح قليلاً', 'متوسط'], ['uni', 'هادئ', 'ثانوي وجامعة']];
+const CF_STYLES = [['kids', 'مرح', 'ابتدائي'], ['mid', 'مرح قليلاً', 'متوسط'], ['uni', 'هادئ', 'ثانوي']];
 function compForm(){
   const isNew = T.compEdit === 'new', t = todayKW();
   const g = isNew ? null : CL.allComps.find(c => c.group_id === T.compEdit);
