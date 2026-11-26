@@ -5947,28 +5947,43 @@ function acVal(k){
   if (k === 'sj') return mySubjects().map(v => SUBJ_EMOJI[v] || '📘').join(' ');
   return SG('district') || '';
 }
+function acPanel(k){
+  const chip = (kk, v, l, on, e) => `<button type="button" class="ac-c${on ? ' on' : ''}" data-act="ac-pick" data-k="${kk}" data-v="${esc(v)}">${e ? `<span>${e}</span>` : ''}${esc(l)}</button>`;
+  if (k === 'n') return `<input class="input" id="ac-in" data-k="n" value="${esc(T.name || '')}" maxlength="60" enterkeyhint="done">`;
+  if (k === 's') return `<input class="input" id="ac-in" data-k="s" value="${esc(SG('school') || '')}" maxlength="80" placeholder="اسم المدرسة" enterkeyhint="done">`;
+  if (k === 'p') return `<div class="ac-ph"><span dir="ltr">+965</span><input class="input" id="ac-in" data-k="p" type="tel" inputmode="tel" dir="ltr" maxlength="16" value="${esc(String(SG('phone') || '').replace(/^\+965/, ''))}" placeholder="XXXXXXXX"></div><small class="ac-hint">نستخدمه للتواصل معك فقط</small>`;
+  if (k === 't') return `<div class="ac-g g3">${AC_TITLES.map(x => chip('t', x[0], x[1], (SG('prof_title') || '') === x[0])).join('')}</div>`;
+  if (k === 'd') return `<div class="ac-g g2">${OB_DIST.map(v => chip('d', v, v, SG('district') === v)).join('')}</div>`;
+  if (k === 'st') { const st = String(SG('prof_stage') || '').split('|'); return `<div class="ac-g g3">${OB_STAGES.map(v => chip('st', v, v, st.includes(v))).join('')}</div>`; }
+  const sj = mySubjects(); return `<div class="ac-g g2">${SUBJECTS.filter(v => v !== 'عام' && v !== 'أخرى').map(v => chip('sj', v, v, sj.includes(v), SUBJ_EMOJI[v] || '📘')).join('')}</div>`;
+}
 function acRowsHtml(){
-  const row = x => { const v = acVal(x[0]); return `<button class="ac-row" data-act="ac-edit" data-k="${x[0]}"><span>${x[1]}</span><b${x[0] === 'p' ? ' dir="ltr"' : ''}>${v ? esc(v) : '<i>إضافة</i>'}</b><em>‹</em></button>`; };
-  const g = ks => `<div class="ac-grp">${AC_ROWS.filter(x => ks.includes(x[0])).map(row).join('')}</div>`;
-  return g(['n','t','s','p']) + `<div class="ac-grp"><div class="ac-row ac-ro"><span>البريد</span><b dir="ltr">${esc(T.user.email || '')}</b></div></div>` + g(['st','sj','d']);
+  const f = (k, lab, inner) => `<label class="ac-fl"><span>${lab}</span>${inner}</label>`;
+  const sel = (k, opts, cur) => `<select class="ac-sel" data-k="${k}">${opts.map(o => `<option value="${esc(o[0])}"${o[0] === cur ? ' selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`;
+  const st = String(SG('prof_stage') || '').split('|'), open = AC.open === 'sj', sjv = acVal('sj');
+  return `<div class="ac-grp">
+    ${f('n', 'الاسم', `<input class="ac-in" data-k="n" value="${esc(T.name || '')}" maxlength="60" enterkeyhint="done">`)}
+    ${f('t', 'اللقب', sel('t', AC_TITLES, SG('prof_title') || ''))}
+    ${f('s', 'المدرسة', `<input class="ac-in" data-k="s" value="${esc(SG('school') || '')}" maxlength="80" placeholder="اسم المدرسة" enterkeyhint="done">`)}
+    ${f('p', 'الجوال', `<span class="ac-pre" dir="ltr">+965</span><input class="ac-in" data-k="p" type="tel" inputmode="tel" dir="ltr" maxlength="16" value="${esc(String(SG('phone') || '').replace(/^\+965/, ''))}" placeholder="XXXXXXXX">`)}
+  </div>
+  <div class="ac-grp"><div class="ac-fl ac-ro"><span>البريد</span><b dir="ltr">${esc(T.user.email || '')}</b></div></div>
+  <div class="ac-grp">
+    <div class="ac-fl ac-st"><span>المرحلة</span><div class="ac-g g3">${OB_STAGES.map(v => `<button type="button" class="ac-c${st.includes(v) ? ' on' : ''}" data-act="ac-pick" data-k="st" data-v="${esc(v)}">${esc(v)}</button>`).join('')}</div></div>
+    <button class="ac-row${open ? ' open' : ''}" data-act="ac-edit" data-k="sj"><span>المواد</span><b>${sjv || '<i>إضافة</i>'}</b><em>‹</em></button>${open ? `<div class="ac-ex">${acPanel('sj')}</div>` : ''}
+    ${f('d', 'المنطقة', sel('d', [['', 'اختر']].concat(OB_DIST.map(v => [v, v])), SG('district') || ''))}
+  </div>`;
 }
 function tMyProfile(){
+  AC.open = null;
   view('ملفي', `<div class="ac-page"><button class="prof-av ac-pav" data-act="av-menu" aria-label="تغيير الصورة">${avatarHtml('prof-big')}<span class="prof-cam">${ic('edit')}</span></button><div class="ac-rows">${acRowsHtml()}</div><p class="ac-note">المدرسة والمادة واللقب تظهر للطلبة في ملفهم.</p></div>`, 'settings', '', '#/t/account');
 }
+const acDraw = () => { const r = document.querySelector('.ac-rows'); if (r) { const y = scrollY; r.innerHTML = acRowsHtml(); scrollTo(0, y); } };
 ACTS['ac-edit'] = t => {
-  const k = t.dataset.k, lab = (AC_ROWS.find(x => x[0] === k) || [])[1] || '';
-  const chip = (kk, v, l, on, e) => `<button type="button" class="ac-c${on ? ' on' : ''}" data-act="ac-pick" data-k="${kk}" data-v="${esc(v)}">${e ? `<span>${e}</span>` : ''}${esc(l)}</button>`;
-  let body;
-  if (k === 'n') body = `<input class="input" name="v" value="${esc(T.name || '')}" maxlength="60" required>`;
-  else if (k === 's') body = `<input class="input" name="v" value="${esc(SG('school') || '')}" maxlength="80" placeholder="اسم المدرسة">`;
-  else if (k === 'p') body = `<div class="ac-ph"><span dir="ltr">+965</span><input class="input" name="v" type="tel" inputmode="tel" dir="ltr" maxlength="16" value="${esc(String(SG('phone') || '').replace(/^\+965/, ''))}" placeholder="XXXXXXXX"></div><small class="ac-hint">نستخدمه للتواصل معك فقط</small>`;
-  else if (k === 't') body = `<div class="ac-g g3">${AC_TITLES.map(x => chip('t', x[0], x[1], (SG('prof_title') || '') === x[0])).join('')}</div>`;
-  else if (k === 'd') body = `<div class="ac-g g2">${OB_DIST.map(v => chip('d', v, v, SG('district') === v)).join('')}</div>`;
-  else if (k === 'st') { const st = String(SG('prof_stage') || '').split('|'); body = `<div class="ac-g g3">${OB_STAGES.map(v => chip('st', v, v, st.includes(v))).join('')}</div>`; }
-  else { const sj = mySubjects(); body = `<div class="ac-g g2">${SUBJECTS.filter(v => v !== 'عام' && v !== 'أخرى').map(v => chip('sj', v, v, sj.includes(v), SUBJ_EMOJI[v] || '📘')).join('')}</div>`; }
-  const single = k === 't' || k === 'd';
-  modal(`<form class="ac-sh2" data-form="ac-edit-save" data-k="${k}"><h3>${lab}</h3>${body}${single ? '' : '<button class="btn" type="submit">' + (k === 'st' || k === 'sj' ? 'تم' : 'حفظ') + '</button>'}</form>`);
-  const i = document.querySelector('.ac-sh2 .input'); if (i) setTimeout(() => i.focus(), 120);
+  const k = t.dataset.k;
+  if (AC.open === k) { AC.open = null; return acDraw(); }
+  AC.open = k; acDraw();
+  const el = document.querySelector('.ac-row.open'); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 };
 async function acSave(k, val){
   if (k === 'n') { val = val.trim(); if (!val) return toast('اكتب اسمك'); const { error } = await sb.from('teachers').update({ display_name: val }).eq('id', T.user.id); if (error) return toast(errMsg(error)); T.name = val; }
@@ -5978,19 +5993,23 @@ async function acSave(k, val){
     if (k === 'p') val = val.trim() ? normPhone(val) : '';
     await saveSettings({ [m[k]]: val });
   }
-  closeModals(); toast('انحفظ ✓'); tMyProfile();
 }
-ACTS['ac-pick'] = t => {
+/* fields save when you leave the box; wheels (native selects) and chips save on change; no buttons */
+async function acFlush(el){
+  const i = el || document.activeElement; if (!i || !i.classList || !i.classList.contains('ac-in')) return;
+  const k = i.dataset.k, cur = k === 'n' ? (T.name || '') : k === 's' ? (SG('school') || '') : String(SG('phone') || '').replace(/^\+965/, '');
+  if (i.value.trim() === cur.trim()) return;
+  await acSave(k, i.value); toast('انحفظ ✓');
+}
+ACTS['ac-pick'] = async t => {
   const k = t.dataset.k;
-  if (k === 't') return acSave('t', t.dataset.v);
-  if (k === 'd') return acSave('d', SG('district') === t.dataset.v ? '' : t.dataset.v);
   t.classList.toggle('on'); haptic();
+  await acSave(k, [...t.parentElement.querySelectorAll('.ac-c.on')].map(x => x.dataset.v).join('|'));
+  const b = document.querySelector('.ac-row.open b'); if (b) { const v = acVal(k); b.innerHTML = v ? esc(v) : '<i>إضافة</i>'; }
 };
-ACTS['ac-edit-save'] = f => {
-  const k = f.dataset.k;
-  if (k === 'st' || k === 'sj') return acSave(k, [...f.querySelectorAll('.ac-c.on')].map(x => x.dataset.v).join('|'));
-  return acSave(k, f.v.value);
-};
+document.addEventListener('focusout', e => { if (e.target && e.target.classList && e.target.classList.contains('ac-in')) acFlush(e.target); });
+document.addEventListener('change', async e => { const t = e.target; if (t && t.classList && t.classList.contains('ac-sel')) { await acSave(t.dataset.k, t.value); toast('انحفظ ✓'); } });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('ac-in')) { e.preventDefault(); e.target.blur(); } });
 /* v383 (Khalid): «ملفي» saves by itself: a chip tap saves right away, name/school save when you leave the box. No save button. */
 const AC = {};
 const acDirty = () => { clearTimeout(AC.t); AC.t = setTimeout(acAuto, 500); };
