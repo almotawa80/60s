@@ -2409,7 +2409,7 @@ function nwPkSheet(cu){ const by = q4By(cu), c = CU.list.find(x => x.id === cu) 
     <button class="btn" data-act="nw-pk-done">تم</button></div>`;
   const open = document.querySelector('.modal .nw-pk'); if (open) { const mo = open.closest('.modal'), y = mo.scrollTop; open.outerHTML = html; mo.scrollTop = y; } else modal(html); }
 /* v390 (Khalid «التصميم مختلف»): «غيّر الدروس» in a new challenge opens the very same subject page (tabs, sections, ✓); back returns to the challenge */
-ACTS['nw-pk'] = t => { const cu = t.dataset.cu, c = CU.list.find(x => x.id === cu); if (!c) return; QS.subj3 = c.subject; QS.subjCu = cu; SJ.back = '#/t/new'; go('#/t/subj/' + encodeURIComponent(c.subject)); };
+ACTS['nw-pk'] = t => { const cu = t.dataset.cu, c = CU.list.find(x => x.id === cu); if (!c) return; QS.subj3 = c.subject; QS.subjCu = cu; SJ.back = NW.board ? '#/t/new/board' : '#/t/new'; go('#/t/subj/' + encodeURIComponent(c.subject)); };
 ACTS['nw-pk-t'] = async t => { const l = (NW.pkLs || [])[+t.dataset.i]; if (l == null) return; const qs = q4LesQs(NW.pkCu, l); if (!qs.length) return;
   const on = !qs.some(q4On); haptic(); q4Fast(qs, on, () => nwPkSheet(NW.pkCu)); };
 ACTS['nw-pk-done'] = () => { closeModals(); nwRender(); };
