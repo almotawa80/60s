@@ -202,8 +202,7 @@ function studentLogin(){
   setTheme(th);
   document.body.classList.remove('wide');
   $app.innerHTML = '<div class="sh sl sl-red pv-' + th + '">' +
-    '<div class="hero">' + LOGO +
-    '<h1>اهزم الدقيقة</h1></div>' +
+    '<div class="hero sl-hero"><img src="login-hero.jpg" alt="60s"><h1>اهزم الدقيقة</h1></div>' +
     '<div class="pad col">' + profPicker() +
     '<div class="col sl1"><b class="sl1-q">' + (profs().length ? 'لاعب جديد؟' : 'عندك رمز؟') + '</b>' +
     '<div class="code-wrap"><div class="code-boxes">' + '<div class="code-box"></div>'.repeat(6) + '</div>' +
@@ -1463,7 +1462,7 @@ async function showResult(sm){
     (sm && sm.kind === 'knockout' ? '<p class="center sub">تُحسم المواجهة بعدد الإجابات الصحيحة ثم السرعة، وتظهر النتيجة في الرئيسية عندما ينهي منافسك.</p>' : '') +
     (sm ? '<div class="rs-ok">جاوبت صح على <b>' + (sm.correct_count || 0) + ' من ' + qn + '</b></div>' : '') +
     '<div class="stars-row">' + stars + '</div>' +
-    '<div class="center rs-st2"><div class="big" id="bigpts">0</div><div class="muted">' + (sm && sm.kind === 'practice' ? 'نقاط التدريب (ما تنحسب في الترتيب)' : 'نقاط هذه الجولة') + '</div></div>' +
+    '<div class="center rs-st2"><div class="big" id="bigpts">0</div><div class="muted">' + (sm && sm.kind === 'practice' ? 'نقاط تدريب · ما تنحسب' : 'نقاط هذه الجولة') + '</div></div>' +
     (rankRow ? '<div class="rows card rs-st3">' + rankRow + '</div>' : '') +
     (S.upMsg ? '<div class="s-up">' + S.upMsg + '</div>' : '') +
     (sm && sm.kind !== 'practice' && sm.total_points > 0 ? shBtn('pts', { n: toAr(sm.total_points), p: perfect }, '📤 تحدّى أصحابك') : '') +
