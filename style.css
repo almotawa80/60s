@@ -4072,3 +4072,30 @@ html body[data-theme] .play.pv.pvx .pv-panel .qbox{border-radius:28px!important;
 html body[data-theme] .play.pv.pvx .opts.kc .opt:nth-child(n):not(.good):not(.bad):not(.picked){box-shadow:inset 0 0 0 3px #C8102E,0 4px 0 #5a0a17,0 0 14px rgba(200,16,46,.3)!important}
 html body[data-theme] .play.pv.pvx .pv-panel .qbox{background:linear-gradient(#26090f,#140306)!important;color:#fff!important}
 html body[data-theme] .play.pv.pvx .opts.kc .opt:nth-child(n):not(.good):not(.bad):not(.picked){background:linear-gradient(#2a0d12,#1a0508)!important;color:#fff!important}
+/* v440 teacher redesign (dark): red-glow cards like the student screens */
+html body.wide.dark{--tcard:linear-gradient(160deg,#1d0b0f,#111113 60%);--tbrd:rgba(200,16,46,.55);--tglow:0 0 0 1px rgba(200,16,46,.15),0 8px 22px rgba(200,16,46,.18)}
+html body.wide.dark .t-top{background:radial-gradient(120% 140% at 100% 0,rgba(200,16,46,.38),transparent 60%)!important}
+html body.wide.dark .h-nb:not(#z),html body.wide.dark .hc:not(#z),html body.wide.dark .ch-hero:not(#z),html body.wide.dark .cp-code:not(#z),html body.wide.dark .cp-tile:not(#z),html body.wide.dark .nw-tile:not(#z),html body.wide.dark .set-profile:not(#z),html body.wide.dark .set-grp:not(#z),html body.wide.dark .cp-list:not(#z),html body.wide.dark .ch-a:not(#z),html body.wide.dark .ch-b:not(#z),html body.wide.dark .nw-mode:not(#z){background:var(--tcard)!important;border:1.5px solid var(--tbrd)!important;box-shadow:var(--tglow)!important}
+html body.wide.dark .hc:not(#z){border-width:2px!important}
+html body.wide.dark .hc-ring{filter:drop-shadow(0 0 10px rgba(200,16,46,.5))}
+html body.wide.dark .ch-big b{color:#fff;text-shadow:0 0 18px rgba(200,16,46,.6)}
+html body.wide.dark .ch-bar i{background:linear-gradient(90deg,#F0334F,#B50E28)!important;box-shadow:0 0 10px rgba(240,51,79,.6)}
+html body.wide.dark .ch-b.end{color:#FF6B6B!important}
+html body.wide.dark .cp-code b{font-size:42px!important;letter-spacing:4px;padding:6px 22px;border:2px solid #C8102E;border-radius:16px;background:#140306;box-shadow:0 0 16px rgba(200,16,46,.45);display:inline-block}
+html body.wide.dark .cp-code b::before,html body.wide.dark .cp-code b::after{content:"✦";color:#E3B23C;font-size:20px;vertical-align:middle;margin:0 10px;letter-spacing:0}
+html body.wide.dark .cp-tile{position:relative;padding-top:38px!important}
+html body.wide.dark .cp-tile::before{content:"👥";position:absolute;top:10px;left:0;right:0;text-align:center;font-size:20px}
+html body.wide.dark .cp-tile .cp-pl{color:#30D158!important;font-weight:800}
+html body.wide.dark .cp-row .cp-rk:not(#z){background:#2a0a10!important;color:#fff!important;border:1.5px solid rgba(200,16,46,.6)}
+html body.wide.dark .nw-mode .on{background:linear-gradient(#D7193A,#A50C24)!important;color:#fff!important;box-shadow:0 0 12px rgba(200,16,46,.5)}
+html body.wide.dark .nw-tile.busy{border-color:#E3B23C!important}
+html body.wide.dark .nw-dots{counter-reset:nwd;display:flex!important;justify-content:space-between;align-items:flex-start;position:relative;margin:4px 18px 26px!important;width:auto!important;gap:0!important}
+html body.wide.dark .nw-dots::before{content:"";position:absolute;top:15px;left:16px;right:16px;height:2px;background:#3a3a3c}
+html body.wide.dark .nw-dots i{counter-increment:nwd;position:relative;width:32px!important;height:32px!important;border-radius:50%!important;background:#1c1c1e!important;border:2px solid #48484a;display:flex!important;align-items:center;justify-content:center;font-style:normal;flex:0 0 auto!important;opacity:1!important}
+html body.wide.dark .nw-dots i::before{content:counter(nwd);color:#C7C7CC;font-weight:800;font-size:14px}
+html body.wide.dark .nw-dots i::after{position:absolute;top:36px;white-space:nowrap;font-size:12px;font-weight:700;color:#98989F}
+html body.wide.dark .nw-dots i:nth-child(1)::after{content:"الصف"}html body.wide.dark .nw-dots i:nth-child(2)::after{content:"المادة"}html body.wide.dark .nw-dots i:nth-child(3)::after{content:"المدة"}
+html body.wide.dark .nw-dots i.on{background:#C8102E!important;border-color:#F0334F;box-shadow:0 0 12px rgba(240,51,79,.6)}
+html body.wide.dark .nw-dots i.on::before{color:#fff}html body.wide.dark .nw-dots i.on::after{color:#fff}
+html body.wide.dark .set-grp .set-row{background:transparent!important}
+html body.wide.dark .set-profile .avatar{box-shadow:0 0 0 3px #140306,0 0 0 5px #C8102E}
