@@ -833,7 +833,7 @@ ACTS['ar-play'] = async t => {
     if (AR.gen !== g) { if (live) rpc('arena_leave', { p_token: S.token, p_round: live.round }).catch(() => {}); return; }
     const got = [live || await rpc('arena_start', { p_token: S.token, p_subject: s })];
     if (AR.gen !== g) return;
-    { const hh = document.querySelector('.ar-find h2'), fp = document.getElementById('ar-fp'), fx = document.querySelector('.ar-fx'); if (hh) { hh.textContent = 'لقينا لك خصم! ⚔️'; if (fp) fp.textContent = (got[0].opp.name || '') + ' · مستوى ' + got[0].opp.lvl; document.querySelectorAll('.ar-fx').forEach(x => x.remove()); FX.tick && FX.tick(true); haptic(); await new Promise(z => setTimeout(z, 1100)); if (AR.gen !== g) return; } }
+    haptic();
     AR.r = Object.assign(got[0], { pos: 0, me: [], op: [], emoN: 3, q: got[0].question });
     arPoll(AR.r);
     await arVs(g); if (AR.gen !== g) return;
