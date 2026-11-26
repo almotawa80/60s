@@ -5986,6 +5986,7 @@ ACTS['ac-edit'] = t => {
   const el = document.querySelector('.ac-row.open'); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 };
 async function acSave(k, val){
+  if (admView()) { toast('وضع المشاهدة: فعّل الدعم عشان تعدّل'); acDraw(); return; }
   if (k === 'n') { val = val.trim(); if (!val) return toast('اكتب اسمك'); const { error } = await sb.from('teachers').update({ display_name: val }).eq('id', T.user.id); if (error) return toast(errMsg(error)); T.name = val; }
   else {
     const m = { t: 'prof_title', s: 'school', p: 'phone', st: 'prof_stage', sj: 'prof_subject', d: 'district' };
