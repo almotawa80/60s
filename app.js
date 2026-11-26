@@ -6007,7 +6007,8 @@ ACTS['ac-pick'] = async t => {
   await acSave(k, [...t.parentElement.querySelectorAll('.ac-c.on')].map(x => x.dataset.v).join('|'));
   const b = document.querySelector('.ac-row.open b'); if (b) { const v = acVal(k); b.innerHTML = v ? esc(v) : '<i>إضافة</i>'; }
 };
-document.addEventListener('focusout', e => { if (e.target && e.target.classList && e.target.classList.contains('ac-in')) acFlush(e.target); });
+document.addEventListener('focusin', e => { if (e.target && e.target.classList && e.target.classList.contains('ac-in')) document.body.classList.add('ac-typing'); });
+document.addEventListener('focusout', e => { if (e.target && e.target.classList && e.target.classList.contains('ac-in')) { document.body.classList.remove('ac-typing'); acFlush(e.target); } });
 document.addEventListener('change', async e => { const t = e.target; if (t && t.classList && t.classList.contains('ac-sel')) { await acSave(t.dataset.k, t.value); toast('انحفظ ✓'); } });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('ac-in')) { e.preventDefault(); e.target.blur(); } });
 /* v383 (Khalid): «ملفي» saves by itself: a chip tap saves right away, name/school save when you leave the box. No save button. */

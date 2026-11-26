@@ -4388,3 +4388,6 @@ html body .ac-st .ac-c.on:not(#z){background:linear-gradient(#F0183A,#B50E28)!im
 .ac-st>span:first-child{flex:none}
 .ac-sel{background-position:left center;padding:0 0 0 24px;direction:rtl;text-align:left}
 .ac-fl .ac-pre{order:3}.ac-fl .ac-in[data-k=p]{order:2}
+/* v467: profile fields — no blue focus box, tab bar hides while typing */
+html body .ac-in:focus,html body .ac-in:focus-visible,html body .ac-sel:focus-visible{outline:none!important;border:0!important;background:transparent!important;box-shadow:0 2px 0 #E3B23C!important}
+body.ac-typing .t-nav{display:none!important}
