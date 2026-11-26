@@ -4187,3 +4187,65 @@ html body:not(.wide) .sh.pvx .bg2-cnt.done{color:#E3B23C!important;border:1.5px 
 .lbx-av .lbx-em:has(.avi){display:block;width:100%;height:100%;font-size:inherit}
 .lbx-av:has(.avi){background:transparent!important;box-shadow:none!important;overflow:visible!important}
 .lbx-av .lbx-md,.lbx-av .lbx-crown{z-index:2}
+/* v448 arena search + VS (Khalid's ChatGPT design) */
+.sh.pvx.ar-find{background:radial-gradient(circle at 50% 36%,rgba(200,16,46,.35),transparent 55%),#000!important}
+.sh.pvx.ar-find::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:repeating-conic-gradient(from 3deg at 50% 36%,rgba(200,16,46,.13) 0 6deg,transparent 6deg 14deg);-webkit-mask:radial-gradient(circle at 50% 36%,#000 10%,transparent 60%);mask:radial-gradient(circle at 50% 36%,#000 10%,transparent 60%)}
+.ar-find .ar-radar{width:260px;height:260px}
+.ar-find .ar-radar>i{border:2px solid rgba(240,51,79,.55);box-shadow:0 0 18px rgba(200,16,46,.45),inset 0 0 18px rgba(200,16,46,.25)}
+.ar-find .ar-radar>i:nth-child(2){inset:38px;border-color:rgba(240,51,79,.35)}
+.ar-find .ar-radar .sweep{background:conic-gradient(from 0deg,rgba(240,51,79,.6),transparent 22%)}
+.ar-find .ar-radar .ar-av{width:128px;height:128px;font-size:64px;box-shadow:0 0 0 5px #000,0 0 0 9px #E3B23C,0 0 28px rgba(227,178,60,.5)}
+.ar-find .ar-radar .ar-av:has(.avi){background:transparent;box-shadow:0 0 30px rgba(227,178,60,.45)}
+.ar-av:has(.avi) .avi{box-shadow:0 0 0 4px #E3B23C}
+.ar-find h2{font-size:28px}
+.ar-find .ar-fs{width:104px;height:104px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:44px;border:3px solid #E3B23C;background:#140306;box-shadow:0 0 0 6px rgba(200,16,46,.25),0 0 26px rgba(200,16,46,.55)}
+.ar-find .ar-fs::after{content:"ث";font-size:18px;color:#E3B23C;margin-top:2px}
+.ar-find .btn.ar-fnow{min-width:240px;background:linear-gradient(#EE1F42,#B50E28)!important;border:2px solid #E3B23C!important;box-shadow:0 0 22px rgba(240,51,79,.55)!important;font-size:20px}
+.ar-find .btn.ghost.ar-fx{min-width:180px;background:#2C2C2E!important;border:1.5px solid #48484a!important}
+.ar-vs .half::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-conic-gradient(from 3deg at 50% var(--ry),rgba(255,255,255,.08) 0 6deg,transparent 6deg 14deg);-webkit-mask:radial-gradient(circle at 50% var(--ry),#000 10%,transparent 65%);mask:radial-gradient(circle at 50% var(--ry),#000 10%,transparent 65%)}
+.ar-vs .a{--ry:22%}.ar-vs .b{--ry:78%}
+.ar-vs .ar-av{width:150px!important;height:150px!important;font-size:80px!important}
+.ar-vs .ar-av:has(.avi){background:transparent!important;box-shadow:0 0 30px rgba(227,178,60,.5)!important}
+.ar-vs .ar-av .avi{box-shadow:0 0 0 6px #E3B23C}
+.ar-vs .half b{font-size:34px;text-shadow:0 3px 0 rgba(0,0,0,.4),0 0 18px rgba(0,0,0,.35)}
+.ar-vs .half small{font-size:17px;padding:4px 22px;background:#2a0508;border:2px solid #E3B23C;color:#E3B23C}
+.ar-vs::after{content:"";position:absolute;left:-10%;right:-10%;top:50%;height:90px;margin-top:-45px;transform:rotate(-17deg);pointer-events:none;z-index:1;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 90' preserveAspectRatio='none'%3E%3Cpolyline points='0,52 70,40 95,58 150,38 250,52 300,32 325,50 400,38' fill='none' stroke='%23FFD34D' stroke-width='6' stroke-linejoin='bevel'/%3E%3Cpolyline points='0,52 70,40 95,58 150,38 250,52 300,32 325,50 400,38' fill='none' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E") center/100% 100% no-repeat;filter:drop-shadow(0 0 8px #FFB800) drop-shadow(0 0 16px #FF6A00)}
+.ar-vs .mid{z-index:2;width:140px;height:140px;margin:-70px 0 0 -70px;background:radial-gradient(circle,#2a1505,#0b0603)!important;box-shadow:0 0 0 6px #E3B23C,0 0 0 10px rgba(0,0,0,.6),0 0 40px rgba(255,180,0,.6)!important}
+.ar-vs .mid svg{inset:6px;width:calc(100% - 12px);height:calc(100% - 12px)}
+.ar-vs .num .vs{font-size:52px;font-style:italic;background:linear-gradient(#FFE89A,#E3B23C 55%,#A86B0C);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 #5a3500)}
+.ar-vs .cap{font-size:16px;color:#fff;font-weight:700}
+/* v449 student home «صفّي» (Khalid's ChatGPT design) */
+html body:not(.wide) .sh.sp.pvx .s-hacts{display:flex;align-items:center;gap:14px}
+.s-hav{background:none;border:0;padding:0;cursor:pointer;font-size:84px;line-height:1;order:-1}
+.s-hav .avi{width:92px;height:92px;box-shadow:0 0 0 4px #E3B23C,0 0 22px rgba(227,178,60,.45)}
+html body:not(.wide) .sh.sp.pvx .s-bell:not(#z){background:#140306!important;border:1.5px solid rgba(240,51,79,.7)!important;box-shadow:0 0 14px rgba(200,16,46,.35)!important;border-radius:16px!important}
+html body:not(.wide) .sh.sp.pvx .sp-pill:not(#z){background:linear-gradient(#1d0a0e,#0f0f10)!important;border:1.5px solid rgba(240,51,79,.75)!important;box-shadow:0 0 16px rgba(200,16,46,.35)!important;color:#fff!important;font-size:17px}
+html body:not(.wide) .sh.sp.pvx .sp-done:not(#z){position:relative;overflow:hidden;isolation:isolate;background:linear-gradient(160deg,#2a0a10,#120608 70%)!important;border:2px solid rgba(240,51,79,.85)!important;box-shadow:0 0 30px rgba(200,16,46,.45),inset 0 0 30px rgba(200,16,46,.15)!important;border-radius:28px!important;padding:22px 16px!important}
+html body:not(.wide) .sh.sp.pvx .sp-done::before{content:"";position:absolute;inset:-40%;z-index:-1;background:repeating-conic-gradient(from 3deg at 50% 32%,rgba(240,51,79,.14) 0 6deg,transparent 6deg 14deg);-webkit-mask:radial-gradient(circle at 50% 32%,#000 8%,transparent 45%);mask:radial-gradient(circle at 50% 32%,#000 8%,transparent 45%)}
+html body:not(.wide) .sh.sp.pvx .sp-done .sp-emo .bx,html body:not(.wide) .sh.sp.pvx .sp-done .sp-emo{font-size:96px;filter:drop-shadow(0 0 22px rgba(255,170,0,.55))}
+html body:not(.wide) .sh.sp.pvx .sp-done .bx-lock{opacity:1;filter:none}
+html body:not(.wide) .sh.sp.pvx .sp-done #bx-h{font-size:24px;font-weight:900}
+html body:not(.wide) .sh.sp.pvx .sp-cd small{display:flex;align-items:center;justify-content:center;gap:12px;color:#C7C7CC!important;font-size:16px}
+html body:not(.wide) .sh.sp.pvx .sp-cd small::before,html body:not(.wide) .sh.sp.pvx .sp-cd small::after{content:"";width:56px;height:2px;background:linear-gradient(90deg,transparent,#E3B23C,transparent)}
+html body:not(.wide) .sh.sp.pvx .sp-cd b{font-size:52px!important;font-weight:900;background:linear-gradient(#FFE08A,#F5B72B 55%,#C8860F);-webkit-background-clip:text;background-clip:text;color:transparent!important;filter:drop-shadow(0 2px 6px rgba(245,183,43,.35));font-variant-numeric:tabular-nums}
+html body:not(.wide) .sh.pvx .sp-prac:not(#z){background:linear-gradient(#24090e,#141416)!important;border:1.5px solid rgba(240,51,79,.8)!important;box-shadow:0 0 18px rgba(200,16,46,.35)!important;border-radius:999px!important;min-height:60px;font-size:19px}
+html body:not(.wide) .sh.sp.pvx .s-head2{display:flex;align-items:center;gap:12px}
+html body:not(.wide) .sh.sp.pvx .s-head2 .who{flex:1;min-width:0}
+html body:not(.wide) .sh.sp.pvx .s-head2 .who b{font-size:26px!important;line-height:1.25}
+.s-head2 .s-hav{order:0;font-size:60px}
+.s-head2 .s-hav .avi{width:72px;height:72px;box-shadow:0 0 0 3px #E3B23C,0 0 18px rgba(227,178,60,.45)}
+/* v449b arena painted assets (Khalid's ChatGPT pieces) */
+.ar-logo{display:block;width:62%;max-width:250px;height:auto;margin:0 auto;pointer-events:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+.ar-find .ar-logo{position:absolute;top:max(18px,env(safe-area-inset-top));left:0;right:0}
+.ar-vs .ar-logo{position:absolute;z-index:3;top:max(10px,env(safe-area-inset-top));left:0;right:0;width:46%}
+.ar-find .ar-radar{background:url(img/ar-radar.webp) center/100% 100% no-repeat;border-radius:50%}
+.ar-find .ar-radar>i{display:none}
+.ar-find .ar-radar .sweep{background:conic-gradient(from 0deg,rgba(255,60,90,.35),transparent 18%);mix-blend-mode:screen}
+.ar-vs .half.a,.ar-vs .half.b{background:url(img/ar-bg-vs.webp) center/cover no-repeat!important}
+.ar-vs .half::before{display:none}
+.ar-vs .a{padding-top:max(118px,calc(env(safe-area-inset-top) + 100px))!important}
+.ar-vs::after{background:url(img/ar-bolt.webp) center/100% 100% no-repeat!important;filter:none!important;height:70px!important;margin-top:-35px!important}
+.ar-vs .mid{width:190px!important;height:190px!important;margin:-95px 0 0 -95px!important;background:url(img/ar-vs.webp) center/112% auto no-repeat!important;box-shadow:none!important}
+.ar-vs .mid svg{inset:46px;width:calc(100% - 92px);height:calc(100% - 92px);opacity:.9}
+.ar-vs .num{width:84px;height:84px;border-radius:50%;background:radial-gradient(circle,#2b1506,#120803);display:grid;place-items:center}
+.ar-vs .num .vs{font-size:40px}
