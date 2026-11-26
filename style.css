@@ -4117,7 +4117,7 @@ html body:not(.wide) .sh.pvx .s-me-o.s-me-3>button{grid-column:auto!important;mi
 .s-me-l button+button{border-top:1px solid #2C2C2E}
 .s-me-l i{font-style:normal;font-size:22px;width:28px;text-align:center}
 .s-me-l .grow{flex:1}
-.s-me-l .chev{direction:ltr;unicode-bidi:isolate;font-style:normal;color:#C7C7CC;font-size:24px}
+.s-me-l .chev{display:inline-block;transform:scaleX(-1);font-style:normal;color:#C7C7CC;font-size:24px}
 .s-me-l .sw{width:52px;height:30px;border-radius:999px;background:#3A3A3C;position:relative;flex:0 0 auto;transition:background .2s}
 .s-me-l .sw::after{content:"";position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:right .2s}
 .s-me-l .sw.on{background:#C8102E;box-shadow:0 0 10px rgba(200,16,46,.6)}.s-me-l .sw.on::after{right:25px}
@@ -4125,3 +4125,13 @@ html body:not(.wide) .sh.pvx .btn.s-me-t{margin-top:14px}
 .s-me-x{display:flex;justify-content:space-between;margin:16px 6px 6px}
 .s-me-x button{background:none;border:0;color:#C7C7CC;font:inherit;font-weight:700;font-size:16px;padding:8px;cursor:pointer}
 .s-me-x button.dng{color:#FF453A}
+/* v443 picture avatars: red disc + gold ring, head pops out of the top */
+.avi{position:relative;display:inline-block;width:1.5em;height:1.5em;border-radius:50%;background:radial-gradient(circle at 50% 38%,#E0203F,#6D0716 75%);box-shadow:0 0 0 .06em #E3B23C;vertical-align:middle;flex:0 0 auto;font-size:inherit}
+.avi img{position:absolute;left:-5%;bottom:0;width:110%;height:auto;max-width:none;pointer-events:none;-webkit-user-drag:none;user-select:none;-webkit-mask:linear-gradient(#000,#000) top/100% 61% no-repeat,radial-gradient(circle,#000 70%,transparent 71%) bottom/90.9% 77.9% no-repeat;mask:linear-gradient(#000,#000) top/100% 61% no-repeat,radial-gradient(circle,#000 70%,transparent 71%) bottom/90.9% 77.9% no-repeat}
+.s-me-av .avi,.lbx-av .lbx-em .avi,.rp2-av .avi,.pv-av .avi,.ar-av .avi,.ch-star-i .avi,.wk-star>span .avi{width:100%;height:100%;display:block}
+.s-avg button .avi{width:70%;height:auto;aspect-ratio:1;margin-top:16%}
+html body:not(.wide) .sh.pvx .s-me-av:has(.avi){padding:0;overflow:visible;background:transparent!important;box-shadow:0 0 26px rgba(227,178,60,.45)!important}
+html body:not(.wide) .sh.pvx .s-me-av .avi{box-shadow:0 0 0 4px #140306,0 0 0 7px #E3B23C}
+html body:not(.wide) .sh.pvx .s-me-av .s-av-ed{z-index:2}
+.s-me-l .set-chev{color:#C7C7CC;display:flex}
+.s-me-l .set-chev svg{transform:scaleX(-1)}

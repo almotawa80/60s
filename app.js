@@ -400,6 +400,10 @@ function renderHomeP(){
 const LVL_NAMES = [[1, 'مبتدئ'], [5, 'متحمّس'], [10, 'شاطر'], [15, 'بطل'], [20, 'أسطورة']];
 function lvlOf(xp){ let n = 1; while (25 * n * (n + 1) <= xp) n++; const lo = 25 * n * (n - 1), hi = 25 * n * (n + 1); return { n, lo, hi, name: LVL_NAMES.filter(x => n >= x[0]).pop()[1] }; }
 /* frame colour by level: bronze 1–4, silver 5–9, gold 10+ */
+/* v443 picture avatars (Khalid's ChatGPT sheet): people p1..p12, animals keep their emoji key */
+const AV_IMG = { '🦁': 'lion', '🐯': 'tiger', '🐼': 'panda', '🦊': 'fox', '🐨': 'koala', '🐸': 'frog', '🦉': 'owl', '🦅': 'eagle', '🐬': 'dolphin', '🐢': 'turtle', '🦄': 'unicorn', '🐉': 'dragon' };
+for (let i = 1; i <= 12; i++) AV_IMG['p' + i] = 'p' + i;
+function avI(v){ const f = AV_IMG[v]; return f ? '<span class="avi"><img src="av/' + f + '.webp" alt="" draggable="false"></span>' : esc(v || ''); }
 function lvlFrame(){ const xp = S.daily && S.daily.xp; if (xp == null) return ''; const n = lvlOf(xp).n; return n >= 10 ? 'fr-g' : n >= 5 ? 'fr-s' : 'fr-b'; }
 function lvlShow(xp){
   if (xp == null) return; const L = lvlOf(xp), el = document.getElementById('lvl');
@@ -487,7 +491,7 @@ function goalPaint(d){ /* v369: class goal + week star live on «الترتيب�
     const pc = Math.min(100, Math.round(g.played / g.size * 100)), done = g.played >= g.need;
     el.innerHTML = '<div class="goal"><div class="goal-t"><b>' + (done ? '⭐ الصف أخذ نجمة اليوم' : '🎯 باقي ' + (g.need - g.played === 1 ? 'طالب واحد' : g.need - g.played === 2 ? 'طالبين' : (g.need - g.played) + ' طلاب') + ' ويأخذ الصف نجمة') + '</b><span>' + g.played + '/' + g.size + '</span></div>' +
       '<div class="goal-bar"><i style="width:' + pc + '%"></i>' + (done ? '' : '<em style="right:' + Math.round(g.need / g.size * 100) + '%"></em>') + '</div></div>' +
-      (sr ? '<div class="wk-star' + (me ? ' me" role="button" data-act="s-share" data-k="star' : '') + '"><span>' + (sr.av ? esc(sr.av) : '⭐') + '</span><div><small>⭐ نجم الأسبوع</small><b>' + (me ? 'أنت! تحسّنت ' + sr.up + ' نقطة' : esc(String(sr.name).split(' ')[0])) + '</b></div></div>' : '');
+      (sr ? '<div class="wk-star' + (me ? ' me" role="button" data-act="s-share" data-k="star' : '') + '"><span>' + (sr.av ? avI(sr.av) : '⭐') + '</span><div><small>⭐ نجم الأسبوع</small><b>' + (me ? 'أنت! تحسّنت ' + sr.up + ' نقطة' : esc(String(sr.name).split(' ')[0])) + '</b></div></div>' : '');
     if (done && !LS.get('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString())) { LS.set('mc_goal_' + (S.home.student.id || '') + '_' + new Date().toDateString(), '1'); setTimeout(() => FX.win(false), 400); }
   }
 }
@@ -735,7 +739,7 @@ const AR_EMN = { laugh: 'ضحك', cry: 'بكاء', strong: 'قوة', fire: 'نا
 const AR_W = { b: ['صقر','فهد','نجم','بطل','ذيب','فارس','برق','نسر','أسد','سهم'], g: ['نجمة','فراشة','قمر','بطلة','لؤلؤة','وردة','شمس','غزالة','ريم','نسمة'], x: ['الحلبة','الدقيقة','الذكاء','السرعة','العلم','المعرفة'] };
 function arEm(k){ return '<svg viewBox="0 0 40 40" aria-hidden="true">' + AR_EM[k] + '</svg>'; }
 function arAv(av, name, cls, dr){ if (/^[bg][1-4]$/.test(dr || '')) return '<span class="ar-av dr' + (cls ? ' ' + cls : '') + '">' + arFace(dr) + '</span>';
-  return '<span class="ar-av' + (cls ? ' ' + cls : '') + '">' + esc(av || String(name || '؟').trim().charAt(0)) + '</span>'; }
+  return '<span class="ar-av' + (cls ? ' ' + cls : '') + '">' + (av ? avI(av) : esc(String(name || '؟').trim().charAt(0))) + '</span>'; }
 /* «لقبك وشكلك»: the nickname is rolled from fixed word lists (never typed), the look is one of eight drawn characters */
 function arRoll(g, not){ const pk = a => a[Math.floor(Math.random() * a.length)]; let n; do { n = pk(AR_W[g]) + ' ' + pk(AR_W.x); } while (n === not); return n; }
 function arPfHtml(){ const f = AR.pf;
@@ -928,9 +932,9 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
   if (k === 'home') return renderHome();
   if (k === 'bd') return sPage('bd', '<div class="s-pgc">' + badgesHtml() + '</div>');
   if (k === 'me') { const h = S.home, n = (h.student.name || '?').trim();
-    return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><button class="s-me-av ' + lvlFrame() + (h.student.avatar ? ' em' : '') + '" data-act="s-av" aria-label="اختر شخصيتك">' + esc(h.student.avatar || n.charAt(0)) + '<span class="s-av-ed">✏️</span></button><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small>' + '<div class="s-me-st">' + (h.rank ? '<span><small>🏆 الترتيب بالصف</small><b>' + h.rank + '</b></span>' : '') + '<span><small>⭐ النقاط</small><b>' + Number(h.total_points || 0).toLocaleString('en-US') + '</b></span>' + (S.daily && S.daily.xp != null ? '<span><small>⚡ المستوى</small><b>' + lvlOf(S.daily.xp).n + '</b></span>' : '') + '</div></div>' +
+    return sPage('me', '<div class="s-pgc"><h3>👤 أنا</h3><div class="s-me"><button class="s-me-av ' + lvlFrame() + (h.student.avatar ? ' em' : '') + '" data-act="s-av" aria-label="اختر شخصيتك">' + (h.student.avatar ? avI(h.student.avatar) : esc(n.charAt(0))) + '<span class="s-av-ed">✏️</span></button><b>' + esc(n) + '</b><small>' + esc(h.class.name) + '</small>' + '<div class="s-me-st">' + (h.rank ? '<span><small>🏆 الترتيب بالصف</small><b>' + h.rank + '</b></span>' : '') + '<span><small>⭐ النقاط</small><b>' + Number(h.total_points || 0).toLocaleString('en-US') + '</b></span>' + (S.daily && S.daily.xp != null ? '<span><small>⚡ المستوى</small><b>' + lvlOf(S.daily.xp).n + '</b></span>' : '') + '</div></div>' +
       '<div class="s-me-o s-me-3">' + [['s-rep-me', '📊', 'تقريري'], ['s-lvl', '⚡', 'مستواي'], ['s-profile', '🪪', 'ملفي']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
-      '<div class="s-me-l">' + [['s-sound-tab', '🔊', 'الصوت', FX.on()], ['s-push-tab', '🔔', 'الإشعارات', pushOn()], ['s-switch', '🔄', 'غيّر اللاعب']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i><span class="grow">' + o[2] + '</span>' + (o.length > 3 ? '<em class="sw' + (o[3] ? ' on' : '') + '"></em>' : '<em class="chev">‹</em>') + '</button>').join('') + '</div>' +
+      '<div class="s-me-l">' + [['s-sound-tab', '🔊', 'الصوت', FX.on()], ['s-push-tab', '🔔', 'الإشعارات', pushOn()], ['s-switch', '🔄', 'غيّر اللاعب']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i><span class="grow">' + o[2] + '</span>' + (o.length > 3 ? '<em class="sw' + (o[3] ? ' on' : '') + '"></em>' : '<span class="set-chev">' + ic('back') + '</span>') + '</button>').join('') + '</div>' +
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
       '<div class="s-me-x"><button data-act="s-logout-ask">خروج</button><button class="dng" data-act="s-del-me">حذف حسابي</button></div>' +
       '</div>'); }
@@ -978,16 +982,16 @@ ACTS['s-del-me'] = async () => {
 };
 ACTS['s-logout-ask'] = async () => { const code = LS.get('mc_code');
   if (!await ask('تحتاجه عشان ترجع.', { title: code ? 'صوّر رمزك قبل ما تطلع' : 'تسجيل الخروج؟', html: code ? `<div class="dlg-code" dir="ltr">${esc(code)}</div><button type="button" class="dlg-cp" data-act="copy" data-v="${esc(code)}">📋 انسخ الرمز</button>` : '', cancel: 'رجوع', ok: 'اطلع', danger: true })) return; closeModals(); ACTS['s-logout'](); };
-const S_AVS = ['🦁','🐯','🐼','🦊','🐨','🐸','🦉','🦅','🐬','🐢','🦄','🐉','🚀','⚽','🏆','⭐'];
+const S_AVS = ['p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11','p12','🦁','🐯','🐼','🦊','🐨','🐸','🦉','🦅','🐬','🐢','🦄','🐉'];
 ACTS['s-av'] = async () => { if (!S.home) return; S.avPick = S.home.student.avatar || '';
   if (!S.daily && !S.demo) { try { S.daily = await rpc('student_daily', { p_token: S.token }); } catch(e){} }
   const dl = S.daily || {}, own = dl.stickers || [], pool = dl.pool || [];
-  modal('<div class="s-avs"><h3>اختر شخصيتك</h3><div class="s-avg">' + S_AVS.map(a => '<button class="' + (a === S.avPick ? 'on' : '') + '" data-act="s-avp" data-v="' + a + '">' + a + '</button>').join('') + '</div>' +
+  modal('<div class="s-avs"><h3>اختر شخصيتك</h3><div class="s-avg">' + S_AVS.map(a => '<button class="' + (a === S.avPick ? 'on' : '') + '" data-act="s-avp" data-v="' + a + '">' + avI(a) + '</button>').join('') + '</div>' +
     (pool.length ? '<h4 class="s-avh">🎁 ملصقات الصندوق ' + own.length + ' من ' + pool.length + '</h4><div class="s-avg">' + pool.map(a => own.indexOf(a) >= 0 ? '<button class="' + (a === S.avPick ? 'on' : '') + '" data-act="s-avp" data-v="' + a + '">' + a + '</button>' : '<button class="lk" disabled aria-label="مقفول">🔒</button>').join('') + '</div>' : '') +
     '<button class="btn" data-act="s-avs">حفظ</button>' + (S.home.student.avatar ? '<button class="btn soft" data-act="s-avs" data-v="">بدون شخصية</button>' : '') + '</div>'); };
 ACTS['s-avp'] = t => { S.avPick = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); };
 ACTS['s-avs'] = async t => { const v = t.dataset.v != null ? t.dataset.v : S.avPick; if (S.demo) { S.home.student.avatar = v; closeModals(); return ACTS['s-tab']({ dataset: { t: 'me' } }); }
-  try { await rpc('student_set_avatar', { p_token: S.token, p_av: v || '' }); S.home.student.avatar = v || null; closeModals(); toast(v ? 'انحفظت ' + v : 'انشالت الشخصية'); ACTS['s-tab']({ dataset: { t: 'me' } }); } catch (e) { toast(errMsg(e)); } };
+  try { await rpc('student_set_avatar', { p_token: S.token, p_av: v || '' }); S.home.student.avatar = v || null; closeModals(); toast(v ? 'انحفظت شخصيتك' : 'انشالت الشخصية'); ACTS['s-tab']({ dataset: { t: 'me' } }); } catch (e) { toast(errMsg(e)); } };
 ACTS['s-profile'] = () => { closeModals();
   const h = S.home;
   const code = LS.get('mc_code');
@@ -1021,8 +1025,8 @@ function leadersHtml(rows, hidden, hp){
   const ini = n => esc(String(n || '?').trim().split(/\s+/)[0]);
   const top = on.slice(0, 3), rest = on.slice(3), max = Math.max(1, ...on.map(r => r.points));
   const pod = top.length && !hidden ? '<div class="lbx-pod">' + [1, 0, 2].map(i => { const r = top[i]; if (!r) return '<div class="lbx-pd empty"></div>';
-      return '<div class="lbx-pd p' + (i + 1) + (r.is_me ? ' me' : '') + '"><div class="lbx-av">' + (i === 0 ? '<span class="lbx-crown">👑</span>' : '') + (r.av ? '<span class="lbx-em">' + esc(r.av) + '</span>' : ini(r.name).charAt(0)) + '<span class="lbx-md">' + (i + 1) + '</span></div><b>' + ini(r.name) + '</b><span class="lbx-pts">' + P(r) + '</span><div class="lbx-step"></div></div>'; }).join('') + '</div>' : '';
-  const list = (hidden ? on : rest).map(r => '<div class="lbx-r' + (r.is_me ? ' me' : '') + '"><span class="lbx-no">' + r.rank + '</span>' + (r.av ? '<span class="lbx-ea">' + esc(r.av) + '</span>' : '') + '<span class="lbx-nm">' + esc(r.name) + (r.is_me ? ' <small>(أنت)</small>' : '') + (hp ? '' : '<i><u style="width:' + Math.round(r.points * 100 / max) + '%"></u></i>') + '</span><b>' + P(r) + '</b></div>').join('');
+      return '<div class="lbx-pd p' + (i + 1) + (r.is_me ? ' me' : '') + '"><div class="lbx-av">' + (i === 0 ? '<span class="lbx-crown">👑</span>' : '') + (r.av ? '<span class="lbx-em">' + avI(r.av) + '</span>' : ini(r.name).charAt(0)) + '<span class="lbx-md">' + (i + 1) + '</span></div><b>' + ini(r.name) + '</b><span class="lbx-pts">' + P(r) + '</span><div class="lbx-step"></div></div>'; }).join('') + '</div>' : '';
+  const list = (hidden ? on : rest).map(r => '<div class="lbx-r' + (r.is_me ? ' me' : '') + '"><span class="lbx-no">' + r.rank + '</span>' + (r.av ? '<span class="lbx-ea">' + avI(r.av) + '</span>' : '') + '<span class="lbx-nm">' + esc(r.name) + (r.is_me ? ' <small>(أنت)</small>' : '') + (hp ? '' : '<i><u style="width:' + Math.round(r.points * 100 / max) + '%"></u></i>') + '</span><b>' + P(r) + '</b></div>').join('');
   const meZero = me && !(me.points > 0);
   return '<div class="lbx pvx"><div class="lbx-top"><h3>🏆 المتصدرون</h3><span>' + esc(S.home.class.name) + '</span><button class="lbx-x" data-act="close-modal" aria-label="إغلاق">' + ic('x') + '</button></div>' +
     (hidden ? '<div class="lbx-hid">الترتيب يطلع لما يخلص التحدي 🤫<small>هذا ترتيبك أنت فقط</small></div>' : '') +
@@ -1244,7 +1248,7 @@ function showQuestion(st){
     '<div class="play pv pvx">' +
     '<div class="play-top"><button class="icon-btn pv-btn" data-act="s-quit" aria-label="الخروج للرئيسية">' + ic('home') + '</button>' +
     '<div class="pv-head"><b class="pv-pill">السؤال ' + st.position + ' من ' + st.total + '</b><div class="dots">' + dots + '</div>' +
-    (st.kind === 'practice' ? '<span class="pv-kind">تدريب</span>' : '') + (S.home && S.home.student && S.home.student.avatar && !S.demo ? '<span class="pv-av ' + lvlFrame() + '" id="pvav">' + esc(S.home.student.avatar) + '</span>' : '') + '<span class="pv-pts" id="pvpts">⭐ ' + lg.reduce((a, x) => a + (x.p || 0), 0) + '</span></div>' +
+    (st.kind === 'practice' ? '<span class="pv-kind">تدريب</span>' : '') + (S.home && S.home.student && S.home.student.avatar && !S.demo ? '<span class="pv-av ' + lvlFrame() + '" id="pvav">' + avI(S.home.student.avatar) + '</span>' : '') + '<span class="pv-pts" id="pvpts">⭐ ' + lg.reduce((a, x) => a + (x.p || 0), 0) + '</span></div>' +
     '<button class="icon-btn pv-btn pv-snd" data-act="s-sound" aria-label="الصوت">' + ic(FX.on() ? 'sound' : 'mute') + '</button></div>' +
     '<div class="pvx-tm' + (st.position === st.total ? ' last' : '') + '" id="timer"><i id="tfill" hidden></i><div class="pvx-bar"><i id="tfg"></i></div><span><b id="tnum">' + Math.ceil(st.seconds_left) + '</b> ثانية</span></div>' +
     '<div class="pv-panel"><div class="qbox' + (q.image ? ' has-img' : '') + '">' + (q.image ? '<img class="q-img" src="' + esc(q.image) + '" alt="' + esc(q.image_alt || 'صورة مرفقة بالسؤال') + '">' : '') + '<span>' + esc(q.body) + '</span><div class="pts-pop" id="pop"></div></div>' +
@@ -1523,7 +1527,7 @@ const SHK = {
   star: () => ['🌟', 'نجم الأسبوع في الصف', 'أعلى تحسّن هالأسبوع'],
   pts: (a) => [a.p ? '💯' : '🔥', 'حصلت على ' + a.n + ' نقطة', 'تقدر تفوز علي؟ 💪']
 };
-function shMe(){ const st = (S.home && S.home.student) || {}; return { n: String(st.name || '').trim().split(/\s+/)[0] || 'بطل', av: st.avatar || '🙂' }; }
+function shMe(){ const st = (S.home && S.home.student) || {}; return { n: String(st.name || '').trim().split(/\s+/)[0] || 'بطل', av: /^p\d/.test(st.avatar || '') ? '😎' : (st.avatar || '🙂') }; }
 function shLink(){ return location.origin + location.pathname + '#/w'; }
 function shDraw(kind, a){
   const [icn, t1, t2] = SHK[kind](a || {}), me = shMe(), W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
@@ -2535,12 +2539,12 @@ function lvbAuto(st){
 }
 function lvbDraw(el, st, qrf){
   const s = st.s; if (!s) return; const L = ['أ', 'ب', 'ج', 'د'];
-  const pl = s.players || [], top = n => pl.slice(0, n).map((p, i) => `<div class="lv-row"><b>${i + 1}</b><span>${p.av || ''} ${esc(p.name)}</span><em>${p.pts}</em></div>`).join('');
+  const pl = s.players || [], top = n => pl.slice(0, n).map((p, i) => `<div class="lv-row"><b>${i + 1}</b><span>${p.av ? avI(p.av) : ''} ${esc(p.name)}</span><em>${p.pts}</em></div>`).join('');
   let h = `<button class="lv-x" data-lv="x" aria-label="إنهاء">${ic('x')}</button>`;
   if (s.status === 'lobby') {
     h += `<div class="lv-t"><h1>العب في الصف الحين</h1><span class="lv-pill">${esc(st.c.name || '')}</span></div>
       <div class="lv-join"><div><div class="lv-h">ادخل التطبيق beat60s.com واكتب رمز الصف</div><div class="lv-code" dir="ltr">${esc(fmtCode(st.code))}</div></div><div class="lv-qr">${qrf()}</div></div>
-      <div class="lv-chips">${pl.map(p => `<span class="lv-chip">${p.av || ''} ${esc(p.name)}</span>`).join('') || '<span class="lv-h">ننتظر الطلاب…</span>'}</div>
+      <div class="lv-chips">${pl.map(p => `<span class="lv-chip">${p.av ? avI(p.av) : ''} ${esc(p.name)}</span>`).join('') || '<span class="lv-h">ننتظر الطلاب…</span>'}</div>
       <div class="lv-h">${pl.length} لاعب دخلوا · ${s.n} أسئلة · ٢٠ ثانية لكل سؤال · للمتعة بس</div>
       <button class="lv-go" data-lv="start" ${pl.length ? '' : 'disabled'}>ابدأ ▶</button>`;
   } else if (s.status === 'q') {
@@ -2555,7 +2559,7 @@ function lvbDraw(el, st, qrf){
       <div class="lv-opts">${s.q.options.map((o, i) => `<div class="lv-o ${i === s.c ? 'ok' : 'no'}"><i style="width:${Math.round((s.votes[i] || 0) / tot * 100)}%"></i><span><b>${L[i]}</b> ${esc(o)}</span><em>${s.votes[i] || 0}</em></div>`).join('')}</div>
       <div class="lv-top">${top(3)}</div><button class="lv-go" data-lv="next">${s.qi + 1 >= s.n ? 'الفائزون' : 'السؤال التالي'} ◀</button>`;
   } else {
-    h += `<div class="lv-t"><h1>🏆 الفائزون</h1><span class="lv-pill">للمتعة بس</span></div><div class="lv-pod">${pl.slice(0, 3).map((p, i) => `<div class="p${i + 1}">${['🥇', '🥈', '🥉'][i]}<b>${p.av || ''} ${esc(p.name)}</b><small>${p.pts}</small></div>`).join('')}</div><button class="lv-go" data-lv="x">إنهاء</button>`;
+    h += `<div class="lv-t"><h1>🏆 الفائزون</h1><span class="lv-pill">للمتعة بس</span></div><div class="lv-pod">${pl.slice(0, 3).map((p, i) => `<div class="p${i + 1}">${['🥇', '🥈', '🥉'][i]}<b>${p.av ? avI(p.av) : ''} ${esc(p.name)}</b><small>${p.pts}</small></div>`).join('')}</div><button class="lv-go" data-lv="x">إنهاء</button>`;
   }
   const key = s.status + s.qi + pl.length + (s.answered || 0) + (s.status === 'q' ? '' : '');
   if (s.status === 'q') { const bar = el.querySelector('.lv-bar i'); if (bar && el.dataset.k === 'q' + s.qi + pl.length) { bar.style.width = Math.round(Math.max(0, s.secs * 1000 - (Date.now() + LV.off - Date.parse(s.q_at))) / (s.secs * 1000) * 100) + '%'; const p2 = el.querySelector('.lv-t .lv-pill:last-child'); if (p2) p2.textContent = s.answered + ' جاوبوا من ' + pl.length; return; } el.dataset.k = 'q' + s.qi + pl.length; }
@@ -2796,7 +2800,7 @@ function renderChallenge(gid){
     <div class="ch-2">${c.paused_at ? `<button class="ch-b" data-act="cp-resume" data-g="${esc(gid)}">▶️ استئناف</button>` : `<button class="ch-b" data-act="cp-pause" data-g="${esc(gid)}">⏸ إيقاف مؤقت</button>`}<button class="ch-b end" data-act="cp-end" data-g="${esc(gid)}">🏁 إنهاء</button></div>
     <p class="ch-meta">${esc(meta)}</p><div id="ch-star"></div>
     ${rows.length ? `<div class="ch-lh">${CL.chSel ? `<button class="link" data-act="ch-all">${CL.chSel.size === rows.length ? 'إلغاء الكل' : 'اختر الكل'}</button><button class="link" data-act="ch-sel-x">إلغاء</button>` : `<span></span><button class="link" data-act="ch-sel">✉️ رسالة</button>`}</div>
-    <div class="cp-list${CL.chSel ? ' picking' : ''}">${rows.map((x, i) => { const k = CST(x.id); return `<button class="cp-row${k.today ? '' : ' dim'}${k.pts ? '' : ' z'}${CL.chSel && CL.chSel.has(x.id) ? ' on' : ''}" data-act="${CL.chSel ? 'ch-pick' : 'ch-stu'}" data-id="${x.id}">${CL.chSel ? '<i class="ch-ck">✓</i>' : ''}<span class="cp-rk">${!k.pts ? '' : i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="grow"><b>${x.avatar ? esc(x.avatar) + ' ' : ''}${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b>${multi ? `<small class="ch-cls">${esc(x._c || '')}</small>` : ''}</span><span class="cp-pts">${k.pts || '—'}</span></button>`; }).join('')}</div>`
+    <div class="cp-list${CL.chSel ? ' picking' : ''}">${rows.map((x, i) => { const k = CST(x.id); return `<button class="cp-row${k.today ? '' : ' dim'}${k.pts ? '' : ' z'}${CL.chSel && CL.chSel.has(x.id) ? ' on' : ''}" data-act="${CL.chSel ? 'ch-pick' : 'ch-stu'}" data-id="${x.id}">${CL.chSel ? '<i class="ch-ck">✓</i>' : ''}<span class="cp-rk">${!k.pts ? '' : i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="grow"><b>${x.avatar ? avI(x.avatar) + ' ' : ''}${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b>${multi ? `<small class="ch-cls">${esc(x._c || '')}</small>` : ''}</span><span class="cp-pts">${k.pts || '—'}</span></button>`; }).join('')}</div>`
       : `<div class="cl-empty sm"><b>ما فيه طلاب بعد</b><small>شارك رمز الصف من ⋯</small></div>`}</div>`;
   view(String(c.title || 'التحدي').split('·').pop().trim(), body + (CL.chSel ? `<div class="ch-sendbar"><button class="btn" data-act="ch-send" ${CL.chSel.size ? '' : 'disabled'}>✉️ أرسل إلى ${CL.chSel.size}</button></div>` : ''), 'home', '', '#/t/home');
   chWarn(c); chStar(ks);
@@ -2805,7 +2809,7 @@ function renderChallenge(gid){
 async function chStar(ks){
   let r = []; try { r = await Promise.all(ks.map(k => rpc('teacher_week_star', { p_class: k.class_id }).catch(() => null))); } catch(e){ return; }
   const el = document.getElementById('ch-star'); if (!el) return;
-  el.innerHTML = r.filter(Boolean).map(x => `<button class="ch-star" data-act="ch-stu" data-id="${esc(x.id)}"><span class="ch-star-i">${x.av ? esc(x.av) : '⭐'}</span><span class="grow"><small>⭐ نجم الأسبوع</small><b>${esc(fmtStu(x.name))}</b><small>تحسّن ${x.up} نقطة بالجولة عن الأسبوع اللي قبل · شجّعه 👏</small></span></button>`).join('');
+  el.innerHTML = r.filter(Boolean).map(x => `<button class="ch-star" data-act="ch-stu" data-id="${esc(x.id)}"><span class="ch-star-i">${x.av ? avI(x.av) : '⭐'}</span><span class="grow"><small>⭐ نجم الأسبوع</small><b>${esc(fmtStu(x.name))}</b><small>تحسّن ${x.up} نقطة بالجولة عن الأسبوع اللي قبل · شجّعه 👏</small></span></button>`).join('');
 }
 /* v123: warn when the challenge has fewer than 4 questions in «أسئلتي», with a one-tap fix */
 async function chWarn(c){
@@ -3485,7 +3489,7 @@ async function tStuRep(id){
 }
 function rpHtml(d){
   const acc = rpPct(d.correct, d.total), tr = rpTrend(d), name = fmtStu(d.name || '');
-  const hero = `<div class="rp2-hero"><div class="rp2-av">${esc(d.avatar || (d.name || '?').trim().charAt(0))}</div><b class="rp2-nm">${esc(name)}</b>
+  const hero = `<div class="rp2-hero"><div class="rp2-av">${d.avatar ? avI(d.avatar) : esc((d.name || '?').trim().charAt(0))}</div><b class="rp2-nm">${esc(name)}</b>
     <div class="rp2-pills">${d.cls ? `<span>${esc(d.cls)}</span>` : ''}<span class="g">المستوى ${lvlOf(d.xp || 0).n}</span>${d.streak ? `<span>🔥 ${d.streak} ${d.streak > 2 && d.streak < 11 ? 'أيام' : 'يوم'}</span>` : ''}</div>`;
   if (!d.rounds) return hero + `<div class="rp2-empty">ما لعب جولات رسمية للحين.${d.practice ? `<br><small>تدرّب ${d.practice} ${d.practice > 2 && d.practice < 11 ? 'مرات' : 'مرة'} بدون نقاط.</small>` : ''}</div></div>`;
   const les = d.lessons || [], wr = d.wrong || [], cm = d.comps || [];
