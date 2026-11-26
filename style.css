@@ -4135,3 +4135,52 @@ html body:not(.wide) .sh.pvx .s-me-av .avi{box-shadow:0 0 0 4px #140306,0 0 0 7p
 html body:not(.wide) .sh.pvx .s-me-av .s-av-ed{z-index:2}
 .s-me-l .set-chev{color:#C7C7CC;display:flex}
 .s-me-l .set-chev svg{transform:scaleX(-1)}
+/* v444 badges page (Khalid's ChatGPT design): red-glow cards, hexagon medals */
+html body:not(.wide) .sh.pvx .bg2:not(#z),html body:not(.wide) .sh.pvx .bg2-next:not(#z){background:linear-gradient(160deg,#22080d,#121214 65%)!important;border:1.5px solid rgba(200,16,46,.55)!important;box-shadow:0 0 18px rgba(200,16,46,.18)!important}
+html body:not(.wide) .sh.pvx .bg2.on:not(#z){border-color:rgba(240,51,79,.8)!important;box-shadow:0 0 22px rgba(200,16,46,.32)!important}
+.bg2 .bg2-md,.bg2-next .bg2-md{position:relative;isolation:isolate;width:78px!important;height:86px!important;border-radius:0!important;background:none!important;display:grid;place-items:center;font-size:38px;filter:none!important;opacity:1!important}
+.bg2 .bg2-md::before,.bg2 .bg2-md::after,.bg2-next .bg2-md::before,.bg2-next .bg2-md::after{content:"";position:absolute;z-index:-1;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.bg2 .bg2-md::before,.bg2-next .bg2-md::before{inset:0;background:linear-gradient(160deg,#d6d6db,#6e6e73 55%,#3a3a3c)}
+.bg2 .bg2-md::after,.bg2-next .bg2-md::after{inset:4px;background:radial-gradient(circle at 50% 40%,#3a3a3c,#1a1a1c 75%)}
+.bg2.on .bg2-md::before{background:linear-gradient(160deg,#FFE08A,#E3B23C 45%,#9A6B12)}
+.bg2.on .bg2-md::after{background:radial-gradient(circle at 50% 40%,#E0203F,#6D0716 78%)}
+.bg2.on .bg2-md{filter:drop-shadow(0 0 10px rgba(227,178,60,.45))!important}
+.bg2-next .bg2-md{width:62px!important;height:68px!important;font-size:30px}
+.bg2-next .bg2-md::before{background:linear-gradient(160deg,#F0334F,#8E0B21)}
+.bg2-next .bg2-md::after{background:radial-gradient(circle at 50% 40%,#5a0a17,#24060b)}
+.bg2 .bg2-lv{z-index:2}
+html body:not(.wide) .sh.pvx .bg2-cnt:only-of-type{color:#E3B23C!important}
+.bg2.on .bg2-cnt:not(:has(~*)){}
+.bg2 .bg2-ok{z-index:3}
+html body:not(.wide) .sh.pvx .bg2-h b{font-size:30px}
+/* v444 badges page (Khalid's ChatGPT design): red-glow cards, hexagon medals */
+html body:not(.wide) .sh.pvx .bg2:not(#z),html body:not(.wide) .sh.pvx .bg2-next:not(#z){background:linear-gradient(160deg,#22080d,#121214 65%)!important;border:1.5px solid rgba(200,16,46,.55)!important;box-shadow:0 0 18px rgba(200,16,46,.18)!important}
+html body:not(.wide) .sh.pvx .bg2.on:not(#z){border-color:rgba(240,51,79,.85)!important;box-shadow:0 0 22px rgba(200,16,46,.32)!important}
+html body .bg2 .bg2-md:not(#z),html body .bg2-next .bg2-md:not(#z){position:relative;isolation:isolate;width:78px;height:86px;border-radius:0;background:none;display:grid;place-items:center;font-size:38px;filter:none;opacity:1}
+.bg2 .bg2-md::before,.bg2 .bg2-md::after,.bg2-next .bg2-md::before,.bg2-next .bg2-md::after{content:"";position:absolute;z-index:-1;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.bg2 .bg2-md::before,.bg2-next .bg2-md::before{inset:0;background:linear-gradient(160deg,#d6d6db,#6e6e73 55%,#3a3a3c)}
+.bg2 .bg2-md::after,.bg2-next .bg2-md::after{inset:4px;background:radial-gradient(circle at 50% 40%,#3a3a3c,#1a1a1c 75%)}
+.bg2.on .bg2-md::before{background:linear-gradient(160deg,#FFE08A,#E3B23C 45%,#9A6B12)}
+.bg2.on .bg2-md::after{background:radial-gradient(circle at 50% 40%,#E0203F,#6D0716 78%)}
+html body .bg2.on .bg2-md:not(#z){filter:drop-shadow(0 0 10px rgba(227,178,60,.45))}
+html body .bg2-next .bg2-md:not(#z){width:62px;height:68px;font-size:30px}
+.bg2-next .bg2-md::before{background:linear-gradient(160deg,#F0334F,#8E0B21)}
+.bg2-next .bg2-md::after{background:radial-gradient(circle at 50% 40%,#5a0a17,#24060b)}
+.bg2 .bg2-lv{z-index:2}.bg2 .bg2-ok{z-index:3}
+html body:not(.wide) .sh.pvx .bg2-h b{font-size:30px}
+/* v444 badges page (Khalid's ChatGPT design): red-glow cards, hexagon medals */
+html body:not(.wide) .sh.pvx .bg2:not(#z),html body:not(.wide) .sh.pvx .bg2-next:not(#z){background:linear-gradient(160deg,#22080d,#121214 65%)!important;border:1.5px solid rgba(200,16,46,.55)!important;box-shadow:0 0 18px rgba(200,16,46,.18)!important}
+html body:not(.wide) .sh.pvx .bg2.on:not(#z){border-color:rgba(240,51,79,.85)!important;box-shadow:0 0 22px rgba(200,16,46,.32)!important}
+html body .bg2 .bg2-md:not(#z),html body .bg2-next .bg2-md:not(#z){position:relative;isolation:isolate;width:78px;height:86px;border-radius:0;background:none;display:grid;place-items:center;font-size:38px;filter:none;opacity:1}
+.bg2 .bg2-md::before,.bg2 .bg2-md::after,.bg2-next .bg2-md::before,.bg2-next .bg2-md::after{content:"";position:absolute;z-index:-1;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.bg2 .bg2-md::before,.bg2-next .bg2-md::before{inset:0;background:linear-gradient(160deg,#d6d6db,#6e6e73 55%,#3a3a3c)}
+.bg2 .bg2-md::after,.bg2-next .bg2-md::after{inset:4px;background:radial-gradient(circle at 50% 40%,#3a3a3c,#1a1a1c 75%)}
+.bg2.on .bg2-md::before{background:linear-gradient(160deg,#FFE08A,#E3B23C 45%,#9A6B12)}
+.bg2.on .bg2-md::after{background:radial-gradient(circle at 50% 40%,#E0203F,#6D0716 78%)}
+html body .bg2.on .bg2-md:not(#z){filter:drop-shadow(0 0 10px rgba(227,178,60,.45))}
+html body .bg2-next .bg2-md:not(#z){width:62px;height:68px;font-size:30px}
+.bg2-next .bg2-md::before{background:linear-gradient(160deg,#F0334F,#8E0B21)}
+.bg2-next .bg2-md::after{background:radial-gradient(circle at 50% 40%,#5a0a17,#24060b)}
+.bg2 .bg2-lv{z-index:2}.bg2 .bg2-ok{z-index:3}
+html body:not(.wide) .sh.pvx .bg2-h b{font-size:30px}
+html body:not(.wide) .sh.pvx .bg2-cnt.done{color:#E3B23C!important;border:1.5px solid #E3B23C;border-radius:999px;padding:3px 16px;margin-top:6px;font-weight:800}
