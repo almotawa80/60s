@@ -5854,8 +5854,6 @@ async function tSettings(){
       sRow({ act: 'go', attrs: 'data-h="#/t/appear"', icon: 'moon', color: '#5856D6', label: 'المظهر' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/sg/app"', icon: 'gear', color: '#8E8E93', label: 'التطبيق' }),
       ADM.st && ADM.st.is ? sRow({ act: 'go', attrs: 'data-h="#/t/admin"', icon: 'lock', color: '#30B0C7', label: 'المشرف' }) : '']) +
-    sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`,
-      `<button class="set-row danger-row" data-act="st-del-acc"><span class="grow center">حذف حسابي</span></button>`], 'حذف الحساب يمسح بياناتك نهائياً.') +
     `<div class="set-f center">اهزم الدقيقة · الإصدار ${APP_VER}</div>`, 'settings');
 }
 function tSetGroup(k){
@@ -5946,6 +5944,7 @@ async function tAccount(){
     sGrp('تسجيل الدخول', [`<div class="set-row"><span class="grow">طريقة الدخول</span><span class="set-val">${PROV[prov] || esc(prov)}</span></div>`,
       `<div class="set-row"><span class="grow">البريد</span><span class="set-val" dir="ltr">${esc(T.user.email || '')}</span></div>`,
       prov === 'email' ? sRow({ act: 'st-pass', label: 'تغيير كلمة المرور' }) : '']) +
+    sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
     sGrp('', [`<button class="set-row danger-row" data-act="st-del-acc"><span class="grow center">حذف الحساب</span></button>`], 'يحذف حسابك وكل صفوفك وطلبتك وأسئلتك نهائياً.'), 'settings', '', '#/t/settings');
   try {
     const [c, s, k] = await Promise.all([sb.from('classes').select('id', { count: 'exact', head: true }).eq('archived', false),
