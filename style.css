@@ -4250,3 +4250,6 @@ html body:not(.wide) .sh.sp.pvx .s-head2 .who b{font-size:26px!important;line-he
 .ar-vs .num{width:84px;height:84px;border-radius:50%;background:radial-gradient(circle,#2b1506,#120803);display:grid;place-items:center}
 .ar-vs .num .vs{font-size:40px}
 .ar-qn{text-align:center;color:#C7C7CC;font-weight:700;font-size:14px;margin:-6px 0 8px}
+/* v451 find: logo above radar, not hidden behind it */
+.ar-find .ar-logo{z-index:3;width:46%;max-width:200px}
+.sh.pvx.ar-find{padding-top:calc(max(18px,env(safe-area-inset-top)) + 96px)!important}
