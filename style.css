@@ -4279,3 +4279,5 @@ html body .bg2.on .bg2-md:not(#z)::after{background:radial-gradient(circle at 50
 .ar-logo{width:84px!important;max-width:84px!important;border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,.5)}
 .ar-find .ar-logo,.ar-vs .ar-logo{left:50%!important;right:auto!important;transform:translateX(-50%)}
 .sh.pvx.ar-find{padding-top:calc(max(18px,env(safe-area-inset-top)) + 100px)!important}
+.ar-vs .ar-logo{width:60px!important;max-width:60px!important;border-radius:16px}
+.ar-vs .a{padding-top:max(112px,calc(env(safe-area-inset-top) + 96px))!important}
