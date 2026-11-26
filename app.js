@@ -883,7 +883,7 @@ function arQ(){
   const st = AR.tm = {}, end = performance.now() + r.secs * 1000, num = document.getElementById('tnum'), fg = document.getElementById('tfg'), box = document.getElementById('timer'); let shown = -1;
   const tick = () => { if (AR.tm !== st || AR.gen !== g) return; const left = Math.max(0, (end - performance.now()) / 1000), sec = Math.ceil(left);
     if (sec !== shown) { shown = sec; num.textContent = sec; if (sec <= 5 && sec > 0) { box.classList.add('hurry'); FX.tick && FX.tick(); } }
-    fg.style.width = Math.min(100, left / r.secs * 100) + '%'; fg.classList.toggle('hurry', left <= 5);
+    { const fr = Math.max(0, Math.min(1, left / r.secs)), h = Math.round(120 * fr); fg.style.width = fr * 100 + '%'; fg.classList.toggle('hurry', left <= 5); fg.style.setProperty('background', `linear-gradient(hsl(${h},85%,58%),hsl(${h},85%,42%))`, 'important'); fg.style.setProperty('box-shadow', `0 0 10px hsla(${h},90%,55%,.7)`, 'important'); }
     if (left <= 0) { AR.tm = null; if (!AR.lock) { AR.lock = true; MG.end = null; MG.tap = null; arSubmit(null); } return; }
     requestAnimationFrame(tick); };
   tick();
