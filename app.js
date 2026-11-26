@@ -862,7 +862,7 @@ function arQ(){
   const r = AR.r, q = r.q, g = AR.gen; AR.lock = false; clearTimeout(AR.ot);
   const long = q.options.some(o => String(o).length > 22), isGame = !!(q.payload && q.payload.kind === 'game');
   $app.innerHTML = '<div class="play pv pvx ar-round"><button class="icon-btn pv-btn ar-x" data-act="ar-quit" aria-label="الخروج من الجولة">' + ic('x') + '</button>' + arTugHtml() +
-    '<div class="pvx-tm" id="timer"><div class="pvx-bar"><i id="tfg"></i></div><span>السؤال ' + (r.pos + 1) + ' من ' + r.nq + ' · <b id="tnum">' + r.secs + '</b> ثانية</span></div>' +
+    '<div class="pvx-tm" id="timer"><div class="pvx-bar"><i id="tfg"></i></div><span><b id="tnum">' + r.secs + '</b> ثانية</span></div><div class="ar-qn">السؤال ' + (r.pos + 1) + ' من ' + r.nq + '</div>' +
     '<div class="pv-panel"><div class="qbox"><span>' + esc(q.body) + '</span></div><div class="pts-pop" id="pop"></div>' +
     (isGame ? '<div class="mg" id="mg"></div></div>' : '<div class="opts kc' + (long ? ' long' : '') + '">' + q.options.map((o, i) => '<button class="opt oc' + i + '" data-act="ar-ans" data-idx="' + i + '"><span class="txt">' + esc(o) + '</span></button>').join('') + '</div></div>') + arEmoHtml() + '</div>';
   AR.q0 = performance.now();

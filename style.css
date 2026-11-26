@@ -4249,3 +4249,4 @@ html body:not(.wide) .sh.sp.pvx .s-head2 .who b{font-size:26px!important;line-he
 .ar-vs .mid svg{inset:46px;width:calc(100% - 92px);height:calc(100% - 92px);opacity:.9}
 .ar-vs .num{width:84px;height:84px;border-radius:50%;background:radial-gradient(circle,#2b1506,#120803);display:grid;place-items:center}
 .ar-vs .num .vs{font-size:40px}
+.ar-qn{text-align:center;color:#C7C7CC;font-weight:700;font-size:14px;margin:-6px 0 8px}
