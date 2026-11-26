@@ -4264,3 +4264,5 @@ html body:not(.wide) .sh.sp.pvx .sp-done .sp-emo .bx:has(.bx-img){font-size:96px
 .ar-vs .mid{width:min(150px,18dvh)!important;height:min(150px,18dvh)!important;margin:calc(min(150px,18dvh) / -2) 0 0 calc(min(150px,18dvh) / -2)!important}
 .ar-vs .mid svg{inset:24%;width:52%;height:52%}
 .ar-vs .num{width:66px;height:66px}.ar-vs .num .vs{font-size:32px}.ar-vs .num span{font-size:44px}
+/* v455 earned medal: dark inner so red icons (🎯 💯) stay clear */
+html body .bg2.on .bg2-md:not(#z)::after{background:radial-gradient(circle at 50% 38%,#4a3410,#1a1206 75%)!important}
