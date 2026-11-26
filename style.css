@@ -4275,3 +4275,7 @@ html body .bg2.on .bg2-md:not(#z)::after{background:radial-gradient(circle at 50
 .s-delp-i{font-size:64px}.s-delp h2{margin:0;font-size:28px}.s-delp p{margin:0 0 10px;color:#C7C7CC;line-height:1.8}
 .s-delp .btn{min-width:240px}
 .cn-tag.cn-del{background:#3a0a12;color:#FF6B7F}
+/* v459 arena: real app logo (icon) instead of the ChatGPT wordmark */
+.ar-logo{width:84px!important;max-width:84px!important;border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.ar-find .ar-logo,.ar-vs .ar-logo{left:50%!important;right:auto!important;transform:translateX(-50%)}
+.sh.pvx.ar-find{padding-top:calc(max(18px,env(safe-area-inset-top)) + 100px)!important}

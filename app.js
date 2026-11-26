@@ -827,7 +827,7 @@ function arDraw(){
 ACTS['ar-play'] = async t => {
   if (AR.busy || S.demo) return; AR.busy = true; const g = ++AR.gen, s = t.dataset.s; stopTimer(); closeModals();
   const h = AR.h || {};
-  $app.innerHTML = '<div class="sh pvx ar-find"><img class="ar-logo" src="img/ar-logo.webp" alt="اهزم الدقيقة"><div class="ar-radar"><i></i><i></i><span class="sweep"></span>' + arAv(h.avatar, h.nick, '', h.av) + '</div><h2>ندوّر لك خصم…</h2><p id="ar-fp">' + esc(arSubj(s).n) + ' · قريب من مستواك</p><b class="ar-fs" id="ar-fs">0</b><button class="btn ar-fx ar-fnow" data-act="ar-now">ابدأ الحين</button><button class="btn ghost ar-fx" data-act="ar-cancel">إلغاء</button></div>';
+  $app.innerHTML = '<div class="sh pvx ar-find"><img class="ar-logo" src="icon-512.png?i=10" alt="اهزم الدقيقة"><div class="ar-radar"><i></i><i></i><span class="sweep"></span>' + arAv(h.avatar, h.nick, '', h.av) + '</div><h2>ندوّر لك خصم…</h2><p id="ar-fp">' + esc(arSubj(s).n) + ' · قريب من مستواك</p><b class="ar-fs" id="ar-fs">0</b><button class="btn ar-fx ar-fnow" data-act="ar-now">ابدأ الحين</button><button class="btn ghost ar-fx" data-act="ar-cancel">إلغاء</button></div>';
   AR.now = false;
   try {
     /* the search takes 10 to 25 seconds, like a real queue; the round is only created once it ends, so cancelling costs nothing */
@@ -852,7 +852,7 @@ ACTS['ar-play'] = async t => {
 };
 function arVs(g){
   const r = AR.r, h = AR.h || {}, o = r.opp;
-  $app.innerHTML = '<div class="ar-vs"><img class="ar-logo" src="img/ar-logo.webp" alt="اهزم الدقيقة"><div class="half a">' + arAv(h.avatar, h.nick, '', h.av) + '<b>' + esc(h.nick || 'أنت') + '</b><small>مستوى ' + r.lvl + '</small></div>' +
+  $app.innerHTML = '<div class="ar-vs"><img class="ar-logo" src="icon-512.png?i=10" alt="اهزم الدقيقة"><div class="half a">' + arAv(h.avatar, h.nick, '', h.av) + '<b>' + esc(h.nick || 'أنت') + '</b><small>مستوى ' + r.lvl + '</small></div>' +
     '<div class="half b"><small>مستوى ' + o.lvl + '</small><b>' + esc(o.name || '') + '</b>' + arAv(o.avatar, o.name, '', o.av) + '</div>' +
     '<div class="mid"><svg viewBox="0 0 112 112" aria-hidden="true"><circle cx="56" cy="56" r="50" fill="none" stroke="#2A2A2E" stroke-width="8"/><circle id="ar-cdr" cx="56" cy="56" r="50" fill="none" stroke="#F5B72B" stroke-width="8" stroke-linecap="round" stroke-dasharray="314.2 314.2" transform="rotate(-90 56 56)"/></svg><div class="num" id="ar-num" role="status"><span class="vs">VS</span></div></div>' +
     '<p class="cap">' + (r.live ? '<span class="ar-live"><i></i>مباشر</span> · ' : '') + esc(arSubj(r.subject).n) + ' · ' + r.nq + ' أسئلة · ' + r.secs + ' ثانية للسؤال</p></div>';
