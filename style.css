@@ -4052,3 +4052,6 @@ html body .sl.sl-red .sl-hero h1{margin-top:-18px!important}
 /* v435c result: same strong rays as login (Khalid), no logo */
 html body:not(.wide) .sh.pvx .result::before{top:-380px;width:1400px;height:1400px;margin-left:-700px;
   background:radial-gradient(circle,rgba(0,0,0,0) 0,rgba(0,0,0,.35) 26%,#000 55%),repeating-conic-gradient(from 3deg,#9E0C24 0 6deg,#140306 6deg 14deg)!important;-webkit-mask:none!important;mask:none!important}
+/* v437 login hero smaller (Khalid: logo too big) */
+html body .sl.sl-red .sl-hero img{width:64%;max-width:270px}
+html body .sl.sl-red .sl-hero h1{margin-top:-10px!important;font-size:26px!important}
