@@ -4359,3 +4359,4 @@ html body .ac-sh2 .btn:not(#z){min-height:54px;border-radius:18px;font-size:20px
 html body .ac-sh2 .ac-c:not(#z){background:#2C2C2E!important;border:1.5px solid #3A3A3C!important;color:#fff;border-radius:16px;min-height:50px;position:relative}
 html body .ac-sh2 .ac-c.on:not(#z){background:linear-gradient(#F0183A,#B50E28)!important;border:2px solid #E3B23C!important}
 .ac-sh2 .ac-c.on::after{content:"✓";position:absolute;top:-8px;left:-5px;width:22px;height:22px;border-radius:50%;background:#E3B23C;color:#1a1200;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1}
+.ac-sh2 .ac-ph{flex-direction:row-reverse}.ac-row b .ac-emo{font-size:22px}

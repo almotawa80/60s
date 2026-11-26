@@ -5944,7 +5944,7 @@ function acVal(k){
   if (k === 's') return SG('school') || '';
   if (k === 'p') return SG('phone') || '';
   if (k === 'st') return String(SG('prof_stage') || '').split('|').filter(Boolean).join('، ');
-  if (k === 'sj') return mySubjects().map(v => (SUBJ_EMOJI[v] || '📘') + ' ' + v).join('  ');
+  if (k === 'sj') return mySubjects().map(v => SUBJ_EMOJI[v] || '📘').join(' ');
   return SG('district') || '';
 }
 function acRowsHtml(){
