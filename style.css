@@ -4391,3 +4391,10 @@ html body .ac-st .ac-c.on:not(#z){background:linear-gradient(#F0183A,#B50E28)!im
 /* v467: profile fields — no blue focus box, tab bar hides while typing */
 html body .ac-in:focus,html body .ac-in:focus-visible,html body .ac-sel:focus-visible{outline:none!important;border:0!important;background:transparent!important;box-shadow:0 2px 0 #E3B23C!important}
 body.ac-typing .t-nav{display:none!important}
+/* v471: arena find fits one screen (cancel button was cut off) */
+.sh.pvx.ar-find{padding-top:calc(max(14px,env(safe-area-inset-top)) + 112px)!important;padding-bottom:max(18px,env(safe-area-inset-bottom))!important;gap:10px!important;justify-content:flex-start!important}
+.ar-find .ar-radar{width:230px!important;height:230px!important;flex:none}
+.ar-find .ar-radar .ar-av{width:112px!important;height:112px!important}
+.ar-find h2{font-size:26px!important}
+.ar-find .ar-fs{width:84px!important;height:84px!important;font-size:36px!important;flex:none}
+.ar-find .btn{min-height:50px}
