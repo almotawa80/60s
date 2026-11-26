@@ -4281,3 +4281,8 @@ html body .bg2.on .bg2-md:not(#z)::after{background:radial-gradient(circle at 50
 .sh.pvx.ar-find{padding-top:calc(max(18px,env(safe-area-inset-top)) + 100px)!important}
 .ar-vs .ar-logo{width:60px!important;max-width:60px!important;border-radius:16px}
 .ar-vs .a{padding-top:max(112px,calc(env(safe-area-inset-top) + 96px))!important}
+/* v461 logo = wide 60s mark like the email header, edges faded into the screen */
+html body .ar-logo:not(#z){width:min(62%,250px)!important;max-width:250px!important;border-radius:0;box-shadow:none;-webkit-mask:radial-gradient(ellipse 50% 50% at 50% 50%,#000 55%,transparent 100%);mask:radial-gradient(ellipse 50% 50% at 50% 50%,#000 55%,transparent 100%)}
+html body .ar-vs .ar-logo:not(#z){width:min(46%,180px)!important}
+.sh.pvx.ar-find{padding-top:calc(max(18px,env(safe-area-inset-top)) + 150px)!important}
+.ar-vs .a{padding-top:max(140px,calc(env(safe-area-inset-top) + 124px))!important}
