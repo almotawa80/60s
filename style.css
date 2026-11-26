@@ -3949,3 +3949,4 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 .bd-opt{box-shadow:0 5px 0 #141416;color:#F5F5F7}
 .bd-opt:active{transform:translateY(3px);box-shadow:0 2px 0 #141416}
 .bd-opt.good{background:#1F9D55;color:#fff;box-shadow:0 5px 0 #136B38}.bd-opt.bad{background:#C8102E;box-shadow:0 5px 0 #7A0A1C}
+.cp-tile{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}

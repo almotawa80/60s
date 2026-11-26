@@ -2824,7 +2824,7 @@ function classesList(){
   const top = CL.sel ? '' : `<button class="btn cl-add" data-act="aw-start">${ic('plus')} إضافة طلبة</button><div class="cl-newc"><button class="link" data-act="t-add-class">＋ صف جديد</button></div><input type="file" id="awimg" accept="image/*" class="hide" data-change="aw-img"><input type="file" id="awxl" accept=".xlsx,.xls,.csv" class="hide" data-change="aw-xl"><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
   const arch = CL.archived && CL.archived.length && !CL.sel ? `<a class="cl-arch cl-arch-l" href="#/t/archive">${ic('layers')} الصفوف المؤرشفة (${CL.archived.length})<span class="grow"></span>${ic('back')}</a>` : '';
   if (!CL.sel) return `<button class="btn cp-newc" data-act="t-add-class">＋ صف جديد</button>` + (CL.classes.length ? `<div class="cp-tiles">${CL.classes.map(c => { const st0 = CL.students[c.id] || [], comp = CL.comps[c.id], p = st0.filter(x => CST(x.id).today).length;
-      return `<button class="cp-tile" data-act="c-open" data-id="${c.id}"><b>${esc(c.name)}</b><small>${st0.length} طالب</small>${comp ? `<small class="cp-pl">لعب اليوم ${p}</small>` : ''}</button>`; }).join('')}</div>` : `<div class="cl-empty sm"><b>ما عندك صفوف بعد</b><small>اضغط «صف جديد» واكتب اسمه، وبعدها شارك الرمز مع الطلاب.</small></div>`) + arch + `<input type="file" id="awimg" accept="image/*" class="hide" data-change="aw-img"><input type="file" id="awxl" accept=".xlsx,.xls,.csv" class="hide" data-change="aw-xl"><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
+      return `<button class="cp-tile" data-act="c-open" data-id="${c.id}" data-cid="${c.id}"><b>${esc(c.name)}</b><small>${st0.length} طالب</small>${comp ? `<small class="cp-pl">لعب اليوم ${p}</small>` : ''}</button>`; }).join('')}</div>` : `<div class="cl-empty sm"><b>ما عندك صفوف بعد</b><small>اضغط «صف جديد» واكتب اسمه، وبعدها شارك الرمز مع الطلاب.</small></div>`) + arch + `<input type="file" id="awimg" accept="image/*" class="hide" data-change="aw-img"><input type="file" id="awxl" accept=".xlsx,.xls,.csv" class="hide" data-change="aw-xl"><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
   if (CL.sel.type === 'classes') return `<div class="cp-tiles cp-selm">${CL.classes.map(c => { const on = CL.sel.ids.has(c.id), st0 = CL.students[c.id] || [];
     return `<button class="cp-tile${on ? ' picked' : ''}" data-act="c-pick" data-id="${c.id}" aria-pressed="${on}"><span class="cp-ck">${on ? '✓' : ''}</span><b>${esc(c.name)}</b><small>${st0.length} طالب</small></button>`; }).join('')}</div><div style="height:120px"></div>`;
   if (!CL.classes.length) return top + `<div class="cl-empty">${ic('users')}<b>لا يوجد طلبة بعد</b><small>اضغط «إضافة طلبة» فوق، وصوّر كشف الأسماء أو الصقه، وخلال دقيقة يصير الصف جاهز.</small></div>` + arch;
@@ -2845,6 +2845,18 @@ function classPage(c){
     `<button class="cp-many" data-act="aw-start" data-cid="${c.id}">📷 أضف أسماء كثيرة من صورة أو Excel</button></div></div>`;
 }
 ACTS['c-open'] = t => go('#/t/class/' + t.dataset.id);
+/* v430 (Khalid): long press on a class square opens its ⋯ sheet */
+(() => { let tm = null, x0 = 0, y0 = 0, fired = false;
+  const end = () => { clearTimeout(tm); tm = null; };
+  document.addEventListener('touchstart', e => { const t = e.target.closest && e.target.closest('.cp-tile[data-cid]'); fired = false; if (!t) return;
+    const p = e.touches[0]; x0 = p.clientX; y0 = p.clientY; end();
+    tm = setTimeout(() => { tm = null; fired = true; try { navigator.vibrate && navigator.vibrate(15); } catch(_){} ACTS['c-cmore'](t); }, 480); }, { passive: true });
+  document.addEventListener('touchmove', e => { if (!tm) return; const p = e.touches[0]; if (Math.abs(p.clientX - x0) > 10 || Math.abs(p.clientY - y0) > 10) end(); }, { passive: true });
+  document.addEventListener('touchend', e => { end(); if (fired && e.target.closest && e.target.closest('.cp-tile')) e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchcancel', end, { passive: true });
+  document.addEventListener('click', e => { if (fired && e.target.closest && e.target.closest('.cp-tile')) { fired = false; e.preventDefault(); e.stopPropagation(); } }, true);
+  document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.cp-tile')) e.preventDefault(); });
+})();
 ACTS['c-pmore'] = () => { const el = document.querySelector('.cp1[data-cid]'); if (el) ACTS['c-cmore'](el); };
 ACTS['c-share'] = t => { const c = ctx(t); if (!c) return; const link = joinLink(c.join_code);
   const msg = `انضم لتحدي «${c.name}» في «اهزم الدقيقة» 🎯\nرمز الصف: ${fmtCode(c.join_code || '')}\nأو اضغط الرابط:\n${link}`;
