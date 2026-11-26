@@ -2857,7 +2857,7 @@ ACTS['c-open'] = t => go('#/t/class/' + t.dataset.id);
   document.addEventListener('click', e => { if (fired && e.target.closest && e.target.closest('.cp-tile')) { fired = false; e.preventDefault(); e.stopPropagation(); } }, true);
   document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.cp-tile')) e.preventDefault(); });
 })();
-ACTS['c-pmore'] = () => { const el = document.querySelector('.cp1[data-cid]'); if (el) ACTS['c-cmore'](el); };
+ACTS['c-pmore'] = t => { const el = document.querySelector('.cp1[data-cid]'); if (el) ACTS['c-cmore'](el, t && t.closest ? t.closest('button') : null); };
 ACTS['c-share'] = t => { const c = ctx(t); if (!c) return; const link = joinLink(c.join_code);
   const msg = `انضم لتحدي «${c.name}» في «اهزم الدقيقة» 🎯\nرمز الصف: ${fmtCode(c.join_code || '')}\nأو اضغط الرابط:\n${link}`;
   sheet('شارك الرمز', [
@@ -2946,8 +2946,24 @@ ACTS['c-xl'] = () => { closeModals(); setTimeout(() => modal(`<div class="aw-she
   <div class="xl2-s"><b>2</b><span class="grow">اكتب فيه أسماء طلابك وصفوفهم</span></div>
   <div class="xl2-s"><b>3</b><span class="grow">ارفعه هنا</span><button class="btn sm" data-act="m-run" data-a="t-multi-up">ارفع الملف</button></div></div>`), 30); };
 /* v120: class ⋯ = six squares, like the student card */
-ACTS['c-cmore'] = t => { const c = ctx(t); const sq = (a, e, l, x) => `<button class="st1-o${x ? ' ' + x : ''}" data-act="m-run" data-a="${a}" data-cid="${c.id}"><span>${e}</span>${l}</button>`;
-  modal(`<div class="aw-sheet"><h3>${esc(c.name)}</h3><div class="st1-opts">${sq('t-print-codes', '🖨️', 'طباعة البطاقات')}${sq('c-menu', '⚙️', 'إعدادات الصف')}${sq('c-promote', '🎓', nextGradeName(c.name) ? 'ترقية إلى ' + esc(nextGradeName(c.name)) : 'ترقية للصف التالي')}${sq('t-export-codes', '🔑', 'تنزيل رموز الطلبة')}${sq('c-archive', '📦', 'أرشفة الصف')}${sq('c-del', '🗑️', 'حذف الصف', 'dng')}</div></div>`); };
+ACTS['c-cmore'] = (t, anc) => { const c = ctx(t); if (!c) return;
+  /* v431 (Khalid «روعة», preview Q7miVvGYf8QU397b55ZUP2): iOS-style context menu instead of the squares sheet */
+  const I = { pr: '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>', dl: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/>', up: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/>', st: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>', ar: '<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>', del: '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>' };
+  const row = (a, i, l, x) => `<button class="${x || ''}" data-a="${a}"><svg viewBox="0 0 24 24">${I[i]}</svg><span>${l}</span></button>`;
+  document.querySelectorAll('.cxm-w').forEach(x => x.remove());
+  const w = document.createElement('div'); w.className = 'cxm-w'; w.dir = 'rtl';
+  w.innerHTML = `<div class="cxm-dim"></div><div class="cxm">${row('t-print-codes', 'pr', 'طباعة البطاقات')}${row('t-export-codes', 'dl', 'تنزيل رموز الطلبة')}${row('c-promote', 'up', nextGradeName(c.name) ? 'ترقية إلى ' + esc(nextGradeName(c.name)) : 'ترقية للصف التالي')}${row('c-menu', 'st', 'إعدادات الصف')}${row('c-archive', 'ar', 'أرشفة الصف', 'sep')}${row('c-del', 'del', 'حذف الصف', 'red')}</div>`;
+  document.body.appendChild(w);
+  const src = anc || (t.closest && t.closest('.cp-tile')) || (t.tagName === 'BUTTON' ? t : null), m = w.querySelector('.cxm'), vw = innerWidth, vh = innerHeight;
+  let r = src ? src.getBoundingClientRect() : { left: vw / 2 - 125, right: vw / 2 + 125, top: vh / 3, bottom: vh / 3, width: 250, height: 0 };
+  if (src && src.classList.contains('cp-tile')) { const l = src.cloneNode(true); l.className += ' cxm-lift'; l.removeAttribute('data-act'); Object.assign(l.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' }); w.appendChild(l); }
+  const mw = Math.min(260, vw - 24), mh = m.offsetHeight || 330; m.style.width = mw + 'px';
+  let left = Math.min(Math.max(12, (r.left + r.right) / 2 < vw / 2 && !(src && src.classList.contains('cp-tile')) ? r.left : r.right - mw), vw - mw - 12), top = r.bottom + 10; if (top + mh > vh - 90) top = Math.max(12, r.top - mh - 10);
+  m.style.left = left + 'px'; m.style.top = top + 'px'; m.style.transformOrigin = (top < r.top ? 'bottom' : 'top') + (left + mw / 2 < vw / 2 ? ' left' : ' right');
+  const close = () => { w.classList.remove('on'); setTimeout(() => w.remove(), 220); };
+  w.querySelector('.cxm-dim').addEventListener('click', close);
+  m.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; close(); const fake = document.querySelector(`[data-cid="${c.id}"]`) || t; setTimeout(() => ACTS[b.dataset.a](fake.querySelector ? (fake.querySelector('.cls-head') || fake) : fake), 30); });
+  requestAnimationFrame(() => w.classList.add('on')); };
 ACTS['m-run'] = t => { closeModals(); const a2 = t.dataset.a; const fake = document.querySelector(`[data-cid="${t.dataset.cid}"]`) || t; setTimeout(() => ACTS[a2](fake.querySelector ? (fake.querySelector('.cls-head') || fake) : fake), 30); };
 ACTS['c-pick'] = t => { const id = t.dataset.id; CL.sel.ids.has(id) ? CL.sel.ids.delete(id) : CL.sel.ids.add(id); haptic(); const y = scrollY; renderClasses(); scrollTo(0, y); };
 ACTS['c-select'] = () => { CL.sel = { type: 'classes', ids: new Set() }; renderClasses(); };

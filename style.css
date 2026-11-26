@@ -3950,3 +3950,17 @@ body:not(.dark) .nw-set1{background:#fff;border-color:rgba(0,0,0,.1)}
 .bd-opt:active{transform:translateY(3px);box-shadow:0 2px 0 #141416}
 .bd-opt.good{background:#1F9D55;color:#fff;box-shadow:0 5px 0 #136B38}.bd-opt.bad{background:#C8102E;box-shadow:0 5px 0 #7A0A1C}
 .cp-tile{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+/* v431 iOS-style context menu (class long press / ⋯) */
+.cxm-w{position:fixed;inset:0;z-index:9000}
+.cxm-dim{position:absolute;inset:0;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);opacity:0;transition:opacity .22s}
+.cxm-w.on .cxm-dim{opacity:1}
+.cxm-lift{position:fixed!important;margin:0!important;z-index:2;transform:scale(1.04);box-shadow:0 12px 30px rgba(0,0,0,.6);pointer-events:none;transition:transform .2s}
+.cxm{position:fixed;z-index:3;background:rgba(44,44,46,.82);-webkit-backdrop-filter:blur(30px) saturate(1.6);backdrop-filter:blur(30px) saturate(1.6);border-radius:22px;overflow:hidden;transform:scale(.4);opacity:0;transition:transform .28s cubic-bezier(.3,1.3,.5,1),opacity .2s}
+.cxm-w.on .cxm{transform:none;opacity:1}
+.cxm button{display:flex;align-items:center;gap:14px;width:100%;background:none;border:0;color:#fff;font:700 17px Cairo,system-ui,sans-serif;padding:13px 18px;text-align:right;min-height:48px}
+.cxm button+button{border-top:.5px solid rgba(255,255,255,.12)}
+.cxm button.sep{border-top:7px solid rgba(0,0,0,.25)}
+.cxm button.red{color:#FF453A}
+.cxm button:active{background:rgba(255,255,255,.1)}
+.cxm svg{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cxm span{flex:1}
