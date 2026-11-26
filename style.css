@@ -4266,3 +4266,7 @@ html body:not(.wide) .sh.sp.pvx .sp-done .sp-emo .bx:has(.bx-img){font-size:96px
 .ar-vs .num{width:66px;height:66px}.ar-vs .num .vs{font-size:32px}.ar-vs .num span{font-size:44px}
 /* v455 earned medal: dark inner so red icons (🎯 💯) stay clear */
 html body .bg2.on .bg2-md:not(#z)::after{background:radial-gradient(circle at 50% 38%,#4a3410,#1a1206 75%)!important}
+/* v456 arena profile: «أنا» picture instead of drawn faces */
+.ar-pfp{display:flex;flex-direction:column;align-items:center;gap:8px;margin:6px auto 4px;border:0;background:none;color:#F5B72B;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
+.ar-pfp .ar-av{width:110px;height:110px;font-size:56px}
+.ar-pfp span{border:1.5px solid #E3B23C;border-radius:999px;padding:4px 16px}

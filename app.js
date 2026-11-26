@@ -744,8 +744,8 @@ function arAv(av, name, cls, dr){ if (/^[bg][1-4]$/.test(dr || '') && !AV_IMG[av
 /* «لقبك وشكلك»: the nickname is rolled from fixed word lists (never typed), the look is one of eight drawn characters */
 function arRoll(g, not){ const pk = a => a[Math.floor(Math.random() * a.length)]; let n; do { n = pk(AR_W[g]) + ' ' + pk(AR_W.x); } while (n === not); return n; }
 function arPfHtml(){ const f = AR.pf;
-  return '<h3>لقبك وشكلك</h3><div class="ar-pfg">' + [['b', 'ولد'], ['g', 'بنت']].map(x => '<button class="' + (f.g === x[0] ? 'on' : '') + '" data-act="ar-pf-g" data-g="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
-    '<div class="ar-pfa">' + [1, 2, 3, 4].map(i => '<button class="' + (f.av === f.g + i ? 'on' : '') + '" data-act="ar-pf-av" data-v="' + f.g + i + '" aria-label="شكل ' + i + '">' + arFace(f.g + i) + '</button>').join('') + '</div>' +
+  return '<h3>لقبك وصورتك</h3><div class="ar-pfg">' + [['b', 'ولد'], ['g', 'بنت']].map(x => '<button class="' + (f.g === x[0] ? 'on' : '') + '" data-act="ar-pf-g" data-g="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
+    '<button class="ar-pfp" data-act="ar-pf-pic">' + arAv((AR.h || {}).avatar, f.nick, '', f.av) + '<span>غيّر صورتك</span></button>' +
     '<div class="ar-pfn"><b>' + esc(f.nick) + '</b><button data-act="ar-pf-roll" aria-label="لقب ثاني"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="5" width="30" height="30" rx="8" fill="#F5F5F7"/><circle cx="13.5" cy="13.5" r="3" fill="#C8102E"/><circle cx="26.5" cy="13.5" r="3" fill="#1C1C1E"/><circle cx="20" cy="20" r="3" fill="#1C1C1E"/><circle cx="13.5" cy="26.5" r="3" fill="#1C1C1E"/><circle cx="26.5" cy="26.5" r="3" fill="#C8102E"/></svg>غيّر</button></div>' +
     '<button class="btn" data-act="ar-pf-save">حفظ</button><p class="ar-pfh">اسمك الحقيقي ما يطلع في الحلبة، بس لقبك.</p>'; }
 function arPfDraw(){ const el = document.getElementById('ar-pf'); if (el) el.innerHTML = arPfHtml(); }
@@ -984,6 +984,7 @@ ACTS['s-del-me'] = async () => {
 ACTS['s-logout-ask'] = async () => { const code = LS.get('mc_code');
   if (!await ask('تحتاجه عشان ترجع.', { title: code ? 'صوّر رمزك قبل ما تطلع' : 'تسجيل الخروج؟', html: code ? `<div class="dlg-code" dir="ltr">${esc(code)}</div><button type="button" class="dlg-cp" data-act="copy" data-v="${esc(code)}">📋 انسخ الرمز</button>` : '', cancel: 'رجوع', ok: 'اطلع', danger: true })) return; closeModals(); ACTS['s-logout'](); };
 const S_AVS = ['p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11','p12','🦁','🐯','🐼','🦊','🐨','🐸','🦉','🦅','🐬','🐢','🦄','🐉'];
+ACTS['ar-pf-pic'] = () => { S.avFrom = 'ar'; ACTS['s-av'](); };
 ACTS['s-av'] = async () => { if (!S.home) return; S.avPick = S.home.student.avatar || '';
   if (!S.daily && !S.demo) { try { S.daily = await rpc('student_daily', { p_token: S.token }); } catch(e){} }
   const dl = S.daily || {}, own = dl.stickers || [], pool = dl.pool || [];
@@ -992,7 +993,7 @@ ACTS['s-av'] = async () => { if (!S.home) return; S.avPick = S.home.student.avat
     '<button class="btn" data-act="s-avs">حفظ</button>' + (S.home.student.avatar ? '<button class="btn soft" data-act="s-avs" data-v="">بدون شخصية</button>' : '') + '</div>'); };
 ACTS['s-avp'] = t => { S.avPick = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); };
 ACTS['s-avs'] = async t => { const v = t.dataset.v != null ? t.dataset.v : S.avPick; if (S.demo) { S.home.student.avatar = v; closeModals(); return ACTS['s-tab']({ dataset: { t: 'me' } }); }
-  try { await rpc('student_set_avatar', { p_token: S.token, p_av: v || '' }); S.home.student.avatar = v || null; closeModals(); toast(v ? 'انحفظت شخصيتك' : 'انشالت الشخصية'); ACTS['s-tab']({ dataset: { t: 'me' } }); } catch (e) { toast(errMsg(e)); } };
+  try { await rpc('student_set_avatar', { p_token: S.token, p_av: v || '' }); S.home.student.avatar = v || null; if (AR.h) AR.h.avatar = v || null; closeModals(); toast(v ? 'انحفظت شخصيتك' : 'انشالت الشخصية'); if (S.avFrom === 'ar') { S.avFrom = ''; if (AR.pf) { modal('<div class="ar-pf" id="ar-pf">' + arPfHtml() + '</div>'); } if (S.tab === 'ar') arDraw(); } else ACTS['s-tab']({ dataset: { t: 'me' } }); } catch (e) { toast(errMsg(e)); } };
 ACTS['s-profile'] = () => { closeModals();
   const h = S.home;
   const code = LS.get('mc_code');
