@@ -557,7 +557,7 @@ function honorHtml(b){
 const BG2 = [
   { k: 'fast', i: '⚡', n: 'البرق', d: 'إجابة صحيحة في أقل من 3 ثوانٍ', t: [1, 10, 50], u: 'إجابة' },
   { k: 'first', i: '🎯', n: 'أول جولة', d: 'أنهيت أول جولة رسمية', t: [1], u: 'جولة' },
-  { k: 'practice', i: '🏋️', n: 'المتدرّب', d: 'جولات تدريب', t: [10, 25, 50], u: 'جولة' },
+  { k: 'practice', i: '🏆', n: 'المتدرّب', d: 'جولات تدريب', t: [10, 25, 50], u: 'جولة' },
   { k: 'streak', i: '🔥', n: 'متتالي', d: 'أيام لعب وراء بعض', t: [3, 7, 30], u: 'يوم' },
   { k: 'perfect', i: '💯', n: 'كلها صح', d: 'جولة كل أسئلتها صح', t: [1, 5, 20], u: 'جولة' },
   { k: 'correct', i: '📚', n: 'المجتهد', d: 'إجابات صحيحة', t: [25, 100, 500], u: 'إجابة' }];
@@ -572,15 +572,15 @@ function bgCard(b){ const l = bgLv(b), max = l === b.t.length, nx = b.t[l], on =
   return '<button class="bg2 ' + (on ? 'on' : 'off') + '" data-act="bg2-det" data-k="' + b.k + '">' + (on ? '<span class="bg2-ok">✓</span>' : '') +
     '<span class="bg2-md">' + b.i + (on && b.t.length > 1 ? '<span class="bg2-lv ' + BG_LV[l - 1][0] + '">' + BG_LV[l - 1][1] + '</span>' : '') + '</span><b>' + b.n + '</b><small>' + b.d + '</small>' +
     (b.t.length > 1 ? '<span class="bg2-tier">' + b.t.map((_, j) => '<i class="' + (j < l ? BG_LV[j][0] : '') + '"></i>').join('') + '</span>' : '') +
-    (max ? '<span class="bg2-cnt">✓ اكتملت</span>' : '<span class="bg2-bar"><i style="width:' + Math.round(Math.min(b.v, nx) * 100 / nx) + '%"></i></span><span class="bg2-cnt">' + Math.min(b.v, nx) + ' من ' + nx + '</span>') + '</button>'; }
+    (max ? '<span class="bg2-cnt done">✓ اكتملت</span>' : '<span class="bg2-bar"><i style="width:' + Math.round(Math.min(b.v, nx) * 100 / nx) + '%"></i></span><span class="bg2-cnt">' + Math.min(b.v, nx) + ' من ' + nx + '</span>') + '</button>'; }
 function badgesHtml(){ const bs = bgVals(), n = bs.filter(b => bgLv(b) > 0).length;
   const frac = b => { const l = bgLv(b); return l === b.t.length ? -1 : b.v / b.t[l]; };
   const near = bs.filter(b => frac(b) >= 0).sort((a, b) => frac(b) - frac(a))[0];
   const sorted = bs.slice().sort((a, b) => (bgLv(b) > 0) - (bgLv(a) > 0) || frac(b) - frac(a));
   let nh = '';
   if (near && near.v > 0) { const nx = near.t[bgLv(near)], left = nx - near.v;
-    nh = '<div class="bg2-next"><span class="bg2-md">' + near.i + '</span><div class="grow"><b>قربت! ' + near.n + '</b><small>باقي ' + left + ' ' + near.u + '</small><div class="bg2-nb"><i style="width:' + Math.round(near.v * 100 / nx) + '%"></i></div></div></div>'; }
-  return '<div class="bg2-h"><b>شاراتي</b><span>(' + n + ' من ' + bs.length + ')</span></div>' + nh + '<div class="bg2-grid">' + sorted.map(bgCard).join('') + '</div>' +
+    nh = '<div class="bg2-next"><span class="bg2-md">' + near.i + '</span><div class="grow"><b>قريباً: ' + near.n + '</b><small>باقي ' + left + ' ' + near.u + '</small><div class="bg2-nb"><i style="width:' + Math.round(near.v * 100 / nx) + '%"></i></div></div></div>'; }
+  return '<div class="bg2-h"><b>🏅 شاراتي</b><span>(' + n + ' من ' + bs.length + ')</span></div>' + nh + '<div class="bg2-grid">' + sorted.map(bgCard).join('') + '</div>' +
     (S.home && S.home.streak ? '<p class="bg2-st">🔥 سلسلتك الحالية: ' + S.home.streak + ' يوم متتالي</p>' : ''); }
 ACTS['bg2-det'] = t => { const b = bgVals().find(x => x.k === t.dataset.k); if (!b) return; const l = bgLv(b);
   modal('<div class="bg2-ds"><div class="bg2-md big">' + b.i + '</div><h3>' + b.n + '</h3><p>' + b.d + '</p><div class="bg2-steps">' +
