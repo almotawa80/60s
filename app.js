@@ -4049,7 +4049,7 @@ async function qPages(mk){
 async function qsLoad(){
   const [own, glob, st] = await Promise.all([
     sb.from('questions').select('*').eq('owner_id', T.user.id).order('created_at', { ascending: false }),
-    qPages(() => sb.from('questions').select('id,body,options,correct_index,level,qtype,curriculum_id,lesson,image').is('owner_id', null).eq('status', 'approved').order('id')),
+    qPages(() => sb.from('questions').select('id,body,options,correct_index,level,qtype,curriculum_id,lesson,image,payload').is('owner_id', null).eq('status', 'approved').order('id')),
     rpc('question_stats', {}).catch(() => []),
     qPages(() => sb.from('question_picks').select('question_id').order('question_id')).then(r => r, () => ({})),
     sb.from('classes').select('name,stage').eq('archived', false).then(r => { QS.cls3 = r.data || []; }, () => {})
