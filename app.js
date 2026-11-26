@@ -1776,11 +1776,9 @@ function viewRaw(title, body, active, top, back){
 function go(h){ if (location.hash === h) route(); else location.hash = h; }
 
 /* ---- auth ---- */
-function teacherAuth(){
+function authFormHtml(){
   const up = T.authMode === 'up';
-  $app.innerHTML = `
-  <div class="ta"><div class="hero"><img class="ta-hero" src="img/logo-hero.webp" alt="" draggable="false"><h1>اهزم الدقيقة</h1><p>منصة تحديات تعليمية للمدارس</p></div>
-  <div class="pad col"><form class="card col" data-form="t-auth" autocomplete="on" method="post" action="#">
+  return `<form class="card col" data-form="t-auth" autocomplete="on" method="post" action="#">
     <div class="tabs"><button type="button" class="${up ? '' : 'on'}" data-act="t-mode" data-mode="in">تسجيل الدخول</button><button type="button" class="${up ? 'on' : ''}" data-act="t-mode" data-mode="up">إنشاء حساب</button></div>
     ${up ? '<div class="field"><label for="a-name">الاسم</label><input class="input" id="a-name" name="name" required></div>' : ''}
     <div class="field"><label for="a-email">البريد الإلكتروني</label><input class="input" id="a-email" name="email" type="email" required dir="ltr" value="${esc(T.authEmail || '')}" placeholder="example@school.edu.kw" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
@@ -1790,7 +1788,12 @@ function teacherAuth(){
     <button class="btn" type="submit">${up ? 'إنشاء حساب المعلم' : 'دخول المعلم'}</button>
     ${cfg.GOOGLE_LOGIN ? '<button type="button" class="btn ghost" data-act="t-oauth" data-p="google">المتابعة باستخدام Google</button>' : ''}
     ${cfg.APPLE_LOGIN ? '<button type="button" class="btn ghost" data-act="t-oauth" data-p="apple">المتابعة باستخدام Apple</button>' : ''}
-  </form>
+  </form>`;
+}
+function teacherAuth(){
+  $app.innerHTML = `
+  <div class="ta"><div class="hero"><img class="ta-hero" src="img/logo-hero.webp" alt="" draggable="false"><h1>اهزم الدقيقة</h1><p>منصة تحديات تعليمية للمدارس</p></div>
+  <div class="pad col">${authFormHtml()}
   <button class="ta-stu" data-act="go-student">🎒 أنت طالب؟ <b>ادخل برمزك</b></button></div></div>`;
 }
 ACTS['t-forgot'] = async () => {
@@ -1818,7 +1821,13 @@ function newPassword(){
   modal(`<h3>كلمة مرور جديدة</h3><form class="col" data-form="st-pass-save"><div class="field"><label for="np">كلمة المرور الجديدة</label><input class="input" id="np" name="p1" type="password" minlength="6" required dir="ltr" autocomplete="new-password"></div><p class="sub">6 أحرف على الأقل.</p><button class="btn" type="submit">حفظ</button></form>`);
   setTimeout(() => { const i = document.getElementById('np'); if (i) i.focus(); }, 80);
 }
-ACTS['t-mode'] = t => { T.authMode = t.dataset.mode; teacherAuth(); };
+ACTS['t-mode'] = t => {
+  T.authMode = t.dataset.mode;
+  const f = document.querySelector('.ta form.card');
+  if (!f) return teacherAuth();
+  const y = window.scrollY, em = f.querySelector('#a-email'); if (em) T.authEmail = em.value;
+  f.outerHTML = authFormHtml(); window.scrollTo(0, y); /* swap only the form: hero image stays, no flash/jump */
+};
 ACTS['t-oauth'] = async t => {
   const { error } = await sb.auth.signInWithOAuth({ provider: t.dataset.p, options: { redirectTo: location.origin + location.pathname + '#/t/home' } });
   if (error) toast(errMsg(error));
