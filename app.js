@@ -4359,17 +4359,18 @@ function q3Home(){
   if (!sqMine.length) { sqMine = sqOther; sqOther = []; }
   if (ownAll) sqMine.splice(own ? sqMine.filter(h => / on"/.test(h)).length : sqMine.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
   if (0) sq.splice(own ? Object.keys(st).length : sq.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
+  QS.oth = sqOther; /* v434 (Khalid «الصفحة طويلة»): other subjects live in a sheet */
   const gen = NW_GEN.map(([k, e, n]) => { const c = qGenQs(k).length; return `<button class="q5-sb q5-gen${c ? '' : ' soon'}" data-act="q5-gen" data-t="${k}"><span class="e">${e}</span><b>${n}</b><small>${c ? c + ' سؤال' : 'قريباً'}</small></button>`; }).join('');
   return `<div class="q4">
-    ${total ? `<div class="q4-days">عندك ${total} سؤال، تكفي ${daysAr(days)} ${days >= 7 ? '👍' : '⚠️'}</div>` : `<div class="q4-start"><b>👋 أول خطوة</b>اختر المادة، ثم علّم ✓ الدروس اللي تبي طلابك ينسألون منها</div>`}
+    ${total ? '' : `<div class="q4-start"><b>👋 أول خطوة</b>اختر المادة، ثم علّم ✓ الدروس اللي تبي طلابك ينسألون منها</div>`}
     ${total ? '<button class="p3-big" data-act="q3-add">＋ أضف سؤال</button>' : ''}
-    <div class="q5-lbl">موادي</div>${total ? '<div class="q5-hint">✅ الدروس اللي عليها ✓ هي اللي تطلع لطلابك في التحدي</div>' : ''}
-    <div class="q5-sq">${sqMine.join('')}</div>
-    ${sqOther.length ? `<div class="q5-lbl q5-oth">مواد أخرى</div><div class="q5-sq q5-oth-sq">${sqOther.join('')}</div>` : ''}
-    <button class="q5-newl" data-act="q5-newsubj">＋ مادتي مو موجودة</button>
-    <div class="q5-lbl">أسئلة منوّعة</div><div class="q5-sq">${gen}</div>
+    <div class="q5-lbl q5-lr"><span>موادي</span>${total ? `<em class="${days >= 7 ? '' : 'low'}">${total} سؤال · تكفي ${daysAr(days)}${days >= 7 ? '' : ' ⚠️'}</em>` : ''}</div>
+    <div class="q5-sq${sqMine.length === 1 ? ' one' : ''}">${sqMine.join('')}</div>
+    <button class="q5-orow" data-act="q5-oth"><span class="grow">مواد أخرى${sqOther.length ? ' (' + sqOther.length + ')' : ''}</span><span class="q4-chev">‹</span></button>
+    <div class="q5-lbl">أسئلة منوّعة</div><div class="q5-sq q5-g3">${gen}</div>
     ${total ? '' : '<button class="q5-addl" data-act="q3-add">✍️ أو اكتب سؤالك بنفسك</button>'}</div>`;
 }
+ACTS['q5-oth'] = () => modal(`<div class="aw-sheet q5-osh"><h3>مواد أخرى</h3>${(QS.oth || []).length ? `<div class="q5-sq">${QS.oth.join('')}</div>` : ''}<button class="q5-newl" data-act="q5-newsubj">＋ مادتي مو موجودة</button></div>`);
 const q4Gr = c => c.grade ? (c.stage === 'university' ? 'سنة ' + c.grade : (GRADES[c.grade - 1] || c.grade)).replace(/^ال/, '') : (STAGE_AR[c.stage] || '');
 // curricula that fit the teacher's classes (grade from the class name, else the whole stage)
 function q4Fit(){
