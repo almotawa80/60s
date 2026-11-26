@@ -479,8 +479,8 @@ function dailyPaint(d){
       emo.innerHTML = '<span class="bx">⚡</span>';
       act.innerHTML = '<div class="lv-next"><div class="goal-t"><b>باقي ' + left + ' نقطة وتوصل المستوى ' + (L.n + 1) + '</b><span>م' + L.n + '</span></div><div class="goal-bar"><i style="width:' + pc + '%;background:#F5B72B"></i></div></div>'; }
   }
-  else if (bx.ready) { emo.innerHTML = '<span class="bx bx-ready">🎁</span>'; hd.textContent = 'صندوقك جاهز!'; act.innerHTML = '<button class="sp-open" data-act="s-box">افتح الصندوق</button>'; }
-  else if (bx.locked) { emo.innerHTML = '<span class="bx bx-lock">🎁</span>'; hd.textContent = 'أحسنت! صندوقك ينفتح بكرة'; act.innerHTML = ''; }
+  else if (bx.ready) { emo.innerHTML = '<span class="bx bx-ready"><img class="bx-img" src="img/box.webp" alt="🎁"></span>'; hd.textContent = 'صندوقك جاهز!'; act.innerHTML = '<button class="sp-open" data-act="s-box">افتح الصندوق</button>'; }
+  else if (bx.locked) { emo.innerHTML = '<span class="bx bx-lock"><img class="bx-img" src="img/box.webp" alt="🎁"></span>'; hd.textContent = 'أحسنت! صندوقك ينفتح بكرة'; act.innerHTML = ''; }
   else if (bx.left && S.home && S.home.played_today) act.innerHTML = '<p class="bx-note">🎁 صندوق هدية بعد ' + (bx.left === 1 ? 'يوم لعب واحد' : bx.left === 2 ? 'يومين لعب' : bx.left + ' أيام لعب') + '</p>';
   act.hidden = !act.innerHTML;
 }
@@ -518,6 +518,7 @@ ACTS['s-box'] = async t => {
   let r; try { [r] = await Promise.all([rpc('student_open_box', { p_token: S.token }), new Promise(z => setTimeout(z, 1300))]); } catch(e){ S.boxing = false; t.disabled = false; return toast(errMsg(e)); }
   S.boxing = false;
   if (!r || !r.ok) return loadDaily();
+  { const b2 = document.querySelector('.bx'); if (b2) { b2.className = 'bx bx-pop'; b2.innerHTML = '<img class="bx-img" src="img/box-open.webp" alt="">'; await new Promise(z => setTimeout(z, 900)); } }
   FX.win(false);
   const emo = document.getElementById('bx-emo'), hd = document.getElementById('bx-h'), act = document.getElementById('bx-act');
   if (r.prize) { emo.innerHTML = '<span class="bx bx-pop">' + r.prize + '</span>'; hd.textContent = 'ملصق جديد!'; act.innerHTML = '<p class="bx-note">مجموعتك ' + r.count + ' من ' + r.total + ' · تقدر تخليه شخصيتك من «أنا»</p>'; if (S.daily) S.daily.stickers = (S.daily.stickers || []).concat(r.prize); }

@@ -4253,3 +4253,6 @@ html body:not(.wide) .sh.sp.pvx .s-head2 .who b{font-size:26px!important;line-he
 /* v451 find: logo above radar, not hidden behind it */
 .ar-find .ar-logo{z-index:3;width:46%;max-width:200px}
 .sh.pvx.ar-find{padding-top:calc(max(18px,env(safe-area-inset-top)) + 96px)!important}
+/* v453 painted gift box */
+.bx-img{display:block;width:1.5em;height:auto;max-width:150px;margin:0 auto}
+html body:not(.wide) .sh.sp.pvx .sp-done .sp-emo .bx:has(.bx-img){font-size:96px;filter:none}
