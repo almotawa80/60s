@@ -4256,3 +4256,11 @@ html body:not(.wide) .sh.sp.pvx .s-head2 .who b{font-size:26px!important;line-he
 /* v453 painted gift box */
 .bx-img{display:block;width:1.5em;height:auto;max-width:150px;margin:0 auto}
 html body:not(.wide) .sh.sp.pvx .sp-done .sp-emo .bx:has(.bx-img){font-size:96px;filter:none}
+/* v454 VS: smaller avatars + VS badge so nothing covers names/levels */
+.ar-vs .ar-av{width:min(124px,15dvh)!important;height:min(124px,15dvh)!important;font-size:64px!important}
+.ar-vs .a{padding-top:max(100px,calc(env(safe-area-inset-top) + 86px))!important}
+.ar-vs .b .ar-av{margin-top:26px!important}
+.ar-vs .half b{font-size:30px}
+.ar-vs .mid{width:min(150px,18dvh)!important;height:min(150px,18dvh)!important;margin:calc(min(150px,18dvh) / -2) 0 0 calc(min(150px,18dvh) / -2)!important}
+.ar-vs .mid svg{inset:24%;width:52%;height:52%}
+.ar-vs .num{width:66px;height:66px}.ar-vs .num .vs{font-size:32px}.ar-vs .num span{font-size:44px}
