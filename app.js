@@ -1404,7 +1404,12 @@ function runTimer(secs, tot){
     }
     if (last && left <= 5) fill.style.transform = `scale(${Math.min(1, (5 - left) / 5)})`;
     if (fg.tagName === 'circle') { fg.style.strokeDashoffset = String(301.6 * (1 - left / total)); fg.style.stroke = left <= 5 ? '#E5484D' : ''; }
-    else { fg.style.width = Math.min(100, left / total * 100) + '%'; fg.classList.toggle('hurry', left <= 5); }
+    else {
+      const fr = Math.max(0, Math.min(1, left / total)), h = Math.round(120 * fr); /* green → yellow → red */
+      fg.style.width = fr * 100 + '%'; fg.classList.toggle('hurry', left <= 5);
+      fg.style.setProperty('background', `linear-gradient(hsl(${h},85%,58%),hsl(${h},85%,42%))`, 'important');
+      fg.style.setProperty('box-shadow', `0 0 10px hsla(${h},90%,55%,.7)`, 'important');
+    }
     if (left <= 0) { stopTimer(); document.body.classList.remove('danger'); if (!S.locked) { S.locked = true; submit(null); } return; }
     state.raf = requestAnimationFrame(tick);
   };
@@ -1538,27 +1543,29 @@ const SHK = {
   star: () => ['🌟', 'نجم الأسبوع في الصف', 'أعلى تحسّن هالأسبوع'],
   pts: (a) => [a.p ? '💯' : '🔥', 'حصلت على ' + a.n + ' نقطة', 'تقدر تفوز علي؟ 💪']
 };
-function shMe(){ const st = (S.home && S.home.student) || {}; return { n: String(st.name || '').trim().split(/\s+/)[0] || 'بطل', av: /^p\d/.test(st.avatar || '') ? '😎' : (st.avatar || '🙂') }; }
+function shMe(){ const st = (S.home && S.home.student) || {}; const a = st.avatar || '', f = /^p\d/.test(a) ? a : AV_IMG[a]; return { n: String(st.name || '').trim().split(/\s+/)[0] || 'بطل', av: f ? '' : (a || '🙂'), img: f ? 'av/' + f + '.webp' : '' }; }
+const shImg = src => new Promise(r => { if (!src) return r(null); const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
 function shLink(){ return location.origin + location.pathname + '#/w'; }
-function shDraw(kind, a){
+async function shDraw(kind, a){
   const [icn, t1, t2] = SHK[kind](a || {}), me = shMe(), W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d'), F = getComputedStyle(document.body).fontFamily || 'system-ui', f = (w, s) => w + ' ' + s + 'px ' + F;
   const g = x.createRadialGradient(W / 2, 0, 40, W / 2, 0, 1100); g.addColorStop(0, '#4a0914'); g.addColorStop(.6, '#000'); x.fillStyle = g; x.fillRect(0, 0, W, H);
   x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
   x.fillStyle = '#1C1C1E'; x.beginPath(); x.arc(W / 2, 260, 150, 0, 7); x.fill(); x.lineWidth = 12; x.strokeStyle = '#F5C542'; x.stroke();
-  x.font = f(400, 170); x.fillText(me.av, W / 2, 272);
+  const im = await shImg(me.img);
+  if (im) { x.save(); x.beginPath(); x.arc(W / 2, 260, 144, 0, 7); x.clip(); x.drawImage(im, W / 2 - 144, 116, 288, 288); x.restore(); } else { x.font = f(400, 170); x.fillText(me.av || '🙂', W / 2, 272); }
   x.fillStyle = '#fff'; x.font = f(800, 84); x.fillText(me.n, W / 2, 500);
   x.font = f(400, 230); x.fillText(icn, W / 2, 750);
   x.fillStyle = '#F5C542'; x.font = f(800, 66); x.fillText(t1, W / 2, 960, W - 120);
   if (t2) { x.fillStyle = '#C7C7CC'; x.font = f(500, 44); x.fillText(t2, W / 2, 1040, W - 120); }
   x.fillStyle = '#2C2C2E'; x.fillRect(80, 1170, W - 160, 3);
-  x.textAlign = 'right'; x.fillStyle = '#fff'; x.font = f(800, 52); x.fillText('تحدّي', W - 90, 1250); const w1 = x.measureText('تحدّي ').width;
+  x.textAlign = 'right'; x.fillStyle = '#fff'; x.font = f(800, 52); x.fillText('اهزم', W - 90, 1250); const w1 = x.measureText('اهزم ').width;
   x.fillStyle = '#C8102E'; x.fillText('الدقيقة', W - 90 - w1, 1250);
   x.textAlign = 'left'; x.fillStyle = '#C7C7CC'; x.font = f(500, 38); x.fillText(kind === 'pts' ? '👈 شارك الحين' : '👈 جرّبها مع صفك', 90, 1250);
   return { c, t1, me };
 }
 async function shareCard(kind, a){
-  const { c, t1, me } = shDraw(kind, a), url = shLink(), text = kind === 'pts' ? 'حصلت على ' + a.n + ' نقطة في «اهزم الدقيقة» 🔥 تقدر تفوز علي؟\nشارك الحين 👇' : t1 + ' في «اهزم الدقيقة» 🏆';
+  const { c, t1, me } = await shDraw(kind, a), url = shLink(), text = kind === 'pts' ? 'حصلت على ' + a.n + ' نقطة في «اهزم الدقيقة» 🔥 تقدر تفوز علي؟\nشارك الحين 👇' : t1 + ' في «اهزم الدقيقة» 🏆';
   const blob = await new Promise(r => c.toBlob(r, 'image/png')), file = blob && new File([blob], 'tahaddi.png', { type: 'image/png' });
   if (file && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], text: text + '\n' + url }); return; } catch(e){ if (e && e.name === 'AbortError') return; } }
   const src = c.toDataURL('image/png');
