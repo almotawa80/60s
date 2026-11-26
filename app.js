@@ -1550,6 +1550,7 @@ async function shDraw(kind, a){
   const [icn, t1, t2] = SHK[kind](a || {}), me = shMe(), W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d'), F = getComputedStyle(document.body).fontFamily || 'system-ui', f = (w, s) => w + ' ' + s + 'px ' + F;
   const g = x.createRadialGradient(W / 2, 0, 40, W / 2, 0, 1100); g.addColorStop(0, '#4a0914'); g.addColorStop(.6, '#000'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  const bg = await shImg('img/share-bg.webp'); if (bg) x.drawImage(bg, 0, 0, W, H);
   x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
   x.fillStyle = '#1C1C1E'; x.beginPath(); x.arc(W / 2, 260, 150, 0, 7); x.fill(); x.lineWidth = 12; x.strokeStyle = '#F5C542'; x.stroke();
   const im = await shImg(me.img);
