@@ -4055,3 +4055,20 @@ html body:not(.wide) .sh.pvx .result::before{top:-380px;width:1400px;height:1400
 /* v437 login hero smaller (Khalid: logo too big) */
 html body .sl.sl-red .sl-hero img{width:64%;max-width:270px}
 html body .sl.sl-red .sl-hero h1{margin-top:-10px!important;font-size:26px!important}
+/* v438 question screen redesign */
+html body .play.pv.pvx{position:relative;isolation:isolate}
+html body .play.pv.pvx::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(circle at 50% 55%,rgba(200,16,46,.32),transparent 60%),repeating-conic-gradient(from 3deg at 50% 55%,rgba(200,16,46,.16) 0 6deg,transparent 6deg 14deg);-webkit-mask:radial-gradient(circle at 50% 55%,#000 20%,transparent 75%);mask:radial-gradient(circle at 50% 55%,#000 20%,transparent 75%)}
+html body[data-theme] .play.pv.pvx .pv-pill{background:#140306!important;border:2px solid #7a0a1c!important;box-shadow:0 0 14px rgba(200,16,46,.35)}
+html body[data-theme] .play.pv.pvx .pv-pts{display:inline-flex;align-items:center;gap:6px;padding:4px 18px!important;border-radius:999px;background:#140306;border:2px solid #E3B23C;color:#fff!important;font-weight:800;font-size:18px!important;box-shadow:0 0 12px rgba(227,178,60,.3)}
+html body[data-theme] .play.pv.pvx .pvx-tm{display:flex!important;flex-direction:row!important;align-items:center;gap:0!important;margin:10px 0 14px!important}
+html body[data-theme] .play.pv.pvx .pvx-tm .pvx-bar{flex:1;height:20px!important;border-radius:999px!important;background:#2a0a10!important;border:2px solid #5a0a17;margin-inline-start:-16px;padding-inline-start:12px;position:relative;z-index:0}
+html body[data-theme] .play.pv.pvx .pvx-tm .pvx-bar i{border-radius:999px!important;background:linear-gradient(#F0334F,#B50E28)!important;box-shadow:0 0 10px rgba(240,51,79,.7)}
+html body[data-theme] .play.pv.pvx .pvx-tm>span{order:-1;align-self:center!important;position:relative;z-index:1;flex:0 0 72px;width:72px;height:72px;border-radius:50%;display:flex!important;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#C8102E,#6d0716);border:4px solid #F0334F;box-shadow:0 0 18px rgba(240,51,79,.6),inset 0 0 0 3px #140306;color:#fff!important;font-size:12px!important;font-weight:800;line-height:1.05!important;margin:0!important}
+html body[data-theme] .play.pv.pvx .pvx-tm>span b{font-size:28px!important;font-weight:900;color:#fff!important;display:block}
+html body[data-theme] .play.pv.pvx .pvx-tm.hurry>span b{color:#fff!important}
+html body[data-theme] .play.pv.pvx .pvx-tm.hurry>span{animation:pvxb .5s ease-in-out infinite alternate}
+html body[data-theme] .play.pv.pvx .pvx-tm>span::before{content:"";position:absolute;top:-11px;left:50%;width:18px;height:8px;margin-left:-9px;border-radius:4px 4px 0 0;background:#F0334F}
+html body[data-theme] .play.pv.pvx .pv-panel .qbox{border-radius:28px!important;border:3px solid #C8102E!important;box-shadow:0 0 0 3px #3a0710,0 0 26px rgba(200,16,46,.45)!important}
+html body[data-theme] .play.pv.pvx .opts.kc .opt:nth-child(n):not(.good):not(.bad):not(.picked){box-shadow:inset 0 0 0 3px #C8102E,0 4px 0 #5a0a17,0 0 14px rgba(200,16,46,.3)!important}
+html body[data-theme] .play.pv.pvx .pv-panel .qbox{background:linear-gradient(#26090f,#140306)!important;color:#fff!important}
+html body[data-theme] .play.pv.pvx .opts.kc .opt:nth-child(n):not(.good):not(.bad):not(.picked){background:linear-gradient(#2a0d12,#1a0508)!important;color:#fff!important}
