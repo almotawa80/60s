@@ -4398,3 +4398,7 @@ body.ac-typing .t-nav{display:none!important}
 .ar-find h2{font-size:26px!important}
 .ar-find .ar-fs{width:84px!important;height:84px!important;font-size:36px!important;flex:none}
 .ar-find .btn{min-height:50px}
+/* v472: no 60s logo on arena screens (Khalid: «مو حلو شكلها») */
+html body .ar-logo:not(#z){display:none!important}
+.sh.pvx.ar-find{padding-top:calc(max(14px,env(safe-area-inset-top)) + 70px)!important}
+.sh.pvx.ar-find{justify-content:center!important;padding-top:max(14px,env(safe-area-inset-top))!important}
