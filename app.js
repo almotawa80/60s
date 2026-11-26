@@ -2956,9 +2956,11 @@ ACTS['c-cmore'] = (t, anc) => { const c = ctx(t); if (!c) return;
   document.body.appendChild(w);
   const src = anc || (t.closest && t.closest('.cp-tile')) || (t.tagName === 'BUTTON' ? t : null), m = w.querySelector('.cxm'), vw = innerWidth, vh = innerHeight;
   let r = src ? src.getBoundingClientRect() : { left: vw / 2 - 125, right: vw / 2 + 125, top: vh / 3, bottom: vh / 3, width: 250, height: 0 };
-  if (src && src.classList.contains('cp-tile')) { const l = src.cloneNode(true); l.className += ' cxm-lift'; l.removeAttribute('data-act'); Object.assign(l.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' }); w.appendChild(l); }
-  const mw = Math.min(260, vw - 24), mh = m.offsetHeight || 330; m.style.width = mw + 'px';
-  let left = Math.min(Math.max(12, (r.left + r.right) / 2 < vw / 2 && !(src && src.classList.contains('cp-tile')) ? r.left : r.right - mw), vw - mw - 12), top = r.bottom + 10; if (top + mh > vh - 90) top = Math.max(12, r.top - mh - 10);
+  let lift = null; if (src && src.classList.contains('cp-tile')) { lift = src.cloneNode(true); lift.className += ' cxm-lift'; lift.removeAttribute('data-act'); Object.assign(lift.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' }); w.appendChild(lift); }
+  const mw = Math.min(260, vw - 24); m.style.width = mw + 'px'; const mh = m.offsetHeight || 330;
+  /* no room above or below: slide the lifted tile up so the menu fits under it (like iOS) */
+  if (lift && r.bottom + 10 + mh > vh - 20 && r.top - mh - 10 < 12) { const nt = Math.max(12, vh - 20 - mh - 10 - r.height); lift.style.top = nt + 'px'; r = { left: r.left, right: r.right, top: nt, bottom: nt + r.height, width: r.width, height: r.height }; }
+  let left = Math.min(Math.max(12, (r.left + r.right) / 2 < vw / 2 && !(src && src.classList.contains('cp-tile')) ? r.left : r.right - mw), vw - mw - 12), top = r.bottom + 10; if (top + mh > vh - 20) top = Math.max(12, r.top - mh - 10);
   m.style.left = left + 'px'; m.style.top = top + 'px'; m.style.transformOrigin = (top < r.top ? 'bottom' : 'top') + (left + mw / 2 < vw / 2 ? ' left' : ' right');
   const close = () => { w.classList.remove('on'); setTimeout(() => w.remove(), 220); };
   w.querySelector('.cxm-dim').addEventListener('click', close);
