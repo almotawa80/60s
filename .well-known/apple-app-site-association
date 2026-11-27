@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["933Y66PX6S.com.beat60s.app"],
+        "components": [
+          { "/": "/privacy.html", "exclude": true },
+          { "/": "/about.html", "exclude": true },
+          { "/": "/", "comment": "join and login links live in the hash: /#/j/CODE, /#/c/CODE" },
+          { "/": "/index.html" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["933Y66PX6S.com.beat60s.app"]
+  }
+}

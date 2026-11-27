@@ -427,6 +427,10 @@ ACTS['s-lvl'] = () => { const xp = (S.daily || {}).xp || 0, L = lvlOf(xp), pc = 
 /* v318 App Store wrapper (mobile/, UA Beat60sApp): no web push / add-to-home prompts inside the native app */
 const isApp = () => /Beat60sApp/.test(navigator.userAgent);
 /* v319 native push inside the iPhone app: APNs token saved as push_subs.endpoint 'apns:<token>' (edge function «push» sends it via Apple) */
+/* v520: a beat60s.com link tapped on the iPhone opens the app (universal link); the app then goes to the same #/… route */
+(() => { const A = isApp() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (!A) return;
+  const open = u => { try { const x = new URL(u); if (!/(^|\.)beat60s\.com$/.test(x.hostname) || !x.hash || x.hash === location.hash) return; location.hash = x.hash; } catch(e){} };
+  try { A.addListener('appUrlOpen', e => open(e && e.url)); A.getLaunchUrl().then(r => open(r && r.url), () => {}); } catch(e){} })();
 const NP = () => (isApp() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications) || null;
 async function npSub(save){
   const P = NP(); let st = (await P.checkPermissions()).receive;
