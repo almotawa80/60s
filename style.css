@@ -4575,3 +4575,12 @@ html.pg-pin .pg-acts .t-bell,html.pg-pin .pg-acts .t-av{visibility:visible}
 .chc-n{flex:1;display:flex;flex-direction:column;gap:2px;text-align:start;cursor:pointer;min-width:0}
 .chc-n b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chc-n span{font-weight:800;letter-spacing:2px;font-size:18px;color:#E3B23C;text-align:right}
+
+/* v495 notifications prompt: big bell, one main button, «لاحقاً» as plain text (Khalid: the plain dialog looked dull) */
+.dlg.ntp{max-width:300px!important;padding:28px 20px 14px!important}
+.dlg.ntp .dlg-b b{width:92px;height:92px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;font-size:48px;line-height:1;background:radial-gradient(circle at 50% 35%,rgba(227,178,60,.30),rgba(227,178,60,.10));box-shadow:0 0 0 1px rgba(227,178,60,.28) inset}
+.dlg.ntp .dlg-b p{color:var(--ink);font-size:21px;font-weight:900}
+.dlg.ntp .dlg-a{grid-template-columns:1fr!important;gap:2px;margin-top:22px}
+.dlg.ntp .dlg-a button{outline:0!important}
+.dlg.ntp .dlg-a button.pri{order:-1}
+.dlg.ntp .dlg-a button:not(.pri){background:transparent!important;color:var(--muted)!important;font-weight:700!important;font-size:15.5px!important;min-height:46px;box-shadow:none!important}

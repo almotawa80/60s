@@ -153,7 +153,7 @@ function ask(msg, o){
   return new Promise(res => {
     const danger = o.danger != null ? o.danger : /حذف|إنهاء|الخروج/.test(msg);
     const el = document.createElement('div'); el.className = 'dlg-back';
-    el.innerHTML = `<div class="dlg" role="alertdialog" aria-modal="true"><div class="dlg-b">${o.title ? `<b>${esc(o.title)}</b>` : ''}<p>${esc(msg).replace(/\n/g, '<br>')}</p>${o.html || ''}` +
+    el.innerHTML = `<div class="dlg${o.cls ? ' ' + o.cls : ''}" role="alertdialog" aria-modal="true"><div class="dlg-b">${o.title ? `<b>${esc(o.title)}</b>` : ''}<p>${esc(msg).replace(/\n/g, '<br>')}</p>${o.html || ''}` +
       (o.input != null ? `<input class="dlg-in" ${o.readonly ? 'readonly' : ''} ${o.email ? 'type="email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false"' : ''} dir="${o.dir || 'auto'}" value="${esc(o.input)}" placeholder="${esc(o.placeholder || '')}">` : '') +
       `</div><div class="dlg-a">${o.alert ? '' : `<button type="button" data-r="0">${esc(o.cancel || 'إلغاء')}</button>`}<button type="button" data-r="1" class="${danger ? 'dng' : 'pri'}">${esc(o.ok || (danger ? (/حذف/.test(msg) ? 'حذف' : 'متابعة') : 'متابعة'))}</button></div></div>`;
     const inp = el.querySelector('.dlg-in'), ok = el.querySelector('[data-r="1"]');
@@ -498,7 +498,7 @@ ACTS['t-push'] = async t => {
 // asked once, on the home page, after the teacher has a class
 function tPushAsk(has){ if (!has || admMode() || tPushOn() || !tPushCan() || LS.get('mc_tpush_ask')) return;
   popQ(4, async () => { LS.set('mc_tpush_ask', '1');   // centred dialog like native apps (Khalid 2026-11-27)
-    if (!await ask('تفعيل الإشعارات؟', { html: '', title: '🔔', ok: 'تفعيل', cancel: 'لاحقاً', danger: false })) return;
+    if (!await ask('تفعيل الإشعارات', { cls: 'ntp', title: '🔔', ok: 'تفعيل', cancel: 'لاحقاً', danger: false })) return;
     const why = await tPushSub(); if (why === '-') return; toast(why || 'تمام! توصلك الإشعارات على هذا الجهاز 🔔'); }); }
 /* v171 «صندوق بكرة» + «هدف الصف» (needs sql/box_goal.sql; silently absent before it) */
 async function loadDaily(){ /* v349: paint the last result at once (no flash on «صفّي»), then refresh */
