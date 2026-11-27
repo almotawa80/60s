@@ -832,7 +832,7 @@ async function arHome(){
   if (AR.h) arDraw(); else sPage('ar', '<div class="s-pgc"><div class="spin"></div></div>');
   try { AR.h = await rpc('arena_home', { p_token: S.token }); }
   catch(e){ if (AR.gen === g && S.tab === 'ar') sPage('ar', '<div class="s-pgc col"><div class="err">' + esc(errMsg(e)) + '</div><button class="btn" data-act="s-tab" data-t="ar">إعادة المحاولة</button></div>'); return; }
-  if (AR.gen === g && S.tab === 'ar') { arDraw(); if (AR.h.setup && !AR.asked) { AR.asked = true; arProfile(); } arNow(g); }
+  if (AR.gen === g && S.tab === 'ar') { arDraw(); /* v516 (Khalid): no «صورتك» sheet when the student already picked a character and the class is boys or girls */ const st0 = (S.home && S.home.student) || {}; if (AR.h.setup && !AR.asked && !(st0.avatar && (st0.gender === 'm' || st0.gender === 'f'))) { AR.asked = true; arProfile(); } arNow(g); }
 }
 /* the green dot counts who is here right now (searching or inside a round); refreshed every 8s without redrawing the page */
 function arNow(g){ setTimeout(async () => { if (AR.gen !== g || S.tab !== 'ar' || !document.getElementById('ar-deck')) return;
