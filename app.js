@@ -21,7 +21,6 @@ const ERR = {
   comp_paused: 'التحدي متوقف من المعلم، يرجع قريب.',
   bad_code: 'رمز المشاركة غير صحيح',
   duplicate_question: 'هذا السؤال موجود في البنك، لا يمكن تكراره',
-  no_questions: 'لم يتم تحديد أسئلة',
   invalid_code: 'الرمز غير صحيح، تأكد منه وحاول مرة أخرى',
   invalid_session: 'انتهت الجلسة، أدخل الرمز من جديد',
   del_pending: 'حسابك بينحذف',
@@ -1043,7 +1042,7 @@ ACTS['s-rename'] = async () => {
   try { const r = await rpc('student_rename', { p_token: S.token, p_name: v }); S.home.student.name = r.name; closeModals(); renderHome(); bellBadge(); toast('تم تعديل اسمك'); } catch(e){ toast(errMsg(e)); }
 };
 function cdText(){ const day = 864e5, k = 3 * 36e5, now = Date.now(), next = Math.floor((now + k) / day) * day + day - k, d = Math.max(0, next - now); const p = x => String(x).padStart(2, '0'); return p(Math.floor(d / 36e5)) + ':' + p(Math.floor(d % 36e5 / 6e4)) + ':' + p(Math.floor(d % 6e4 / 1e3)); }
-function startCountdown(){ clearInterval(S.cdT); const el = document.getElementById('cd'); if (!el) return; S.cdT = setInterval(() => { const e = document.getElementById('cd'); if (!e) return clearInterval(S.cdT); const t = cdText(); e.textContent = t; if (t === '00:00:00') { clearInterval(S.cdT); setTimeout(() => S.demo ? null : loadHome(), 1500); } }, 1000); }
+function startCountdown(){ clearInterval(S.cdT); const el = document.getElementById('cd'); if (!el) return; const day0 = todayKW(); S.cdT = setInterval(() => { const e = document.getElementById('cd'); if (!e) return clearInterval(S.cdT); const t = cdText(); e.textContent = t; if (t === '00:00:00' || todayKW() !== day0) { clearInterval(S.cdT); setTimeout(() => S.demo ? null : loadHome(), 1500); } }, 1000); }
 /* a teacher signed in on this device (supabase auth token in storage) */
 function hasTeacher(){ try { return Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k) && localStorage.getItem(k)); } catch(e){ return false; } }
 ACTS['s-to-teacher'] = () => { closeModals(); location.hash = '#/t/home'; };
@@ -1569,11 +1568,14 @@ async function submit(idx, seq){
     if (S.gen !== gen || S.cur !== st) return;
     S.locked = false;
     toast('تعذّر تسجيل الإجابة. نتحقق من جولتك…');
-    try {
-      const nx = await rpc('resume_attempt', { p_token: S.token, p_attempt: st.attempt_id });
+    let nx = null;
+    for (let k = 0; k < 4 && !nx; k++) {
+      try { nx = await rpc('resume_attempt', { p_token: S.token, p_attempt: st.attempt_id }); }
+      catch(e2){ if (/invalid_session|del_pending/.test(String(e2 && e2.message))) break; await new Promise(r => setTimeout(r, 1500 * (k + 1))); }
       if (S.gen !== gen) return;
-      if (nx.finished) loadHome(); else showQuestion(nx);
-    } catch(e2){ if (S.gen === gen) loadHome(); }
+    }
+    if (nx) { if (nx.finished) loadHome(); else showQuestion(nx); }
+    else { toast('ما فيه اتصال. ارجع للرئيسية وأكمل جولتك لما يرجع النت'); loadHome(); }
   }
 }
 function ordMark(btns, seq, order, ok){
@@ -2815,6 +2817,7 @@ ACTS['nw-cls'] = async f => {
 };
 ACTS['nw-start'] = async t => {
   if (NW.saving) return; NW.saving = true; t.setAttribute('aria-busy', 'true'); t.textContent = 'لحظة…';
+  let endedIds = [];
   try {
     const today = nwStart(), sp = cfSpan(today, NW.days, NW.koQ, 24), gid = crypto.randomUUID();
     const cs = NW.classes.filter(c => NW.cls.includes(c.id));
@@ -2832,18 +2835,21 @@ ACTS['nw-start'] = async t => {
       if (QS.pick) todo.forEach(id => QS.pick.add(id));
     }
     const busy = cs.filter(c => NW.busy.has(c.id)).map(c => c.id);
-    if (busy.length) { const r = await sb.from('competitions').update({ status: 'finished' }).in('class_id', busy).eq('status', 'active'); if (r.error) throw r.error; }
+    if (busy.length) { const r = await sb.from('competitions').update({ status: 'finished' }).in('class_id', busy).eq('status', 'active').select('id'); if (r.error) throw r.error; endedIds = (r.data || []).map(x => x.id); }
     const cus2 = NW.cus || (NW.cu ? [NW.cu] : []), gts2 = NW.gtypes || (NW.cu ? ['general', 'quick'] : ['general', 'quick']);
     const qtypes = (cus2.length ? ['curriculum'] : []).concat(gts2.length ? gts2 : cus2.length ? [] : ['general', 'quick']);
     const multi = cus2.length > 1 ? { curricula: cus2 } : {};
     const r = await sb.from('competitions').insert(cs.map(c => Object.assign({ class_id: c.id, group_id: gid, title, start_date: today, points_end_date: sp.points_end_date, end_date: sp.end_date,
       group_size: 6, qualifiers: NW.koQ || 8, round_window_hours: 24, curriculum_id: NW.cu, difficulty: NW.diff || (T.settings || {}).difficulty || 'normal', qtypes, lessons: null }, multi, pzVal(NW.prizes))));
     if (r.error) throw r.error;
+    endedIds = [];
     NW.made = [];
     for (const c of cs) { let code = c.join_code; if (!c.self_join || !code) code = await rpc('set_self_join', { p_class: c.id, p_on: true }); NW.made.push({ c, code }); }
     NW.t0 = new Date(Date.now() - 60000).toISOString(); NW.step = 4; Object.keys(PCACHE).forEach(h => { if (h === '#/t/home' || h === '#/t/comps') delete PCACHE[h]; });
     nwRender();
-  } catch(e){ toast(errMsg(e)); t.removeAttribute('aria-busy'); t.textContent = 'ابدأ التحدي 🚀'; }
+  } catch(e){
+    let back = ''; if (endedIds.length) { try { const r = await sb.from('competitions').update({ status: 'active' }).in('id', endedIds); if (r.error) throw r.error; back = ' بقيت الصفوف في تحديها السابق.'; } catch(e3){ back = ' تنبيه: التحدي السابق ما رجع، راجعه من التحديات.'; } }
+    toast(errMsg(e) + back); t.removeAttribute('aria-busy'); t.textContent = 'ابدأ التحدي 🚀'; }
   NW.saving = false;
 };
 /* v501 one invite message for WhatsApp and copy: join link + class code + App Store link (the link preview picture comes from og:image in index.html) */
@@ -2972,14 +2978,18 @@ function liveStudent(id){
     if (s.status === 'q' && k === last) { const b = el.querySelector('.lvs-bar i'); if (b) b.style.width = Math.round(Math.max(0, s.secs * 1000 - (Date.now() + off - Date.parse(s.q_at))) / (s.secs * 1000) * 100) + '%'; return; }
     last = k; el.innerHTML = h;
   };
+  let busy = false, fails = 0;
   const tm = setInterval(async () => {
     if (!document.getElementById('lvs')) return clearInterval(tm);
-    try { const s = await rpc('live_s_state', { p_token: S.token, p_game: id }); off = Date.parse(s.now) - Date.now(); draw(s); } catch(e){ clearInterval(tm); el.remove(); }
+    if (busy) return; busy = true;
+    try { const s = await rpc('live_s_state', { p_token: S.token, p_game: id }); fails = 0; off = Date.parse(s.now) - Date.now(); draw(s); }
+    catch(e){ if (++fails >= 8 || /invalid_session|not_found|forbidden/.test(String(e && e.message))) { clearInterval(tm); el.remove(); toast('انقطعت اللعبة'); loadHome(); } else if (fails === 3) toast('نعيد الاتصال…'); }
+    finally { busy = false; }
   }, 1000);
   el.addEventListener('click', async e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.lv === 'back') { clearInterval(tm); el.remove(); loadHome(); return; }
-    if (b.dataset.i !== undefined) { try { await rpc('live_answer', { p_token: S.token, p_game: id, p_choice: +b.dataset.i }); haptic(); } catch(x){} }
+    if (b.dataset.i !== undefined) { try { await rpc('live_answer', { p_token: S.token, p_game: id, p_choice: +b.dataset.i }); haptic(); } catch(x){ toast('ما وصلت إجابتك، اضغطها مرة ثانية'); } }
   });
 }
 ACTS['h-retry'] = t => { t.setAttribute('aria-busy', 'true'); t.textContent = 'جارٍ التحميل…'; tHome().catch(e => { toast('ما زال التحميل متعذّراً. تأكد من الاتصال'); t.removeAttribute('aria-busy'); t.textContent = 'إعادة المحاولة'; }); };
@@ -7173,6 +7183,7 @@ ACTS['t-save-name'] = async f => {
 const JN = {};
 /* codes typed on an Arabic keyboard: Arabic-Indic digits → 0-9, drop spaces/marks */
 function normPhone(v){ let p = String(v || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^0-9+]/g, ''); if (p.startsWith('00')) p = '+' + p.slice(2); if (/^\d{8}$/.test(p)) p = '+965' + p; return p.slice(0, 20); }
+function dcu(s){ try { return decodeURIComponent(s); } catch(e){ return s; } }
 function normCode(v){ return String(v || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^A-Za-z0-9]/g, '').toUpperCase(); }
 async function studentJoin(code){
   code = normCode(code);
@@ -7258,10 +7269,10 @@ function route(){
   if (/access_token=|error_description=|type=recovery/.test(h)) return authReturn();
   if (h === '#/t/ob') { history.replaceState(null, '', '#/t/home'); if (T.name) setTimeout(() => obStart(true), 300); else OB.want = 1; teacherRoute(); return; }
   if (h.indexOf('#/t') === 0) teacherRoute();
-  else if (h.indexOf('#/j/') === 0) studentJoin(decodeURIComponent(h.slice(4)));
+  else if (h.indexOf('#/j/') === 0) studentJoin(dcu(h.slice(4)));
   else if (h.indexOf('#/p/') === 0) { if (window.top !== window) document.documentElement.classList.add('embed'); else pvClose(true); demoStart(h.slice(4)); }
-  else if (h.indexOf('#/w/') === 0 || h === '#/w') shLanding(decodeURIComponent(h.slice(4)));
-  else if (h.indexOf('#/c/') === 0) { S.preCode = decodeURIComponent(h.slice(4)); LS.del('mc_token'); S.token = null; history.replaceState(null, '', '#/s'); studentLogin(); }
+  else if (h.indexOf('#/w/') === 0 || h === '#/w') shLanding(dcu(h.slice(4)));
+  else if (h.indexOf('#/c/') === 0) { S.preCode = dcu(h.slice(4)); history.replaceState(null, '', '#/s'); studentLogin(); }
   else studentRoute();
 }
 window.addEventListener('hashchange', () => { saveUI(); route(); });
