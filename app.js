@@ -3185,12 +3185,12 @@ ACTS['ch-more'] = () => { const ks = chComps(), c = ks[0]; if (!c) return; const
   const O = [c.paused_at ? ['cp-resume', '▶️', 'استئناف', `data-g="${g}"`] : ['cp-pause', '⏸', 'إيقاف مؤقت', `data-g="${g}"`], ['cp-end', '🏁', 'إنهاء', `data-g="${g}"`]];
   modal(`<div class="st1"><div class="st1-h"><b>${esc(c.title || 'التحدي')}</b><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div><div class="st1-opts">${O.map(o => `<button class="st1-o" data-act="ch-run" data-a="${o[0]}" ${o[3]}><span class="e">${o[1]}</span><b>${o[2]}</b></button>`).join('')}</div></div>`); };
 ACTS['ch-run'] = t => { closeModals(); const a = t.dataset.a; setTimeout(() => ACTS[a](t), 30); };
-ACTS['ch-code'] = async () => { const cls = [...new Set(chComps().map(k => k.class_id))].map(i => CL.byId[i]).filter(Boolean);
-  if (cls.length > 1) {   // merged challenge: every class enters with its own code, so the student only sees the names of his class
-    for (const c of cls) if (!c.self_join || !c.join_code) try { const code = await rpc('set_self_join', { p_class: c.id, p_on: true }); c.self_join = true; if (typeof code === 'string') c.join_code = code; } catch(e){}
-    return modal(`<div class="chc"><h3>كل صف له رمزه</h3><p class="sub">الطالب يدخل برمز صفه ويشوف أسماء صفه بس</p>${cls.map(c => `<div class="chc-r" data-cid="${c.id}"><div class="chc-n" data-act="c-joinshow"><b>${esc(c.name)}</b><span dir="ltr">${esc(fmtCode(c.join_code || ''))}</span></div><button class="btn sm" data-act="c-share-wa" data-v="${esc(stpMsg(c))}">شارك</button></div>`).join('')}</div>`);
-  }
-  const k = chComps()[0], cc = k && CL.byId[k.class_id]; if (!cc) return; if (!cc.self_join) return go('#/t/class/' + cc.id); CK.cls = cc; ACTS['c-joinshow']({ closest: () => null, dataset: {} }); };
+ACTS['ch-code'] = async () => { const cls = [...new Set(chComps().map(k => k.class_id))].map(i => CL.byId[i]).filter(Boolean); if (!cls.length) return;
+  const one = cls.length === 1; if (one && !cls[0].self_join) return go('#/t/class/' + cls[0].id);
+  // merged challenge: every class enters with its own code, so the student only sees the names of his class
+  for (const c of cls) if (!c.self_join || !c.join_code) try { const code = await rpc('set_self_join', { p_class: c.id, p_on: true }); c.self_join = true; if (typeof code === 'string') c.join_code = code; } catch(e){}
+  // v504 (Khalid): the code sheet always offers WhatsApp, copy and show-on-screen
+  modal(`<div class="chc"><h3>${one ? 'رمز الدخول' : 'كل صف له رمزه'}</h3>${one ? '' : '<p class="sub">الطالب يدخل برمز صفه ويشوف أسماء صفه بس</p>'}${cls.map(c => { const m = esc(stpMsg(c)); return `<div class="chc-b${one ? ' one' : ''}" data-cid="${c.id}"><div class="chc-h"><b>${esc(c.name)}</b><span dir="ltr">${esc(fmtCode(c.join_code || ''))}</span></div><div class="chc-a"><button class="chc-wa" data-act="c-share-wa" data-v="${m}">💬 واتساب</button><button data-act="copy" data-v="${m}">📋 نسخ</button><button data-act="c-joinshow">📺 عرض</button></div></div>`; }).join('')}</div>`); };
 ACTS['ch-det'] = () => { const k = chComps()[0]; if (k) go('#/t/results/' + k.class_id); };
 ACTS['ch-edit'] = t => { closeModals(); ACTS['cp-edit']({ dataset: { g: t.dataset.g } }); };
 ACTS['c-tab'] = t => { T.compEdit = null; go('#/t/' + t.dataset.t); };

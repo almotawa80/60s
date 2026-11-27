@@ -4634,3 +4634,15 @@ html.pg-pin .pg-acts .t-bell,html.pg-pin .pg-acts .t-av{visibility:visible}
 /* v501 ready screen: copy message + show code side by side */
 .nw-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-top:10px}
 .nw-2 .btn{min-height:50px;font-size:15px;padding:0 8px}
+
+/* v504 challenge code sheet: per class code + WhatsApp / copy / show */
+.chc-b{background:color-mix(in srgb,var(--ink) 8%,transparent);border:1px solid color-mix(in srgb,var(--ink) 12%,transparent);border-radius:18px;padding:12px}
+.chc-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:0 4px}
+.chc-h b{font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chc-h span{font-weight:900;letter-spacing:2px;font-size:19px;color:#E3B23C}
+.chc-b.one .chc-h{flex-direction:column;gap:2px;margin-bottom:14px}
+.chc-b.one .chc-h b{font-size:14px;color:var(--muted)}
+.chc-b.one .chc-h span{font-size:34px;letter-spacing:5px}
+.chc-a{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:8px}
+.chc-a button{min-height:44px;border:0;border-radius:13px;font:800 14px 'Cairo',system-ui,sans-serif;background:color-mix(in srgb,var(--ink) 12%,transparent);color:var(--ink);cursor:pointer;white-space:nowrap}
+.chc-a .chc-wa{background:#1FA971;color:#fff}
