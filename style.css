@@ -4779,3 +4779,8 @@ html.admmode body.wide .t-top{padding-top:10px!important}
 
 /* v535 three ranking tabs when the challenge spans several classes */
 .lb-seg.s3{grid-template-columns:1fr 1fr 1fr}.lb-seg.s3 button{font-size:14.5px}
+/* v536 hero animals: face crop fills the circle; picker shows the full art */
+.avi.avh{overflow:hidden}.avi.avh img{left:0;top:0;bottom:auto;width:100%;height:100%;-webkit-mask:none;mask:none;object-fit:cover;border-radius:50%}
+.avhf{display:block;width:100%;height:100%}.avhf img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;-webkit-user-drag:none}
+.s-avg button .avhf{width:92%;height:92%}
+.av2-big:has(.avhf){box-shadow:none;width:150px;height:150px;border-radius:0}
