@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@capacitor/app": "8.1.2",
+    "@capawesome/capacitor-badge": "8.0.4",
     "@capgo/capacitor-native-biometric": "8.9.3",
     "@capacitor/core": "8.5.3",
     "@capacitor/haptics": "8.0.2",

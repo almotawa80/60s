@@ -311,7 +311,13 @@ async function loadHome(){
     bellBadge();
   }).catch(() => {});
 }
-function bellBadge(){ const b = document.querySelector('.s-bell .bdg'), n = (S.prefs && S.prefs.unread) || 0; if (b) { b.textContent = n > 9 ? '9+' : n; b.style.display = n ? '' : 'none'; } }
+const BDG = () => (isApp() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Badge) || null;
+/* v551 number on the app icon: unread messages + 1 if today's round is not played yet */
+async function appBadge(){ const B = BDG(); if (!B || !S.home || S.demo) return; try {
+  const h = S.home, n = ((S.prefs && S.prefs.unread) || 0) + (h.phase === 'points' && !h.played_today ? 1 : 0);
+  if ((await B.checkPermissions()).display !== 'granted') return;
+  n ? await B.set({ count: n }) : await B.clear(); } catch(e){} }
+function bellBadge(){ appBadge(); const b = document.querySelector('.s-bell .bdg'), n = (S.prefs && S.prefs.unread) || 0; if (b) { b.textContent = n > 9 ? '9+' : n; b.style.display = n ? '' : 'none'; } }
 ACTS['s-msgs'] = async () => {
   if (S.demo) return toast('رسائل المعلم تظهر في التحدي الفعلي');
   const m = modal('<h3>' + ic('bell') + ' رسائل المعلم/ـة</h3><div class="spin"></div>');
@@ -1174,7 +1180,10 @@ const FX = (() => {
     const s = c.createBufferSource(), g = c.createGain(), f = c.createBiquadFilter();
     f.type = 'lowpass'; f.frequency.value = 900; g.gain.value = vol || .5; s.buffer = b; s.connect(f).connect(g).connect(c.destination); s.start();
   }
-  const vib = p => { try { navigator.vibrate && navigator.vibrate(p); } catch(e){} };
+  const vib = p => { try {
+    const H = isApp() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;   /* v551: iPhone has no navigator.vibrate, use the native Taptic engine in the app */
+    if (H) { if (Array.isArray(p)) H.notification({ type: p[0] >= 100 ? 'ERROR' : 'WARNING' }); else H.impact({ style: p <= 25 ? 'LIGHT' : p <= 40 ? 'HEAVY' : 'MEDIUM' }); return; }
+    navigator.vibrate && navigator.vibrate(p); } catch(e){} };
   const layer = () => { let l = document.getElementById('fx'); if (!l) { l = document.createElement('div'); l.id = 'fx'; document.body.appendChild(l); } return l; };
   function burst(x, y, colors, n, spread){
     if (reduce()) return;
@@ -1985,6 +1994,26 @@ ACTS['t-bio'] = async () => {
     if (error) { await bioOff(); teacherAuth(); const b = document.getElementById('aerr'); if (b) b.innerHTML = '<div class="err">تغيّرت كلمة المرور. سجّل دخولك مرة وحدة وفعّل Face ID من جديد.</div>'; return; }
     go('#/t/home');
   } catch(e){ if (box && !/cancel/i.test(String((e && e.message) || ''))) box.innerHTML = '<div class="err">ما تأكد الوجه. جرّب مرة ثانية أو ادخل بكلمة المرور.</div>'; }
+};
+/* v551 teacher lock: Face ID when coming back to the app after a minute (option in «حسابي», app only) */
+const lockOn = () => !!BIO() && LS.get('mc_lock') === '1' && hasTeacher();
+async function lockCheck(){
+  if (!lockOn() || document.getElementById('lockov')) return;
+  const o = document.createElement('div'); o.id = 'lockov';
+  o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;color:#fff;font-family:inherit';
+  o.innerHTML = '<div style="font-size:64px">🔒</div><b style="font-size:20px">اهزم الدقيقة مقفل</b><button class="btn" data-lk="open" style="max-width:280px;width:100%">افتح بالوجه</button><button class="link" data-lk="out" style="color:#C7C7CC">تسجيل الخروج</button>';
+  document.body.appendChild(o);
+  const tryOpen = async () => { try { await BIO().verifyIdentity({ reason: 'فتح اهزم الدقيقة' }); o.remove(); } catch(e){} };
+  o.addEventListener('click', e => { const k = e.target.closest('[data-lk]'); if (!k) return; if (k.dataset.lk === 'open') tryOpen(); else { o.remove(); ACTS['t-logout'](); } });
+  tryOpen();
+}
+{ let hid = 0;
+  document.addEventListener('visibilitychange', () => { if (document.hidden) hid = Date.now(); else if (hid && Date.now() - hid > 60000) { hid = 0; lockCheck(); } });
+  setTimeout(lockCheck, 200); }
+ACTS['st-lock'] = async () => {
+  if (LS.get('mc_lock') === '1') { LS.del('mc_lock'); toast('انوقف القفل'); return tAccount(); }
+  if (!(await bioAvail())) return toast('فعّل Face ID من إعدادات الآيفون أول');
+  try { await BIO().verifyIdentity({ reason: 'تفعيل القفل' }); LS.set('mc_lock', '1'); toast('تفعّل القفل ✓'); tAccount(); } catch(e){}
 };
 const pwBad = v => /[^\x20-\x7E]/.test(String(v || ''));
 const PW_MSG = 'كلمة المرور بأحرف وأرقام إنجليزية فقط (بدون عربي)';
@@ -4224,7 +4253,7 @@ ACTS['t-export-codes'] = async t => { ctx(t); await XL();
   XLSX.writeFile(wb, 'رموز-' + CK.cls.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };
 const QRJS = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-const XLSXJS = 'vendor/xlsx-0.18.5.full.min.js?v=550';
+const XLSXJS = 'vendor/xlsx-0.18.5.full.min.js?v=551';
 const XL = () => loadJs(XLSXJS, 'XLSX').catch(() => { throw new Error('تعذر تحميل أداة Excel، تأكد من الاتصال'); });
 function loadJs(src, g){ return new Promise((ok, no) => { if (window[g]) return ok(); const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); }
 function qrSvg(text){ try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); } catch(e){ return ''; } }
@@ -5883,7 +5912,7 @@ ACTS['t-q-share-import'] = async t => {
 };
 
 /* read questions from a photo of a worksheet (OCR in the browser) */
-const OCRJS = 'vendor/tesseract-5.1.1.min.js?v=550';
+const OCRJS = 'vendor/tesseract-5.1.1.min.js?v=551';
 ACTS['t-q-ocr'] = () => { closeModals(); document.getElementById('qocr').click(); };
 ACTS['t-q-ocr-chosen'] = async t => {
   const file = t.files && t.files[0]; if (!file) return; t.value = '';
@@ -6647,7 +6676,8 @@ async function tAccount(){
     sGrp('تسجيل الدخول', [`<div class="set-row"><span class="grow">طريقة الدخول</span><span class="set-val">${PROV[prov] || esc(prov)}</span></div>`,
       `<div class="set-row"><span class="grow">البريد</span><span class="set-val" dir="ltr">${esc(T.user.email || '')}</span></div>`,
       prov === 'email' ? sRow({ act: 'st-pass', label: 'تغيير كلمة المرور' }) : '',
-      bioOn() ? sRow({ act: 'st-bio-off', label: 'إيقاف الدخول بـ Face ID' }) : '']) +
+      bioOn() ? sRow({ act: 'st-bio-off', label: 'إيقاف الدخول بـ Face ID' }) : '',
+      BIO() ? sRow({ act: 'st-lock', label: 'قفل التطبيق بالوجه', val: LS.get('mc_lock') === '1' ? 'مفعّل' : 'متوقف' }) : '']) +
     sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
     sGrp('', [`<button class="set-row danger-row" data-act="st-del-acc"><span class="grow center">حذف الحساب</span></button>`], 'يحذف حسابك وكل صفوفك وطلبتك وأسئلتك نهائياً.'), 'settings', '', '#/t/settings');
   try {
