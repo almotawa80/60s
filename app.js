@@ -1063,15 +1063,16 @@ function avHtml(first){ const tabs = avTabs(); if (!tabs.some(x => x.k === S.avT
     '<div class="av2-tabs">' + tabs.map(x => '<button class="' + (x.k === S.avTab ? 'on' : '') + '" data-act="s-avt" data-k="' + x.k + '">' + x.l + '</button>').join('') + '</div>' +
     '<div id="av2-grid">' + avGrid() + '</div>' +
     '<button class="btn" data-act="s-avs"' + (first ? ' data-first="1"' : '') + '>' + (first ? 'يلا نلعب' : 'حفظ') + '</button>' +
-    (first ? '<button class="av2-skip" data-act="close-modal">تخطّي</button>' : S.home.student.avatar ? '<button class="av2-skip" data-act="s-avs" data-v="">بدون شخصية</button>' : '') + '</div>'; }
+    (first ? '<button class="av2-skip" data-act="av-skip">تخطّي</button>' : S.home.student.avatar ? '<button class="av2-skip" data-act="s-avs" data-v="">بدون شخصية</button>' : '') + '</div>'; }
 ACTS['s-av'] = async () => { if (!S.home) return; S.avPick = S.home.student.avatar || ''; S.avTab = '';
   if (!S.daily && !S.demo) { try { S.daily = await rpc('student_daily', { p_token: S.token }); } catch(e){} }
   modal(avHtml(false)); };
 ACTS['s-avt'] = t => { S.avTab = t.dataset.k; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const g = document.getElementById('av2-grid'); if (g) g.innerHTML = avGrid(); haptic(); };
 ACTS['s-avp'] = t => { S.avPick = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const b = document.getElementById('av2-big'); if (b) b.innerHTML = avBig(); haptic(); };
 /* first time a student opens the app: one skippable screen to pick a character, then straight to «العب» */
-function avFirst(){ const h = S.home; if (!h || S.demo || h.student.avatar) return; const k = 'mc_av1_' + String(S.token || '').slice(0, 12); if (LS.get(k)) return; LS.set(k, '1');
+function avFirst(){ const h = S.home; if (!h || S.demo || h.student.avatar) return; const k = 'mc_av1_' + String(S.token || '').slice(0, 12); if (LS.get(k) || S.avAsked) return; S.avAsked = true; /* v517 (Khalid): keeps coming back until he picks a character or taps «تخطّي»; a refresh or going back no longer counts as an answer */
   popQ(1, () => { if (!S.home || S.home.student.avatar) return; S.avPick = (S.home.student.gender === 'f' ? 'p7' : 'p1'); S.avTab = 'p'; modal(avHtml(true)); }); }
+ACTS['av-skip'] = () => { LS.set('mc_av1_' + String(S.token || '').slice(0, 12), '1'); closeModals(); };
 ACTS['s-avs'] = async t => { const v = t.dataset.v != null ? t.dataset.v : S.avPick; if (S.demo) { S.home.student.avatar = v; closeModals(); return ACTS['s-tab']({ dataset: { t: 'me' } }); }
   try { await rpc('student_set_avatar', { p_token: S.token, p_av: v || '' }); S.home.student.avatar = v || null; if (AR.h) AR.h.avatar = v || null; closeModals(); if (t.dataset.first) return loadHome(); toast(v ? 'انحفظت شخصيتك' : 'انشالت الشخصية'); if (S.avFrom === 'ar') { S.avFrom = ''; if (AR.pf) { modal('<div class="ar-pf" id="ar-pf">' + arPfHtml() + '</div>'); } if (S.tab === 'ar') arDraw(); } else ACTS['s-tab']({ dataset: { t: 'me' } }); } catch (e) { toast(errMsg(e)); } };
 ACTS['s-profile'] = () => { closeModals();
