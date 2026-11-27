@@ -18,7 +18,7 @@ test('الطالب: يدخل بالرمز، يلعب تدريب، ويشوف ا�
   await expect(page.locator('#bigpts, .res-h').first()).toBeVisible();
 
   // back home, then every tab renders something
-  await page.goto('/index.html#/s');
+  await page.goto('/index.html#/s'); await page.reload();
   await expect(page.locator('.s-nav')).toBeVisible();
   await clearPopups(page);
   await page.locator('.s-nav [data-t="lb"]').click();
@@ -54,7 +54,7 @@ test('الطالب: جولة اليوم الرسمية (إذا ما لعب ال�
     await play.first().click();
     await playRound(page);
     await expect(page.locator('#bigpts, .res-h').first()).toBeVisible();
-    await page.goto('/index.html#/s');
+    await page.goto('/index.html#/s'); await page.reload();
     await expect(page.locator('.s-nav')).toBeVisible();
     await clearPopups(page);
   }
