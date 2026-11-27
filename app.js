@@ -781,7 +781,8 @@ const AR_EM={
 const AR_EMN = { laugh: 'ضحك', cry: 'بكاء', strong: 'قوة', fire: 'نار', clap: 'تصفيق', wow: 'واو' };
 const AR_W = { b: ['صقر','فهد','نجم','بطل','ذيب','فارس','برق','نسر','أسد','سهم'], g: ['نجمة','فراشة','قمر','بطلة','لؤلؤة','وردة','شمس','غزالة','ريم','نسمة'], x: ['الحلبة','الدقيقة','الذكاء','السرعة','العلم','المعرفة'] };
 function arEm(k){ return '<svg viewBox="0 0 40 40" aria-hidden="true">' + AR_EM[k] + '</svg>'; }
-function arAv(av, name, cls, dr){ if (/^[bg][1-4]$/.test(dr || '') && !AV_IMG[av]) av = 'p' + ((dr.charAt(0) === 'g' ? 6 : 0) + +dr.charAt(1));
+function arAv(av, name, cls, dr){ if (dr === 'bot') return '<span class="ar-av ar-bot' + (cls ? ' ' + cls : '') + '">🤖</span>';
+  if (/^[bg][1-4]$/.test(dr || '') && !AV_IMG[av]) av = 'p' + ((dr.charAt(0) === 'g' ? 6 : 0) + +dr.charAt(1));
   return '<span class="ar-av' + (cls ? ' ' + cls : '') + '">' + (av ? avI(av) : esc(String(name || '؟').trim().charAt(0))) + '</span>'; }
 /* «لقبك وشكلك»: the nickname is rolled from fixed word lists (never typed), the look is one of eight drawn characters */
 function arRoll(g, not){ const pk = a => a[Math.floor(Math.random() * a.length)]; let n; do { n = pk(AR_W[g]) + ' ' + pk(AR_W.x); } while (n === not); return n; }
@@ -860,14 +861,14 @@ function arDraw(){
 ACTS['ar-play'] = async t => {
   if (AR.busy || S.demo) return; AR.busy = true; const g = ++AR.gen, s = t.dataset.s; stopTimer(); closeModals();
   const h = AR.h || {};
-  $app.innerHTML = '<div class="sh pvx ar-find"><img class="ar-logo" src="img/logo-wide.webp" alt="اهزم الدقيقة"><div class="ar-radar"><i></i><i></i><span class="sweep"></span>' + arAv(h.avatar, h.nick, '', h.av) + '</div><h2>ندوّر لك خصم…</h2><p id="ar-fp">' + esc(arSubj(s).n) + ' · قريب من مستواك</p><b class="ar-fs" id="ar-fs">0</b><button class="btn ar-fx ar-fnow" data-act="ar-now">ابدأ الحين</button><button class="btn ghost ar-fx" data-act="ar-cancel">إلغاء</button></div>';
+  $app.innerHTML = '<div class="sh pvx ar-find"><img class="ar-logo" src="img/logo-wide.webp" alt="اهزم الدقيقة"><div class="ar-radar"><i></i><i></i><span class="sweep"></span>' + arAv(h.avatar, h.nick, '', h.av) + '</div><h2>ندوّر لك خصم…</h2><p id="ar-fp">' + esc(arSubj(s).n) + ' · قريب من مستواك</p><b class="ar-fs" id="ar-fs">0</b><button class="btn ar-fx ar-fnow" id="ar-fnow" data-act="ar-now" hidden>🤖 العب مع خصم آلي</button><button class="btn ghost ar-fx" data-act="ar-cancel">إلغاء</button></div>';
   AR.now = false;
   try {
     /* the search takes 10 to 25 seconds, like a real queue; the round is only created once it ends, so cancelling costs nothing */
-    let live = null, seeking = false, noSeek = false, lastSeek = -9999; const wait = 20000 + Math.random() * 10000, t0 = performance.now(), msgs = [esc(arSubj(s).n) + ' · قريب من مستواك', 'نطابق المستوى…', 'ندوّر بين اللاعبين…', 'قربنا…'];
+    let live = null, seeking = false, noSeek = false, lastSeek = -9999; const wait = 30000, t0 = performance.now(), msgs = [esc(arSubj(s).n) + ' · قريب من مستواك', 'نطابق المستوى…', 'ندوّر بين اللاعبين…', 'قربنا…'];
     await new Promise(z => { const iv = setInterval(() => { const el = performance.now() - t0, n = document.getElementById('ar-fs'), fp = document.getElementById('ar-fp');
       if (AR.gen !== g || !n) { if (seeking) return; clearInterval(iv); return z(); }
-      n.textContent = Math.floor(el / 1000); fp.innerHTML = msgs[Math.min(msgs.length - 1, Math.floor(el / wait * msgs.length))];
+      n.textContent = Math.floor(el / 1000); if (el >= 12000) { const fb = document.getElementById('ar-fnow'); if (fb && fb.hidden) fb.hidden = false; } fp.innerHTML = msgs[Math.min(msgs.length - 1, Math.floor(el / wait * msgs.length))];
       /* ask the server every 1.5s: is someone else searching this subject right now? */
       if (!seeking && !live && !noSeek && el - lastSeek >= 1500 && el < wait && !AR.now) { seeking = true; lastSeek = el;
         rpc('arena_seek', { p_token: S.token, p_subject: s }).then(x => { if (x && x.round) live = x; }, () => { noSeek = true; }).then(() => { seeking = false; }); }
@@ -958,7 +959,7 @@ function arResult(sm){
   const r = AR.r, g = ++AR.gen, b = sm.before, a = sm.after, SEG = 14, f0 = Math.round(b.into / b.need * SEG), f1 = sm.up ? SEG : Math.round(a.into / a.need * SEG);
   r.done = true;
   const head = { win: 'فزت! 🏆', draw: 'تعادل!', lose: 'قربت، الجاية لك' }[sm.result];
-  $app.innerHTML = '<div class="sh pvx ar-res">' + arTugHtml() + '<h1>' + head + '</h1>' +
+  $app.innerHTML = '<div class="sh pvx ar-res">' + arTugHtml() + '<h1>' + head + '</h1>' + (r.opp && r.opp.bot ? '<p class="ar-vsbot">🤖 لعبت ضد خصم آلي</p>' : '') +
     '<div class="ar-gain"><span id="ar-gn">+0</span> <small>نقطة</small></div>' +
     '<div class="ar-rows"><div><span>إجابات صح (' + sm.me + ' من ' + r.nq + ')</span><b>+' + sm.correct_pts + '</b></div><div><span>سرعة</span><b>+' + sm.speed_pts + '</b></div><div><span>' + { win: 'فوز', draw: 'تعادل', lose: 'مشاركة' }[sm.result] + '</span><b>+' + sm.bonus + '</b></div></div>' +
     '<div class="ar-lvb"><div class="segs">' + Array.from({ length: SEG }, (_, i) => '<i class="' + (i < f0 ? 'f' : i < f1 ? 'f new' : '') + '" style="animation-delay:' + (.9 + (i - f0) * .12).toFixed(2) + 's"></i>').join('') + '</div>' +
@@ -980,13 +981,32 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
       '<div class="s-me-x"><button data-act="s-logout-ask">خروج</button><button class="dng" data-act="s-del-me">حذف حسابي</button></div>' +
       '</div>'); }
-  if (k === 'lb') { if (S.demo) return toast('المراكز تظهر في التحدي الفعلي');
-    sPage('lb', '<div class="s-pgc"><div class="spin"></div></div>');
-    try { const res = await rpc('class_leaderboard', { p_token: S.token }); if (S.tab !== 'lb') return;
-      const hidden = res && res.hidden, hp = !!(res && res.hide_pts), rows = res && res.rows ? res.rows : res;
-      const c = document.querySelector('.s-tabpg .s-pgc'); if (c) { c.innerHTML = '<div id="goal" class="lb-goal"></div>' + leadersHtml(rows, hidden, hp); goalPaint(S.daily); const me = c.querySelector('.lbx-r.me'); if (me) setTimeout(() => me.scrollIntoView({ block: 'center', behavior: 'smooth' }), 150); }
-    } catch(e){ toast(errMsg(e)); } }
+  if (k === 'lb') { if (S.demo) return toast('المراكز تظهر في التحدي الفعلي'); return lbPage(); }
 };
+/* v510 (Khalid): «المراكز» = my class | the public arena (today · this week · all time) */
+const LB = { t: 'cls', p: 'week' };
+function lbTabs(){ return '<div class="lb-seg">' + [['cls', 'صفّي'], ['ar', 'التحدي العام']].map(x => '<button class="' + (LB.t === x[0] ? 'on' : '') + '" data-act="lb-t" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
+  (LB.t === 'ar' ? '<div class="lb-per">' + [['day', 'اليوم'], ['week', 'الأسبوع'], ['all', 'الكل']].map(x => '<button class="' + (LB.p === x[0] ? 'on' : '') + '" data-act="lb-p" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' : ''); }
+function lbArHtml(d){ const rows = (d && d.rows) || [], me = d && d.me, md = ['🥇', '🥈', '🥉'];
+  const row = (r, mine) => '<div class="lbx-r lba-r' + (mine ? ' me' : '') + '"><span class="lbx-no' + (r.rank <= 3 ? ' md' : '') + '">' + (r.rank <= 3 ? md[r.rank - 1] : r.rank) + '</span>' + arAv(r.avatar, r.name, 'lba-av', r.av) +
+    '<span class="lba-nm"><b>' + esc(r.name || '') + (mine ? ' <small>(أنت)</small>' : '') + '</b><small>' + (r.lvl ? 'مستوى ' + r.lvl : '') + (r.school ? ' · ' + esc(r.school) : '') + '</small></span><b class="lba-p">' + nf(r.pts) + '</b></div>';
+  if (!rows.length) return '<div class="lbx-empty"><span>🚀</span><b>ما أحد لعب ' + { day: 'اليوم', week: 'هالأسبوع', all: '' }[LB.p] + ' للحين</b><small>العب تحدي وكن أول المراكز!</small></div><button class="btn" data-act="s-tab" data-t="ar">العب الحين</button>';
+  const h = AR.h || {}, st = (S.home && S.home.student) || {};
+  return '<div class="lbx-list">' + rows.map(r => row(r, r.me)).join('') + '</div>' +
+    (me && me.rank > 20 ? '<div class="lba-me">' + row({ rank: me.rank, pts: me.pts, name: fmtStu(st.name, 'first'), avatar: st.avatar, av: h.av }, true) + '</div>' : '') +
+    (!me ? '<div class="lbx-zero">ما لك مركز ' + { day: 'اليوم', week: 'هالأسبوع', all: '' }[LB.p] + ' للحين. تحدي واحد يدخلك القائمة!</div>' : ''); }
+async function lbPage(){ const tk = LB.t + LB.p + (LB.n = (LB.n || 0) + 1);
+  sPage('lb', '<div class="s-pgc">' + lbTabs() + '<div id="lb-body"><div class="spin"></div></div></div>');
+  const put = html => { const c = document.getElementById('lb-body'); if (c && S.tab === 'lb' && tk === LB.t + LB.p + LB.n) { c.innerHTML = html; return c; } };
+  try {
+    if (LB.t === 'ar') { let d; try { d = await rpc('arena_rank', { p_token: S.token, p_period: LB.p }); } catch(e){ if (/function|schema cache/i.test(e.message || '')) return put('<div class="lbx-empty"><span>⏳</span><b>مراكز التحدي العام قريباً</b></div>'); throw e; } put(lbArHtml(d)); return; }
+    const res = await rpc('class_leaderboard', { p_token: S.token });
+    const hidden = res && res.hidden, hp = !!(res && res.hide_pts), rows = res && res.rows ? res.rows : res;
+    const c = put('<div id="goal" class="lb-goal"></div>' + leadersHtml(rows, hidden, hp)); if (c) { goalPaint(S.daily); const me = c.querySelector('.lbx-r.me'); if (me) setTimeout(() => me.scrollIntoView({ block: 'center', behavior: 'smooth' }), 150); }
+  } catch(e){ toast(errMsg(e)); }
+}
+ACTS['lb-t'] = t => { if (LB.t === t.dataset.v) return; LB.t = t.dataset.v; lbPage(); };
+ACTS['lb-p'] = t => { if (LB.p === t.dataset.v) return; LB.p = t.dataset.v; lbPage(); };
 function pushOn(){ if (isApp()) return LS.get('mc_push') === '1'; return LS.get('mc_push') === '1' && !!window.Notification && Notification.permission === 'granted'; }
 ACTS['s-push-tab'] = async t => {
   if (!pushOn()) return ACTS['s-push'](t);
@@ -3484,8 +3504,8 @@ ACTS['nm-fix'] = async t => { const c = ctx(t), s = (CL.students[c.id] || []).fi
   let i = {}; try { i = await rpc('teacher_name_info', { p_student: s.id }) || {}; } catch(e){ return toast(/function|schema cache/i.test(e.message || '') ? 'تحتاج تشغيل ملف name_claim.sql أول' : errMsg(e)); }
   const nm = esc(fmtStu(s.name)), d = i.since ? new Date(i.since).toLocaleDateString('ar-KW', { day: 'numeric', month: 'long' }) : '';
   modal(`<div class="col nm1" data-cid="${c.id}"><h3>أحد دخل باسم «${nm}»؟</h3>
-    <p class="sub">${i.devices ? `دخل باسمه ${i.devices === 1 ? 'جهاز واحد' : i.devices + ' أجهزة'} من ${d}${i.rounds ? `، ولعب <b>${i.rounds} ${i.rounds === 1 ? 'جولة' : 'جولات'}</b> (${nf(i.points)} نقطة)` : '، وما لعب شي'}.` : 'ما دخل أي جهاز بهالاسم للحين.'}</p>
-    ${i.rounds ? `<label class="nm-wipe"><input type="checkbox" id="nm-w" checked><span>امسح هالجولات ونقاطها</span></label>` : ''}
+    <p class="sub">${i.devices ? `دخل باسمه ${i.devices === 1 ? 'جهاز واحد' : i.devices + ' أجهزة'} من ${d}${i.rounds ? `، ولعب <b>${i.rounds} ${i.rounds === 1 ? 'جولة' : 'جولات'}</b> (${nf(i.points)} نقطة)` : i.arena ? '، ولعب في التحدي العام بس' : '، وما لعب شي'}.` : 'ما دخل أي جهاز بهالاسم للحين.'}</p>
+    ${i.rounds || i.arena ? `<label class="nm-wipe"><input type="checkbox" id="nm-w" checked><span>امسح كل اللي لعبه (الصف والتحدي)</span></label>` : ''}
     <button class="btn" data-act="nm-go" data-id="${s.id}" data-cid="${c.id}">طلّعه وأعطِ «${nm}» رمز جديد</button>
     ${s.claim_at ? `<button class="btn ghost" data-act="nm-x" data-id="${s.id}" data-cid="${c.id}">مو مشكلة، تجاهل</button>` : ''}</div>`).classList.add('rt-mid'); };
 ACTS['nm-go'] = async t => { const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return; const w = document.getElementById('nm-w');
