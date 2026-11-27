@@ -1,3 +1,4 @@
+// teacher path: needs GitHub secrets E2E_EMAIL / E2E_PASS (test teacher «اختبار آلي»)
 const { test, expect } = require('@playwright/test');
 const { CLASS, watchErrors } = require('./helpers');
 
