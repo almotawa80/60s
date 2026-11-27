@@ -4711,3 +4711,9 @@ html body.wide.dark .modal .st1 .btn.soft,html body.wide.dark .modal .st1-stats>
 .pst-m{text-align:center;display:flex;flex-direction:column;gap:10px}.pst-m h3{margin:0 0 2px}
 .pst-img{aspect-ratio:4/5;border-radius:14px;overflow:hidden;background:#000;display:grid;place-items:center;max-height:58vh;margin:0 auto;width:100%;max-width:min(100%,calc(58vh*.8))}
 .pst-img img{width:100%;height:100%;object-fit:contain;display:block}
+/* v521 (Khalid screenshot): preview tables were white with invisible text in dark mode; glass like the rest of the sheet */
+html body.wide.dark .tbl-wrap{background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.035))!important;border:1px solid rgba(255,255,255,.11)!important;border-radius:18px}
+html body.wide.dark .tbl-wrap table{background:transparent!important}
+html body.wide.dark .tbl-wrap th{background:rgba(255,255,255,.07)!important;color:#C7C7CC!important}
+html body.wide.dark .tbl-wrap td{background:transparent!important;color:#F5F5F7!important;border-color:rgba(255,255,255,.08)!important}
+html body.wide.dark .tbl-wrap tr{background:transparent!important}
