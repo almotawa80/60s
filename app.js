@@ -7016,7 +7016,7 @@ async function studentJoin(code){
 }
 function jnRender(step){
   JN.step = step;
-  const i = JN.info, head = `<div class="hero jn-h">${LOGO}<p>صف <b>${esc(i.class)}</b>${i.teacher ? ' · ' + esc(i.teacher) : ''}</p></div>`;
+  const i = JN.info, head = `<div class="hero jn-h">${LOGO}<p>صف <b>${esc(i.class)}</b>${i.teacher ? ' · ' + (/^(أ\.|ا\.|د\.|الأستاذ|أستاذ|استاذ|المعلم|معلم)/.test(i.teacher) ? '' : 'أ. ') + esc(i.teacher) : ''}</p></div>`;
   let b = '';
   if (step === 'list') b = `<div class="card col"><b class="jn-q">اختر اسمك</b><div class="jn-names">${i.names.map(n => `<button class="jn-n${n.taken ? ' off' : ''}" data-act="${n.taken ? 'jn-locked' : 'jn-pick'}" data-id="${n.id}">${esc(n.name)}${n.taken ? ' 🔒' : ''}</button>`).join('')}</div>
     <button class="link" data-act="jn-form">اسمي مو موجود ‹</button></div>`;

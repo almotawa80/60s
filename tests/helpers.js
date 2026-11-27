@@ -12,7 +12,9 @@ function watchErrors(page) {
 
 /** close any popup (level up, badges, notifications ask, first-entry character) so the page under it is usable */
 async function clearPopups(page) {
+  await page.waitForTimeout(1200);   // badge / level popups arrive a moment after the home loads
   for (let i = 0; i < 6; i++) {
+    await page.evaluate(() => document.querySelectorAll('.bg2-win').forEach(e => (e.closest('.bg2-back') || e).remove()));
     const first = page.locator('.av2-first');
     if (await first.count()) { await first.locator('.s-avg button').nth(2).click(); await first.locator('[data-act="s-avs"]').click(); await page.waitForTimeout(800); continue; }
     const back = page.locator('.modal-back');
