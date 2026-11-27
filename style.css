@@ -4566,3 +4566,12 @@ html.pg-pin .pg-acts .t-bell,html.pg-pin .pg-acts .t-av{visibility:visible}
 .ch-mb.rd{background:color-mix(in srgb,#1FA971 18%,#2C2C2E)}
 .ch-mv h3{margin:0 0 4px}.ch-mi{background:#2C2C2E;border-radius:16px;padding:12px 14px}.ch-mih{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.ch-mih small{font-size:12px;color:var(--muted);font-weight:700}.ch-mih .rd{color:#1FA971}
 .ch-mi p{margin:6px 0 0;font-size:14.5px;line-height:1.7}
+
+/* v491 merged challenge: one code per class */
+.chc{display:flex;flex-direction:column;gap:8px}
+.chc h3{margin:0}
+.chc .sub{margin:0 0 6px}
+.chc-r{display:flex;align-items:center;gap:10px;background:rgba(120,120,128,.12);border-radius:14px;padding:10px 12px}
+.chc-n{flex:1;display:flex;flex-direction:column;gap:2px;text-align:start;cursor:pointer;min-width:0}
+.chc-n b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chc-n span{font-weight:800;letter-spacing:2px;font-size:18px;color:#E3B23C;text-align:right}
