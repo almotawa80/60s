@@ -2366,6 +2366,9 @@ const nwMode = () => `<div class="nw-mode" role="tablist"><button class="${NW.bo
 function nwRender(){
   clearInterval(NW.poll);
   NW.ts = Date.now();
+  /* v475: a half-loaded render (spinner / lessons row still loading) is short, so the browser drops the scroll to 0; remember where the teacher was and put it back once the full step is drawn */
+  const popE = NS.stack[NS.stack.length - 1], popY = popE && popE.h === location.hash && NS.cur !== location.hash ? popE.y || 0 : 0;
+  const sameSt = NW.rSt === NW.step, wantY = sameSt ? Math.max(scrollY, NW.yKeep || 0, popY) : 0; NW.rSt = NW.step;
   const st = NW.step, dots = st < 4 ? `<div class="nw-dots">${[1, 2, 3].map(i => `<i class="${i <= st ? 'on' : ''}"></i>`).join('')}</div>` : '';
   let b = '';
   if (st === 1) {
@@ -2413,6 +2416,7 @@ function nwRender(){
   /* v361 (Khalid): main button pinned at the bottom, small back arrow on its right; top arrow hidden (still there for swipe back) */
   if (st < 4) b = b.replace(/<button class="btn nw-go"[^>]*>[^<]*<\/button>(?![\s\S]*nw-go)/, m => `<div class="nw-foot">${canBack ? `<button type="button" class="nw-bk" data-act="nw-back" aria-label="رجوع">${ic('back')}</button>` : ''}${m}</div>`);
   view(NW.board ? 'العب في الصف' : 'تحدي جديد', `<div class="nw${NW.board ? ' nw-brd' : ''}">${dots}${b}</div>`, 'new', '', canBack ? 'act:nw-back' : '');
+  { const half = st === 2 && (!!NW.prepP || !QS.glob || !QS.pick); if (wantY > 0) window.scrollTo(0, wantY); NW.yKeep = half ? wantY : 0; }
   if (st === 4) { nwQr(); nwLive(); NW.poll = setInterval(() => { if (location.hash.indexOf('#/t/new') !== 0 || NW.step !== 4) return clearInterval(NW.poll); nwLive(); }, 5000); }
 }
 const fmtCode = c => String(c || '');
