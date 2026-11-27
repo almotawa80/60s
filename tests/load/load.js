@@ -4,8 +4,11 @@
 const fs = require('fs'), path = require('path');
 const cfg = fs.readFileSync(path.join(__dirname, '..', '..', 'config.js'), 'utf8');
 const URL_ = cfg.match(/SUPABASE_URL:\s*"([^"]+)"/)[1], KEY = cfg.match(/SUPABASE_KEY:\s*"([^"]+)"/)[1];
-const WAVES = (process.env.WAVES || 'A:30,B:60,C:100').split(',').map(x => { const [k, n] = x.split(':'); return { k, n: +n }; });
-const SPREAD = +(process.env.SPREAD_SEC || 20) * 1000;           // students of one wave start within this window
+// MODE=big: 3000 students = 30 robot schools (10 primary, 10 middle, 10 secondary) × 4 classes × 25, codes Z<TT><C><SS>
+const BIG = process.env.MODE === 'big';
+const WAVES = BIG ? [{ k: 'Z', n: 3000, cls: 25 }] : (process.env.WAVES || 'A:30,B:60,C:100').split(',').map(x => { const [k, n] = x.split(':'); return { k, n: +n, cls: +n }; });
+const bigCodes = () => { const a = []; for (let t = 1; t <= 30; t++) for (let c = 1; c <= 4; c++) for (let g = 1; g <= 25; g++) a.push('Z' + String(t).padStart(2, '0') + c + String(g).padStart(2, '0')); return a; };
+const SPREAD = +(process.env.SPREAD_SEC || (BIG ? 60 : 20)) * 1000;           // students of one wave start within this window
 const THINK = [2000, 8000];                                       // «thinking» time before each answer
 const sleep = ms => new Promise(r => setTimeout(r, ms)), rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -54,16 +57,17 @@ const pct = (a, p) => { if (!a.length) return 0; const s = [...a].sort((x, y) =>
 (async () => {
   let md = '# اختبار الضغط · ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC\n', bad = 0;
   for (const w of WAVES) {
-    const codes = Array.from({ length: w.n }, (_, i) => 'LD' + w.k + String(i + 1).padStart(3, '0'));
+    const codes = BIG ? bigCodes() : Array.from({ length: w.n }, (_, i) => 'LD' + w.k + String(i + 1).padStart(3, '0'));
     const t0 = Date.now(), res = await Promise.all(codes.map(c => student(w.k, c))), secs = Math.round((Date.now() - t0) / 1000);
     const done = res.filter(r => r.ok), off = done.filter(r => r.kind === 'official');
     // correctness: an official round must add exactly the points the answers returned, and count as «played today»
     const wrongPts = off.filter(r => r.homeAfter - r.before !== Math.max(-r.before, r.pts) && r.homeAfter - r.before !== r.pts);
-    const lbMis = off.filter(r => r.after != null && r.after !== r.homeAfter), notPlayed = off.filter(r => !r.played), lbShort = done.filter(r => r.lbRows !== w.n);
+    const lbMis = off.filter(r => r.after != null && r.after !== r.homeAfter), notPlayed = off.filter(r => !r.played), lbShort = done.filter(r => r.lbRows !== w.cls);
     const calls = Object.values(M[w.k] || {}).reduce((a, m) => a + m.t.length + 0, 0), errs = Object.values(M[w.k] || {}).reduce((a, m) => a + m.err, 0);
-    md += `\n## ${w.n} طالب\n\nخلصوا الجولة: **${done.length} من ${w.n}** (رسمية ${off.length}، تدريب ${done.length - off.length}) · المدة ${secs} ث · الطلبات ${calls} · الأخطاء **${errs}**\n\n`;
+    md += `\n## ${w.n} طالب${BIG ? ' · 30 مدرسة · 120 صف' : ''}\n\nخلصوا الجولة: **${done.length} من ${w.n}** (رسمية ${off.length}، تدريب ${done.length - off.length}) · المدة ${secs} ث · الطلبات ${calls} · الأخطاء **${errs}**\n\n`;
     md += '| الطلب | العدد | الوسيط ms | p95 ms | الأبطأ ms | أخطاء |\n|---|---|---|---|---|---|\n';
     for (const [fn, m] of Object.entries(M[w.k] || {})) md += `| ${fn} | ${m.t.length} | ${pct(m.t, .5)} | ${pct(m.t, .95)} | ${pct(m.t, 1)} | ${m.err} |\n`;
+    md += `\nمدة الطالب من الدخول لآخر شاشة: الوسيط ${Math.round(pct(done.map(r => r.ms), .5) / 1000)} ث · p95 ${Math.round(pct(done.map(r => r.ms), .95) / 1000)} ث\n`;
     md += `\nالصحة: نقاط ما تطابق الأجوبة **${wrongPts.length}** · ترتيب ما يطابق الرئيسية **${lbMis.length}** · ما انحسب «لعب اليوم» **${notPlayed.length}** · ترتيب ناقص طلاب **${lbShort.length}**\n`;
     const failed = res.filter(r => !r.ok); if (failed.length) { const g = {}; failed.forEach(r => g[r.err || 'ما كملت'] = (g[r.err || 'ما كملت'] || 0) + 1); md += '\nاللي ما كملوا: ' + Object.entries(g).map(([k, v]) => `${v}× ${k}`).join(' · ') + '\n'; }
     const why = {}; done.filter(r => r.kind === 'practice').forEach(r => why[r.why] = (why[r.why] || 0) + 1); if (Object.keys(why).length) md += '\nسبب التدريب بدل الرسمية: ' + Object.entries(why).map(([k, v]) => `${v}× ${k}`).join(' · ') + '\n';
