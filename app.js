@@ -7398,16 +7398,19 @@ function bdOpts(){
   const c = (NW.classes || []).find(x => x.id === NW.cls[0]) || {};
   if (BD.lvSet !== c.id) { BD.lvSet = c.id; BD.lv = stageOf(c.name) === 'p' ? 0 : 1; }
   const chip = (on, act, d, h) => `<button type="button" class="bd-chip${on ? ' on' : ''}" data-act="${act}" data-v="${d}">${h}</button>`;
+  /* v531 (Khalid: «زجاجية وتكون أبسط»): two questions only; split, rounds and memory games sit under «المزيد» */
+  const more = BD.more || BD.split === 'me' || BD.rn > 1 || BD.mg;
   return `<div class="nw-grp bd-set">
     <div class="bd-lb">كم فريق؟</div><div class="bd-row">${[2, 3, 4].map(n => chip(BD.T === n, 'bd-set-t', n, n)).join('')}</div>
-    <div class="bd-lb">التقسيم</div><div class="bd-row">${chip(BD.split === 'rand', 'bd-set-sp', 'rand', '🎲 عشوائي')}${chip(BD.split === 'me', 'bd-set-sp', 'me', '✋ أنا أقسمهم')}</div>
-    <div class="bd-lb">الجولة (دقيقة لكل فريق)</div><div class="bd-row">${BD_LV.map((l, i) => chip(BD.lv === i, 'bd-set-lv', i, `<b>${l[2]}</b><small>${l[3]}</small>`)).join('')}</div>
+    <div class="bd-lb">كم سؤال لكل فريق؟</div><div class="bd-row">${BD_LV.map((l, i) => chip(BD.lv === i, 'bd-set-lv', i, `<b>${l[2]}</b><small>${l[3]}</small>`)).join('')}</div>
+    ${more ? `<div class="bd-lb">التقسيم</div><div class="bd-row">${chip(BD.split === 'rand', 'bd-set-sp', 'rand', '🎲 عشوائي')}${chip(BD.split === 'me', 'bd-set-sp', 'me', '✋ أنا أقسمهم')}</div>
     <div class="bd-lb">كم جولة لكل فريق؟</div><div class="bd-row">${[1, 2, 3].map(n => chip(BD.rn === n, 'bd-set-rn', n, n)).join('')}</div>
-    <p class="bd-sum">${(() => { const L = BD_LV[BD.lv], per = L[0] * BD.rn, tot = per * BD.T, m = BD.T * BD.rn; return `كل فريق يجاوب <b>${per} أسئلة</b>، والمجموع ${tot} سؤال · تقريباً ${m === 1 ? 'دقيقة' : m === 2 ? 'دقيقتين' : m + (m <= 10 ? ' دقايق' : ' دقيقة')} لعب`; })()}</p>
-    <button type="button" class="ce1-row bd-mgrow" data-act="bd-set-mg"><span class="ce1-e">🧠</span><span class="grow"><b>ألعاب الذكاء</b><small>الطالب يلمس السبورة بنفسه، تحتاج سبورة لمس. بدونها إنت تضغط اللي يقوله الطالب.</small></span><span class="bd-sw${BD.mg ? ' on' : ''}"><i></i></span></button>
-    ${BD.mg && !bdTouch() ? '<p class="bd-warn">هالجهاز ما فيه لمس، بتضغط إنت عن الطلاب.</p>' : ''}
+    <button type="button" class="ce1-row bd-mgrow" data-act="bd-set-mg"><span class="ce1-e">🧠</span><span class="grow"><b>ألعاب الذكاء</b><small>تحتاج سبورة لمس، وبدونها إنت تضغط.</small></span><span class="bd-sw${BD.mg ? ' on' : ''}"><i></i></span></button>
+    ${BD.mg && !bdTouch() ? '<p class="bd-warn">هالجهاز ما فيه لمس، بتضغط إنت عن الطلاب.</p>' : ''}` : '<button type="button" class="bd-more" data-act="bd-more">المزيد ⋯</button>'}
+    <p class="bd-sum">${(() => { const L = BD_LV[BD.lv], m = BD.T * BD.rn; return `المجموع <b>${L[0] * BD.rn * BD.T} سؤال</b> · تقريباً ${m === 1 ? 'دقيقة' : m === 2 ? 'دقيقتين' : m + (m <= 10 ? ' دقايق' : ' دقيقة')}`; })()}</p>
   </div><div class="nw-sp"></div><button class="btn nw-go" data-act="bd-go">📺 اعرضه بالصف</button>`;
 }
+ACTS['bd-more'] = () => { BD.more = true; nwRender(); };
 ACTS['bd-set-t'] = t => { BD.T = Number(t.dataset.v); nwRender(); };
 ACTS['bd-set-sp'] = t => { BD.split = t.dataset.v; nwRender(); };
 ACTS['bd-set-lv'] = t => { BD.lv = Number(t.dataset.v); nwRender(); };
