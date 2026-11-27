@@ -303,8 +303,8 @@ async function loadHome(){
   { const a = profs(), i = a.findIndex(p => p.token === S.token), me = { token: S.token, name: S.home.student.name, cls: S.home.class.name, code: (i >= 0 && a[i].code) || LS.get('mc_code') };
     if (i >= 0) a[i] = me; else a.unshift(me); profSave(a); }
   renderHome(); bgCheck();
-  { const ip = S.home.in_progress_attempt, k = ip && JSON.stringify(ip); if (k && S.autoRes !== k && !S.noAuto) { S.autoRes = k; const b = $app.querySelector('[data-act="s-start"][data-kind="official"]'); if (b) { S.resuming = true; ACTS['s-start'](b); } }
-    else if (!k && !S.demo && !S.noAuto) { const pt = Number(LS.get('mc_prac') || 0); if (pt && Date.now() - pt < 10 * 60 * 1000 && S.autoRes !== 'p' + pt) { S.autoRes = 'p' + pt; const b = document.createElement('button'); b.dataset.kind = 'practice'; S.resuming = true; ACTS['s-start'](b); } } }
+  { const noA = S.noAuto; S.noAuto = false; const ip = S.home.in_progress_attempt, k = ip && JSON.stringify(ip); if (k && S.autoRes !== k && !noA) { S.autoRes = k; const b = $app.querySelector('[data-act="s-start"][data-kind="official"]'); if (b) { S.resuming = true; ACTS['s-start'](b); } }
+    else if (!k && !S.demo && !noA) { const pt = Number(LS.get('mc_prac') || 0); if (pt && Date.now() - pt < 10 * 60 * 1000 && S.autoRes !== 'p' + pt) { S.autoRes = 'p' + pt; const b = document.createElement('button'); b.dataset.kind = 'practice'; S.resuming = true; ACTS['s-start'](b); } } }
   rpc('student_prefs', { p_token: S.token }).then(p => {
     S.prefs = p || {};
     if (p && p.remember === false && LS.get('mc_token')) { try { sessionStorage.setItem('mc_token', S.token); } catch(e){} LS.del('mc_token'); }
@@ -2832,7 +2832,7 @@ ACTS['nw-start'] = async t => {
       if (ors.length) qq = qq.or(ors.join(',')); else qq = null;
       const [all, mine] = qq ? await Promise.all([qq, qPages(() => sb.from('question_picks').select('question_id').order('question_id'))]) : [{ data: [] }, { data: [] }];
       const have = new Set((mine.data || []).map(x => x.question_id)), todo = (all.data || []).map(x => x.id).filter(id => !have.has(id));
-      for (let i = 0; i < todo.length; i += 500) { const r = await sb.from('question_picks').insert(todo.slice(i, i + 500).map(id => ({ question_id: id }))); if (r.error) throw r.error; }
+      for (let i = 0; i < todo.length; i += 500) { const rows = todo.slice(i, i + 500).map(id => ({ question_id: id })); let r = await sb.from('question_picks').insert(rows); if (r.error && r.error.code === '23505') { const cur = await qPages(() => sb.from('question_picks').select('question_id').order('question_id')), hv = new Set((cur.data || []).map(x => x.question_id)); const rest = rows.filter(x => !hv.has(x.question_id)); r = rest.length ? await sb.from('question_picks').insert(rest) : { error: null }; } if (r.error) throw r.error; }
       if (QS.pick) todo.forEach(id => QS.pick.add(id));
     }
     const busy = cs.filter(c => NW.busy.has(c.id)).map(c => c.id);
@@ -3938,9 +3938,9 @@ ACTS['t-xl-chosen'] = async t => {
     CK.pending = parseStudents(await readRows(file));
     t.value = '';
     if (!CK.pending.length) return toast('لم أجد أسماء في الملف');
-    const haveN = new Set(CK.students.map(x => x.name.trim())), haveNo = new Set(CK.students.map(x => String(x.student_no || '')).filter(Boolean)), seenN = new Set(), seenNo = new Set();
+    const haveN = new Set(CK.students.map(x => nmKey(x.name))), haveNo = new Set(CK.students.map(x => String(x.student_no || '')).filter(Boolean)), seenN = new Set(), seenNo = new Set();
     let dups = 0, noNo = 0;
-    const flags = CK.pending.map(r => { let f = ''; if (haveN.has(r.name) || seenN.has(r.name) || (r.student_no && (haveNo.has(r.student_no) || seenNo.has(r.student_no)))) { f = 'dup'; dups++; } else if (!r.student_no) { f = 'nono'; noNo++; } seenN.add(r.name); if (r.student_no) seenNo.add(r.student_no); return f; });
+    const flags = CK.pending.map(r => { let f = ''; if (haveN.has(nmKey(r.name)) || seenN.has(nmKey(r.name)) || (r.student_no && (haveNo.has(r.student_no) || seenNo.has(r.student_no)))) { f = 'dup'; dups++; } else if (!r.student_no) { f = 'nono'; noNo++; } seenN.add(nmKey(r.name)); if (r.student_no) seenNo.add(r.student_no); return f; });
     modal(`<h3>معاينة الملف</h3><div class="pv-sum"><span class="ok">${CK.pending.length - dups} جديد</span>${dups ? `<span class="dup">${dups} مكرر سيتم تخطيه</span>` : ''}${noNo ? `<span class="nono">${noNo} بدون رقم</span>` : ''}</div>
       <div class="tbl-wrap pv-tbl"><table><thead><tr><th>#</th><th>الاسم</th><th>رقم الطالب</th></tr></thead><tbody>${CK.pending.map((r, i) => `<tr class="${flags[i]}"><td>${i + 1}</td><td>${esc(r.name)}${flags[i] === 'dup' ? ' <small>مكرر</small>' : ''}</td><td>${esc(r.student_no) || '—'}</td></tr>`).join('')}</tbody></table></div>
       <div class="row" style="margin-top:14px"><button class="btn" data-act="t-confirm-upload" ${CK.pending.length - dups ? '' : 'disabled'}>إضافة ${CK.pending.length - dups} طالب</button><button class="btn soft" data-act="close-modal" style="width:auto">إلغاء</button></div>`);
@@ -4578,7 +4578,7 @@ ACTS['cp-save'] = async f => {
   if (moving.length && !await ask(`${moving.length} صف عنده تحدي ثاني، بينتهي لهالصفوف. نكمل؟`)) return;
   if (CC.saving) return; CC.saving = true;
   const sbtn = f.querySelector('[type=submit]'), slbl = sbtn && sbtn.textContent; if (sbtn) { sbtn.setAttribute('aria-busy', 'true'); sbtn.textContent = 'جارٍ الحفظ…'; }
-  const movedIds = moving.map(id => CL.comps[id].id); let ended = false, step = '';
+  const movedIds = moving.map(id => CL.comps[id].id); let ended = false, step = '', addedIds = [], snap = [], droppedIds = [], past = false;
   try {
     const chk = r => { if (r.error) throw r.error; };
     const keep = inGroup.filter(c => ids.includes(c.class_id)), drop = inGroup.filter(c => !ids.includes(c.class_id));
@@ -4586,16 +4586,18 @@ ACTS['cp-save'] = async f => {
     step = 'نقل الصفوف';
     if (movedIds.length) { chk(await sb.from('competitions').update({ status: 'finished' }).in('id', movedIds)); ended = true; }
     /* create the replacements before anything else changes; if this fails, the moved classes get their old competition back */
-    if (add.length) chk(await sb.from('competitions').insert(add.map(id => Object.assign({ class_id: id, group_id: gid }, p))));
-    ended = false;
+    if (add.length) { const ins = await sb.from('competitions').insert(add.map(id => Object.assign({ class_id: id, group_id: gid }, p))).select('id'); chk(ins); addedIds = (ins.data || []).map(x => x.id); }
+    past = true;
+    snap = keep.map(c => ({ id: c.id, v: Object.keys(p).reduce((o, k) => { o[k] = c[k] === undefined ? null : c[k]; return o; }, {}) }));
     step = 'حفظ الإعدادات';
     if (keep.length) chk(await sb.from('competitions').update(p).in('id', keep.map(c => c.id)));
-    if (drop.length) chk(await sb.from('competitions').update({ status: 'finished' }).in('id', drop.map(c => c.id)));
+    if (drop.length) { droppedIds = drop.map(c => c.id); chk(await sb.from('competitions').update({ status: 'finished' }).in('id', droppedIds)); }
     chk(await sb.from('classes').update({ qtypes: CC.qtypes, style: CC.style || 'mid' }).in('id', ids));
     T.compEdit = null; toast('تم الحفظ'); if (location.hash.indexOf('#/t/new') === 0) { go('#/t/home'); return; } await tClasses();
   } catch(e){
     let back = '';
-    if (ended) { const r = await sb.from('competitions').update({ status: 'active' }).in('id', movedIds); back = r.error ? ' تنبيه: لم يرجع التحدي السابق لبعض الصفوف، راجعه من التحديات.' : ' بقيت الصفوف في تحديها السابق مثل ما كان.'; }
+    if (past) { try { if (addedIds.length) { const d = await sb.from('competitions').delete().in('id', addedIds); if (d.error) await sb.from('competitions').update({ status: 'finished' }).in('id', addedIds); } for (const x of snap) await sb.from('competitions').update(x.v).eq('id', x.id); if (droppedIds.length) await sb.from('competitions').update({ status: 'active' }).in('id', droppedIds); if (movedIds.length) await sb.from('competitions').update({ status: 'active' }).in('id', movedIds); back = ' رجع التحدي مثل ما كان.'; } catch(e4){ back = ' تنبيه: ما رجعت كل التغييرات، راجع التحدي.'; } }
+    else if (ended) { const r = await sb.from('competitions').update({ status: 'active' }).in('id', movedIds); back = r.error ? ' تنبيه: لم يرجع التحدي السابق لبعض الصفوف، راجعه من التحديات.' : ' بقيت الصفوف في تحديها السابق مثل ما كان.'; }
     toast('تعذّر ' + step + '.' + back + ' حاول مجدداً');
   } finally { CC.saving = false; if (sbtn && document.contains(sbtn)) { sbtn.removeAttribute('aria-busy'); sbtn.textContent = slbl; } }
 };
