@@ -36,3 +36,6 @@ Xcode › المشروع App › Signing & Capabilities › فعّل Automatical
 
 ## الأيقونة وشاشة البداية
 المصادر في `resources/`. بعد تغييرها: `npm run assets`.
+
+## حفظ كلمة المرور (Passwords)
+التطبيق مربوط بالموقع عبر Associated Domains (`webcredentials:beat60s.com` في `App.entitlements`). يكتمل الربط بملف `.well-known/apple-app-site-association` على الموقع وفيه `<TEAM_ID>.com.beat60s.app`، وبعدها إصدار جديد من Xcode.
