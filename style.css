@@ -4453,3 +4453,6 @@ html body .ar-logo:not(#z){display:none!important}
 .modal:has(.av2){outline:0}
 .av2-note{margin:8px 0 0;color:#C7C7CC;font-size:14.5px;line-height:1.7}
 .av2-skip{background:none;border:0;color:#98989F;font:inherit;font-weight:700;font-size:14.5px;padding:6px;cursor:pointer;margin-top:-4px}
+
+/* v481 */
+.ac-fl>span:first-child{white-space:nowrap}

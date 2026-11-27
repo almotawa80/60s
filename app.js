@@ -2286,7 +2286,7 @@ ACTS['ob-finish'] = async t => {
     OB.made = [];
     for (const c of obClasses()) {
       const style = c.st === 'primary' ? 'kids' : c.st === 'university' ? 'uni' : 'mid';
-      const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name: c.name, stage: c.st, style }).select().single();
+      const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name: c.name, stage: c.st, style, gender: schG() }).select().single();
       if (error) throw error;
       const code = await rpc('set_self_join', { p_class: data.id, p_on: true });
       OB.made.push({ name: c.name, code: typeof code === 'string' ? code : (data.join_code || '') });
@@ -2553,7 +2553,7 @@ ACTS['nw-cls'] = async f => {
   const name = f.n.value.replace(/\s+/g, ' ').trim(), stg = (f.querySelector('[name=st]:checked') || f.querySelector('[name=st]') || {}).value || defStage(f.n.value);
   if (name.length < 2) return toast('اكتب اسم الصف');
   const style = stg === 'primary' ? 'kids' : stg === 'university' ? 'uni' : 'mid';
-  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: stg, style }).select().single();
+  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: stg, style, gender: schG() }).select().single();
   if (error) return toast(errMsg(error));
   learnStage(stg); NW.classes = [data]; NW.cls = [data.id]; NW.step = 2; NW.skip1 = false; nwRender();
 };
@@ -2810,7 +2810,7 @@ ACTS['w-finish'] = async t => {
   wSave();
   t.disabled = true; t.textContent = 'جارٍ الإنشاء...';
   const st = STAGES.find(x => x[0] === W.stage);
-  const base = { teacher_id: T.user.id, stage: W.stage, style: st ? st[3] : 'mid', qtypes: W.qtypes, subject: W.qtypes.includes('curriculum') ? W.subject : null };
+  const base = { teacher_id: T.user.id, gender: schG(), stage: W.stage, style: st ? st[3] : 'mid', qtypes: W.qtypes, subject: W.qtypes.includes('curriculum') ? W.subject : null };
   const plan = [];
   if (W.method === 'manual') plan.push({ name: W.cname, rows: W.names.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const p = l.split(/[،,\t]/); return { name: p[0].trim(), student_no: (p[1] || '').trim() }; }) });
   else if (W.method === 'file') Object.keys(W.multi).forEach(k => plan.push({ name: k, rows: W.multi[k] }));
@@ -3330,13 +3330,15 @@ function ncName(){ if (NC.custom) return NC.custom; return cnameOf(NC.stage, NC.
 function ncHtml(){
   const st = NC_ST.find(x => x[0] === NC.stage), last = (T.settings || {}).lastStage, sts = stOpts(NC_ST);
   const chip = (act, v, label, on, big) => `<button type="button" class="nc2-c${big ? ' big' : ''}${on ? ' on' : ''}" data-act="${act}" data-v="${v}">${label}</button>`;
-  const name = ncName();
+  const name = ncName(), mix = SG('def_gender') === 'mix';
+  const gd = `<div class="nc2-s"><div class="nc2-l">الطلبة</div><div class="nc2-g3">${[['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']].map(x => chip('nc2-gd', x[0], x[1], x[0] === NC.g, 1)).join('')}</div></div>`;
   return `<div class="nc2"><h3>صف جديد</h3>
     ${myStages().length && !NC.allSt ? `<button type="button" class="link nc2-all" data-act="nc2-all">مرحلة ثانية؟</button>` : ''}${sts.length > 1 ? `<div class="nc2-s"><div class="nc2-l">المرحلة ${last && last === NC.stage ? '<small>✓ آخر مرحلة اخترتها</small>' : ''}</div><div class="nc2-g4">${sts.map(x => chip('nc2-st', x[0], x[1], x[0] === NC.stage, 1)).join('')}</div></div>` : ''}
     ${st ? `<div class="nc2-s"><div class="nc2-l">${NC.stage === 'university' ? 'السنة' : 'الصف'}</div><div class="nc2-gr" style="--n:${st[2].length > 5 ? 5 : st[2].length}">${st[2].map((g, k) => chip('nc2-gr', g, NC.stage === 'university' ? UNI_Y[k] : GRADES[g - 1], g === NC.grade)).join('')}</div></div>` : ''}
-    <details class="nc2-det"${NC.det || NC.sec || NC.g ? ' open' : ''}><summary>تفاصيل الصف <small class="sub">${[NC.sec ? 'الشعبة ' + esc(NC.sec) : '', NC.g ? { m: 'بنين', f: 'بنات', mix: 'مختلط' }[NC.g] : ''].filter(Boolean).join(' · ') || 'الشعبة ونوع الصف (اختياري)'}</small></summary>
+    ${mix ? gd : ''}
+    <details class="nc2-det"${NC.det || NC.sec || (NC.g && !schG() && !mix) ? ' open' : ''}><summary>تفاصيل الصف <small class="sub">${[NC.sec ? 'الشعبة ' + esc(NC.sec) : '', NC.g && !mix ? { m: 'بنين', f: 'بنات', mix: 'مختلط' }[NC.g] : ''].filter(Boolean).join(' · ') || (schG() || mix ? 'الشعبة (اختياري)' : 'الشعبة ونوع الصف (اختياري)')}</small></summary>
     <div class="nc2-s"><div class="nc2-l">الشعبة</div><div class="nc2-gr" style="--n:${Math.min(5, secList().length)}">${secList().map(x => chip('nc2-sec', x, x, x === NC.sec)).join('')}</div></div>
-    <div class="nc2-s"><div class="nc2-l">الطلبة</div><div class="nc2-g3">${[['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']].map(x => chip('nc2-gd', x[0], x[1], x[0] === NC.g, 1)).join('')}</div></div></details>
+    ${schG() || mix ? '' : gd}</details>
     <label class="nc2-name"><div class="grow"><small>اسم الصف</small><input class="nc2-inp" id="nc2-in" value="${esc(name)}" maxlength="60" placeholder="اختر الصف أو اكتب اسمه" autocomplete="off" enterkeyhint="done"></div></label>
     <button class="btn" data-act="nc2-save" ${name ? '' : 'disabled'}>إنشاء الصف</button></div>`;
 }
@@ -3359,7 +3361,7 @@ document.addEventListener('keydown', e => { if (e.target.id === 'nc2-in' && e.ke
 /* iOS keyboard: lift bottom sheets above it */
 if (window.visualViewport) { const kb = () => { const v = visualViewport, h = Math.max(0, window.innerHeight - v.height - v.offsetTop); document.documentElement.style.setProperty('--kb', h + 'px'); }; visualViewport.addEventListener('resize', kb); visualViewport.addEventListener('scroll', kb); }
 document.addEventListener('focusin', e => { const m = e.target.closest && e.target.closest('.modal'); if (m && /INPUT|TEXTAREA/.test(e.target.tagName)) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); });
-ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { allSt: false, det: false, stage: (() => { const m = myStages(), c = SG('def_stage') || (T.settings || {}).lastStage || 'primary'; return !m.length || m.includes(c) ? c : m[0]; })(), grade: null, sec: '', g: SG('def_gender') || '', custom: '', editing: false }); modal(ncHtml()); };
+ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { allSt: false, det: false, stage: (() => { const m = myStages(), c = SG('def_stage') || (T.settings || {}).lastStage || 'primary'; return !m.length || m.includes(c) ? c : m[0]; })(), grade: null, sec: '', g: schG() || '', custom: '', editing: false }); modal(ncHtml()); };
 ACTS['nc2-st'] = t => { if (NC.stage !== t.dataset.v) NC.grade = null; NC.stage = t.dataset.v; NC.custom = ''; ncRender(); };
 ACTS['nc2-gr'] = t => { NC.grade = Number(t.dataset.v); NC.custom = ''; ncRender(); };
 ACTS['nc2-sec'] = t => { NC.sec = NC.sec === t.dataset.v ? '' : t.dataset.v; NC.custom = ''; ncRender(); };
@@ -3442,7 +3444,7 @@ ACTS['t-multi-confirm'] = async t => {
     for (const name of Object.keys(CK.multi)) {
       let id = byName[name];
       if (!id) {
-        const r = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: defStage(name), style: 'mid' }).select().single();
+        const r = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: defStage(name), style: 'mid', gender: schG() }).select().single();
         if (r.error) throw r.error;
         id = r.data.id; made++;
       }
@@ -5639,7 +5641,7 @@ ACTS['aw-newcls'] = async t => {
   const v = await ask('اكتب اسم الصف', { title: 'صف جديد', input: '', placeholder: 'مثال: السادس / أ', ok: 'إنشاء' });
   const name = (v || '').trim(); if (name.length < 2) return;
   if (CL.classes.some(c => c.name.trim() === name)) return toast('يوجد صف بنفس الاسم');
-  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: defStage(name), style: 'mid' }).select().single();
+  const { data, error } = await sb.from('classes').insert({ teacher_id: T.user.id, name, stage: defStage(name), style: 'mid', gender: schG() }).select().single();
   if (error) return toast(errMsg(error));
   CL.classes.push(data); CL.byId[data.id] = data; CL.students[data.id] = []; AW.pick = data.id; awPick(!!t.dataset.self);
 };
@@ -6051,6 +6053,8 @@ function accCard(){
   return `<button class="ac-card" data-act="ac-open">${tags.map((v, i) => `<div class="ac-r"><span>${L[i]}</span><b>${v ? esc(v) : '<i>إضافة</i>'}</b></div>`).join('')}<div class="ac-ed">✏️ تعديل ملفي</div></button>`;
 }
 ACTS['ac-open'] = () => go('#/t/myprofile');
+/* v481 (Khalid): school type lives in the teacher profile; a boys/girls school never gets asked per class, a mixed one picks per class */
+const schG = () => { const g = SG('def_gender'); return g === 'm' || g === 'f' ? g : null; };
 const AC_ROWS = [['n','الاسم'],['t','اللقب'],['s','المدرسة'],['p','رقم الجوال'],['st','المرحلة'],['sj','المواد'],['d','المنطقة']];
 function acVal(k){
   if (k === 'n') return T.name || '';
@@ -6079,6 +6083,7 @@ function acRowsHtml(){
     ${f('n', 'الاسم', `<input class="ac-in" data-k="n" value="${esc(T.name || '')}" maxlength="60" enterkeyhint="done">`)}
     ${f('t', 'اللقب', sel('t', AC_TITLES, SG('prof_title') || ''))}
     ${f('s', 'المدرسة', `<input class="ac-in" data-k="s" value="${esc(SG('school') || '')}" maxlength="80" placeholder="اسم المدرسة" enterkeyhint="done">`)}
+    ${f('g', 'نوع المدرسة', sel('g', [['', 'اختر'], ['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']], SG('def_gender') || ''))}
     ${f('p', 'الجوال', `<span class="ac-pre" dir="ltr">+965</span><input class="ac-in" data-k="p" type="tel" inputmode="tel" dir="ltr" maxlength="16" value="${esc(String(SG('phone') || '').replace(/^\+965/, ''))}" placeholder="XXXXXXXX">`)}
   </div>
   <div class="ac-grp"><div class="ac-fl ac-ro"><span>البريد</span><b dir="ltr">${esc(T.user.email || '')}</b></div></div>
@@ -6103,7 +6108,7 @@ async function acSave(k, val){
   if (admView()) { toast('وضع المشاهدة: فعّل الدعم عشان تعدّل'); acDraw(); return; }
   if (k === 'n') { val = val.trim(); if (!val) return toast('اكتب اسمك'); const { error } = await sb.from('teachers').update({ display_name: val }).eq('id', T.user.id); if (error) return toast(errMsg(error)); T.name = val; }
   else {
-    const m = { t: 'prof_title', s: 'school', p: 'phone', st: 'prof_stage', sj: 'prof_subject', d: 'district' };
+    const m = { t: 'prof_title', s: 'school', p: 'phone', st: 'prof_stage', sj: 'prof_subject', d: 'district', g: 'def_gender' };
     if (k === 's') val = val.trim().slice(0, 80);
     if (k === 'p') val = val.trim() ? normPhone(val) : '';
     await saveSettings({ [m[k]]: val });
