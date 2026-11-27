@@ -4199,7 +4199,7 @@ ACTS['t-export-codes'] = async t => { ctx(t); await XL();
   XLSX.writeFile(wb, 'رموز-' + CK.cls.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };
 const QRJS = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-const XLSXJS = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+const XLSXJS = 'vendor/xlsx-0.18.5.full.min.js?v=549';
 const XL = () => loadJs(XLSXJS, 'XLSX').catch(() => { throw new Error('تعذر تحميل أداة Excel، تأكد من الاتصال'); });
 function loadJs(src, g){ return new Promise((ok, no) => { if (window[g]) return ok(); const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); }
 function qrSvg(text){ try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); } catch(e){ return ''; } }
@@ -5858,7 +5858,7 @@ ACTS['t-q-share-import'] = async t => {
 };
 
 /* read questions from a photo of a worksheet (OCR in the browser) */
-const OCRJS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+const OCRJS = 'vendor/tesseract-5.1.1.min.js?v=549';
 ACTS['t-q-ocr'] = () => { closeModals(); document.getElementById('qocr').click(); };
 ACTS['t-q-ocr-chosen'] = async t => {
   const file = t.files && t.files[0]; if (!file) return; t.value = '';
