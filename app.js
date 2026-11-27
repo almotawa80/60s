@@ -3281,8 +3281,75 @@ ACTS['c-share'] = t => { const c = ctx(t); if (!c) return; const link = joinLink
   const msg = `انضم لتحدي «${c.name}» في «اهزم الدقيقة» 🎯\nرمز الصف: ${fmtCode(c.join_code || '')}\nأو اضغط الرابط:\n${link}\n\n📲 حمّل التطبيق على الآيفون:\n${APP_STORE}`;
   sheet('شارك الرمز', [
     { act: 'c-share-wa', attrs: `data-v="${esc(msg)}"`, icon: 'send', label: 'واتساب' },
+    { act: 'm-run', attrs: `data-a="c-poster" data-cid="${c.id}"`, icon: 'image', label: 'بوستر الصف' },
     { act: 'm-run', attrs: `data-a="c-joinshow" data-cid="${c.id}"`, icon: 'eye', label: 'اعرض على الشاشة' },
     { act: 'copy', attrs: `data-v="${esc(link)}"`, icon: 'layers', label: 'نسخ الرابط' }]); };
+/* v522 (Khalid 2026-11-27): «بوستر الصف» = shareable image (code + QR to beat60s.com/ios) + ready message, from the class share sheet */
+const IOS_LINK = 'https://beat60s.com/ios';
+function pstTxt(c){
+  const f = c.gender === 'f', subj = (SG('prof_subject') || '').split('|').filter(Boolean), sj = subj.length === 1 ? subj[0] : '';
+  const who = tName().trim();
+  return { f, sj, who, h: f ? 'استعدّي للتحدي!' : 'استعدّ للتحدي!',
+    s1: f ? 'حمّلي التطبيق' : 'حمّل التطبيق', s1b: (f ? 'صوّري الرمز أو ادخلي ' : 'صوّر الرمز أو ادخل ') + 'beat60s.com/ios',
+    s2: f ? 'ادخلي برمز الصف' : 'ادخل برمز الصف', s2b: f ? 'واختاري اسمك من القائمة' : 'واختر اسمك من القائمة',
+    s3: f ? 'تدرّبي من الحين' : 'تدرّب من الحين', s3b: f ? 'جرّبي جولة تدريب وكوني جاهزة أول يوم 💪' : 'جرّب جولة تدريب وكن جاهز أول يوم 💪',
+    foot: (f ? 'أندرويد أو كمبيوتر؟ ادخلي من ' : 'أندرويد أو كمبيوتر؟ ادخل من ') + 'beat60s.com',
+    sub: 'جولة كل يوم في دقيقة وحدة' + (sj ? ' من دروس ' + sj : '') };
+}
+function pstMsg(c){ const x = pstTxt(c), code = c.join_code || '';
+  return (x.f ? 'السلام عليكم بناتي الحلوات 🌸' : 'السلام عليكم يا أبطال 👋') + '\n\n' +
+    (x.f ? 'استعدوا! ' : 'استعدوا! ') + 'بنبدأ تحدّي «اهزم الدقيقة»' + (x.sj ? ' في ' + x.sj : '') + ' 🏆\nكل يوم جولة سريعة مدتها دقيقة وحدة، واللي ' + (x.f ? 'تجمع' : 'يجمع') + ' أكثر نقاط ' + (x.f ? 'تفوز' : 'يفوز') + ' ✨\n\n' +
+    '📲 ' + (x.f ? 'حمّلي' : 'حمّل') + ' التطبيق (آيفون وآيباد):\n' + IOS_LINK + '\n\n💻 أندرويد أو كمبيوتر: ' + (x.f ? 'ادخلي' : 'ادخل') + ' من https://beat60s.com\n\n' +
+    '🔑 رمز الصف: ' + fmtCode(code) + '\n' + (x.f ? 'بعدها اختاري اسمك من القائمة.' : 'بعدها اختر اسمك من القائمة.') + '\n\n' +
+    '💪 ' + (x.f ? 'تقدرين تتدربين' : 'تقدر تتدرب') + ' من الحين بجولات تدريب، عشان ' + (x.f ? 'تكونين جاهزة' : 'تكون جاهز') + ' من أول يوم.\n\nبالتوفيق للجميع 🤍' + (x.who ? '\n' + x.who : ''); }
+const pstImg = src => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; });
+async function pstDraw(c){
+  const W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d'), x = pstTxt(c);
+  try { await Promise.all([900, 800, 700].map(w => document.fonts.load(w + ' 40px Cairo'))); } catch(e){}
+  let logo = null; try { logo = await pstImg('about-logo.webp'); } catch(e){}
+  try { await loadJs(QRJS, 'qrcode'); } catch(e){}
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  /* sun rays */
+  const cx = W / 2, cy = 300; g.save(); g.translate(cx, cy);
+  for (let a = 0; a < 60; a++) { g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 1100, a * Math.PI / 30, (a + .5) * Math.PI / 30); g.closePath(); g.fillStyle = a % 2 ? '#5a0614' : '#C8102E'; g.fill(); }
+  g.restore(); const rg = g.createRadialGradient(cx, cy, 120, cx, cy, 720); rg.addColorStop(0, 'rgba(0,0,0,0)'); rg.addColorStop(1, '#000'); g.fillStyle = rg; g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgba(90,6,20,.35)'; g.fillRect(0, 0, W, 0);
+  if (logo) { const lw = 420, lh = lw * logo.height / logo.width; g.drawImage(logo, cx - lw / 2, 40, lw, lh); }
+  g.direction = 'rtl'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  const T = (s, y, sz, w, col, xx) => { g.font = w + ' ' + sz + 'px Cairo, sans-serif'; g.fillStyle = col; g.fillText(s, xx == null ? cx : xx, y); };
+  T('اهزم الدقيقة · ' + c.name, 388, 34, 800, '#F5C542');
+  g.save(); g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 24; T(x.h + ' 🏆', 492, 88, 900, '#fff'); g.restore();
+  T(x.sub, 556, 33, 700, '#E5E5EA');
+  const rr = (X, Y, w, h, r) => { g.beginPath(); g.roundRect ? g.roundRect(X, Y, w, h, r) : g.rect(X, Y, w, h); };
+  const card = (y, h, n, t, s) => { rr(70, y, W - 140, h, 34); g.fillStyle = '#1C1C1E'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#2C2C2E'; g.stroke();
+    const ny = y + h / 2; g.beginPath(); g.arc(W - 70 - 30 - 33, ny, 33, 0, 7); g.fillStyle = '#F5C542'; g.fill();
+    g.textAlign = 'center'; T(String(n), ny + 14, 38, 900, '#000', W - 70 - 30 - 33);
+    g.textAlign = 'right'; T(t, ny - 4, 40, 900, '#fff', W - 70 - 30 - 66 - 26); T(s, ny + 40, 27, 700, '#C7C7CC', W - 70 - 30 - 66 - 26); g.textAlign = 'center'; };
+  card(600, 218, 1, x.s1, x.s1b);
+  if (window.qrcode) { const q = qrcode(0, 'M'); q.addData(IOS_LINK); q.make(); const m = q.getModuleCount(), S = 170, X = 100, Y = 624;
+    rr(X, Y, S, S, 22); g.fillStyle = '#fff'; g.fill(); const cs = (S - 28) / m; g.fillStyle = '#000';
+    for (let r = 0; r < m; r++) for (let k = 0; k < m; k++) if (q.isDark(r, k)) g.fillRect(X + 14 + k * cs, Y + 14 + r * cs, cs + .4, cs + .4); }
+  card(836, 170, 2, x.s2, x.s2b);
+  g.font = '900 58px Cairo, sans-serif'; g.direction = 'ltr'; const code = fmtCode(c.join_code || ''), cw = Math.max(240, g.measureText(code).width + 30 * 2 + (code.length - 1) * 6);
+  rr(100, 921 - 50 + 8, cw, 100, 22); g.fillStyle = '#8E0B21'; g.fill(); rr(100, 921 - 50, cw, 100, 22); g.fillStyle = '#C8102E'; g.fill();
+  g.letterSpacing = '6px'; T(code, 921 + 20, 58, 900, '#fff', 100 + cw / 2); g.letterSpacing = '0px'; g.direction = 'rtl';
+  card(1024, 170, 3, x.s3, x.s3b);
+  T(x.foot, 1262, 27, 700, '#AEAEB2');
+  if (x.who) T(x.who + (x.sj ? ' · ' + x.sj : ''), 1306, 27, 800, '#fff');
+  return cv;
+}
+ACTS['c-poster'] = async t => { const c = ctx(t); if (!c || !c.join_code) return; closeModals();
+  const el = modal('<div class="pst-m"><h3>بوستر ' + esc(c.name) + '</h3><div class="pst-img"><div class="spinner"></div></div><button class="btn" data-act="pst-share" disabled>شارك البوستر</button><button class="btn ghost" data-act="pst-copy">نسخ الرسالة</button></div>');
+  el.classList.add('rt-mid');
+  const cv = await pstDraw(c), url = cv.toDataURL('image/png'); const box = el.querySelector('.pst-img'); if (!box) return;
+  box.innerHTML = '<img alt="بوستر الصف" src="' + url + '">';
+  const b = el.querySelector('[data-act="pst-share"]'); b.disabled = false; b.dataset.cid = c.id; el.querySelector('[data-act="pst-copy"]').dataset.cid = c.id;
+  cv.toBlob(bl => { el._file = new File([bl], 'بوستر-' + c.name.replace(/[\\/]/g, '-') + '.png', { type: 'image/png' }); el._url = url; }, 'image/png'); };
+ACTS['pst-copy'] = async t => { const c = CL.byId[t.dataset.cid]; if (!c) return; try { await navigator.clipboard.writeText(pstMsg(c)); toast('انسخت الرسالة ✓'); } catch(e){ toast('ما قدرت أنسخ'); } };
+ACTS['pst-share'] = async t => { const c = CL.byId[t.dataset.cid], m = t.closest('.modal-back'); if (!c || !m || !m._file) return; const f = m._file, msg = pstMsg(c);
+  if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], text: msg }); return; } catch(e){ if (e && e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = m._url; a.download = f.name; document.body.appendChild(a); a.click(); a.remove();
+  try { await navigator.clipboard.writeText(msg); toast('نزل البوستر وانسخت الرسالة ✓'); } catch(e){ toast('نزل البوستر ✓'); } };
 ACTS['c-share-wa'] = t => { closeModals(); window.open('https://wa.me/?text=' + encodeURIComponent(t.dataset.v), '_blank'); };
 function classSection(c){
   const st0 = CL.students[c.id] || [], open = CL.open.has(c.id), comp = CL.comps[c.id];

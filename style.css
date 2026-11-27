@@ -4707,3 +4707,7 @@ html body:not(.wide) .sh.pvx .sp-one .sp-prac span{display:none}
 body.wide:not(.dark) .st1-msg{background:color-mix(in srgb,var(--ink) 5%,transparent);border-color:color-mix(in srgb,var(--ink) 10%,transparent)}
 html body.wide.dark .modal .st1 .btn.soft,html body.wide.dark .modal .st1-stats>div{background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.035))!important;border:1px solid rgba(255,255,255,.11)!important;box-shadow:none!important}
 .ta .ta-about{display:block;text-align:center;margin:14px auto 4px;color:#C7C7CC;font-size:14px;font-weight:700;text-decoration:none}
+/* v522 class poster */
+.pst-m{text-align:center;display:flex;flex-direction:column;gap:10px}.pst-m h3{margin:0 0 2px}
+.pst-img{aspect-ratio:4/5;border-radius:14px;overflow:hidden;background:#000;display:grid;place-items:center;max-height:58vh;margin:0 auto;width:100%;max-width:min(100%,calc(58vh*.8))}
+.pst-img img{width:100%;height:100%;object-fit:contain;display:block}
