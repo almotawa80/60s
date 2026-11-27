@@ -1,7 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { STUDENT, STUDENT2, CLASS, watchErrors, clearPopups, playRound } = require('./helpers');
 
-test.describe.configure({ mode: 'serial' });
 
 test('الطالب: يدخل بالرمز، يلعب تدريب، ويشوف النتيجة والتبويبات', async ({ page }) => {
   const w = watchErrors(page);
@@ -10,7 +9,7 @@ test('الطالب: يدخل بالرمز، يلعب تدريب، ويشوف ا�
   await page.locator('#code').fill(STUDENT.code);
   await expect(page.locator('.s-nav')).toBeVisible();
   await clearPopups(page);
-  await expect(page.locator('#app')).toContainText(CLASS.challenge.slice(0, 8));
+  await expect(page.locator('#app')).toContainText(CLASS.name);
 
   // practice round (no points, always available)
   await page.locator('[data-act="s-start"][data-kind="practice"]').first().click();
