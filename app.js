@@ -415,7 +415,7 @@ const AV_HERO = { '🦁': 'g-falcon', '🐯': 'g-horse', '🐢': 'g-camel', '�
 const AV_ANM = ['🦁','🐯','🐢','🐸','🦅','🦊'], AV_ANF = ['🐼','🦉','🐬','🐨','🐉','🦄'];
 const AV_IMG = {}; Object.keys(AV_HERO).forEach(k => { AV_IMG[k] = AV_HERO[k]; });
 for (let i = 1; i <= 12; i++) AV_IMG['p' + i] = 'p' + i;
-function avI(v){ const f = AV_IMG[v]; return f ? '<span class="avi' + (AV_HERO[v] ? ' avg' : '') + '"><img src="av/' + f + '.webp" alt="" draggable="false"></span>' : esc(v || ''); }
+function avI(v){ const f = AV_IMG[v]; return f ? '<span class="avi' + (AV_HERO[v] || /^p\d/.test(v) ? ' avg' : '') + '"><img src="av/' + f + '.webp" alt="" draggable="false"></span>' : esc(v || ''); }
 function lvlFrame(){ const xp = S.daily && S.daily.xp; if (xp == null) return ''; const n = lvlOf(xp).n; return n >= 10 ? 'fr-g' : n >= 5 ? 'fr-s' : 'fr-b'; }
 function lvlShow(xp){
   if (xp == null) return; const L = lvlOf(xp), el = document.getElementById('lvl');
