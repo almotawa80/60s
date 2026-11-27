@@ -4696,3 +4696,7 @@ html body.wide.dark .modal .sheet-cancel,html body:not(.wide) .modal .sheet-canc
 .ar-find .ar-fnow[hidden]{display:none!important}
 @media (pointer:coarse){body.kb-on .t-nav,body.kb-on .s-nav{display:none!important}}
 .av2 .s-avg:has(button:nth-child(6):last-child){grid-template-columns:repeat(3,1fr)}
+/* v518 (Khalid: «مو واضح انه زر»): after the round, practice is the one action on the card, so it is a real red button */
+html body:not(.wide) .sh.pvx .sp-one .sp-prac:not(#z):not(#y){background:linear-gradient(#EE1F42,#B50E28)!important;border:0!important;border-radius:22px!important;box-shadow:0 6px 0 #8E0B21,0 10px 22px rgba(200,16,46,.35)!important;color:#fff!important;font-weight:900!important;min-height:62px}
+html body:not(.wide) .sh.pvx .sp-one .sp-prac:not(#z):not(#y):active{transform:translateY(4px);box-shadow:0 2px 0 #8E0B21!important}
+html body:not(.wide) .sh.pvx .sp-one .sp-prac span{display:none}
