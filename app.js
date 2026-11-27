@@ -6497,13 +6497,21 @@ function profileSheet(){
 }
 ACTS['st-profile'] = () => go('#/t/account');
 /* profile icon menu (every teacher screen) */
-ACTS['t-menu'] = () => {
-  const it = (act, icon, color, label, attrs) => `<button class="sheet-i" data-act="${act}" ${attrs || ''}><span class="set-ic" style="background:${color}">${ic(icon)}</span><span class="grow">${label}</span></button>`;
-  modal(`<div class="sheet t-menu">
-    <button class="sheet-list tm-head" data-act="tm-go" data-a="st-profile">${avatarHtml('big-av')}<div class="grow"><b>${esc(T.name)}</b><div class="sub">حسابي · <span dir="ltr">${esc((T.user && T.user.email) || '')}</span></div></div><span class="set-chev">${ic('back')}</span></button>
-    <div class="st1-opts tm-sq"><button class="st1-o" data-act="tm-go" data-a="tm-settings"><span class="e">⚙️</span><b>الإعدادات</b></button><button class="st1-o dng" data-act="tm-go" data-a="st-logout-ask"><span class="e">🚪</span><b>تسجيل الخروج</b></button></div></div>`);
+/* v484 (Khalid: «نافذة تحت الأيقونة» not a bottom sheet): small menu that drops from the avatar */
+const tmClose = () => document.querySelectorAll('.tm-pop-back').forEach(e => e.remove());
+ACTS['t-menu'] = t => {
+  if (document.querySelector('.tm-pop-back')) return tmClose();
+  const b = (t && t.getBoundingClientRect) ? t.getBoundingClientRect() : { bottom: 70, left: 16 };
+  const el = document.createElement('div'); el.className = 'tm-pop-back';
+  el.innerHTML = `<div class="tm-pop" role="menu" style="top:${Math.round(b.bottom + 10)}px;left:${Math.max(12, Math.round(b.left))}px">
+    <button class="tm-p-h" role="menuitem" data-act="tm-go" data-a="st-profile">${avatarHtml('big-av')}<span class="grow"><b>${esc(T.name)}</b><small>حسابي</small></span><i>‹</i></button>
+    <button class="tm-p-r" role="menuitem" data-act="tm-go" data-a="tm-settings"><span>⚙️</span>الإعدادات</button>
+    <button class="tm-p-r dng" role="menuitem" data-act="tm-go" data-a="st-logout-ask"><span>🚪</span>تسجيل الخروج</button></div>`;
+  el.addEventListener('click', e => { if (e.target === el) tmClose(); });
+  document.body.appendChild(el); haptic();
 };
-ACTS['tm-go'] = t => { const a = t.dataset.a; closeModals(); setTimeout(() => ACTS[a](t), 30); };
+window.addEventListener('hashchange', tmClose);
+ACTS['tm-go'] = t => { const a = t.dataset.a; tmClose(); closeModals(); setTimeout(() => ACTS[a](t), 30); };
 ACTS['tm-settings'] = () => go('#/t/settings');
 ACTS['go-qset'] = () => go('#/t/qset');
 ACTS['go-rset'] = () => go('#/t/rset');
