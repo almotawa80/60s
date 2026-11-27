@@ -2595,7 +2595,7 @@ function nwRender(){
   if (st === 3) {
     const end = addDays(todayKW(), Math.max(1, NW.days) - 1);
     /* v365 (Khalid): duration first; other options folded into one «الإعدادات» row; «الحين في الصف» = small link under */
-    const dz = `<h2 class="nw-q">كم يوم؟</h2><div class="nw-days">${NW.days === 0 ? `<button class="nw-now on" data-act="nw-days" data-d="0">⚡ الحين في الصف<small>يبدأ وينتهي بنفس الحصة</small></button>` : ''}${[[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']].map(d => `<button class="${NW.days === d[0] ? 'on' : ''}" data-act="nw-days" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>`;
+    const dz = `<h2 class="nw-q">كم يوم؟</h2><div class="nw-days">${NW.days === 0 ? `<button class="nw-now on" data-act="nw-days" data-d="0">⚡ الحين في الصف<small>يبدأ وينتهي بنفس الحصة</small></button>` : ''}${[[3, '3 أيام'], [7, '7 أيام'], [14, '14 يوم']].map(d => `<button class="${NW.days === d[0] ? 'on' : ''}" data-act="nw-days" data-d="${d[0]}">${d[1]}</button>`).join('')}</div>`;
     if (NW.board) b = `<h2 class="nw-q">الفرق</h2>` + bdOpts(); else if (NW.days === 0) b = dz + bdOpts(); else
     b = dz + `
       <p class="nw-note">${esc(nwEndTxt())}</p>
@@ -4202,7 +4202,7 @@ function ceSum(){
   ls.className = CC.poolOk === false ? 'low' : '';
 }
 /* simple setup helpers: duration presets, auto title, auto student-screen style */
-const CF_DUR = [[7, 'أسبوع'], [14, 'أسبوعين'], [30, 'شهر']];
+const CF_DUR = [[3, '3 أيام'], [7, '7 أيام'], [14, '14 يوم']];
 function cfSpan(start, total, q, hours){
   const ko = q === 0 ? 0 : Math.ceil(Math.log2(Math.max(2, q || 8))) * Math.max(1, Math.ceil((hours || 24) / 24));
   const pts = Math.max(2, total - ko), pe = addDays(start, pts - 1);
