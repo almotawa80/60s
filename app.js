@@ -3336,11 +3336,13 @@ async function pstDraw(c){
   let logo = null; try { logo = await pstImg('about-logo.webp'); } catch(e){}
   try { await loadJs(QRJS, 'qrcode'); } catch(e){}
   g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-  /* sun rays */
-  const cx = W / 2, cy = 300; g.save(); g.translate(cx, cy);
-  for (let a = 0; a < 60; a++) { g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 1100, a * Math.PI / 30, (a + .5) * Math.PI / 30); g.closePath(); g.fillStyle = a % 2 ? '#5a0614' : '#C8102E'; g.fill(); }
-  g.restore(); const rg = g.createRadialGradient(cx, cy, 120, cx, cy, 720); rg.addColorStop(0, 'rgba(0,0,0,0)'); rg.addColorStop(1, '#000'); g.fillStyle = rg; g.fillRect(0, 0, W, H);
-  g.fillStyle = 'rgba(90,6,20,.35)'; g.fillRect(0, 0, W, 0);
+  /* sun rays = same as the welcome page hero (24 rays: #D7102A 7deg / #140205 8deg, fading out from the logo) */
+  const cx = W / 2, cy = 215, R = 1150, rc = document.createElement('canvas'); rc.width = W; rc.height = H; const rx = rc.getContext('2d');
+  rx.fillStyle = '#140205'; rx.fillRect(0, 0, W, H); rx.fillStyle = '#D7102A'; const d = Math.PI / 180;
+  for (let a = 0; a < 360; a += 15) { rx.beginPath(); rx.moveTo(cx, cy); rx.arc(cx, cy, R, (a - 90) * d, (a - 83) * d); rx.closePath(); rx.fill(); }
+  const mk = rx.createRadialGradient(cx, cy, 0, cx, cy, 760); mk.addColorStop(0, 'rgba(0,0,0,1)'); mk.addColorStop(.45, 'rgba(0,0,0,.55)'); mk.addColorStop(1, 'rgba(0,0,0,0)');
+  rx.globalCompositeOperation = 'destination-in'; rx.fillStyle = mk; rx.fillRect(0, 0, W, H);
+  g.globalAlpha = .9; g.drawImage(rc, 0, 0); g.globalAlpha = 1;
   if (logo) { const lw = 420, lh = lw * logo.height / logo.width; g.drawImage(logo, cx - lw / 2, 40, lw, lh); }
   g.direction = 'rtl'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
   const T = (s, y, sz, w, col, xx) => { g.font = w + ' ' + sz + 'px Cairo, sans-serif'; g.fillStyle = col; g.fillText(s, xx == null ? cx : xx, y); };
