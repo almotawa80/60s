@@ -2370,21 +2370,28 @@ async function stepsCard(classes, comps, res){
   const cur = !s2 ? 2 : !s3 ? 3 : 4;
   const row = (n, ok, t, sub, btn) => `<div class="stp-r${ok ? ' dn' : n === cur ? ' cur' : ''}"><span class="stp-n">${ok ? '✓' : n}</span><div><b>${t}</b><small>${sub}</small></div>${!ok && btn ? btn : ''}</div>`;
   const b = (act, l, main) => `<button class="stp-b${main ? '' : ' s'}" data-act="${act}">${l}</button>`;
-  const t3 = !comps.length ? 'ابدأ أول تحدي' : bare.length ? bare.length + (bare.length > 2 && bare.length < 11 ? ' صفوف' : ' صف') + ' بدون تحدي' : 'التحدي';
-  const sub3 = !comps.length ? '٣ خطوات وتخلص' : bare.length ? esc(bare.map(c => c.name).join('، ')) : 'كل الصفوف داخلة';
-  const btn3 = !s2 ? '' : !comps.length || !joinable.length ? `<a class="stp-b${cur === 3 ? '' : ' s'}" href="#/t/new">ابدأ</a>` : b('stp-join', fem ? 'ضمّيها' : 'ضمّها', cur === 3);
+  /* v532 (Khalid 👍): «ضمّها» only names the classes it can really join (a running challenge of their grade exists); the first grade left without any challenge gets its own row with «ابدأ تحدي» and those classes ticked */
+  const nCls = k => k === 1 ? 'صف واحد' : k === 2 ? 'صفّين' : k + (k < 11 ? ' صفوف' : ' صف');
+  const lone = plan.filter(p => !p.t), g1 = lone.length ? stpGrade(lone[0].c.name) : 0, grp = lone.filter(p => stpGrade(p.c.name) === g1).map(p => p.c); STP.grp = grp;
+  const t3 = !comps.length ? 'ابدأ أول تحدي' : joinable.length ? nCls(joinable.length) + ' بدون تحدي' : bare.length ? nCls(grp.length) + ' بدون تحدي' : 'التحدي';
+  const sub3 = !comps.length ? '٣ خطوات وتخلص' : joinable.length ? esc(joinable.map(p => p.c.name).join('، ')) : bare.length ? esc(grp.map(c => c.name).join('، ')) : 'كل الصفوف داخلة';
+  const bNew = main => b('stp-new', fem ? 'ابدئي تحدي' : 'ابدأ تحدي', main);
+  const btn3 = !s2 ? '' : !comps.length ? `<a class="stp-b${cur === 3 ? '' : ' s'}" href="#/t/new">ابدأ</a>` : joinable.length ? b('stp-join', fem ? 'ضمّيها' : 'ضمّها', cur === 3) : bNew(cur === 3);
+  const row3b = s2 && comps.length && joinable.length && grp.length ? row(3, false, nCls(grp.length) + ' بدون تحدي', esc(grp.map(c => c.name).join('، ')), bNew(false)) : '';
   return `<div class="stp"><button class="stp-x" data-act="stp-off" aria-label="إخفاء">✕</button><h3>👋 باقي لك ${left === 1 ? 'خطوة وحدة' : left === 2 ? 'خطوتين' : left + ' خطوات'}</h3><small>وتبدأ ${fem ? 'طالباتك يلعبون' : 'طلابك يلعبون'}</small><div class="stp-bar"><i style="width:${(4 - left) * 25}%"></i></div>
     ${row(1, s1, 'الصفوف', classes.length + (classes.length > 2 && classes.length < 11 ? ' صفوف' : ' صف'))}
     ${row(2, s2, W, s2 ? total + ' ' + w1 : 'أضف أسماء ' + W + ' لصفوفك', `<a class="stp-b" href="#/t/classes">أضف</a>`)}
-    ${row(3, s3, t3, sub3, btn3)}
+    ${row(3, s3, t3, sub3, btn3)}${row3b}
     ${row(4, s4, (fem ? 'أرسلي الرموز لل' : 'أرسل الرموز لل') + W.slice(2), s3 && unsent.length < classes.length ? 'باقي ' + unsent.length + ' من ' + classes.length : 'ولا ' + w1 + ' لعب' + (fem ? 'ت' : '') + ' لين الحين', s2 && comps.length ? b('stp-send', fem ? 'أرسلي' : 'أرسل', cur === 4) : '')}
   </div>`;
 }
 ACTS['stp-off'] = async () => { if (!await ask('تقدر تكمل الخطوات من صفحة الصفوف والتحدي.', { title: 'إخفاء الخطوات؟', ok: 'إخفاء', danger: false })) return; await saveSettings({ stepsOff: 1 }); const e = document.querySelector('.stp'); if (e) e.remove(); };
+ACTS['stp-new'] = () => { const ids = (STP.grp || []).map(c => c.id);
+  Object.assign(NW, { board: false, step: 1, cls: ids, multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, les: {}, allSubj: false, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = true; go('#/t/new'); };
 ACTS['stp-join'] = async t => {
   const j = (STP.plan || []).filter(p => p.t), rest = (STP.plan || []).filter(p => !p.t); if (!j.length) return go('#/t/new');
   const by = {}; j.forEach(p => { const k = STP.classes.find(x => x.id === p.t.class_id); (by[k.name] = by[k.name] || []).push(p.c.name); });
-  const txt = Object.keys(by).map(k => by[k].join(' و') + ' مع ' + k).join('\n') + (rest.length ? '\n' + rest.map(p => p.c.name).join('، ') + ': ما له تحدي بنفس الصف، ابدأ له تحدي.' : '');
+  const txt = Object.keys(by).map(k => by[k].join(' و') + ' مع ' + k).join('\n');
   if (!await ask(txt, { title: 'نضمها لنفس التحدي؟', ok: 'ضم', danger: false })) return;
   t.setAttribute('aria-busy', 'true');
   const rows = j.map(p => { const o = Object.assign({}, p.t); delete o.id; delete o.created_at; o.class_id = p.c.id; return o; });
