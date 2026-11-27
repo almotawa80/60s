@@ -4754,3 +4754,12 @@ html body .nw .nw-tile.on::after{content:'✓';position:absolute;top:10px;inset-
 .pm-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#FF9500;margin-inline-start:6px;vertical-align:middle}
 .tm-miss{text-decoration:none;color:#FF9500;font-weight:800}
 .hc-noq{color:#FF9500!important;font-weight:800}
+
+/* v528 share codes before a challenge: orange warning, sharing stays below */
+.snd-warn{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:rgba(255,149,0,.12);border:1.5px solid rgba(255,149,0,.5);margin-bottom:10px}
+.snd-warn>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.snd-warn b{font-size:15.5px;font-weight:900;color:#FF9500}.snd-warn small{font-size:13px;font-weight:700;color:#fff;opacity:.85}
+.snd-warn .btn{flex:none;width:auto;margin:0;white-space:nowrap}
+.s-wait{text-align:center;margin:6px 0 12px}
+.snd-btns .btn{white-space:nowrap;font-size:15px;padding-inline:8px;gap:6px;flex:1 1 0;min-width:0}
+.snd-btns .btn svg{width:18px;height:18px;flex:none}

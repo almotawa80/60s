@@ -332,8 +332,8 @@ function renderHome(){
   /* the main action (start / continue / face-off) comes first, details after */
   let head = '', main = '', rest = '';
   if (ph === 'none') {
-    head = '<div class="phase"><b>ما فيه تحدي الحين</b></div>';
-    rest = '<p class="muted">يبدأ التحدي لما يجهّزه المعلم. تقدر تتدرب الحين.</p>';
+    head = '<div class="phase"><b>معلمك يجهّز التحدي ⏳</b></div>';
+    main = '<p class="muted s-wait">أول ما يبدأ يطلع لك هنا. لين ذاك الوقت جرّب التحدي العام.</p><button class="btn" data-act="s-tab" data-t="ar">جرّب التحدي العام</button>';
   } else if (ph === 'upcoming') {
     head = '<div class="phase"><b>يبدأ التحدي ' + esc(fmtDate(c.start_date)) + '</b></div>';
     rest = '<p class="muted">جهّز نفسك: درّب نفسك الآن بلا نقاط حتى موعد البداية.</p>';
@@ -3627,11 +3627,14 @@ ACTS['s-wa'] = t => {
   window.open('https://wa.me/' + (ph || '') + '?text=' + encodeURIComponent(msg), '_blank');
   CL.sent.add(s.id); if (t.classList.contains('send-row')) { t.classList.add('sent'); t.querySelector('.send-ic').innerHTML = ic('check'); const sm = t.querySelector('small'); if (sm) sm.textContent = 'فُتح واتساب ✓'; }
 };
+/* v528 (Khalid «نفذ ١ ٣»): sharing codes for a class with no challenge warns, never blocks */
+ACTS['snd-new'] = () => { closeModals(); go('#/t/new'); };
 ACTS['c-send'] = t => { const c = ctx(t), only = t.dataset.only;
   const st = only === 'never' ? CK.students.filter(x => !CST(x.id).rounds) : CK.students;
   modal(`<div class="col" data-cid="${c.id}"><h3>مشاركة رموز الدخول · ${esc(c.name)}</h3><p class="sub">اضغط على كل اسم ليفتح واتساب برسالة فيها رمزه ورابط الدخول. تظهر «فُتح واتساب» بعد فتحه، وتأكد أنت من الإرسال داخل واتساب.</p>
+    ${CL.comps[c.id] ? '' : `<div class="snd-warn"><span><b>⚠️ هذا الصف ما له تحدي</b><small>الطلاب بيدخلون وما يلقون جولة</small></span><button class="btn sm" data-act="snd-new">ابدأ تحدي</button></div>`}
     <div class="send-list">${st.map(x => `<button class="send-row ${CL.sent.has(x.id) ? 'sent' : ''}" data-act="s-wa" data-id="${x.id}"><span class="grow"><b>${esc(x.name)}</b><small>${CL.sent.has(x.id) ? 'فُتح واتساب ✓' : x.phone ? esc(x.phone) : 'بدون رقم: تختار المحادثة بنفسك'}</small></span><span class="send-ic">${ic(CL.sent.has(x.id) ? 'check' : 'send')}</span></button>`).join('')}</div>
-    <div class="row"><button class="btn soft" data-act="t-print-codes">${ic('print')} طباعة البطاقات</button><button class="btn soft" data-act="t-export-codes">${ic('download')} تصدير Excel</button></div></div>`);
+    <div class="row snd-btns"><button class="btn soft" data-act="t-print-codes">${ic('print')} طباعة البطاقات</button><button class="btn soft" data-act="t-export-codes">${ic('download')} تصدير Excel</button></div></div>`);
 };
 /* v250 (Khalid «يعور العين ومو مرتب»): class settings = calm grouped list, no red buttons; archive/delete live in ⋯ */
 ACTS['c-menu'] = t => modal(cmHtml(ctx(t)));
