@@ -4691,7 +4691,7 @@ html body.wide.dark .modal .sheet-cancel,html body:not(.wide) .modal .sheet-canc
 .lba-p{color:#E3B23C;font-size:16.5px!important}
 .lba-me{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,.16)}
 #lb-body>.btn{margin-top:14px}
-.ar-av.ar-bot{display:grid;place-items:center;background:#2C2C2E;font-size:1.5em;line-height:1}
+.ar-av.ar-bot{display:grid;place-items:center}
 .ar-vsbot{margin:-4px 0 8px;color:#A1A1A8;font-size:14px;font-weight:700;text-align:center}
 .ar-find .ar-fnow[hidden]{display:none!important}
 @media (pointer:coarse){body.kb-on .t-nav,body.kb-on .s-nav{display:none!important}}

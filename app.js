@@ -781,7 +781,7 @@ const AR_EM={
 const AR_EMN = { laugh: 'ضحك', cry: 'بكاء', strong: 'قوة', fire: 'نار', clap: 'تصفيق', wow: 'واو' };
 const AR_W = { b: ['صقر','فهد','نجم','بطل','ذيب','فارس','برق','نسر','أسد','سهم'], g: ['نجمة','فراشة','قمر','بطلة','لؤلؤة','وردة','شمس','غزالة','ريم','نسمة'], x: ['الحلبة','الدقيقة','الذكاء','السرعة','العلم','المعرفة'] };
 function arEm(k){ return '<svg viewBox="0 0 40 40" aria-hidden="true">' + AR_EM[k] + '</svg>'; }
-function arAv(av, name, cls, dr){ if (dr === 'bot') return '<span class="ar-av ar-bot' + (cls ? ' ' + cls : '') + '">🤖</span>';
+function arAv(av, name, cls, dr){ if (dr === 'bot') return '<span class="ar-av ar-bot' + (cls ? ' ' + cls : '') + '"><span class="avi"><img src="av/robot.webp" alt="" draggable="false"></span></span>';
   if (/^[bg][1-4]$/.test(dr || '') && !AV_IMG[av]) av = 'p' + ((dr.charAt(0) === 'g' ? 6 : 0) + +dr.charAt(1));
   return '<span class="ar-av' + (cls ? ' ' + cls : '') + '">' + (av ? avI(av) : esc(String(name || '؟').trim().charAt(0))) + '</span>'; }
 /* «لقبك وشكلك»: the nickname is rolled from fixed word lists (never typed), the look is one of eight drawn characters */
