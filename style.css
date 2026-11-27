@@ -4745,3 +4745,12 @@ html body.wide.dark .tbl-wrap tr{background:transparent!important}
 html body .nw .nw-tile{position:relative}
 html body .nw .nw-tile.on{border:2px solid #1FA971!important;background:rgba(31,169,113,.14)!important;box-shadow:0 0 0 1px rgba(31,169,113,.5),0 0 18px rgba(31,169,113,.25)!important}
 html body .nw .nw-tile.on::after{content:'✓';position:absolute;top:10px;inset-inline-start:10px;width:26px;height:26px;border-radius:50%;background:#1FA971;color:#fff;font:900 15px/26px system-ui;text-align:center}
+
+/* v526 teacher alerts: red number = needs a decision, orange dot = incomplete */
+.t-av{position:relative}
+.t-av .av-dot{position:absolute;top:-2px;left:-2px;width:13px;height:13px;border-radius:50%;background:#FF9500;border:2px solid var(--bg,#000);pointer-events:none}
+.t-av .av-dot[hidden]{display:none}
+.t-nav .nb.nb-o{min-width:11px;width:11px;height:11px;padding:0;font-size:0;background:#FF9500;top:2px;left:calc(50% - 18px)}
+.pm-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#FF9500;margin-inline-start:6px;vertical-align:middle}
+.tm-miss{text-decoration:none;color:#FF9500;font-weight:800}
+.hc-noq{color:#FF9500!important;font-weight:800}

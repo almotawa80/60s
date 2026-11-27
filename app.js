@@ -1687,11 +1687,17 @@ const NAV_SQ = '<img class="nav-sq" src="nav-watch.png?i=1" alt="" draggable="fa
 try { ['r','b','y','g'].forEach(k => { const i = new Image(); i.src = 'aw-' + k + '.png'; }); } catch (e) {}
 try { const _nw = new Image(); _nw.src = 'nav-watch.png?i=1'; window._nw = _nw; if (_nw.decode) _nw.decode().catch(() => {}); } catch (e) {}
 const NB = (() => { try { return JSON.parse(LS.get('mc_nb') || '{}') || {}; } catch (e) { return {}; } })();
-const nbHtml = k => (k === 'classes') ? `<em class="nb" data-nb="${k}"${NB[k] ? '' : ' hidden'}>${NB[k] > 99 ? '99+' : (NB[k] || '')}</em>` : '';
+const nbHtml = k => (k === 'classes') ? `<em class="nb" data-nb="${k}"${NB[k] ? '' : ' hidden'}>${NB[k] > 99 ? '99+' : (NB[k] || '')}</em>` : k === 'home' ? `<em class="nb nb-o" data-nb="homew"${NB.homew ? '' : ' hidden'}></em>` : '';
+/* v526 (Khalid 👍): red number = needs the teacher's decision (pending students + «دخل باسمي»); orange dot, no number = something incomplete */
+const NBX = { p: 0, c: 0 };
+const nbCls = () => nbSet('classes', NBX.p + NBX.c);
+const profMiss = () => { const m = []; if (!SG('school')) m.push('s'); if (!SG('def_gender')) m.push('g'); if (!String(SG('prof_stage') || '').split('|').filter(Boolean).length) m.push('st'); if (!mySubjects().length) m.push('sj'); return m; };
+const pmDot = k => profMiss().indexOf(k) >= 0 ? '<i class="pm-dot"></i>' : '';
+const pmSync = () => { const h = !T.user || !profMiss().length; document.querySelectorAll('.t-av .av-dot').forEach(e => { e.hidden = h; }); };
 function nbSet(k, n){ NB[k] = n || 0; LS.set('mc_nb', JSON.stringify(NB)); document.querySelectorAll('.nb[data-nb="' + k + '"]').forEach(e => { e.hidden = !NB[k]; e.textContent = NB[k] > 99 ? '99+' : (NB[k] || ''); }); }
 let NB_T = 0;
 function nbPending(){ if (Date.now() - NB_T < 60000 || !T.user) return; NB_T = Date.now(); ntLoad();
-  sb.from('students').select('id,classes!inner(archived,teacher_id)', { count: 'exact', head: true }).eq('approved', false).eq('classes.archived', false).eq('classes.teacher_id', T.user.id).then(r => { if (!r.error) nbSet('classes', r.count || 0); }); }
+  sb.from('students').select('id,classes!inner(archived,teacher_id)', { count: 'exact', head: true }).eq('approved', false).eq('classes.archived', false).eq('classes.teacher_id', T.user.id).then(r => { if (!r.error) { NBX.p = r.count || 0; nbCls(); } }); }
 /* ===== v274 teacher bell: computed notices (rpc teacher_notices), seen keys in LS ===== */
 const NT = { n: 0, items: [] };
 const ntSeen = () => { try { return JSON.parse(LS.get('mc_nt_seen') || '[]'); } catch(e){ return []; } };
@@ -1703,6 +1709,7 @@ function ntItems(d){ const it = [], fn = x => fmtStu(x || '');
   (d.yd || []).forEach(x => it.push({ k: 'y:' + x.g + ':' + d.yday, e: '📊', t: 'ملخص ' + (cfDays(d.yday, d.today) === 1 ? 'أمس' : 'آخر يوم دراسي') + ': لعب ' + x.p + ' من ' + x.n, s: x.title, h: '#/t/ch/' + x.g }));
   return it; }
 async function ntLoad(){ try { const d = await rpc('teacher_notices'), del = ntDel(); NT.items = ntItems(d || {}).filter(x => del.indexOf(x.k) < 0); } catch(e){ return; }
+  NBX.c = NT.items.filter(x => x.k.indexOf('c:') === 0).length; nbCls();
   const seen = ntSeen(); NT.n = NT.items.filter(x => seen.indexOf(x.k) < 0).length;
   document.querySelectorAll('.t-bell-n').forEach(el => { el.hidden = !NT.n; el.textContent = NT.n > 9 ? '9+' : NT.n; }); }
 const ntDel = () => { try { return JSON.parse(LS.get('mc_nt_del') || '[]'); } catch(e){ return []; } };
@@ -1719,7 +1726,7 @@ ACTS['nt-go'] = t => { closeModals(); go(t.dataset.h); };
 const navIc = n => n[3] ? n[2] + (n[0] === 'admin/rep' ? admNb() : '') : n[0] === 'new' ? NAV_SQ : NAV_LN[n[0]] ? NAV_LN[n[0]] + nbHtml(n[0]) : ic(n[2]);
 
 function shell(title, body, active, top, back){
-  return `<div class="t-top"><div class="brand">${back ? (back.indexOf('act:') === 0 ? `<button class="icon-btn back-btn" data-act="${back.slice(4)}" aria-label="رجوع">${ic('back')}</button>` : `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>`) : LOGO_S}<span class="t-title${String(title).length > 19 ? ' t-xl' : String(title).length > 13 ? ' t-lg' : ''}">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-bell" data-act="t-bell" aria-label="الإشعارات">${ic('bell')}<em class="t-bell-n"${NT.n ? '' : ' hidden'}>${NT.n > 9 ? '9+' : NT.n}</em></button><button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
+  return `<div class="t-top"><div class="brand">${back ? (back.indexOf('act:') === 0 ? `<button class="icon-btn back-btn" data-act="${back.slice(4)}" aria-label="رجوع">${ic('back')}</button>` : `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>`) : LOGO_S}<span class="t-title${String(title).length > 19 ? ' t-xl' : String(title).length > 13 ? ' t-lg' : ''}">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-bell" data-act="t-bell" aria-label="الإشعارات">${ic('bell')}<em class="t-bell-n"${NT.n ? '' : ' hidden'}>${NT.n > 9 ? '9+' : NT.n}</em></button><button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}<i class="av-dot"${profMiss().length ? '' : ' hidden'}></i></button></div></div>` +
     `<div class="t-body">${body}</div>` +
     `<nav class="t-nav${admMode() ? ' adm-nav' : ''}" data-k="${admMode() ? 'a' : 't'}" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${curNav().map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}${n[0] === 'new' ? ' t-sq' : ''}"${n[0] === 'new' ? ' aria-label="تحدي جديد"' : ''}>${navIc(n)}${n[0] === 'new' ? '' : `<span>${n[1]}</span>`}</a>`).join('')}</nav>` + (setTimeout(nbPending, 0) && '');
 }
@@ -2315,7 +2322,9 @@ async function tHome(){
   // one card per running challenge: big «played today X of Y»; nothing else (Khalid: no clutter)
   const groups = {}, order = [];
   cp.data.forEach(c => { if (!classes.some(k => k.id === c.class_id)) return; const g = c.group_id || c.id; if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(c); });
+  const poolP = Promise.all(order.map(g => { const c = groups[g][0]; return c.paused_at ? null : rpc('question_pool', { p_types: c.qtypes || ['curriculum', 'general', 'quick'], p_cu: c.curriculum_id || null, p_lessons: c.lessons && c.lessons.length ? c.lessons : null }).catch(() => null); }));
   const res = await Promise.all(order.map(g => Promise.all(groups[g].map(c => rpc('teacher_class_results', { p_class: c.class_id }).catch(() => null)))));
+  const pool = await poolP, noQ = k => typeof pool[k] === 'number' && pool[k] < 4; nbSet('homew', order.filter((g, k) => noQ(k)).length);
   { let left = 0; order.forEach((g, k) => { const c = groups[g][0], ph = phaseOf(c); if (c.paused_at || (ph !== 'points' && ph !== 'knockout')) return; left += res[k].filter(Boolean).flat().filter(r => !r.played_today).length; }); nbSet('home', left); }
   const cards = order.map((g, k) => {
     const cs = groups[g], c = cs[0], rs = res[k].filter(Boolean).flat(), n = rs.length, played = rs.filter(r => r.played_today).length;
@@ -2323,6 +2332,7 @@ async function tHome(){
     const ph = phaseOf(c), pct = n ? Math.round(played * 100 / n) : 0;
     const dl = Math.round((new Date(c.end_date) - new Date(todayKW())) / 864e5);
     const mid = c.paused_at ? `<div class="hc-big">⏸</div><div class="hc-sub">متوقف مؤقتاً</div>`
+      : noQ(k) ? `<div class="hc-big">⚠️</div><div class="hc-sub hc-noq">ما فيه أسئلة كافية</div>`
       : ph === 'upcoming' ? `<div class="hc-big hc-day">${esc(fmtDate(c.start_date))}</div><div class="hc-sub">يبدأ</div>`
       : `<div class="hc-ring" style="--p:${pct}"><div><b>${played}</b><small>من ${n}</small></div></div><div class="hc-sub">لعبوا اليوم</div>`;
     return `<a class="hc" href="#/t/ch/${c.group_id || c.id}"><b class="hc-t">${esc(c.title || 'تحدي')}</b><small class="hc-c">${esc(names)}${ph === 'points' || ph === 'knockout' ? ` · باقي ${daysAr(Math.max(0, dl))}` : ''}</small>${mid}</a>`;
@@ -3522,7 +3532,7 @@ ACTS['c-eye'] = t => {
 };
 ACTS['s-approve'] = async t => {
   const id = t.dataset.id, { error } = await sb.from('students').update({ approved: true }).eq('id', id); if (error) return toast(errMsg(error));
-  for (const k in CL.students) (CL.students[k] || []).forEach(x => { if (x.id === id) x.approved = true; }); nbSet('classes', Math.max(0, (NB.classes || 0) - 1)); NB_T = 0;
+  for (const k in CL.students) (CL.students[k] || []).forEach(x => { if (x.id === id) x.approved = true; }); NBX.p = Math.max(0, NBX.p - 1); nbCls(); NB_T = 0;
   renderClasses(); toast('تمت الموافقة ✓');
 };
 ACTS['s-reject'] = async t => {
@@ -6472,7 +6482,7 @@ function acPanel(k){
   const sj = mySubjects(); return `<div class="ac-g g2">${SUBJECTS.filter(v => v !== 'عام' && v !== 'أخرى').map(v => chip('sj', v, v, sj.includes(v), SUBJ_EMOJI[v] || '📘')).join('')}</div>`;
 }
 function acRowsHtml(){
-  const f = (k, lab, inner) => `<label class="ac-fl"><span>${lab}</span>${inner}</label>`;
+  const f = (k, lab, inner) => `<label class="ac-fl"><span>${lab}${pmDot(k)}</span>${inner}</label>`;
   const sel = (k, opts, cur) => `<select class="ac-sel" data-k="${k}">${opts.map(o => `<option value="${esc(o[0])}"${o[0] === cur ? ' selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`;
   const st = String(SG('prof_stage') || '').split('|'), open = AC.open === 'sj', sjv = acVal('sj');
   return `<div class="ac-grp">
@@ -6484,8 +6494,8 @@ function acRowsHtml(){
   </div>
   <div class="ac-grp"><div class="ac-fl ac-ro"><span>البريد</span><b dir="ltr">${esc(T.user.email || '')}</b></div></div>
   <div class="ac-grp">
-    <div class="ac-fl ac-st"><span>المرحلة</span><div class="ac-g g3">${OB_STAGES.map(v => `<button type="button" class="ac-c${st.includes(v) ? ' on' : ''}" data-act="ac-pick" data-k="st" data-v="${esc(v)}">${esc(v)}</button>`).join('')}</div></div>
-    <button class="ac-row${open ? ' open' : ''}" data-act="ac-edit" data-k="sj"><span>المواد</span><b>${sjv || '<i>إضافة</i>'}</b><em>‹</em></button>${open ? `<div class="ac-ex">${acPanel('sj')}</div>` : ''}
+    <div class="ac-fl ac-st"><span>المرحلة${pmDot('st')}</span><div class="ac-g g3">${OB_STAGES.map(v => `<button type="button" class="ac-c${st.includes(v) ? ' on' : ''}" data-act="ac-pick" data-k="st" data-v="${esc(v)}">${esc(v)}</button>`).join('')}</div></div>
+    <button class="ac-row${open ? ' open' : ''}" data-act="ac-edit" data-k="sj"><span>المواد${pmDot('sj')}</span><b>${sjv || '<i>إضافة</i>'}</b><em>‹</em></button>${open ? `<div class="ac-ex">${acPanel('sj')}</div>` : ''}
     ${f('d', 'المنطقة', sel('d', [['', 'اختر']].concat(OB_DIST.map(v => [v, v])), SG('district') || ''))}
   </div>`;
 }
@@ -6899,7 +6909,7 @@ ACTS['t-menu'] = t => {
   const b = (t && t.getBoundingClientRect) ? t.getBoundingClientRect() : { bottom: 70, left: 16 };
   const el = document.createElement('div'); el.className = 'tm-pop-back';
   el.innerHTML = `<div class="tm-pop" role="menu" style="top:${Math.round(b.bottom + 10)}px;left:${Math.max(12, Math.round(b.left))}px">
-    <button class="tm-p-h" role="menuitem" data-act="tm-go" data-a="st-profile">${avatarHtml('big-av')}<span class="grow"><b>${esc(T.name)}</b><small>حسابي</small></span><i>‹</i></button>
+    <button class="tm-p-h" role="menuitem" data-act="tm-go" data-a="${profMiss().length ? 'ac-open' : 'st-profile'}">${avatarHtml('big-av')}<span class="grow"><b>${esc(T.name)}</b><small>حسابي${profMiss().length ? ' · <u class="tm-miss">ملفك ناقص</u>' : ''}</small></span><i>‹</i></button>
     <button class="tm-p-r" role="menuitem" data-act="tm-go" data-a="tm-settings"><span>⚙️</span>الإعدادات</button>
     <button class="tm-p-r" role="menuitem" data-act="tm-go" data-a="t-rep"><span>🚩</span>فيه مشكلة؟ بلّغنا</button>
     <button class="tm-p-r dng" role="menuitem" data-act="tm-go" data-a="st-logout-ask"><span>🚪</span>تسجيل الخروج</button></div>`;
@@ -6931,7 +6941,7 @@ function cuOptions(sel, emptyLabel){
   return `<option value="">${emptyLabel || 'بدون منهج محدد'}</option>` + subs.map(s => `<optgroup label="${esc(s)}">${CU.list.filter(c => c.subject === s).map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${STAGE_AR[c.stage]} · ${gradeAr(c)}${c.title ? ' · ' + esc(c.title) : ''}${c.owner_id ? '' : ' (عام)'}</option>`).join('')}</optgroup>`).join(''); }
 function SUBJ_COLOR(s){ const m = { 'اللغة العربية': '#C8102E', 'الرياضيات': '#2F80ED', 'العلوم': '#14A89B', 'التربية الإسلامية': '#1FA971', 'اللغة الإنجليزية': '#9B51E0', 'الاجتماعيات': '#F2994A', 'الحاسوب': '#5856D6' }; return m[s] || '#8E8E93'; }
 async function saveSettings(patch){
-  T.settings = Object.assign({}, T.settings || {}, patch);
+  T.settings = Object.assign({}, T.settings || {}, patch); pmSync();
   const { error } = await sb.from('teachers').update({ settings: T.settings }).eq('id', T.user.id);
   if (error) toast(errMsg(error));
 }
