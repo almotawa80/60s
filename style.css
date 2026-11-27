@@ -4612,3 +4612,21 @@ html.pg-pin .pg-acts .t-bell,html.pg-pin .pg-acts .t-av{visibility:visible}
 .cg-r:active{background:color-mix(in srgb,var(--ink) 7%,transparent)}
 .nw-gh{margin:14px 6px 8px}
 .nw-gh:first-of-type{margin-top:4px}
+
+/* v499 «خطواتك» card in the theme (Khalid): frosted glass with the red card edge, quiet done steps, gold current step */
+.stp{background:linear-gradient(180deg,color-mix(in srgb,var(--ink) 11%,transparent),color-mix(in srgb,var(--ink) 5%,transparent))!important;-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);border:1px solid rgba(226,18,47,.42)!important;border-radius:24px!important;padding:18px 16px 8px!important;color:var(--ink)!important;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 14%,transparent),0 0 26px rgba(200,16,46,.16),0 10px 28px rgba(0,0,0,.28)}
+.stp>small{color:var(--muted)!important}
+.stp-x{background:color-mix(in srgb,var(--ink) 10%,transparent)!important;color:var(--muted)!important}
+.stp-bar{height:6px!important;background:color-mix(in srgb,var(--ink) 12%,transparent)!important;margin:14px 0 6px!important}
+.stp-bar i{background:linear-gradient(90deg,#E3B23C,#F5D06B)!important}
+.stp-r{border-top:1px solid color-mix(in srgb,var(--ink) 9%,transparent)!important;padding:11px 0!important}
+.stp-r:last-child{padding-bottom:10px!important}
+.stp-n{background:color-mix(in srgb,var(--ink) 10%,transparent)!important;color:var(--muted)!important;width:32px!important;height:32px!important;font-size:14px}
+.stp-r.dn{padding:8px 0!important}
+.stp-r.dn .stp-n{width:26px!important;height:26px!important;margin:0 3px;background:rgba(48,209,88,.16)!important;color:#30D158!important;font-size:13px}
+.stp-r.dn b{display:inline!important;font-size:14.5px!important;color:var(--muted)!important}
+.stp-r.dn small{display:inline!important;margin-inline-start:8px;font-size:13px!important;opacity:.8}
+.stp-r.cur .stp-n{background:#E3B23C!important;color:#1a1200!important;box-shadow:0 0 0 4px rgba(227,178,60,.18)}
+.stp-r small{color:var(--muted)!important}
+.stp-b{background:#C8102E!important;box-shadow:0 4px 0 #8E0B21;border-radius:14px!important;min-height:40px!important;margin-bottom:4px}
+.stp-b.s{background:color-mix(in srgb,var(--ink) 12%,transparent)!important;box-shadow:none;color:var(--ink)!important;margin-bottom:0}
