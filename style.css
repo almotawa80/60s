@@ -4583,3 +4583,10 @@ html.pg-pin .pg-acts .t-bell,html.pg-pin .pg-acts .t-av{visibility:visible}
 .dlg.ntp .dlg-a{margin-top:22px}
 .dlg.ntp .dlg-a button{outline:0!important}
 .dlg.ntp .dlg-a button.pri{order:-1}
+
+/* v498 classes grouped by grade */
+.cp-gh{display:flex;align-items:baseline;gap:8px;margin:10px 6px -6px}
+.cp-gh:first-of-type{margin-top:14px}
+.cp-gh b{font-size:19px;font-weight:900}
+.cp-gh span{font-size:13px;font-weight:700;color:var(--muted)}
+.cp-gh+.cp-tiles{margin-top:0!important}
