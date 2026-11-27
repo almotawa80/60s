@@ -495,10 +495,11 @@ ACTS['t-push'] = async t => {
   if (why === '-') return; if (why) return toast(why);
   paint(); toast('تمام! توصلك الإشعارات على هذا الجهاز 🔔');
 };
-ACTS['t-push-yes'] = async t => { t.disabled = true; const why = await tPushSub(); if (why === '-') return; closeModals(); toast(why || 'تمام! توصلك الإشعارات على هذا الجهاز 🔔'); };
 // asked once, on the home page, after the teacher has a class
 function tPushAsk(has){ if (!has || admMode() || tPushOn() || !tPushCan() || LS.get('mc_tpush_ask')) return;
-  popQ(4, () => { LS.set('mc_tpush_ask', '1'); modal('<div class="s-avs center"><div class="lvl-up">🔔</div><h3>تبي إشعارات على جوالك؟</h3><p class="sub">نخبرك لما طالب ينتظر موافقتك، ولما يخلص التحدي، وملخص كل يوم.</p><button class="btn" data-act="t-push-yes">فعّل الإشعارات</button><button class="btn ghost" data-act="close-modal">بعدين</button></div>'); }); }
+  popQ(4, async () => { LS.set('mc_tpush_ask', '1');   // centred dialog like native apps (Khalid 2026-11-27)
+    if (!await ask('نخبرك لما طالب ينتظر موافقتك، ولما يخلص التحدي، وملخص كل يوم.', { title: '🔔 تبي إشعارات على جوالك؟', ok: 'فعّل', cancel: 'بعدين', danger: false })) return;
+    const why = await tPushSub(); if (why === '-') return; toast(why || 'تمام! توصلك الإشعارات على هذا الجهاز 🔔'); }); }
 /* v171 «صندوق بكرة» + «هدف الصف» (needs sql/box_goal.sql; silently absent before it) */
 async function loadDaily(){ /* v349: paint the last result at once (no flash on «صفّي»), then refresh */
   const tk = S.token; if (S.daily && S.dailyTok === tk) dailyPaint(S.daily);
