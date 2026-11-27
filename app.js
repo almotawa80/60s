@@ -2299,7 +2299,7 @@ ACTS['ob-finish'] = async t => {
     obStep(6);
   } catch(e){ t.disabled = false; t.textContent = 'أنشئ الصف'; toast(errMsg(e)); }
 };
-ACTS['ob-close'] = () => { const el = document.getElementById('ob'); if (el) el.remove(); location.hash = '#/t/home'; rerender(); };
+ACTS['ob-close'] = () => { const el = document.getElementById('ob'); if (el) el.remove(); if (OB.demo) return; /* demo opens on top of the page you were on (admin dashboard): stay there */ location.hash = '#/t/home'; rerender(); };
 ACTS['ob-open'] = () => obStart();
 ACTS['ob-demo'] = () => obStart(true);
 ACTS['ob-cardx'] = async () => { await saveSettings({ obCard: 1 }); rerender(); };
