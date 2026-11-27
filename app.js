@@ -2046,21 +2046,38 @@ async function admBankPg(cu, les){
   if (cu) return admBankCuPg(B.cus.concat((B.gen || []).map(g => ({ id: g.id, subject: g.name, grade: 0 }))).find(c => c.id === cu), les);
   const st = ADM.bst || 'middle', tot = B.cus.reduce((a, c) => a + c.n, 0) + (B.gen || []).reduce((a, c) => a + c.n, 0);
   const chips = `<div class="ad-segs">${ADM_ST.map(x => `<button data-act="adm-bst" data-v="${x[0]}" class="${st === x[0] ? 'on' : ''}">${x[1]}</button>`).join('')}</div>`;
-  let body;
-  if (st === 'gen') body = `<div class="ad-rows">${(B.gen || []).map(g => `<button class="ad-tr" data-act="go" data-h="#/t/admin/bank/${g.id}"${g.n ? '' : ' disabled'}><span class="ad-av ad-ic">${g.ic}</span><span class="grow"><b>${esc(g.name)}</b><small>${g.n ? nf(g.n) + ' سؤال' : 'فاضية'}</small></span>${g.n < 50 ? '<span class="ad-warn">⚠️ قليلة</span>' : ''}</button>`).join('')}</div>`;
-  else { const C = B.cus.filter(c => c.stage === st), G = [...new Set(C.map(c => c.grade))].sort((a, b) => a - b);
-    body = G.map(g => { const R = C.filter(c => c.grade === g).sort((a, b) => b.n - a.n), n = R.reduce((a, c) => a + c.n, 0);
-      return `<div class="ad-h">الصف ${GR_AR[g] || g}<small>${nf(n)} سؤال</small></div><div class="ad-rows">${R.map(c => `<button class="ad-tr" data-act="go" data-h="#/t/admin/bank/${c.id}"${c.n ? '' : ' disabled'}><span class="grow"><b>${esc(c.subject)}</b><small>${c.n ? `${nf(c.n)} سؤال · ${c.les} درس` : 'ما فيها أسئلة'}</small></span>${c.n ? (c.thin ? `<span class="ad-warn">⚠️ ${c.thin} ناقص</span>` : '<span class="ad-ok">✓</span>') : ''}</button>`).join('')}</div>`; }).join('') || '<div class="ad-empty"><b>📚</b><p>ما فيه مواد بهالمرحلة بعد</p></div>'; }
-  view('البنك', `<div class="ad-btot"><b>${nf(tot)}</b><span>سؤال في البنك</span></div>${chips}${body}<p class="sub center">⚠️ ناقص = درس فيه أقل من 8 أسئلة</p>`, 'admin/bank');
+  /* v488 (Khalid «طويلة جدا»): one grade at a time, subjects as 2-column tiles, empty subjects in one line */
+  const tile = (h, name, n, sub, cls) => `<button class="ad-bt ${cls}" data-act="go" data-h="#/t/admin/bank/${h}"><i></i><b>${esc(name)}</b><strong>${nf(n)}</strong><small>${sub}</small></button>`;
+  let body = '';
+  if (st === 'gen') { const F = (B.gen || []).filter(g => g.n), E0 = (B.gen || []).filter(g => !g.n);
+    body = `<div class="ad-bts">${F.map(g => tile(g.id, g.ic + ' ' + g.name, g.n, 'سؤال', g.n < 50 ? 'warn' : 'full')).join('')}</div>${E0.length ? `<p class="ad-bempty">ما فيها أسئلة: ${E0.map(g => esc(g.name)).join('، ')}</p>` : ''}`; }
+  else { const C = B.cus.filter(c => c.stage === st), S0 = [...new Set(C.map(c => c.subject))];
+    const SB = S0.map(n => { const R = C.filter(c => c.subject === n).sort((a, b) => a.grade - b.grade); return { n, R, q: R.reduce((a, c) => a + c.n, 0), thin: R.reduce((a, c) => a + c.thin, 0), first: R.find(c => c.n) }; });
+    const F = SB.filter(x => x.q).sort((a, b) => b.q - a.q), E0 = SB.filter(x => !x.q);
+    const dots = x => `<span class="ad-gd">${x.R.map(c => `<em class="${!c.n ? 'z' : c.thin ? 'y' : 'g'}">${c.grade}</em>`).join('')}</span>`;
+    body = SB.length ? (F.length ? `<div class="ad-bts">${F.map(x => `<button class="ad-bt ${x.thin ? 'warn' : 'full'}" data-act="go" data-h="#/t/admin/bank/${x.first.id}"><i></i><b>${SUBJ_EMOJI[x.n] || '📘'} ${esc(x.n)}</b><strong>${nf(x.q)}</strong>${dots(x)}<small>${x.thin ? `⚠️ ${x.thin} دروس ناقصة` : 'كاملة'}</small></button>`).join('')}</div>` : '')
+      + (E0.length ? `<p class="ad-bempty">ما فيها أسئلة: ${E0.map(x => esc(x.n)).join('، ')}</p>` : '') + '<p class="ad-bleg"><em class="g"></em>كامل <em class="y"></em>فيه نقص <em class="z"></em>فاضي</p>'
+      : '<div class="ad-empty"><b>📚</b><p>ما فيه مواد بهالمرحلة بعد</p></div>'; }
+  view('البنك', `<div class="ad-btot"><b>${nf(tot)}</b><span>سؤال في البنك</span></div>${chips}${body}`, 'admin/bank');
 }
+ACTS['adm-bgr'] = t => { ADM.bgr = ADM.bgr || {}; ADM.bgr[ADM.bst || 'middle'] = +t.dataset.v; NS.keepY = scrollY; admBankPg(); };
 ACTS['adm-bst'] = t => { ADM.bst = t.dataset.v; admBankPg(); };
 async function admBankCuPg(c, les){
   if (!c) return go('#/t/admin/bank');
-  const back = '#/t/admin/bank' + (les ? '/' + c.id : ''), title = les || (c.grade ? `${c.subject} · ${GR_AR[c.grade] || c.grade}` : c.subject);
+  /* v488 subject page like the teacher's questions sheet: grade chips, lessons with what is missing */
+  const NEED = 8, back = les ? '#/t/admin/bank/' + c.id : '#/t/admin/bank', title = les || c.subject;
   view(title, '<div class="spin"></div>', 'admin/bank', '', back);
-  let Q; try { Q = (ADM.bq = ADM.bq || {})[c.id] || (ADM.bq[c.id] = await rpc('admin_bank_cu', { p_cu: c.id }) || []); } catch(e){ return view(title, `<p class="sub center">${esc(errMsg(e))}</p>`, 'admin/bank', '', back); }
-  if (!les) { const L = [...new Set(Q.map(q => q.lesson || 'بدون درس'))].map(l => [l, Q.filter(q => (q.lesson || 'بدون درس') === l).length]);
-    return view(title, `<div class="ad-rows">${L.map(x => `<button class="ad-tr" data-act="go" data-h="#/t/admin/bank/${c.id}/${encodeURIComponent(x[0])}"><span class="grow"><b>${esc(x[0])}</b><small>${x[1]} سؤال</small></span>${x[1] < 8 ? '<span class="ad-warn">⚠️ ناقص</span>' : ''}</button>`).join('')}</div>`, 'admin/bank', '', back); }
+  let Q = []; if (c.n !== 0) try { Q = (ADM.bq = ADM.bq || {})[c.id] || (ADM.bq[c.id] = await rpc('admin_bank_cu', { p_cu: c.id }) || []); } catch(e){ return view(title, `<p class="sub center">${esc(errMsg(e))}</p>`, 'admin/bank', '', back); }
+  if (!les) {
+    const sib = c.grade ? (ADM.bank.cus || []).filter(x => x.subject === c.subject && x.stage === c.stage).sort((a, b) => a.grade - b.grade) : [];
+    const chips = sib.length > 1 ? `<div class="ad-grs">${sib.map(x => `<button data-act="go" data-h="#/t/admin/bank/${x.id}" class="${x.id === c.id ? 'on' : ''}${x.n ? '' : ' z'}"><b>${x.grade}</b><small>${x.n ? nf(x.n) : 'فاضي'}</small></button>`).join('')}</div>` : '';
+    const L = [...new Set(Q.map(q => q.lesson || 'بدون درس'))].map(l => [l, Q.filter(q => (q.lesson || 'بدون درس') === l).length]);
+    const thin = L.filter(x => x[1] < NEED), need = thin.reduce((a, x) => a + NEED - x[1], 0);
+    const sum = !L.length ? '<div class="ad-empty"><b>📭</b><p>ما فيها أسئلة بهالصف بعد</p></div>'
+      : `<div class="ad-bsum ${thin.length ? 'warn' : 'full'}"><b>${nf(Q.length)} سؤال · ${L.length} درس</b><span>${thin.length ? `⚠️ ${thin.length} دروس ناقصة · تحتاج ${need} سؤال` : '✓ كل الدروس كاملة'}</span></div>`;
+    const row = x => `<button class="ad-tr ad-lr" data-act="go" data-h="#/t/admin/bank/${c.id}/${encodeURIComponent(x[0])}"><span class="grow"><b>${esc(x[0])}</b><i class="ad-lb"><u class="${x[1] < NEED ? 'y' : 'g'}" style="width:${Math.min(100, Math.round(x[1] / NEED * 100))}%"></u></i></span><span class="ad-ln"><b>${x[1]}</b><small class="${x[1] < NEED ? 'y' : 'g'}">${x[1] < NEED ? `ينقصه ${NEED - x[1]}` : '✓'}</small></span></button>`;
+    return view(title, `${chips}${sum}${L.length ? `<div class="ad-rows">${L.map(row).join('')}</div><p class="sub center">الدرس الكامل فيه ${NEED} أسئلة أو أكثر</p>` : ''}`, 'admin/bank', '', back);
+  }
   const R = Q.filter(q => (q.lesson || 'بدون درس') === les); ADM.rep = ADM.rep || []; ADM.bqs = R;
   view(title, `<div class="ad-rows">${R.map((q, i) => `<button class="ad-tr" data-act="adm-bq" data-i="${i}"><span class="ad-qi">${i + 1}</span><span class="grow"><b>${esc(q.body)}</b><small>✓ ${esc(q.options[q.correct_index] || '')}</small></span></button>`).join('')}</div><p class="sub center">أي تعديل هنا يمشي على كل المعلمين</p>`, 'admin/bank', '', back);
 }
