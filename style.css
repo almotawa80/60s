@@ -2884,8 +2884,8 @@ html body .pv.pvx .dots .dot{padding:0!important;font-size:0!important;flex:none
 .ad-del{display:block;margin:14px auto 0;color:#FF453A;font-weight:700}
 .ad-ob{width:100%;margin:0 0 12px}
 .s-me-o>button:last-child:nth-child(odd){grid-column:1/-1}
-/* v201: phones in landscape → ask to rotate (iOS ignores manifest orientation) */
-@media (orientation:landscape) and (max-height:500px) and (pointer:coarse){
+/* v201: phones in landscape → ask to rotate (iOS ignores manifest orientation)  · v500: phones only (560–950px wide): an iPad with the keyboard open is short too and showed this by mistake */
+@media (orientation:landscape) and (max-height:500px) and (min-width:560px) and (max-width:950px) and (pointer:coarse){
   body::after{content:"📱\A لف جوالك للوضع العامودي";white-space:pre;position:fixed;inset:0;z-index:99999;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;font:800 22px/1.8 'Cairo',system-ui,sans-serif}
 }
 /* v202: onboarding round polish: round dots, centred last row, sticky next button */
