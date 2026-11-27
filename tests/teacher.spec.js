@@ -15,16 +15,16 @@ test('المعلم: يسجل دخول ويشوف التحدي والصف وال�
   await expect(page.locator('.t-nav')).toBeVisible();
 
   // home: one card for the running challenge → challenge page
-  const card = page.locator('a.hc').first();
-  await expect(card).toContainText(CLASS.challenge);
+  const card = page.locator('a.hc', { hasText: CLASS.challenge }).first();
+  await expect(card).toBeVisible();
   await card.click();
   await expect(page.locator('.ch-acts')).toBeVisible();
   await expect(page.locator('#app')).toContainText('روبوت');
 
   // classes → class page lists the students
   await page.locator('.t-nav a[href="#/t/classes"]').click();
-  const tile = page.locator('[data-act="c-open"]').first();
-  await expect(tile).toContainText(CLASS.name);
+  const tile = page.locator('[data-act="c-open"]', { hasText: CLASS.name }).first();
+  await expect(tile).toBeVisible();
   await tile.click();
   await expect(page.locator('#app')).toContainText('روبوت أول');
 
