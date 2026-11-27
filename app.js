@@ -2035,6 +2035,7 @@ async function teacherRoute(){
     else if (page === 'sg') parts[1] === 'st' ? tSSet() : tSetGroup(parts[1]);
     else if (page === 'qset' || page === 'rset' || page === 'rules') tRules();
     else if (page === 'account') await tAccount();
+    else if (page === 'send') await tSend();
     else if (page === 'myprofile') tMyProfile();
     else if (page === 'opt') tOpt(parts[1]);
     else if (page === 'tb') tTB();
@@ -2108,8 +2109,72 @@ async function tHome(){
   const nbKey = classes.map(c => c.id + c.name).join('|'), nbNote = '<div id="nb-slot">' + (NBC.k === nbKey ? NBC.v : '') + '</div>';
   if (classes.length && !(NBC.k === nbKey && Date.now() - NBC.t < 600000)) noBankNote(classes).then(v => { const sl = document.getElementById('nb-slot'); if (sl) sl.innerHTML = v; });
   let lvNote = ''; try { const ga = classes.length ? await gaP : null; if (ga) { const gc = classes.find(x => x.id === ga.class_id); if (gc) lvNote = `<button class="lv-card" data-act="lv-resume" data-id="${ga.id}" data-c="${gc.id}"><span>🔴</span><div><b>لعبة شغالة في ${esc(gc.name)}</b><small>ارجع لها</small></div><i>‹</i></button>`; } } catch(e){}
-  view('الرئيسية', obCard + lvNote + nbNote + html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
+  let stp = ''; try { stp = await stepsCard(classes, cp.data, res); } catch(e){}
+  view('الرئيسية', obCard + lvNote + stp + nbNote + html + `<a class="h-more" href="#/t/comps">التحديات السابقة ‹</a>`, 'home');
 }
+/* ---- v474 «خطواتك» (Khalid, after watching a new teacher get stuck): the home page says what is left until the first student plays ----
+   classes ✓ → students ✓ → every class has a challenge (same grade joins the running one) → send the codes. Gone once any student has played. */
+const STP = {};
+const stpFem = () => SG('prof_title') === 'أستاذة';
+const stpGrade = n => { const t = String(n || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)); const m = t.match(/\d+/); if (m) return +m[0]; for (let i = GRADES.length - 1; i >= 0; i--) if (t.indexOf(GRADES[i].replace(/^ال/, '')) >= 0) return i + 1; return 0; };
+const stpSent = id => LS.get('mc_sent_' + id) === '1';
+async function stepsCard(classes, comps, res){
+  if (!classes.length || (T.settings && T.settings.stepsOff) || (ADM.st && ADM.st.act)) return '';
+  if ((res || []).flat().flat().some(r => r && (r.rounds > 0 || r.played_today))) { if (!(T.settings || {}).stepsOff) saveSettings({ stepsOff: 1 }); return ''; }
+  const st = await sb.from('students').select('class_id'); if (st.error) return '';
+  const cnt = {}; st.data.forEach(x => { cnt[x.class_id] = (cnt[x.class_id] || 0) + 1; });
+  const total = st.data.length, fem = stpFem(), W = fem ? 'الطالبات' : 'الطلاب', w1 = fem ? 'طالبة' : 'طالب';
+  const has = new Set(comps.map(c => c.class_id)), bare = classes.filter(c => !has.has(c.id));
+  /* a class with no challenge joins the running challenge of the same grade, if there is one */
+  const plan = bare.map(c => { const g = stpGrade(c.name), t = g && comps.find(k => { const kc = classes.find(x => x.id === k.class_id); return kc && stpGrade(kc.name) === g; }); return { c, t: t || null }; });
+  const joinable = plan.filter(p => p.t), unsent = classes.filter(c => has.has(c.id) && !stpSent(c.id));
+  Object.assign(STP, { classes, comps, cnt, plan, fem });
+  const s1 = true, s2 = total > 0, s3 = s2 && !bare.length && comps.length > 0, s4 = s3 && !unsent.length;
+  const left = [s2, s3, s4].filter(v => !v).length; if (!left) return '';
+  const cur = !s2 ? 2 : !s3 ? 3 : 4;
+  const row = (n, ok, t, sub, btn) => `<div class="stp-r${ok ? ' dn' : n === cur ? ' cur' : ''}"><span class="stp-n">${ok ? '✓' : n}</span><div><b>${t}</b><small>${sub}</small></div>${!ok && btn ? btn : ''}</div>`;
+  const b = (act, l, main) => `<button class="stp-b${main ? '' : ' s'}" data-act="${act}">${l}</button>`;
+  const t3 = !comps.length ? 'ابدأ أول تحدي' : bare.length ? bare.length + (bare.length > 2 && bare.length < 11 ? ' صفوف' : ' صف') + ' بدون تحدي' : 'التحدي';
+  const sub3 = !comps.length ? '٣ خطوات وتخلص' : bare.length ? esc(bare.map(c => c.name).join('، ')) : 'كل الصفوف داخلة';
+  const btn3 = !s2 ? '' : !comps.length || !joinable.length ? `<a class="stp-b${cur === 3 ? '' : ' s'}" href="#/t/new">ابدأ</a>` : b('stp-join', fem ? 'ضمّيها' : 'ضمّها', cur === 3);
+  return `<div class="stp"><button class="stp-x" data-act="stp-off" aria-label="إخفاء">✕</button><h3>👋 باقي لك ${left === 1 ? 'خطوة وحدة' : left === 2 ? 'خطوتين' : left + ' خطوات'}</h3><small>وتبدأ ${fem ? 'طالباتك يلعبون' : 'طلابك يلعبون'}</small><div class="stp-bar"><i style="width:${(4 - left) * 25}%"></i></div>
+    ${row(1, s1, 'الصفوف', classes.length + (classes.length > 2 && classes.length < 11 ? ' صفوف' : ' صف'))}
+    ${row(2, s2, W, s2 ? total + ' ' + w1 : 'أضف أسماء ' + W + ' لصفوفك', `<a class="stp-b" href="#/t/classes">أضف</a>`)}
+    ${row(3, s3, t3, sub3, btn3)}
+    ${row(4, s4, (fem ? 'أرسلي الرموز لل' : 'أرسل الرموز لل') + W.slice(2), s3 && unsent.length < classes.length ? 'باقي ' + unsent.length + ' من ' + classes.length : 'ولا ' + w1 + ' لعب' + (fem ? 'ت' : '') + ' لين الحين', s2 && comps.length ? b('stp-send', fem ? 'أرسلي' : 'أرسل', cur === 4) : '')}
+  </div>`;
+}
+ACTS['stp-off'] = async () => { if (!await ask('تقدر تكمل الخطوات من صفحة الصفوف والتحدي.', { title: 'إخفاء الخطوات؟', ok: 'إخفاء', danger: false })) return; await saveSettings({ stepsOff: 1 }); const e = document.querySelector('.stp'); if (e) e.remove(); };
+ACTS['stp-join'] = async t => {
+  const j = (STP.plan || []).filter(p => p.t), rest = (STP.plan || []).filter(p => !p.t); if (!j.length) return go('#/t/new');
+  const by = {}; j.forEach(p => { const k = STP.classes.find(x => x.id === p.t.class_id); (by[k.name] = by[k.name] || []).push(p.c.name); });
+  const txt = Object.keys(by).map(k => by[k].join(' و') + ' مع ' + k).join('\n') + (rest.length ? '\n' + rest.map(p => p.c.name).join('، ') + ': ما له تحدي بنفس الصف، ابدأ له تحدي.' : '');
+  if (!await ask(txt, { title: 'نضمها لنفس التحدي؟', ok: 'ضم', danger: false })) return;
+  t.setAttribute('aria-busy', 'true');
+  const rows = j.map(p => { const o = Object.assign({}, p.t); delete o.id; delete o.created_at; o.class_id = p.c.id; return o; });
+  const r = await sb.from('competitions').insert(rows); if (r.error) { t.removeAttribute('aria-busy'); return toast(errMsg(r.error)); }
+  for (const p of j) { if (!p.c.self_join || !p.c.join_code) try { await rpc('set_self_join', { p_class: p.c.id, p_on: true }); } catch(e){} }
+  toast('انضمت ✓'); rerender();
+};
+const stpMsg = c => `انضم لتحدي «${c.name}» في «اهزم الدقيقة» 🎯\nاضغط الرابط واختر اسمك:\n${joinLink(c.join_code)}\nأو اكتب رمز الصف: ${fmtCode(c.join_code)}`;
+ACTS['stp-send'] = () => go('#/t/send');
+async function tSend(){
+  const [cl, cp, st] = await Promise.all([sb.from('classes').select('*').eq('archived', false).order('created_at'), sb.from('competitions').select('class_id').eq('status', 'active'), sb.from('students').select('class_id')]);
+  if (cl.error) throw cl.error;
+  const has = new Set((cp.data || []).map(c => c.class_id)), cnt = {}; (st.data || []).forEach(x => { cnt[x.class_id] = (cnt[x.class_id] || 0) + 1; });
+  const fem = stpFem(), w1 = fem ? 'طالبة' : 'طالب';
+  for (const c of cl.data) if (has.has(c.id) && (!c.self_join || !c.join_code)) try { c.join_code = await rpc('set_self_join', { p_class: c.id, p_on: true }); c.self_join = true; } catch(e){}
+  STP.send = cl.data;
+  const list = cl.data.filter(c => has.has(c.id) && c.join_code), no = cl.data.filter(c => !has.has(c.id));
+  view(fem ? 'أرسلي الرموز' : 'أرسل الرموز', `<p class="snd-p">رسالة وحدة لقروب كل صف. ${fem ? 'الطالبة تضغط الرابط وتختار اسمها' : 'الطالب يضغط الرابط ويختار اسمه'}.</p>` +
+    (list.length ? list.map(c => `<div class="snd${stpSent(c.id) ? ' done' : ''}" data-id="${c.id}"><div><b>${esc(c.name)}</b><small>${stpSent(c.id) ? '✓ انرسلت' : (cnt[c.id] || 0) + ' ' + w1}</small></div><button class="snd-q" data-act="snd-qr" data-id="${c.id}">QR للسبورة</button><button class="snd-w" data-act="snd-wa" data-id="${c.id}">واتساب</button></div>`).join('') : `<div class="h-empty"><b>ما فيه صف له تحدي</b><small>ابدأ تحدي أول</small></div>`) +
+    (no.length ? `<p class="snd-no">بدون تحدي: ${esc(no.map(c => c.name).join('، '))}</p>` : ''), 'home', '', '#/t/home');
+}
+const sndMark = id => { LS.set('mc_sent_' + id, '1'); const e = document.querySelector('.snd[data-id="' + id + '"]'); if (e) { e.classList.add('done'); const s = e.querySelector('small'); if (s) s.textContent = '✓ انرسلت'; } };
+ACTS['snd-wa'] = t => { const c = (STP.send || []).find(x => x.id === t.dataset.id); if (!c) return; sndMark(c.id); window.open('https://wa.me/?text=' + encodeURIComponent(stpMsg(c)), '_blank'); };
+ACTS['snd-qr'] = async t => { const c = (STP.send || []).find(x => x.id === t.dataset.id); if (!c) return;
+  modal(`<div class="snd-qm"><h3>${esc(c.name)}</h3><div class="snd-qb nw-qr" data-link="${esc(joinLink(c.join_code))}"><div class="spin"></div></div><p>صوّر الرمز بكاميرا الجوال واختر اسمك</p><b dir="ltr">${esc(fmtCode(c.join_code))}</b></div>`);
+  try { await loadJs(QRJS, 'qrcode'); const el = document.querySelector('.snd-qb'); if (el) el.innerHTML = qrSvg(el.dataset.link); sndMark(c.id); } catch(e){ const el = document.querySelector('.snd-qb'); if (el) el.innerHTML = '<small>تعذّر رسم الرمز، استخدم الرمز المكتوب</small>'; } };
 ACTS['h-view'] = t => { LS.set('mc_hv', t.dataset.v); document.querySelectorAll('.hv button').forEach(b => b.classList.toggle('on', b === t)); const h = document.querySelector('.hcs'); if (h) h.className = 'hcs hv-' + t.dataset.v; haptic(); };
 /* ---- first-time profile: 3 quick skippable screens (stage, subjects, school + district) ---- */
 const OB_STAGES = ['ابتدائي', 'متوسط', 'ثانوي'];

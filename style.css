@@ -4402,3 +4402,27 @@ body.ac-typing .t-nav{display:none!important}
 html body .ar-logo:not(#z){display:none!important}
 .sh.pvx.ar-find{padding-top:calc(max(14px,env(safe-area-inset-top)) + 70px)!important}
 .sh.pvx.ar-find{justify-content:center!important;padding-top:max(14px,env(safe-area-inset-top))!important}
+/* v474 «خطواتك» card + send codes page */
+.stp{position:relative;background:#1C1C1E;border:1.5px solid #3A3A3C;border-radius:22px;padding:16px;margin-bottom:16px;color:#fff}
+.stp h3{margin:0 0 2px;font-size:20px;font-weight:900;padding-inline-end:34px}.stp>small{color:#C7C7CC;font-size:14px;font-weight:700}
+.stp-x{position:absolute;top:10px;left:10px;width:34px;height:34px;border-radius:50%;border:0;background:#2C2C2E;color:#98989F;font-size:14px;cursor:pointer}
+.stp-bar{height:8px;border-radius:4px;background:#2C2C2E;margin:12px 0 4px;overflow:hidden}.stp-bar i{display:block;height:100%;background:#E3B23C;border-radius:4px}
+.stp-r{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #2C2C2E}
+.stp-r:last-child{padding-bottom:0}
+.stp-n{flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;background:#2C2C2E;color:#C7C7CC}
+.stp-r.dn .stp-n{background:#1F9D55;color:#fff}.stp-r.dn b{color:#8E8E93}
+.stp-r.cur .stp-n{background:#E3B23C;color:#1a1200}
+.stp-r>div{flex:1;min-width:0}.stp-r b{display:block;font-size:16px;font-weight:800}.stp-r small{display:block;color:#98989F;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stp-b{flex:none;min-height:42px;padding:0 16px;border-radius:14px;border:0;background:linear-gradient(#F0183A,#B50E28);color:#fff!important;font:800 15px 'Cairo',system-ui,sans-serif;display:inline-flex;align-items:center;text-decoration:none;cursor:pointer}
+.stp-b.s{background:#2C2C2E}
+.snd-p{color:#C7C7CC;font-weight:700;font-size:15px;margin:0 0 14px}
+.snd{display:flex;align-items:center;gap:8px;background:#1C1C1E;border-radius:18px;padding:12px 14px;margin-bottom:10px;color:#fff}
+.snd>div{flex:1;min-width:0}.snd b{display:block;font-size:17px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.snd small{color:#98989F;font-weight:700}
+.snd.done small{color:#34C759}
+.snd-w,.snd-q{flex:none;min-height:44px;padding:0 12px;border-radius:14px;font:800 14px 'Cairo',system-ui,sans-serif;color:#fff;cursor:pointer}
+.snd-w{border:0;background:#1F9D55}.snd-q{border:1.5px solid #3A3A3C;background:#2C2C2E}
+.snd-no{color:#98989F;font-weight:700;font-size:14px;margin:14px 0 0}
+.snd-qm{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.snd-qm h3{margin:0;font-size:24px;font-weight:900}.snd-qm p{margin:0;color:#C7C7CC;font-weight:700}
+.snd-qb{width:min(78vw,300px);aspect-ratio:1;background:#fff;border-radius:18px;padding:14px;display:flex;align-items:center;justify-content:center}.snd-qb svg{width:100%;height:100%}
+.snd-qm>b{font-size:30px;font-weight:900;letter-spacing:4px}
