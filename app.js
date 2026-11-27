@@ -2386,6 +2386,12 @@ async function stepsCard(classes, comps, res){
   </div>`;
 }
 ACTS['stp-off'] = async () => { if (!await ask('تقدر تكمل الخطوات من صفحة الصفوف والتحدي.', { title: 'إخفاء الخطوات؟', ok: 'إخفاء', danger: false })) return; await saveSettings({ stepsOff: 1 }); const e = document.querySelector('.stp'); if (e) e.remove(); };
+/* v534 (Khalid 👍): a challenge named after one class («تحدي 9K · …») takes the grade's name once other classes join it */
+function joinTitle(title, cname){ const g = stpGrade(cname), t = String(title || ''); return g && GRADES[g - 1] && cname && t.indexOf(cname) >= 0 ? t.replace(cname, GRADES[g - 1]) : t; }
+async function joinPrep(k){ const kc = (STP.classes || CL.classes || []).find(x => x.id === k.class_id) || (CL.byId || {})[k.class_id] || {}, gid = k.group_id || k.id, title = joinTitle(k.title, kc.name), up = {};
+  if (!k.group_id) up.group_id = gid; if (title !== k.title) up.title = title;
+  if (Object.keys(up).length) { const u = k.group_id ? await sb.from('competitions').update(up).eq('group_id', gid) : await sb.from('competitions').update(up).eq('id', k.id); if (u.error) throw u.error; }
+  return { gid, title }; }
 ACTS['stp-new'] = () => { const ids = (STP.grp || []).map(c => c.id);
   Object.assign(NW, { board: false, step: 1, cls: ids, multi: false, cu: null, subj: '', days: 7, made: null, lessons: null, les: {}, allSubj: false, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = true; go('#/t/new'); };
 ACTS['stp-join'] = async t => {
@@ -2394,7 +2400,8 @@ ACTS['stp-join'] = async t => {
   const txt = Object.keys(by).map(k => by[k].join(' و') + ' مع ' + k).join('\n');
   if (!await ask(txt, { title: 'نضمها لنفس التحدي؟', ok: 'ضم', danger: false })) return;
   t.setAttribute('aria-busy', 'true');
-  const rows = j.map(p => { const o = Object.assign({}, p.t); delete o.id; delete o.created_at; o.class_id = p.c.id; return o; });
+  const prep = new Map(); try { for (const p of j) if (!prep.has(p.t.id)) prep.set(p.t.id, await joinPrep(p.t)); } catch(e){ t.removeAttribute('aria-busy'); return toast(errMsg(e)); }
+  const rows = j.map(p => { const o = Object.assign({}, p.t), x = prep.get(p.t.id); delete o.id; delete o.created_at; o.class_id = p.c.id; o.group_id = x.gid; o.title = x.title; return o; });
   const r = await sb.from('competitions').insert(rows); if (r.error) { t.removeAttribute('aria-busy'); return toast(errMsg(r.error)); }
   for (const p of j) { if (!p.c.self_join || !p.c.join_code) try { await rpc('set_self_join', { p_class: p.c.id, p_on: true }); } catch(e){} }
   toast('انضمت ✓'); rerender();
@@ -3201,8 +3208,8 @@ function chJoinLine(ks){ const b = chBare(ks); if (!b.length || ks[0].status ===
   return `<div class="ch-join"><span class="grow"><b>${esc(b.map(c => c.name).join('، '))}</b><small>${b.length === 1 ? 'صف من نفس المرحلة بدون تحدي' : 'صفوف من نفس المرحلة بدون تحدي'}</small></span><button class="stp-b" data-act="ch-join">${b.length === 1 ? 'ضمّه' : 'ضمّها'}</button></div>`; }
 ACTS['ch-join'] = async t => { const ks = chComps(), b = chBare(ks); if (!ks.length || !b.length) return;
   if (!await ask(b.map(c => c.name).join(' و') + ': نفس الأسئلة والمدة، وكل صف برمزه.', { title: 'نضمها لهالتحدي؟', ok: 'ضم', danger: false })) return;
-  t.disabled = true; const base = Object.assign({}, ks[0]); delete base.id; delete base.created_at; base.group_id = ks[0].group_id || ks[0].id;
-  if (!ks[0].group_id) { const u = await sb.from('competitions').update({ group_id: ks[0].id }).eq('id', ks[0].id); if (u.error) { t.disabled = false; return toast(errMsg(u.error)); } }
+  t.disabled = true; const base = Object.assign({}, ks[0]); delete base.id; delete base.created_at;
+  try { const x = await joinPrep(ks[0]); base.group_id = x.gid; base.title = ks.length > 1 ? ks[0].title : x.title; } catch(e){ t.disabled = false; return toast(errMsg(e)); }
   const r = await sb.from('competitions').insert(b.map(c => Object.assign({}, base, { class_id: c.id }))); if (r.error) { t.disabled = false; return toast(errMsg(r.error)); }
   for (const c of b) { if (!c.self_join || !c.join_code) try { await rpc('set_self_join', { p_class: c.id, p_on: true }); } catch(e){} }
   toast('انضمت ✓'); rerender(); };
