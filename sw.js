@@ -1,6 +1,6 @@
 // fast start: versioned files (?v=) and CDN libraries come from cache instantly;
 // pages are network-first with a short timeout, falling back to cache when slow or offline
-const CACHE = 'tahaddi-v547';
+const CACHE = 'tahaddi-v548';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(
   caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())
@@ -9,7 +9,7 @@ const put = (r, res) => { if (res && (res.ok || res.type === 'opaque')) { const 
 self.addEventListener('fetch', e => {
   const r = e.request, u = new URL(r.url);
   if (r.method !== 'GET') return;
-  const cdn = u.hostname === 'cdn.jsdelivr.net' || u.hostname === 'fonts.googleapis.com' || u.hostname === 'fonts.gstatic.com';
+  const cdn = u.hostname === 'cdn.jsdelivr.net';
   if (u.origin !== location.origin && !cdn) return;
   if (cdn || u.searchParams.has('v')) {
     // cache-first; refresh CDN copies in the background
