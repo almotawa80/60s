@@ -4735,3 +4735,13 @@ html body.wide.dark .tbl-wrap tr{background:transparent!important}
 .mp-r+.mp-r{border-top:1px solid color-mix(in srgb,var(--ink) 6%,transparent)}
 .mp-r .mp-ck{width:24px;height:24px;border-radius:8px;font-size:14px}
 .mp-r.off span:last-child{opacity:.45;text-decoration:line-through}
+/* v525 join same-grade classes from the challenge page; wizard hint */
+.ch-join{display:flex;align-items:center;gap:12px;margin:12px 0 0;padding:12px 14px;border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--ink) 9%,transparent),color-mix(in srgb,var(--ink) 4%,transparent));border:1px solid rgba(227,178,60,.55)}
+.ch-join b{display:block;font-size:15px;font-weight:800;color:var(--ink);line-height:1.4}
+.ch-join small{display:block;font-size:12.5px;color:var(--muted);font-weight:700}
+.ch-join .stp-b{flex:none}
+.nw-hint{margin:12px 0 0;text-align:center;font-size:13.5px;font-weight:700;color:var(--muted)}
+.nw-hint{margin:-6px 0 6px}
+html body .nw .nw-tile{position:relative}
+html body .nw .nw-tile.on{border:2px solid #1FA971!important;background:rgba(31,169,113,.14)!important;box-shadow:0 0 0 1px rgba(31,169,113,.5),0 0 18px rgba(31,169,113,.25)!important}
+html body .nw .nw-tile.on::after{content:'✓';position:absolute;top:10px;inset-inline-start:10px;width:26px;height:26px;border-radius:50%;background:#1FA971;color:#fff;font:900 15px/26px system-ui;text-align:center}

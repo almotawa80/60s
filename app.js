@@ -2603,8 +2603,8 @@ function nwRender(){
   if (st === 1) {
     if (!NW.classes.length) b = `<h2 class="nw-q">اسم صفك؟</h2><form class="nw-col" data-form="nw-cls"><input class="nw-in" name="n" maxlength="40" placeholder="مثال: رابع أ" autocomplete="off" required>
       ${(() => { const o = stOpts(STAGES); return o.length > 1 ? `<div class="nw-stg">${o.map((x, i) => `<label><input type="radio" name="st" value="${x[0]}" ${i ? '' : 'checked'}><span>${x[1]}</span></label>`).join('')}</div>` : `<input type="hidden" name="st" value="${o[0][0]}">`; })()}<button class="btn nw-go" type="submit">التالي</button></form>`;
-    else b = nwMode() + `<h2 class="nw-q">لمين التحدي؟</h2>${(gs => gs.map(g => (gs.length > 1 ? `<div class="cp-gh nw-gh"><b>${g.label}</b></div>` : '') + `<div class="nw-tiles">${g.items.map(c => { const busy = NW.busy.has(c.id), on = NW.cls.includes(c.id); return `<button class="nw-tile${on ? ' on' : ''}${busy ? ' busy' : ''}" data-act="nw-cls-pick" data-id="${c.id}"><span class="nw-e">👥</span><b>${esc(c.name)}</b><small>${busy ? 'عنده تحدي الحين' : STAGE_AR[c.stage] || ''}</small></button>`; }).join('')}</div>`).join(''))(clsGroups(NW.classes))}
-      ${NW.multi ? `<button class="btn nw-go" data-act="nw-next" ${NW.cls.length ? '' : 'disabled'}>التالي (${NW.cls.length})</button>` : NW.classes.length > 1 ? `<button class="link nw-link" data-act="nw-multi">أكثر من صف؟</button>` : ''}`;
+    else b = nwMode() + `<h2 class="nw-q">لمين التحدي؟</h2>${!NW.board && NW.classes.length > 1 ? '<p class="nw-hint">اختر صف أو أكثر من نفس المرحلة</p>' : ''}${(gs => gs.map(g => (gs.length > 1 ? `<div class="cp-gh nw-gh"><b>${g.label}</b></div>` : '') + `<div class="nw-tiles">${g.items.map(c => { const busy = NW.busy.has(c.id), on = NW.cls.includes(c.id); return `<button class="nw-tile${on ? ' on' : ''}${busy ? ' busy' : ''}" data-act="nw-cls-pick" data-id="${c.id}"><span class="nw-e">👥</span><b>${esc(c.name)}</b><small>${busy ? 'عنده تحدي الحين' : STAGE_AR[c.stage] || ''}</small></button>`; }).join('')}</div>`).join(''))(clsGroups(NW.classes))}
+      ${NW.multi || (!NW.board && NW.classes.length > 1) ? `<button class="btn nw-go" data-act="nw-next" ${NW.cls.length ? '' : 'disabled'}>${NW.cls.length > 1 ? 'التالي · ' + NW.cls.length + ' صفوف' : 'التالي'}</button>` : ''}`;
   }
   if (st === 2 && NW.prepP) { const p = NW.prepP; p.then(() => { if (NW.step === 2 && location.hash.indexOf('#/t/new') === 0) nwRender(); }); b = (NW.skip1 ? nwMode() : '') + '<div class="spin"></div>'; }
   else if (st === 2) {
@@ -2660,7 +2660,11 @@ ACTS['nw-back'] = () => { if (NW.step > 1 && !(NW.step === 2 && NW.skip1)) { NW.
 ACTS['nw-cls-pick'] = async t => { const id = t.dataset.id;
   /* v362 (Khalid): confirm before replacing a running challenge */
   if (!NW.board && NW.busy.has(id) && !NW.cls.includes(id)) { const c = NW.classes.find(x => x.id === id) || {}; if (!await ask('الجديد يوقف القديم، ونقاطه تنحفظ في «التحديات السابقة».', { title: (c.name || 'هذا الصف') + ' عنده تحدي شغّال', cancel: 'رجوع', ok: 'كمّل', danger: false })) return; }
-  if (NW.multi) { NW.cls = NW.cls.includes(id) ? NW.cls.filter(x => x !== id) : NW.cls.concat(id); return nwRender(); }
+  /* v525 (Khalid: «ما في خيار أختار أكثر من صف»): with several classes a tap ticks the class, «التالي» moves on; one challenge = one grade */
+  if (NW.multi || (!NW.board && NW.classes.length > 1)) { const gr = x => stpGrade((NW.classes.find(c => c.id === x) || {}).name), g0 = gr(id);
+    if (NW.cls.includes(id)) NW.cls = NW.cls.filter(x => x !== id);
+    else { const same = NW.cls.filter(x => gr(x) === g0); if (same.length !== NW.cls.length) toast('كل مرحلة لها تحدي، اخترنا لك هالمرحلة بس'); NW.cls = same.concat(id); }
+    return nwRender(); }
   NW.cls = [id]; NW.step = 2; nwRender(); };
 ACTS['nw-ph'] = t => { NW.phones = t.dataset.v === '1'; nwRender(); };
 ACTS['nw-mode'] = t => { const b = t.dataset.b === '1'; if (NW.board === b) return; NW.board = b; NW.days = b ? 0 : 7; NW.cls = NW.skip1 ? NW.cls : []; NW.multi = false; nwRender(); };
@@ -3128,6 +3132,7 @@ function renderChallenge(gid){
   const body = `<div class="ch1"><div class="ch-sub">${esc(names)}</div><div id="ch-warn"></div>
     <div class="ch-hero"><small>لعبوا اليوم</small><div class="ch-big"><b>${played}</b> <span>من ${n}</span></div><div class="ch-bar"><i style="width:${n ? played * 100 / n : 0}%"></i></div>
     ${left && !c.paused_at && ph === 'points' ? `<button class="btn ch-rem" data-act="ch-remind">🔔 ذكّر الباقين (${left})</button>` : ''}</div>
+    ${chJoinLine(ks)}
     <div class="ch-acts">${[['cp-try', '🎮', 'جرّب'], ['ch-code', '🔗', 'الرمز'], ['ch-edit', '✏️', 'تعديل'], ['ch-det', '📊', 'التفاصيل']].map(o => `<button class="ch-a" data-act="ch-run" data-a="${o[0]}" data-g="${esc(gid)}"><span>${o[1]}</span>${o[2]}</button>`).join('')}</div>
     <div class="ch-2">${c.paused_at ? `<button class="ch-b" data-act="cp-resume" data-g="${esc(gid)}">▶️ استئناف</button>` : `<button class="ch-b" data-act="cp-pause" data-g="${esc(gid)}">⏸ إيقاف مؤقت</button>`}<button class="ch-b end" data-act="cp-end" data-g="${esc(gid)}">🏁 إنهاء</button></div>
     <p class="ch-meta">${esc(meta)}</p><div id="ch-star"></div>
@@ -3172,6 +3177,18 @@ async function chWarn(c){
 ACTS['ch-fill'] = async t => { const c = chComps()[0]; if (!c) return;
   CC.qtypes = (c.qtypes || ['curriculum', 'general', 'quick']).slice(); CC.cu = c.curriculum_id || ''; CC.lessons = (c.lessons || []).slice(); CC.lastPd = 0;
   await ACTS['cf-addready'](t); await chWarn(c); };
+/* v525 (Khalid «نفذ»): classes of the same grade with no running challenge can join this one in one tap */
+function chBare(ks){ const gs = new Set(ks.map(k => stpGrade((CL.byId[k.class_id] || {}).name)).filter(Boolean)); if (!gs.size) return [];
+  return (CL.classes || []).filter(c => !CL.comps[c.id] && gs.has(stpGrade(c.name))); }
+function chJoinLine(ks){ const b = chBare(ks); if (!b.length || ks[0].status === 'finished') return '';
+  return `<div class="ch-join"><span class="grow"><b>${esc(b.map(c => c.name).join('، '))}</b><small>${b.length === 1 ? 'صف من نفس المرحلة بدون تحدي' : 'صفوف من نفس المرحلة بدون تحدي'}</small></span><button class="stp-b" data-act="ch-join">${b.length === 1 ? 'ضمّه' : 'ضمّها'}</button></div>`; }
+ACTS['ch-join'] = async t => { const ks = chComps(), b = chBare(ks); if (!ks.length || !b.length) return;
+  if (!await ask(b.map(c => c.name).join(' و') + ': نفس الأسئلة والمدة، وكل صف برمزه.', { title: 'نضمها لهالتحدي؟', ok: 'ضم', danger: false })) return;
+  t.disabled = true; const base = Object.assign({}, ks[0]); delete base.id; delete base.created_at; base.group_id = ks[0].group_id || ks[0].id;
+  if (!ks[0].group_id) { const u = await sb.from('competitions').update({ group_id: ks[0].id }).eq('id', ks[0].id); if (u.error) { t.disabled = false; return toast(errMsg(u.error)); } }
+  const r = await sb.from('competitions').insert(b.map(c => Object.assign({}, base, { class_id: c.id }))); if (r.error) { t.disabled = false; return toast(errMsg(r.error)); }
+  for (const c of b) { if (!c.self_join || !c.join_code) try { await rpc('set_self_join', { p_class: c.id, p_on: true }); } catch(e){} }
+  toast('انضمت ✓'); rerender(); };
 const chComps = () => (CL.allComps || []).filter(k => (k.group_id || k.id) === CL.chg);
 const chStudents = () => chComps().flatMap(k => CL.students[k.class_id] || []);
 ACTS['ch-remind'] = () => { const ks = chComps(), c = ks[0]; if (!c) return;
