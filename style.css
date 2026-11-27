@@ -4784,3 +4784,6 @@ html.admmode body.wide .t-top{padding-top:10px!important}
 .avhf{display:block;width:100%;height:100%}.avhf img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;-webkit-user-drag:none}
 .s-avg button .avhf{width:92%;height:92%}
 .av2-big:has(.avhf){box-shadow:none;width:150px;height:150px;border-radius:0}
+/* Gulf animals: the picture has its own glowing circle + gold ring; only the head goes above it */
+.avi.avg{background:none;box-shadow:none!important}
+.avi.avg img{left:0;width:100%;-webkit-mask:linear-gradient(#000,#000) top/100% 59.5% no-repeat,radial-gradient(circle closest-side,#000 98%,transparent 100%) bottom/100% 81.1% no-repeat;mask:linear-gradient(#000,#000) top/100% 59.5% no-repeat,radial-gradient(circle closest-side,#000 98%,transparent 100%) bottom/100% 81.1% no-repeat}

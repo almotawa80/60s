@@ -411,12 +411,11 @@ function lvlOf(xp){ let n = 1; while (25 * n * (n + 1) <= xp) n++; const lo = 25
 /* frame colour by level: bronze 1–4, silver 5–9, gold 10+ */
 /* v443 picture avatars (Khalid's ChatGPT sheet): people p1..p12, animals keep their emoji key */
 /* v536 (Khalid 2026-11-27): 12 hero animals (ChatGPT art). Keys stay the old emoji codes (DB check constraint); boys 6 / girls 6, no unicorn art */
-const AV_HERO = { '🦁': 'lion', '🐯': 'tiger', '🐢': 'gorilla', '🐸': 'elephant', '🦅': 'falcon', '🦊': 'wolf', '🐼': 'panda', '🦉': 'owl', '🐬': 'dolphin', '🐨': 'cat', '🐉': 'gazelle', '🦄': 'rabbit' };
+const AV_HERO = { '🦁': 'g-falcon', '🐯': 'g-horse', '🐢': 'g-camel', '🐸': 'g-wolf', '🦅': 'g-leopard', '🦊': 'g-caracal', '🐼': 'g-gazelle', '🦉': 'g-oryx', '🐬': 'g-cat', '🐨': 'g-hare', '🐉': 'g-turtle', '🦄': 'g-dolphin' }; /* v537 (Khalid): Gulf animals, same frame as the people (head out of the ring) */
 const AV_ANM = ['🦁','🐯','🐢','🐸','🦅','🦊'], AV_ANF = ['🐼','🦉','🐬','🐨','🐉','🦄'];
-const AV_IMG = {}; Object.keys(AV_HERO).forEach(k => { AV_IMG[k] = 'h-' + AV_HERO[k]; });
+const AV_IMG = {}; Object.keys(AV_HERO).forEach(k => { AV_IMG[k] = AV_HERO[k]; });
 for (let i = 1; i <= 12; i++) AV_IMG['p' + i] = 'p' + i;
-const avF = v => AV_HERO[v] ? '<span class="avhf"><img src="av/h-' + AV_HERO[v] + '-f.webp" alt="" draggable="false"></span>' : avI(v); /* full hero picture (picker only) */
-function avI(v){ const f = AV_IMG[v]; return f ? '<span class="avi' + (AV_HERO[v] ? ' avh' : '') + '"><img src="av/' + f + '.webp" alt="" draggable="false"></span>' : esc(v || ''); }
+function avI(v){ const f = AV_IMG[v]; return f ? '<span class="avi' + (AV_HERO[v] ? ' avg' : '') + '"><img src="av/' + f + '.webp" alt="" draggable="false"></span>' : esc(v || ''); }
 function lvlFrame(){ const xp = S.daily && S.daily.xp; if (xp == null) return ''; const n = lvlOf(xp).n; return n >= 10 ? 'fr-g' : n >= 5 ? 'fr-s' : 'fr-b'; }
 function lvlShow(xp){
   if (xp == null) return; const L = lvlOf(xp), el = document.getElementById('lvl');
@@ -1074,9 +1073,9 @@ function avTabs(){ const dl = S.daily || {}, own = dl.stickers || [], pool = dl.
   const t = [{ k: 'p', l: 'شخصيات', a: kids }, { k: 'a', l: 'حيوانات', a: g === 'f' ? AV_ANF : g === 'm' ? AV_ANM : AV_ANM.concat(AV_ANF) }];
   if (pool.length) t.push({ k: 's', l: '🎁 ملصقاتي', a: pool.filter(x => own.indexOf(x) >= 0), n: own.length, of: pool.length });
   return t; }
-function avBig(){ const v = S.avPick, n = (S.home && S.home.student && S.home.student.name) || ''; return '<div class="av2-big' + (v ? '' : ' no') + '">' + (v ? (AV_HERO[v] ? avF(v) : AV_IMG[v] ? avI(v) : '<em>' + esc(v) + '</em>') : '<em>' + esc(String(n).trim().charAt(0) || '🙂') + '</em>') + '</div>'; }
+function avBig(){ const v = S.avPick, n = (S.home && S.home.student && S.home.student.name) || ''; return '<div class="av2-big' + (v ? '' : ' no') + '">' + (v ? (AV_IMG[v] ? avI(v) : '<em>' + esc(v) + '</em>') : '<em>' + esc(String(n).trim().charAt(0) || '🙂') + '</em>') + '</div>'; }
 function avGrid(){ const t = avTabs().find(x => x.k === S.avTab) || avTabs()[0];
-  return (t.a.length ? '<div class="s-avg">' + t.a.map(a => '<button class="' + (a === S.avPick ? 'on' : '') + '" data-act="s-avp" data-v="' + a + '">' + (t.k === 'a' ? avF(a) : avI(a)) + '</button>').join('') + '</div>' : '') +
+  return (t.a.length ? '<div class="s-avg">' + t.a.map(a => '<button class="' + (a === S.avPick ? 'on' : '') + '" data-act="s-avp" data-v="' + a + '">' + avI(a) + '</button>').join('') + '</div>' : '') +
     (t.k === 's' ? '<p class="av2-note">' + (t.n ? 'عندك ' + t.n + ' من ' + t.of + '. ' : 'ما عندك ملصقات للحين. ') + 'افتح الصندوق كل يوم وتفوز بملصق جديد 🎁</p>' : ''); }
 function avHtml(first){ const tabs = avTabs(); if (!tabs.some(x => x.k === S.avTab)) S.avTab = (tabs.find(x => x.a.indexOf(S.avPick) >= 0) || tabs[0]).k;
   const nm = String((S.home.student.name || '')).trim().split(/\s+/)[0];
