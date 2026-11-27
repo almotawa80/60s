@@ -3774,12 +3774,24 @@ ACTS['t-multi-chosen'] = async t => {
     const g = {};
     list.forEach(x => (g[x.cls] = g[x.cls] || []).push({ name: x.name, student_no: x.student_no, phone: x.phone, gender: x.gender }));
     CK.multi = g;
-    modal(`<h3>معاينة الصفوف</h3><p class="muted" style="margin-bottom:10px">وُجد <b>${Object.keys(g).length}</b> صف و<b>${list.length}</b> طالب/ـة. الصفوف الجديدة ستُنشأ، والموجودة بنفس الاسم تُضاف إليها الأسماء.</p>
-      <div class="tbl-wrap"><table><thead><tr><th>الصف</th><th>عدد الطلبة</th></tr></thead><tbody>${Object.keys(g).map(k => `<tr><td>${esc(k)}</td><td>${g[k].length}</td></tr>`).join('')}</tbody></table></div>
-      <div class="row" style="margin-top:14px"><button class="btn" data-act="t-multi-confirm">تأكيد الإضافة</button><button class="btn soft" data-act="close-modal" style="width:auto">إلغاء</button></div>`);
+    CK.mOff = new Set(); CK.mOpen = -1; modal('<div id="mp">' + mpHtml() + '</div>');
   } catch(e){ toast('تعذّرت قراءة الملف'); }
 };
+/* v524 (Khalid 👍): review before adding: tap a class to open its names, untick a name or a whole class to leave it out */
+function mpKeys(){ return Object.keys(CK.multi || {}); }
+function mpOn(ci){ const k = mpKeys()[ci]; return (CK.multi[k] || []).filter((_, i) => !CK.mOff.has(ci + ':' + i)).length; }
+function mpHtml(){ const ks = mpKeys(), tot = ks.reduce((n, _, ci) => n + mpOn(ci), 0), nc = ks.filter((_, ci) => mpOn(ci)).length;
+  return `<h3>معاينة الصفوف</h3><p class="muted" style="margin-bottom:10px">اضغط على الصف عشان تشوف الأسماء، وشيل ✓ عن اللي ما تبي تضيفه.</p>
+    <div class="mp-list">${ks.map((k, ci) => { const rows = CK.multi[k], on = mpOn(ci), open = CK.mOpen === ci;
+      return `<div class="mp-c${open ? ' open' : ''}${on ? '' : ' off'}"><div class="mp-h"><button class="mp-ck${on ? ' on' : ''}" data-act="mp-all" data-c="${ci}" aria-label="الصف كله">${on ? '✓' : ''}</button><button class="mp-t" data-act="mp-open" data-c="${ci}"><b>${esc(k)}</b><small>${on === rows.length ? rows.length + ' طالب' : on + ' من ' + rows.length}</small><i>‹</i></button></div>
+        ${open ? `<div class="mp-n">${rows.map((r, i) => { const off = CK.mOff.has(ci + ':' + i); return `<button class="mp-r${off ? ' off' : ''}" data-act="mp-one" data-c="${ci}" data-i="${i}"><span class="mp-ck${off ? '' : ' on'}">${off ? '' : '✓'}</span><span>${esc(r.name)}</span></button>`; }).join('')}</div>` : ''}</div>`; }).join('')}</div>
+    <div class="row" style="margin-top:14px"><button class="btn" data-act="t-multi-confirm" ${tot ? '' : 'disabled'}>${tot ? 'أضف ' + tot + ' طالب في ' + nc + (nc === 1 ? ' صف' : ' صفوف') : 'ما اخترت أحد'}</button><button class="btn soft" data-act="close-modal" style="width:auto">إلغاء</button></div>`; }
+function mpDraw(){ const el = document.getElementById('mp'); if (!el) return; const sc = el.querySelector('.mp-list'), y = sc ? sc.scrollTop : 0; el.innerHTML = mpHtml(); const n = el.querySelector('.mp-list'); if (n) n.scrollTop = y; }
+ACTS['mp-open'] = t => { const ci = +t.dataset.c; CK.mOpen = CK.mOpen === ci ? -1 : ci; mpDraw(); };
+ACTS['mp-one'] = t => { const k = t.dataset.c + ':' + t.dataset.i; if (CK.mOff.has(k)) CK.mOff.delete(k); else CK.mOff.add(k); mpDraw(); };
+ACTS['mp-all'] = t => { const ci = +t.dataset.c, rows = CK.multi[mpKeys()[ci]] || [], on = mpOn(ci); rows.forEach((_, i) => { if (on) CK.mOff.add(ci + ':' + i); else CK.mOff.delete(ci + ':' + i); }); mpDraw(); };
 ACTS['t-multi-confirm'] = async t => {
+  { const ks = mpKeys(), keep = {}; ks.forEach((k, ci) => { const r = CK.multi[k].filter((_, i) => !(CK.mOff && CK.mOff.has(ci + ':' + i))); if (r.length) keep[k] = r; }); CK.multi = keep; CK.mOff = new Set(); }
   t.disabled = true; t.textContent = 'جارٍ الإضافة...';
   try {
     const ex = await sb.from('classes').select('id,name');
