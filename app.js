@@ -496,9 +496,9 @@ ACTS['t-push'] = async t => {
   paint(); toast('تمام! توصلك الإشعارات على هذا الجهاز 🔔');
 };
 // asked once, on the home page, after the teacher has a class
-function tPushAsk(has){ if (!has || admMode() || tPushOn() || !tPushCan() || LS.get('mc_tpush_ask')) return;
-  popQ(4, async () => { LS.set('mc_tpush_ask', '1');   // centred dialog like native apps (Khalid 2026-11-27)
-    if (!await ask('تفعيل الإشعارات', { cls: 'ntp', title: '🔔', ok: 'تفعيل', cancel: 'لاحقاً', danger: false })) return;
+function tPushAsk(has){ if (!has || admMode() || tPushOn() || !tPushCan() || LS.get('mc_tpush_ask2') || document.querySelector('.dlg.ntp')) return;
+  popQ(4, async () => {   // centred dialog like native apps (Khalid 2026-11-27)
+    const yes = await ask('تفعيل الإشعارات', { cls: 'ntp', title: '🔔', ok: 'تفعيل', cancel: 'لاحقاً', danger: false }); LS.set('mc_tpush_ask2', '1'); if (!yes) return;   // remembered only once he answers
     const why = await tPushSub(); if (why === '-') return; toast(why || 'تمام! توصلك الإشعارات على هذا الجهاز 🔔'); }); }
 /* v171 «صندوق بكرة» + «هدف الصف» (needs sql/box_goal.sql; silently absent before it) */
 async function loadDaily(){ /* v349: paint the last result at once (no flash on «صفّي»), then refresh */
