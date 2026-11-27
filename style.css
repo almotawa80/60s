@@ -2725,7 +2725,6 @@ html body .pv.pvx .dots .dot.done.no{background:#FF453A!important}
 .s-avh{margin:14px 0 6px;font-size:15px}
 .s-avg button.lk{opacity:.35}
 /* v173 admin metrics */
-.ad-h{margin:4px 0 8px;font-size:17px}
 .ad-bars{display:flex;gap:4px;align-items:flex-end;height:90px;margin:12px 0 4px;padding:0 2px}
 .ad-bars div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px}
 .ad-bars i{display:block;width:100%;min-height:2px;background:#C8102E;border-radius:4px 4px 0 0}
@@ -4489,3 +4488,16 @@ body:not(.dark) .tm-pop button{color:#111}body:not(.dark) .tm-pop button:active{
 .pg-acts{position:fixed;inset:0;z-index:45;pointer-events:none}
 html.pg-pin .t-top .t-bell,html.pg-pin .t-top .t-av{visibility:hidden}
 html.pg-pin .pg-acts .t-bell,html.pg-pin .pg-acts .t-av{visibility:visible}
+
+/* v487 tidy admin */
+.ad-card{background:var(--card);border-radius:20px;padding:14px 14px 10px;margin-bottom:18px}
+.ad-ct{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.ad-ct b{font-size:15px;font-weight:800}.ad-ct small{font-size:12.5px;color:var(--muted);font-weight:700}
+.ad-card .ad-bars{height:96px;margin:14px 0 0}
+.ad-bars em{font-style:normal;font-size:10.5px;font-weight:800;opacity:.85}
+.ad-bars i.z{background:rgba(255,255,255,.12)}
+.ad-rows+.sub{margin-bottom:14px}
+.ad-att{color:inherit}
+.ad-more{margin:6px 0 20px}
+.ad-more summary{list-style:none;cursor:pointer;text-align:center;font-weight:800;font-size:14px;color:var(--muted);padding:10px;border-radius:14px;background:var(--card);margin-bottom:12px}
+.ad-more summary::-webkit-details-marker{display:none}
+.ad-more summary::after{content:' ⌄'}.ad-more[open] summary::after{content:' ⌃'}

@@ -1953,22 +1953,27 @@ async function tAdmin(){
   admRender();
 }
 function admRender(){
-  const d = ADM.d, today = new Date().toDateString();
-  const L = (d.list || []).slice().sort(ADM.tab === 'new' ? (a, b) => new Date(b.created_at) - new Date(a.created_at) : (a, b) => b.rounds - a.rounds || new Date(b.last_sign_in_at || 0) - new Date(a.last_sign_in_at || 0));
-  const k = (n, l, e) => `<div class="ad-k"><b>${nf(n)}</b><span>${l}</span>${e ? `<em>${e}</em>` : ''}</div>`;
+  /* v487 tidy admin: reports first (only when any), 4 key numbers, one chart, teachers; the rest under «المزيد» */
+  const d = ADM.d, today = new Date().toDateString(), isTest = t => /e2e|اختبار آلي/i.test((t.email || '') + ' ' + (t.name || ''));
+  const L = (d.list || []).filter(t => !isTest(t)).sort(ADM.tab === 'new' ? (a, b) => new Date(b.created_at) - new Date(a.created_at) : (a, b) => b.rounds - a.rounds || new Date(b.last_sign_in_at || 0) - new Date(a.last_sign_in_at || 0));
+  const k = (n, l, e, id) => `<div class="ad-k"${id ? ` id="${id}"` : ''}><b>${n}</b><span>${l}</span>${e ? `<em>${e}</em>` : ''}</div>`;
   view('لوحة المشرف',
-    `<div id="ad-met"></div><div id="ad-fb"></div><div id="ad-rep"></div><div class="ad-k4">${k(d.teachers, 'معلم', d.teachers_week ? `+${d.teachers_week} هالأسبوع` : '')}${k(d.students, 'طالب', d.students_week ? `+${d.students_week} هالأسبوع` : '')}${k(d.live, 'تحدي شغّال')}${k(d.rounds_week, 'جولة هالأسبوع', `اليوم ${nf(d.rounds_today)}`)}</div>
-    <button class="btn soft ad-ob" data-act="ob-demo">🎮 جرّب جولة البداية (تجربة)</button>
+    `<div id="ad-fb"></div><div id="ad-rep"></div>
+    <div class="ad-k4">${k(nf(d.teachers), 'معلم', d.teachers_week ? `+${d.teachers_week} هالأسبوع` : '')}${k(nf(d.students), 'طالب', d.students_week ? `+${d.students_week} هالأسبوع` : '')}${k('—', 'لعبوا اليوم', '', 'ad-today')}${k(nf(d.rounds_week), 'جولة هالأسبوع', `اليوم ${nf(d.rounds_today)}`)}</div>
+    <div id="ad-chart"></div>
+    <div class="ad-h">👩‍🏫 المعلمين</div>
     <div class="ad-segs"><button data-act="adm-tab" data-t="act" class="${ADM.tab === 'act' ? 'on' : ''}">الأنشط</button><button data-act="adm-tab" data-t="new" class="${ADM.tab === 'new' ? 'on' : ''}">الجدد</button></div>
     <div class="ad-rows">${L.map(t => `<button class="ad-tr" data-act="adm-one" data-id="${t.id}"><span class="ad-av">${esc((t.name || '?')[0])}</span><span class="grow"><b>${esc(t.name || '')}${t.last_sign_in_at && new Date(t.last_sign_in_at).toDateString() === today ? '<i class="ad-dot"></i>' : ''}</b><small>${t.classes} صفوف · ${t.students} طالب · آخر دخول ${admAgo(t.last_sign_in_at)}</small></span><span class="ad-n"><b>${nf(t.rounds)}</b><small>جولة</small></span></button>`).join('') || '<p class="sub center">ما في معلمين</p>'}</div>
-    <p class="sub center">النقطة الخضراء: دخل اليوم · الجولات آخر 7 أيام</p>`, 'settings', '', '#/t/settings');
+    <p class="sub center">النقطة الخضراء: دخل اليوم · الجولات آخر 7 أيام</p>
+    <details class="ad-more"><summary>المزيد</summary><div id="ad-met"></div>
+      <button class="btn soft ad-ob" data-act="ob-demo">🎮 جرّب جولة البداية (تجربة)</button></details>`, 'settings', '', '#/t/settings');
   admMetrics(); admReports(); admFb();
 }
 /* teacher problem reports in the admin page */
 async function admFb(force){
   let L; try { L = (!force && ADM.fb) || (ADM.fb = await rpc('admin_feedback')); } catch(e){ return; }
   const el = document.getElementById('ad-fb'); if (!el) return;
-  el.innerHTML = L && L.length ? `<div class="ad-h">📮 بلاغات المعلمين <span>${L.length}</span></div><div class="ad-rows">${L.map((r, i) => `<button class="ad-tr" data-act="adm-fb" data-i="${i}"><span class="grow"><b>${esc(String(r.body || '').split('\n')[0])}</b><small>${esc(r.teacher || r.email || 'معلم')} · ${esc((r.meta && r.meta.title) || r.page || '')} · ${admAgo(r.created_at)}${r.image ? ' · 📷' : ''}</small></span></button>`).join('')}</div>` : '';
+  el.innerHTML = L && L.length ? `<div class="ad-h ad-att">📮 بلاغات المعلمين <span>${L.length}</span></div><div class="ad-rows">${L.map((r, i) => `<button class="ad-tr" data-act="adm-fb" data-i="${i}"><span class="grow"><b>${esc(String(r.body || '').split('\n')[0])}</b><small>${esc(r.teacher || r.email || 'معلم')} · ${esc((r.meta && r.meta.title) || r.page || '')} · ${admAgo(r.created_at)}${r.image ? ' · 📷' : ''}</small></span></button>`).join('')}</div>` : '';
 }
 ACTS['adm-fb'] = t => { const r = (ADM.fb || [])[+t.dataset.i]; if (!r) return; const m = r.meta || {};
   modal(`<h3>بلاغ من ${esc(r.teacher || 'معلم')}</h3><p class="sub" dir="ltr">${esc(r.email || '')}</p><div class="ad-fbb">${esc(r.body || '').replace(/\n/g, '<br>')}</div>
@@ -1980,7 +1985,7 @@ ACTS['adm-fb-done'] = async t => { try { await rpc('admin_feedback_done', { p_id
 async function admReports(force){
   let L; try { L = (!force && ADM.rep) || (ADM.rep = await rpc('admin_reports')); } catch(e){ return; }
   const el = document.getElementById('ad-rep'); if (!el) return;
-  el.innerHTML = L && L.length ? `<div class="ad-h">🚩 بلاغات الأسئلة <span>${L.length}</span></div><div class="ad-rows">${L.map((r, i) => `<button class="ad-tr" data-act="adm-rep" data-i="${i}"><span class="grow"><b>${esc(r.body)}</b><small>${esc([r.subject, r.lesson].filter(Boolean).join(' · ') || TYPE_AR[r.qtype] || '')}${r.notes[0] ? ' · «' + esc(String(r.notes[0]).slice(0, 60)) + '»' : ''}</small></span><span class="ad-n"><b>${r.n}</b><small>بلاغ</small></span></button>`).join('')}</div>` : '';
+  el.innerHTML = L && L.length ? `<div class="ad-h ad-att">🚩 بلاغات الأسئلة <span>${L.length}</span></div><div class="ad-rows">${L.map((r, i) => `<button class="ad-tr" data-act="adm-rep" data-i="${i}"><span class="grow"><b>${esc(r.body)}</b><small>${esc([r.subject, r.lesson].filter(Boolean).join(' · ') || TYPE_AR[r.qtype] || '')}${r.notes[0] ? ' · «' + esc(String(r.notes[0]).slice(0, 60)) + '»' : ''}</small></span><span class="ad-n"><b>${r.n}</b><small>بلاغ</small></span></button>`).join('')}</div>` : '';
 }
 ACTS['adm-rep'] = t => { const r = (ADM.rep || [])[+t.dataset.i]; if (!r) return;
   const game = r.payload && r.payload.kind === 'game';
@@ -2013,15 +2018,17 @@ ACTS['adm-rep-x'] = async t => { try { await rpc('admin_reports_close', { p_q: t
 /* v173 retention / habit metrics (sql/metrics.sql) */
 async function admMetrics(){
   let m; try { m = ADM.m || (ADM.m = await rpc('admin_metrics')); } catch(e){ return; }
-  const el = document.getElementById('ad-met'); if (!el || !m) return;
+  if (!m) return;
   const pc = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
-  const days = m.days || [], act = m.active || 0, td = days.length ? days[days.length - 1].n : 0, mx = Math.max(1, act, ...days.map(x => x.n));
-  const r = m.ret || {}, rt = n => { const x = r['d' + n] || {}; return `<div class="ad-k"><b>${pc(x.back || 0, x.base || 0)}</b><span>رجعوا يوم ${n}</span><em>من ${nf(x.base || 0)} طالب</em></div>`; };
-  const wd = ['أحد','اثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'];
-  el.innerHTML = `<h3 class="ad-h">📈 القياس</h3><div class="ad-k4"><div class="ad-k"><b>${pc(td, act)}</b><span>لعبوا اليوم</span><em>${nf(td)} من ${nf(act)}</em></div>${rt(1)}${rt(7)}${rt(30)}</div>
-    <div class="ad-bars">${days.map(x => { const d = new Date(x.d + 'T12:00:00'); return `<div title="${x.d}: ${x.n}"><i style="height:${Math.round(x.n / mx * 100)}%"></i><small>${wd[d.getDay()][0]}</small></div>`; }).join('')}</div>
-    <p class="sub center">آخر 14 يوم · عدد الطلاب اللي لعبوا الجولة الرسمية</p>
-    <div class="ad-k4"><div class="ad-k"><b>${m.streak && m.streak.avg != null ? m.streak.avg : 0}</b><span>متوسط السلسلة 🔥</span><em>أطول ${m.streak && m.streak.max || 0}</em></div><div class="ad-k"><b>${nf(m.boxes || 0)}</b><span>صندوق انفتح</span><em>آخر 7 أيام</em></div></div>`;
+  const days = m.days || [], act = m.active || 0, td = days.length ? days[days.length - 1].n : 0, mx = Math.max(1, ...days.map(x => x.n));
+  const r = m.ret || {}, rt = n => { const x = r['d' + n] || {}; return x.base ? `<div class="ad-k"><b>${pc(x.back || 0, x.base)}</b><span>رجعوا بعد ${n === 1 ? 'يوم' : n + ' أيام'}</span><em>من ${nf(x.base)} طالب</em></div>` : ''; };
+  const wd = ['ح','ن','ث','ر','خ','ج','س'];
+  const t = document.getElementById('ad-today'); if (t) t.innerHTML = `<b>${nf(td)}</b><span>طالب لعبوا اليوم</span><em>من ${nf(act)} نشيط</em>`;
+  const c = document.getElementById('ad-chart');
+  if (c) c.innerHTML = `<div class="ad-card"><div class="ad-ct"><b>آخر 14 يوم</b><small>طلاب لعبوا الجولة</small></div><div class="ad-bars">${days.map(x => { const d = new Date(x.d + 'T12:00:00'); return `<div title="${x.d}: ${x.n}">${x.n ? `<em>${x.n}</em>` : ''}<i class="${x.n ? '' : 'z'}" style="height:${Math.round(x.n / mx * 100)}%"></i><small>${wd[d.getDay()]}</small></div>`; }).join('')}</div></div>`;
+  const el = document.getElementById('ad-met'); if (!el) return;
+  el.innerHTML = `<div class="ad-k4">${rt(1)}${rt(7)}${rt(30)}${k2(m.streak && m.streak.avg != null ? m.streak.avg : 0, 'متوسط السلسلة 🔥', `أطول ${m.streak && m.streak.max || 0}`)}${k2(nf(m.boxes || 0), 'صندوق انفتح', 'آخر 7 أيام')}${k2(nf(ADM.d.live), 'تحدي شغّال')}</div>`;
+  function k2(n, l, e){ return `<div class="ad-k"><b>${n}</b><span>${l}</span>${e ? `<em>${e}</em>` : ''}</div>`; }
 }
 ACTS['adm-one'] = t => {
   const x = (ADM.d.list || []).find(r => r.id === t.dataset.id); if (!x) return;
