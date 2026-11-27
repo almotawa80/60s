@@ -457,7 +457,7 @@ function pushBtn(){
   return '<button class="sp-bell" data-act="s-push">🔔 فعّل الإشعارات: تذكير الجولة ورسائل معلمك</button>';
 }
 const b64u = s => { const p = '='.repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
-const pushDone = () => { LS.set('mc_push', '1'); document.querySelectorAll('[data-act="s-push-tab"]').forEach(b => { b.disabled = false; const i = b.querySelector('i'); if (i) i.textContent = '🔔'; }); closeModals(); document.querySelectorAll('.sp-bell').forEach(b => b.remove()); toast('تمام! يوصلك التذكير ورسائل معلمك 🔔'); };
+const pushDone = () => { LS.set('mc_push', '1'); document.querySelectorAll('[data-act="s-push-tab"]').forEach(b => { b.disabled = false; const i = b.querySelector('i'); if (i) i.textContent = '🔔'; const w = b.querySelector('.sw'); if (w) w.classList.add('on'); }); closeModals(); document.querySelectorAll('.sp-bell').forEach(b => b.remove()); toast('تمام! يوصلك التذكير ورسائل معلمك 🔔'); };
 ACTS['s-push'] = async t => {
   if (NP()) { t.disabled = true;
     try { if (await npSub()) return pushDone(); t.disabled = false; toast('الإشعارات مقفلة: افتحها من إعدادات الآيفون › اهزم الدقيقة'); }
@@ -1033,7 +1033,7 @@ ACTS['s-push-tab'] = async t => {
   if (!pushOn()) return ACTS['s-push'](t);
   if (!await ask('ما يوصلك تذكير الجولة ولا رسائل معلمك على الجوال. الرسائل تظل تحت الجرس 🔔.', { title: 'توقف الإشعارات؟', ok: 'إيقاف' })) return;
   try { if (NP()) await NP().unregister(); else { const r = await navigator.serviceWorker.ready, sub = await r.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } } catch(e){}
-  LS.set('mc_push', '0'); const i = t.querySelector('i'); if (i) i.textContent = '🔕'; toast('وقفت الإشعارات');
+  LS.set('mc_push', '0'); const i = t.querySelector('i'); if (i) i.textContent = '🔕'; const w = t.querySelector('.sw'); if (w) w.classList.remove('on'); toast('وقفت الإشعارات');
 };
 ACTS['s-sound-tab'] = t => { const on = FX.toggle(); t.querySelector('i').textContent = on ? '🔊' : '🔇'; toast(on ? 'الصوت مفعّل' : 'الصوت مكتوم'); };
 ACTS['s-badges'] = () => modal('<div class="bg2-mod">' + badgesHtml() + '<button class="btn soft" style="margin-top:14px" data-act="close-modal">إغلاق</button></div>');
