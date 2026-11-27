@@ -1,4 +1,4 @@
-// Student notifications. Called by pg_cron (daily reminder) and the messages trigger (teacher message), with header x-cron.
+// Notifications. Called by pg_cron (daily reminder), the messages trigger (teacher message) and private.push_send (teachers, admins, students), with header x-cron.
 // Web push for the website; APNs for the iPhone app (push_subs.endpoint = 'apns:<device token>').
 // APNs secrets (Supabase › Edge Functions › Secrets): APNS_KEY (.p8 text), APNS_KEY_ID, APNS_TEAM_ID; optional APNS_TOPIC (default com.beat60s.app).
 // {"init":true} only creates VAPID keys if missing.
@@ -55,6 +55,11 @@ Deno.serve(async (req) => {
     // manual check from SQL (x-cron): one test alert to every iPhone app device
     const { data } = await db.from("push_subs").select("endpoint").like("endpoint", "apns:%");
     rows = ((data || []) as any[]).map((r) => ({ ...r, title: "اهزم الدقيقة ⏱", body: "تجربة: الإشعارات شغّالة ✅", tag: "mc-test" }));
+  } else if (body.direct) {
+    // one ready-made notification for a list of teachers and/or students (sql/push_staff.sql, private.push_send)
+    const d = body.direct;
+    const { data } = await db.rpc("push_direct_targets", { p_teachers: d.t || [], p_students: d.s || [] });
+    rows = ((data || []) as any[]).map((r) => ({ ...r, title: String(d.title || "اهزم الدقيقة ⏱"), body: String(d.body || ""), tag: String(d.tag || "mc-note") }));
   } else if (Array.isArray(body.msgs)) {
     const { data } = await db.rpc("push_msg_targets", { p_ids: body.msgs });
     rows = ((data || []) as any[]).map((r) => ({ ...r, tag: "mc-msg" }));

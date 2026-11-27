@@ -428,7 +428,7 @@ ACTS['s-lvl'] = () => { const xp = (S.daily || {}).xp || 0, L = lvlOf(xp), pc = 
 const isApp = () => /Beat60sApp/.test(navigator.userAgent);
 /* v319 native push inside the iPhone app: APNs token saved as push_subs.endpoint 'apns:<token>' (edge function «push» sends it via Apple) */
 const NP = () => (isApp() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications) || null;
-async function npSub(){
+async function npSub(save){
   const P = NP(); let st = (await P.checkPermissions()).receive;
   if (/^prompt/.test(st)) st = (await P.requestPermissions()).receive;
   if (st !== 'granted') return false;
@@ -436,7 +436,8 @@ async function npSub(){
     Promise.resolve(P.addListener('registration', done(t => res(t.value)))).then(h => h1 = h);
     Promise.resolve(P.addListener('registrationError', done(e => rej(new Error(e && e.error || 'reg'))))).then(h => h2 = h);
     P.register().catch(rej); setTimeout(() => rej(new Error('timeout')), 15000); });
-  await rpc('student_push_sub', { p_token: S.token, p_sub: { endpoint: 'apns:' + tok, keys: { p256dh: '-', auth: '-' } } });
+  const sub = { endpoint: 'apns:' + tok, keys: { p256dh: '-', auth: '-' } };
+  await (save ? save(sub) : rpc('student_push_sub', { p_token: S.token, p_sub: sub }));
   return true;
 }
 const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -469,6 +470,35 @@ ACTS['s-push'] = async t => {
     pushDone();
   } catch(e){ t.disabled = false; toast('ما قدرنا نفعّل التذكير، جرّب بعدين'); }
 };
+/* v493 teacher + admin phone notifications (sql/push_staff.sql): pending student, «someone used my name», challenge ended, evening summary; admin: new account, new report */
+const tPushOn = () => LS.get('mc_tpush') === '1' && (isApp() || (!!window.Notification && Notification.permission === 'granted'));
+const tPushCan = () => isApp() ? !!NP() : ('serviceWorker' in navigator && ('PushManager' in window || isIOS()));
+const tPushSave = async sub => { await rpc('teacher_push_sub', { p_sub: sub }); LS.set('mc_tpush', '1'); LS.set('mc_tpush_ep', sub.endpoint || ''); };
+async function tPushSub(){   // returns '' when enabled, else a short reason to show
+  if (NP()) { try { return (await npSub(tPushSave)) ? '' : 'الإشعارات مقفلة: افتحها من إعدادات الآيفون › اهزم الدقيقة'; } catch(e){ return 'ما قدرنا نفعّل الإشعارات، جرّب بعدين'; } }
+  if (isApp()) return 'حدّث التطبيق عشان تفعّل الإشعارات';
+  if (isIOS() && !isStandalone()) { modal('<div class="s-avs"><h3>🔔 عشان توصلك الإشعارات</h3><p class="sub">على الآيفون لازم تضيف التطبيق للشاشة الرئيسية أول:</p><ol class="push-steps"><li>اضغط زر المشاركة <b>⬆︎</b> تحت</li><li>اختر <b>«إضافة إلى الشاشة الرئيسية»</b></li><li>افتح التطبيق من الأيقونة، وفعّل الإشعارات من الإعدادات</li></ol><button class="btn" data-act="close-modal">تمام</button></div>'); return '-'; }
+  if (!('PushManager' in window) || !window.Notification) return 'جهازك ما يدعم الإشعارات';
+  try {
+    if ((await Notification.requestPermission()) !== 'granted') return 'ما وافقت على الإشعارات، تقدر تغيرها من إعدادات الجهاز';
+    const key = await rpc('push_public_key'); if (!key) throw new Error('no_key');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(key) });
+    await tPushSave(sub.toJSON()); return '';
+  } catch(e){ return 'ما قدرنا نفعّل الإشعارات، جرّب بعدين'; }
+}
+async function tPushStop(){ try { await rpc('teacher_push_off', { p_endpoint: LS.get('mc_tpush_ep') || null }); } catch(e){} LS.set('mc_tpush', '0'); LS.del('mc_tpush_ep'); }
+ACTS['t-push'] = async t => {
+  const paint = () => { const on = tPushOn(); document.querySelectorAll('[data-act="t-push"][role="switch"]').forEach(b => { b.setAttribute('aria-checked', on); const i = b.querySelector('.ios-sw'); if (i) i.classList.toggle('on', on); }); };
+  if (tPushOn()) { if (!await ask('ما توصلك إشعارات على هذا الجهاز. الجرس داخل التطبيق يظل شغال.', { title: 'توقف الإشعارات؟', ok: 'إيقاف' })) return; await tPushStop(); paint(); return toast('وقفت الإشعارات'); }
+  t.disabled = true; const why = await tPushSub(); t.disabled = false;
+  if (why === '-') return; if (why) return toast(why);
+  paint(); toast('تمام! توصلك الإشعارات على هذا الجهاز 🔔');
+};
+ACTS['t-push-yes'] = async t => { t.disabled = true; const why = await tPushSub(); if (why === '-') return; closeModals(); toast(why || 'تمام! توصلك الإشعارات على هذا الجهاز 🔔'); };
+// asked once, on the home page, after the teacher has a class
+function tPushAsk(has){ if (!has || admMode() || tPushOn() || !tPushCan() || LS.get('mc_tpush_ask')) return;
+  popQ(4, () => { LS.set('mc_tpush_ask', '1'); modal('<div class="s-avs center"><div class="lvl-up">🔔</div><h3>تبي إشعارات على جوالك؟</h3><p class="sub">نخبرك لما طالب ينتظر موافقتك، ولما يخلص التحدي، وملخص كل يوم.</p><button class="btn" data-act="t-push-yes">فعّل الإشعارات</button><button class="btn ghost" data-act="close-modal">بعدين</button></div>'); }); }
 /* v171 «صندوق بكرة» + «هدف الصف» (needs sql/box_goal.sql; silently absent before it) */
 async function loadDaily(){ /* v349: paint the last result at once (no flash on «صفّي»), then refresh */
   const tk = S.token; if (S.daily && S.dailyTok === tk) dailyPaint(S.daily);
@@ -1918,7 +1948,7 @@ ACTS['t-resend'] = async t => { const email = T.authEmail; if (!email || t.disab
   toast('أرسلناها مرة ثانية ✓'); tResendCd(t); };
 function tResendCd(t){ if (!t) return; let n = 60; t.disabled = true; t.textContent = 'أعد الإرسال بعد ' + n + ' ث';
   const iv = setInterval(() => { n--; if (!document.body.contains(t)) return clearInterval(iv); if (n <= 0) { clearInterval(iv); t.disabled = false; t.textContent = 'أعد إرسال الرسالة'; } else t.textContent = 'أعد الإرسال بعد ' + n + ' ث'; }, 1000); }
-ACTS['t-logout'] = async () => { LS.del('mc_pc'); Object.keys(PCACHE).forEach(h => delete PCACHE[h]); await sb.auth.signOut(); T.user = null; teacherAuth(); };
+ACTS['t-logout'] = async () => { if (LS.get('mc_tpush') === '1') await tPushStop(); LS.del('mc_pc'); Object.keys(PCACHE).forEach(h => delete PCACHE[h]); await sb.auth.signOut(); T.user = null; teacherAuth(); };
 
 /* ---- admin: dashboard + support access (view only until «تفعيل الدعم») ---- */
 const ADM = { st: null, tab: 'act', d: null };
@@ -2251,7 +2281,7 @@ async function tHome(){
   ]);
   if (cl.error) throw cl.error;
   if (cp.error) throw cp.error;
-  const classes = cl.data, compBy = {};
+  const classes = cl.data, compBy = {}; tPushAsk(classes.length);
   cp.data.forEach(c => { if (!compBy[c.class_id]) compBy[c.class_id] = c; });
   if (!classes.length) cp.data = [];
   // one card per running challenge: big «played today X of Y»; nothing else (Khalid: no clutter)
@@ -6199,6 +6229,7 @@ function tSetGroup(k){
       sRow({ act: 'go', attrs: 'data-h="#/t/msgtpl"', icon: 'mail', color: '#2F80ED', label: 'قوالب الرسائل', val: 'تشجيع · تقدير · توصية' }),
       sRow({ act: 'go', attrs: 'data-h="#/t/archive"', icon: 'archive', color: '#A2845E', label: 'الصفوف المؤرشفة' })])],
     app: ['التطبيق', sGrp('', [
+      tPushCan() ? swRow({ act: 't-push', k: 'tpush', on: tPushOn(), icon: 'bell', label: 'الإشعارات', sub: 'موافقات · نهاية التحدي · ملخص اليوم' }) : '',
       isStandalone() ? '' : sRow({ act: 'st-install', icon: 'download', color: '#2F80ED', label: 'تثبيت التطبيق على الشاشة الرئيسية' }),
       sRow({ act: 'st-invite', icon: 'star', color: '#F5B72B', label: 'دعوة زميل/ـة' }),
       sRow({ act: 'st-feedback', icon: 'send', color: '#14A89B', label: 'اقتراح أو مشكلة' }),
