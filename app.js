@@ -989,7 +989,19 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
 };
 /* v510 (Khalid): «المراكز» = my class | the public arena (today · this week · all time) */
 const LB = { t: 'cls', p: 'week' };
-function lbTabs(){ return '<div class="lb-seg">' + [['cls', 'صفّي'], ['ar', 'التحدي العام']].map(x => '<button class="' + (LB.t === x[0] ? 'on' : '') + '" data-act="lb-t" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
+/* v535 (Khalid «نفذ»): «المرحلة» = one ranking across the classes that share the challenge; the tab shows only when the challenge has more than one class (rpc stage_rank, sql/stage_rank.sql) */
+const lbStgKey = () => 'mc_stg_' + String(S.token || '').slice(0, 12);
+const lbStgOn = () => LS.get(lbStgKey()) === '1';
+function lbStgSet(on){ if (on === lbStgOn()) return false; on ? LS.set(lbStgKey(), '1') : LS.del(lbStgKey()); return true; }
+function lbStgHtml(d){ const rows = d.rows || [], me = d.me, md = ['🥇', '🥈', '🥉'], hp = !!d.hide_pts, st = (S.home && S.home.student) || {}, cl = (S.home && S.home.class) || {};
+  const row = (r, mine) => '<div class="lbx-r lba-r' + (mine ? ' me' : '') + '"><span class="lbx-no' + (r.rank <= 3 ? ' md' : '') + '">' + (r.rank <= 3 ? md[r.rank - 1] : r.rank) + '</span>' + arAv(r.avatar, r.name, 'lba-av') +
+    '<span class="lba-nm"><b>' + esc(r.name || '') + (mine ? ' <small>(أنت)</small>' : '') + '</b><small>' + esc(r.cls || '') + '</small></span>' + (hp ? '' : '<b class="lba-p">' + nf(r.pts) + '</b>') + '</div>';
+  if (!rows.length) return '<div class="lbx-empty"><span>🚀</span><b>ما أحد لعب للحين</b><small>العب جولتك وكن أول المرحلة!</small></div>';
+  return '<div class="lbx-list">' + rows.map(r => row(r, r.me)).join('') + '</div>' +
+    (me && me.rank > 10 && me.pts > 0 ? '<div class="lba-me">' + row({ rank: me.rank, pts: me.pts, name: fmtStu(st.name, 'first'), avatar: st.avatar, cls: cl.name }, true) + '</div>' : '') +
+    (me ? '<div class="lbx-zero">' + (me.pts > 0 ? 'مركزك ' + me.rank + ' من ' + d.total : 'العب جولتك عشان يطلع مركزك بين ' + d.total) + '</div>' : ''); }
+function lbTabs(){ if (LB.t === 'stg' && !lbStgOn()) LB.t = 'cls';
+  return '<div class="lb-seg' + (lbStgOn() ? ' s3' : '') + '">' + [['cls', 'صفّي']].concat(lbStgOn() ? [['stg', 'المرحلة']] : [], [['ar', 'التحدي العام']]).map(x => '<button class="' + (LB.t === x[0] ? 'on' : '') + '" data-act="lb-t" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
   (LB.t === 'ar' ? '<div class="lb-per">' + [['day', 'اليوم'], ['week', 'الأسبوع'], ['all', 'الكل']].map(x => '<button class="' + (LB.p === x[0] ? 'on' : '') + '" data-act="lb-p" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' : ''); }
 function lbArHtml(d){ const rows = (d && d.rows) || [], me = d && d.me, md = ['🥇', '🥈', '🥉'];
   const row = (r, mine) => '<div class="lbx-r lba-r' + (mine ? ' me' : '') + '"><span class="lbx-no' + (r.rank <= 3 ? ' md' : '') + '">' + (r.rank <= 3 ? md[r.rank - 1] : r.rank) + '</span>' + arAv(r.avatar, r.name, 'lba-av', r.av) +
@@ -1004,6 +1016,8 @@ async function lbPage(){ const tk = LB.t + LB.p + (LB.n = (LB.n || 0) + 1);
   const put = html => { const c = document.getElementById('lb-body'); if (c && S.tab === 'lb' && tk === LB.t + LB.p + LB.n) { c.innerHTML = html; return c; } };
   try {
     if (LB.t === 'ar') { let d; try { d = await rpc('arena_rank', { p_token: S.token, p_period: LB.p }); } catch(e){ if (/function|schema cache/i.test(e.message || '')) return put('<div class="lbx-empty"><span>⏳</span><b>مراكز التحدي العام قريباً</b></div>'); throw e; } put(lbArHtml(d)); return; }
+    if (LB.t === 'stg') { const d = await rpc('stage_rank', { p_token: S.token }); if (!d || !d.multi) { lbStgSet(false); LB.t = 'cls'; return lbPage(); } put(lbStgHtml(d)); return; }
+    if (!S.demo) rpc('stage_rank', { p_token: S.token }).then(d => { if (lbStgSet(!!(d && d.multi)) && S.tab === 'lb') { const sg = document.querySelector('.s-pgc > .lb-seg'); if (sg) { const t = document.createElement('div'); t.innerHTML = lbTabs(); sg.replaceWith(t.firstChild); } } }).catch(() => {});
     const res = await rpc('class_leaderboard', { p_token: S.token });
     const hidden = res && res.hidden, hp = !!(res && res.hide_pts), rows = res && res.rows ? res.rows : res;
     const c = put('<div id="goal" class="lb-goal"></div>' + leadersHtml(rows, hidden, hp)); if (c) { goalPaint(S.daily); const me = c.querySelector('.lbx-r.me'); if (me) setTimeout(() => me.scrollIntoView({ block: 'center', behavior: 'smooth' }), 150); }

@@ -4776,3 +4776,6 @@ html body.wide.dark .nw .bd-chip.on{border-color:#C8102E;background:rgba(200,16,
 .bd-sum{text-align:center}
 /* v533 admin view: the support bar already covers the notch, so the page header must not add the safe-area gap again */
 html.admmode body.wide .t-top{padding-top:10px!important}
+
+/* v535 three ranking tabs when the challenge spans several classes */
+.lb-seg.s3{grid-template-columns:1fr 1fr 1fr}.lb-seg.s3 button{font-size:14.5px}
