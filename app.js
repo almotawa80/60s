@@ -787,13 +787,13 @@ function arAv(av, name, cls, dr){ if (dr === 'bot') return '<span class="ar-av a
 /* «لقبك وشكلك»: the nickname is rolled from fixed word lists (never typed), the look is one of eight drawn characters */
 function arRoll(g, not){ const pk = a => a[Math.floor(Math.random() * a.length)]; let n; do { n = pk(AR_W[g]) + ' ' + pk(AR_W.x); } while (n === not); return n; }
 function arPfHtml(){ const f = AR.pf;
-  return '<h3>صورتك</h3><div class="ar-pfg">' + [['b', 'ولد'], ['g', 'بنت']].map(x => '<button class="' + (f.g === x[0] ? 'on' : '') + '" data-act="ar-pf-g" data-g="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
+  return '<h3>صورتك</h3>' + (f.fix ? '' : '<div class="ar-pfg">' + [['b', 'ولد'], ['g', 'بنت']].map(x => '<button class="' + (f.g === x[0] ? 'on' : '') + '" data-act="ar-pf-g" data-g="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>') +
     '<button class="ar-pfp" data-act="ar-pf-pic">' + arAv((AR.h || {}).avatar, f.nick, '', f.av) + '<span>غيّر صورتك</span></button>' +
     '<button class="btn" data-act="ar-pf-save">حفظ</button><p class="ar-pfh">يطلع للخصم اسمك الأول والثاني.</p>'; }
 function arPfDraw(){ const el = document.getElementById('ar-pf'); if (el) el.innerHTML = arPfHtml(); }
 function arProfile(){ const h = AR.h || {}, st = (S.home && S.home.student) || {};
-  const g = h.av ? h.av.charAt(0) : (st.gender === 'f' ? 'g' : 'b'), w = String(h.nick || '').split(' ');
-  AR.pf = { g, av: h.av || g + '1', nick: h.av && AR_W[g].indexOf(w[0]) >= 0 && AR_W.x.indexOf(w[1]) >= 0 && w.length === 2 ? h.nick : arRoll(g) };
+  const fix = st.gender === 'f' || st.gender === 'm', g = fix ? (st.gender === 'f' ? 'g' : 'b') : h.av ? h.av.charAt(0) : 'b', w = String(h.nick || '').split(' ');
+  AR.pf = { g, fix, av: h.av && h.av.charAt(0) === g ? h.av : g + '1', nick: h.av && AR_W[g].indexOf(w[0]) >= 0 && AR_W.x.indexOf(w[1]) >= 0 && w.length === 2 ? h.nick : arRoll(g) };
   closeModals(); modal('<div class="ar-pf" id="ar-pf">' + arPfHtml() + '</div>'); }
 ACTS['ar-pf'] = () => { if (AR.h && !S.demo) arProfile(); };
 ACTS['ar-pf-g'] = t => { const f = AR.pf, g = t.dataset.g; if (!f || f.g === g) return; f.g = g; f.av = g + f.av.charAt(1); f.nick = arRoll(g); arPfDraw(); };
@@ -1048,7 +1048,7 @@ const S_AVS = ['p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11','p12','�
 ACTS['ar-pf-pic'] = () => { S.avFrom = 'ar'; ACTS['s-av'](); };
 /* v480 (Khalid: the picker was one long page of pictures): big preview on top + 3 small tabs, one screen, no scrolling */
 function avTabs(){ const dl = S.daily || {}, own = dl.stickers || [], pool = dl.pool || [], g = S.home && S.home.student && S.home.student.gender;
-  const ppl = S_AVS.slice(0, 12), kids = g === 'f' ? ppl.slice(6).concat(ppl.slice(0, 6)) : ppl;
+  const ppl = S_AVS.slice(0, 12), kids = g === 'f' ? ppl.slice(6) : g === 'm' ? ppl.slice(0, 6) : ppl; /* v514 (Khalid): a boys' class sees boys only, a girls' class girls only */
   const t = [{ k: 'p', l: 'شخصيات', a: kids }, { k: 'a', l: 'حيوانات', a: S_AVS.slice(12) }];
   if (pool.length) t.push({ k: 's', l: '🎁 ملصقاتي', a: pool.filter(x => own.indexOf(x) >= 0), n: own.length, of: pool.length });
   return t; }
