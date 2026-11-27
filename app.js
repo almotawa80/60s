@@ -2203,7 +2203,7 @@ const OB = {};
 async function obStart(demo){
   if (document.getElementById('ob')) return;
   demo = demo === true;
-  Object.assign(OB, { demo, st: new Set(demo ? [] : String(SG('prof_stage') || '').split('|').filter(Boolean)), sj: new Set(demo ? [] : mySubjects()), gr: null, grs: [], secs: new Set(), sec: null, made: null, school: SG('school') || '', d: SG('district') || '', more: false, edit: false, redo: false, pts: 0, hasCls: false, code: '', cname: '' });
+  Object.assign(OB, { demo, st: new Set(demo ? [] : String(SG('prof_stage') || '').split('|').filter(Boolean)), sj: new Set(demo ? [] : mySubjects()), gr: null, grs: [], secs: new Set(), sec: null, made: null, school: SG('school') || '', g: demo ? '' : SG('def_gender') || '', d: SG('district') || '', more: false, edit: false, redo: false, pts: 0, hasCls: false, code: '', cname: '' });
   if (!demo) try { const r = await sb.from('classes').select('id').limit(1); OB.hasCls = !!(r.data && r.data.length); } catch(e){}
   obStep(2); /* v368 (Khalid): 3 screens = subjects → grade+section → class code; stage comes from the grade */
 }
@@ -2224,6 +2224,7 @@ function obStep(n){
     b = q('أي صفوف تدرّس؟', 'اختر صف أو أكثر، وتضيف الباقي بعدين') +
       `<div class="gp-seg">${NC_ST.map(x => `<button class="${x === cur ? 'on' : ''}" data-act="ob-gst" data-st="${x[0]}">${x[1]}</button>`).join('')}</div>` +
       `<div class="gp-grid${cur[2].length === 4 ? ' c2' : ''}">${cur[2].map((g, k) => { const on = OB.grs.some(x => x.st === cur[0] && x.g === g), l = gl(cur[0], g, k); return `<button class="gp-t${on ? ' on' : ''}" data-act="ob-gr1" data-st="${cur[0]}" data-g="${g}" data-l="${esc(l)}">${esc(l)}</button>`; }).join('')}</div>` +
+      `<div class="ob-sg"><span>مدرستك</span><div class="gp-seg">${[['m', 'بنين'], ['f', 'بنات'], ['mix', 'مختلط']].map(x => `<button class="${OB.g === x[0] ? 'on' : ''}" data-act="ob-sg" data-v="${x[0]}">${x[1]}</button>`).join('')}</div></div>` +
       `<button class="btn obr-go" data-act="ob-finish" ${g0 ? '' : 'disabled'}>${g0 ? (OB.grs.length > 1 ? 'أنشئ الصفوف (' + OB.grs.length + ')' : 'أنشئ الصف') : 'اختر الصف'}</button>`; }
   if (n === 4) b = q('أي شعب؟', '<b class="obr-multi">☑️ اختر كل الشعب</b>') + `<div class="ob-g obr-chk g3">${secList().slice(0, 9).map(x => `<button class="ob-t obr-sec${OB.secs.has(x) ? ' on' : ''}" data-act="ob-sec" data-v="${esc(x)}"><b>${esc(x)}</b></button>`).join('')}</div>${OB.secs.size ? `<button class="btn obr-go" data-act="ob-next">التالي (${OB.secs.size} مختارة)</button>` : `<button class="btn soft obr-go" data-act="ob-next">بدون شعبة</button>`}`;
   if (n === 5) {
@@ -2262,6 +2263,7 @@ ACTS['ob-next'] = () => obAns();
 ACTS['ob-more'] = () => { OB.more = true; obStep(2); };
 ACTS['ob-other'] = async () => { const v = await ask('اكتب اسم المادة', { title: 'مادة ثانية', input: '', placeholder: 'مثلاً: القرآن الكريم', ok: 'أضف', danger: false });
   const x = (v || '').trim().slice(0, 40); if (!x) return; OB.sj.add(x); obStep(2); };
+ACTS['ob-sg'] = t => { OB.g = OB.g === t.dataset.v ? '' : t.dataset.v; haptic(); obStep(3); };
 ACTS['ob-gst'] = t => { OB.gst = t.dataset.st; haptic(); obStep(3); };
 ACTS['ob-gr1'] = t => { const st = t.dataset.st, g = +t.dataset.g, i = OB.grs.findIndex(x => x.st === st && x.g === g); if (i >= 0) OB.grs.splice(i, 1); else OB.grs.push({ st, g, l: t.dataset.l }); OB.st = new Set(OB.grs.map(x => OB_STAGES[NC_ST.findIndex(y => y[0] === x.st)])); haptic(); obStep(3); };
 ACTS['ob-sec1'] = t => { OB.sec = OB.sec === t.dataset.v ? null : t.dataset.v; haptic(); obStep(3); };
@@ -2280,6 +2282,7 @@ ACTS['ob-finish'] = async t => {
   const p = { ob: 'done', prof_subject: [...OB.sj].join('|') }; if (OB.st.size) p.prof_stage = [...OB.st].join('|');
   if (OB.school.trim()) p.school = OB.school.trim().slice(0, 80);
   if (OB.d) p.district = OB.d;
+  if (OB.g) p.def_gender = OB.g;
   try {
     await saveSettings(p);
     if (OB.hasCls) { document.getElementById('ob').remove(); toast('أهلاً فيك 👋'); return rerender(); }

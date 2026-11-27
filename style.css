@@ -4456,3 +4456,6 @@ html body .ar-logo:not(#z){display:none!important}
 
 /* v481 */
 .ac-fl>span:first-child{white-space:nowrap}
+
+/* v482 onboarding: school type row under the grades */
+.ob-sg{display:flex;align-items:center;gap:12px;margin:14px 0 2px}.ob-sg>span{font-weight:700;font-size:15px;white-space:nowrap;opacity:.85}.ob-sg .gp-seg{flex:1;margin:0}
