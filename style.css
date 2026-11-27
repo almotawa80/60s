@@ -4774,3 +4774,5 @@ html body.wide.dark .nw .bd-chip.on{border-color:#C8102E;background:rgba(200,16,
 .bd-lb{color:#fff;font-size:15px;font-weight:800}
 .bd-more{display:block;width:100%;margin-top:14px;padding:10px;background:none;border:0;color:#C7C7CC;font:700 15px Cairo,system-ui,sans-serif;cursor:pointer}
 .bd-sum{text-align:center}
+/* v533 admin view: the support bar already covers the notch, so the page header must not add the safe-area gap again */
+html.admmode body.wide .t-top{padding-top:10px!important}
