@@ -1896,7 +1896,8 @@ function teacherAuth(){
   $app.innerHTML = `
   <div class="ta"><div class="hero"><img class="ta-hero" src="img/logo-hero.webp" alt="" draggable="false"><h1>اهزم الدقيقة</h1><p>منصة تحديات تعليمية للمدارس</p></div>
   <div class="pad col">${authFormHtml()}
-  <button class="ta-stu" data-act="go-student">🎒 أنت طالب؟ <b>ادخل برمزك</b></button></div></div>`;
+  <button class="ta-stu" data-act="go-student">🎒 أنت طالب؟ <b>ادخل برمزك</b></button>
+  ${isStandalone() ? '' : '<a class="ta-about" href="about.html">تعرّف على اهزم الدقيقة ‹</a>'}</div></div>`;
 }
 ACTS['t-forgot'] = async () => {
   const cur = (document.getElementById('a-email') || {}).value || '';
