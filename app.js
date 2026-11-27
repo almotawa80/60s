@@ -3192,15 +3192,16 @@ ACTS['ch-send'] = () => { const ks = chComps(), list = [];
   if (!list.length) return; CL.chSel = null; chRe(); msgSend(list); };
 ACTS['ch-in'] = async t => { if (t.disabled) return; t.disabled = true;
   const { error } = await sb.from('messages').insert([{ student_id: t.dataset.id, kind: t.dataset.k, body: t.dataset.v }]); t.disabled = false;
-  if (error) return toast(errMsg(error)); closeModals(); toast('انرسلت ✓'); };
+  if (error) return toast(errMsg(error)); closeModals(); toast(t.dataset.n ? (t.dataset.k === 'praise' ? 'وصل التشجيع لـ ' : 'وصل التذكير لـ ') + t.dataset.n + ' ✓' : 'انرسلت ✓'); };
 ACTS['ch-stu'] = t => { const s = chStudents().find(x => x.id === t.dataset.id); if (!s) return; const k = CST(s.id), url = location.origin + location.pathname;
   const inMsg = k.today ? `أحسنت يا ${s.name.split(' ')[0]} 🌟 لعبت جولة اليوم، استمر!` : `هلا ${s.name.split(' ')[0]} 👋 باقي لك جولة اليوم، دقيقة وحدة بس! ⏱️`;
   const msg = k.today ? `أحسنت يا ${s.name.split(' ')[0]} 🌟 لعبت جولة اليوم، استمر!` : `هلا ${s.name.split(' ')[0]} 👋 باقي لك جولة اليوم في «اهزم الدقيقة»، دقيقة وحدة بس!\nادخل من هنا:\n${url}#/c/${s.code}`;
   modal(`<div class="st1"><div class="st1-h"><b>${esc(s.name)}</b><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div>
     <div class="st1-stats"><div><b>${k.pts}</b><small>نقطة</small></div><div><b>${k.rounds}</b><small>جولات</small></div></div>
     <div class="st1-today ${k.today ? 'on' : ''}">${k.today ? 'لعب اليوم ✓' : 'ما لعب اليوم'}</div>
-    <button class="btn cp-share" data-act="ch-in" data-id="${esc(s.id)}" data-k="${k.today ? 'praise' : 'encourage'}" data-v="${esc(inMsg)}">${k.today ? 'شجّعه 🌟' : 'ذكّره يلعب 🔔'}</button>
-    <button class="btn soft" data-act="ch-wa" data-ph="${esc(s.phone || '')}" data-v="${esc(msg)}">أو واتساب</button>
+    <div class="st1-msg"><small>${k.today ? 'رسالة تشجيع' : 'رسالة تذكير'} توصله داخل التطبيق:</small><p>${esc(inMsg)}</p></div>
+    <button class="btn cp-share" data-act="ch-in" data-id="${esc(s.id)}" data-n="${esc(s.name.split(' ')[0])}" data-k="${k.today ? 'praise' : 'encourage'}" data-v="${esc(inMsg)}">${k.today ? 'أرسل التشجيع 🌟' : 'أرسل التذكير 🔔'}</button>
+    <button class="btn soft" data-act="ch-wa" data-ph="${esc(s.phone || '')}" data-v="${esc(msg)}">أو أرسلها واتساب</button>
     <button class="btn soft" data-act="s-rep" data-id="${esc(s.id)}">📊 تقريره</button></div>`); };
 ACTS['ch-wa'] = t => { let ph = (t.dataset.ph || '').replace(/[^0-9]/g, ''); if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2); closeModals(); window.open('https://wa.me/' + ph + '?text=' + encodeURIComponent(t.dataset.v), '_blank'); };
 ACTS['ch-more'] = () => { const ks = chComps(), c = ks[0]; if (!c) return; const g = c.group_id || c.id;
