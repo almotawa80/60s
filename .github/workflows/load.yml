@@ -7,7 +7,7 @@ on:
 concurrency: { group: load, cancel-in-progress: true }
 jobs:
   small:
-    if: ${{ !contains(github.event.head_commit.message, '[load-3000]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[load-3000]') && !contains(github.event.head_commit.message, '[load-step]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -28,3 +28,16 @@ jobs:
         with: { node-version: 22 }
       - run: node tests/load/load.js
         env: { MODE: big, SHARDS: 10, SHARD: '${{ matrix.shard }}' }
+  step:
+    if: ${{ contains(github.event.head_commit.message, '[load-step]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix: { shard: [0, 1, 2, 3] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node tests/load/load.js
+        env: { MODE: step, SHARDS: 4, SHARD: '${{ matrix.shard }}' }

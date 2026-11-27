@@ -5,11 +5,12 @@ const fs = require('fs'), path = require('path');
 const cfg = fs.readFileSync(path.join(__dirname, '..', '..', 'config.js'), 'utf8');
 const URL_ = cfg.match(/SUPABASE_URL:\s*"([^"]+)"/)[1], KEY = cfg.match(/SUPABASE_KEY:\s*"([^"]+)"/)[1];
 // MODE=big: 3000 students = 30 robot schools (10 primary, 10 middle, 10 secondary) × 4 classes × 25, codes Z<TT><C><SS>
-const BIG = process.env.MODE === 'big';
+const STEP = process.env.MODE === 'step';                          // stepped: 300 → 600 → 1200 different robot students, 4 minutes apart
+const BIG = process.env.MODE === 'big' || STEP;
 // SHARD/SHARDS: the 30 schools are split over several machines (one machine cannot hold 3000 connections); all start at the same clock minute
 const SHARDS = +(process.env.SHARDS || 1), SHARD = +(process.env.SHARD || 0);
-const WAVES = BIG ? [{ k: 'Z', n: 3000 / SHARDS, cls: 25 }] : (process.env.WAVES || 'A:30,B:60,C:100').split(',').map(x => { const [k, n] = x.split(':'); return { k, n: +n, cls: +n }; });
-const bigCodes = () => { const a = []; for (let t = 1; t <= 30; t++) if (t % SHARDS === SHARD % SHARDS) for (let c = 1; c <= 4; c++) for (let g = 1; g <= 25; g++) a.push('Z' + String(t).padStart(2, '0') + c + String(g).padStart(2, '0')); return a; };
+const WAVES = STEP ? [{ k: 'S300', n: 300, cls: 25, ts: [1, 3] }, { k: 'S600', n: 600, cls: 25, ts: [4, 9] }, { k: 'S1200', n: 1200, cls: 25, ts: [10, 21] }] : BIG ? [{ k: 'Z', n: 3000 / SHARDS, cls: 25, ts: [1, 30] }] : (process.env.WAVES || 'A:30,B:60,C:100').split(',').map(x => { const [k, n] = x.split(':'); return { k, n: +n, cls: +n }; });
+const bigCodes = w => { const a = []; for (let t = w.ts[0]; t <= w.ts[1]; t++) if (t % SHARDS === SHARD % SHARDS) for (let c = 1; c <= 4; c++) for (let g = 1; g <= 25; g++) a.push('Z' + String(t).padStart(2, '0') + c + String(g).padStart(2, '0')); return a; };
 const SPREAD = +(process.env.SPREAD_SEC || (BIG ? 60 : 20)) * 1000;           // students of one wave start within this window
 const THINK = [2000, 8000];                                       // «thinking» time before each answer
 const sleep = ms => new Promise(r => setTimeout(r, ms)), rnd = (a, b) => a + Math.random() * (b - a);
@@ -58,9 +59,11 @@ const pct = (a, p) => { if (!a.length) return 0; const s = [...a].sort((x, y) =>
 
 (async () => {
   let md = '# اختبار الضغط · ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC\n', bad = 0;
-  if (BIG && SHARDS > 1) { const step = 120000, at = Math.ceil((Date.now() + 40000) / step) * step; console.log('shard', SHARD, 'starts at', new Date(at).toISOString()); await sleep(at - Date.now()); }
-  for (const w of WAVES) {
-    const codes = BIG ? bigCodes() : Array.from({ length: w.n }, (_, i) => 'LD' + w.k + String(i + 1).padStart(3, '0'));
+  const step = STEP ? 300000 : 120000, at = Math.ceil((Date.now() + 60000) / step) * step;
+  if (BIG && SHARDS > 1) { console.log('shard', SHARD, 'starts at', new Date(at).toISOString()); await sleep(at - Date.now()); }
+  for (const [wi, w] of WAVES.entries()) {
+    if (STEP && wi) await sleep(Math.max(0, at + wi * 240000 - Date.now()));
+    const codes = BIG ? bigCodes(w) : Array.from({ length: w.n }, (_, i) => 'LD' + w.k + String(i + 1).padStart(3, '0'));
     const t0 = Date.now(), res = await Promise.all(codes.map(c => student(w.k, c))), secs = Math.round((Date.now() - t0) / 1000);
     const done = res.filter(r => r.ok), off = done.filter(r => r.kind === 'official');
     // correctness: an official round must add exactly the points the answers returned, and count as «played today»
@@ -77,7 +80,7 @@ const pct = (a, p) => { if (!a.length) return 0; const s = [...a].sort((x, y) =>
     const em = {}; Object.entries(M[w.k] || {}).forEach(([fn, m]) => Object.entries(m.msgs).forEach(([k, v]) => em[fn + ': ' + k] = v)); if (Object.keys(em).length) md += '\nالأخطاء: ' + Object.entries(em).map(([k, v]) => `${v}× ${k}`).join(' · ') + '\n';
     if (wrongPts.length) md += '\nأمثلة نقاط: ' + wrongPts.slice(0, 5).map(r => `${r.code} قبل ${r.before} بعد ${r.homeAfter} أجوبة ${r.pts}`).join(' · ') + '\n';
     bad += failed.length + wrongPts.length + lbMis.length + notPlayed.length;
-    if (BIG) console.log('LOADJSON ' + JSON.stringify({ shard: SHARD, n: w.n, done: done.length, official: off.length, secs, wrongPts: wrongPts.length, lbMis: lbMis.length, notPlayed: notPlayed.length, lbShort: lbShort.length, stuMs: done.map(r => r.ms), rpc: Object.fromEntries(Object.entries(M[w.k] || {}).map(([fn, m]) => [fn, { t: m.t.map(Math.round), err: m.err, msgs: m.msgs }])) }));
+    if (BIG) console.log('LOADJSON ' + JSON.stringify({ shard: SHARD, wave: w.k, n: codes.length, done: done.length, official: off.length, secs, wrongPts: wrongPts.length, lbMis: lbMis.length, notPlayed: notPlayed.length, lbShort: lbShort.length, stuMs: done.map(r => r.ms), rpc: Object.fromEntries(Object.entries(M[w.k] || {}).map(([fn, m]) => [fn, { t: m.t.map(Math.round), err: m.err, msgs: m.msgs }])) }));
     if (!BIG) await sleep(8000);
   }
   console.log(md);
