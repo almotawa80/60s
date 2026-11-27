@@ -868,7 +868,7 @@ ACTS['ar-play'] = async t => {
     let live = null, seeking = false, noSeek = false, lastSeek = -9999; const wait = 30000, t0 = performance.now(), msgs = [esc(arSubj(s).n) + ' · قريب من مستواك', 'نطابق المستوى…', 'ندوّر بين اللاعبين…', 'قربنا…'];
     await new Promise(z => { const iv = setInterval(() => { const el = performance.now() - t0, n = document.getElementById('ar-fs'), fp = document.getElementById('ar-fp');
       if (AR.gen !== g || !n) { if (seeking) return; clearInterval(iv); return z(); }
-      n.textContent = Math.floor(el / 1000); if (el >= 12000) { const fb = document.getElementById('ar-fnow'); if (fb && fb.hidden) fb.hidden = false; } fp.innerHTML = msgs[Math.min(msgs.length - 1, Math.floor(el / wait * msgs.length))];
+      n.textContent = Math.floor(el / 1000); if (el >= 7000) { const fb = document.getElementById('ar-fnow'); if (fb && fb.hidden) fb.hidden = false; } fp.innerHTML = msgs[Math.min(msgs.length - 1, Math.floor(el / wait * msgs.length))];
       /* ask the server every 1.5s: is someone else searching this subject right now? */
       if (!seeking && !live && !noSeek && el - lastSeek >= 1500 && el < wait && !AR.now) { seeking = true; lastSeek = el;
         rpc('arena_seek', { p_token: S.token, p_subject: s }).then(x => { if (x && x.round) live = x; }, () => { noSeek = true; }).then(() => { seeking = false; }); }
