@@ -399,6 +399,7 @@ function renderHomeP(){
   startCountdown();
   if (!S.demo) { loadDaily(); subjLoad(); avFirst(); }
   if (h.played_today && !S.demo && pushBtn() && !LS.get('mc_push_ask')) { LS.set('mc_push_ask', '1'); popQ(3, () => modal('<div class="s-avs center"><div class="lvl-up">🔔</div><h3>تبي نذكّرك؟</h3><p class="sub">نرسل لك تذكير وحد باليوم إذا ما لعبت، ورسائل معلمك توصلك على طول. وما فيه شي بالليل.</p><button class="btn" data-act="s-push">فعّل الإشعارات</button><button class="btn soft" data-act="close-modal">مو الحين</button></div>').classList.add('mid')); }
+  if (!S.demo && S.token && (+LS.get('mc_rtn_' + String(S.token).slice(0, 12)) || 0) >= 3 && rtDue('s')) popQ(4, () => rateAsk('s'));
   if (!h.played_today && h.rank > 1 && h.gap > 0 && !S.demo) rpc('class_leaderboard', { p_token: S.token }).then(lb => {
     const rows = Array.isArray(lb) ? lb : (lb && lb.rows) || [], me = rows.find(r => r.is_me), above = me && rows.filter(r => r.rank < me.rank).sort((a, b) => b.rank - a.rank)[0];
     const el = document.getElementById('rival'); if (el && above && above.name) el.innerHTML = 'باقي لك <b>' + h.gap + '</b> نقطة وتتعدى ' + esc(String(above.name).split(' ')[0]) + ' 👀';
@@ -1522,7 +1523,7 @@ async function showResult(sm){
   stopTimer(); S.gen = (S.gen || 0) + 1; S.cur = null;
   if (sm && Array.isArray(sm.review) && S.log) { const L = S.log.slice(-sm.review.length); sm.review.forEach((v, i) => { if (L[i] && L[i].c == null) L[i].c = v.c; }); }
   const cc = sm ? sm.correct_count : 0, qn = (sm && sm.total) || 4, lose = cc <= 1, win = cc >= qn - 1, perfect = cc === qn;
-  if (sm && sm.kind !== 'practice' && S.token) try { LS.set(resKey(S.token), JSON.stringify({ c: cc, n: qn })); } catch(e){}
+  if (sm && sm.kind !== 'practice' && S.token) try { LS.set(resKey(S.token), JSON.stringify({ c: cc, n: qn })); const rk = 'mc_rtn_' + String(S.token).slice(0, 12); LS.set(rk, String((+LS.get(rk) || 0) + 1)); } catch(e){}
   setTimeout(() => { if (win) FX.win(perfect); else FX.meh(); }, 250);
   const head = perfect ? 'مثالي! 🏆' : lose ? 'كل بطل يبدأ كذا 💪' : 'خلصت! 🎉';
   const sub = perfect ? (qn === 3 ? '3 من 3' : '4 من 4') + '، لا يُهزم!' : win ? 'أداء ممتاز، استمر!' : lose ? 'تدرّب على أخطائك وارجع أقوى' : 'قريب من القمة، حاول بكرة';
@@ -1969,8 +1970,12 @@ async function tAdmin(p){
 }
 /* v487 rating popup (teacher after first student plays, student after 3rd round) */
 const RT = { k: 't', s: 0, c: '' };
+const rtKey = k => k === 's' ? 'mc_rt_s_' + String(S.token || '').slice(0, 12) : 'mc_rt_t_' + ((T.user && T.user.id) || '').slice(0, 12);
+const rtDue = k => { if (RT['a' + k]) return false; const v = LS.get(rtKey(k)); return !v || (v !== 'done' && /^\d+$/.test(v) && Date.now() - +v > 14 * 864e5); };
+function rtTeacher(){ if (ADM.st && ADM.st.act) return; if (!rtDue('t') || rtTeacher.on) return; rtTeacher.on = 1;
+  setTimeout(() => { if (location.hash.indexOf('#/t/home') === 0 && !document.querySelector('.modal-back')) rateAsk('t'); else rtTeacher.on = 0; }, 1500); }
 function rateAsk(k){
-  RT.k = k; RT.s = 0; RT.c = '';
+  RT.k = k; RT.s = 0; RT.c = ''; RT['a' + k] = 1;
   modal(`<div class="rt-box"><div class="rt-e">${k === 's' ? '🎮' : '👋'}</div><h3>${k === 's' ? 'عجبتك اللعبة؟' : 'شرايك في اهزم الدقيقة؟'}</h3><p class="sub">${k === 's' ? 'قيّمها بالنجوم' : 'رأيك يساعدنا نطوّرها'}</p>
     <div class="rt-stars">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-act="rt-s" data-v="${n}" aria-label="${n} نجوم">★</button>`).join('')}</div>
     <button type="button" class="link rt-cm" data-act="rt-cm">✍️ اكتب تعليق</button><p class="rt-ct" id="rt-ct" hidden></p>
@@ -1984,10 +1989,10 @@ ACTS['rt-cm'] = () => {
   setTimeout(() => { const x = document.getElementById('rt-tx'); if (x) x.focus(); }, 50); };
 ACTS['rt-cm-ok'] = () => { const x = document.getElementById('rt-tx'); RT.c = x ? x.value.trim() : ''; const m = [...document.querySelectorAll('.modal-back')].pop(); if (m) m.remove();
   const c = document.getElementById('rt-ct'); if (c) { c.hidden = !RT.c; c.textContent = '«' + RT.c + '»'; } const k = document.querySelector('.rt-cm'); if (k && RT.c) k.textContent = '✏️ عدّل التعليق'; };
-ACTS['rt-later'] = () => { LS.set('mc_rt_' + RT.k, String(Date.now())); closeModals(); };
+ACTS['rt-later'] = () => { const v = LS.get(rtKey(RT.k)); LS.set(rtKey(RT.k), v ? 'done' : String(Date.now())); closeModals(); };
 ACTS['rt-send'] = async () => { if (!RT.s) return;
   try { await rpc(RT.k === 's' ? 'student_rate' : 'teacher_rate', RT.k === 's' ? { p_token: S.token, p_stars: RT.s, p_comment: RT.c || null } : { p_stars: RT.s, p_comment: RT.c || null }); } catch(e){}
-  LS.set('mc_rt_' + RT.k, 'done'); closeModals(); toast('شكراً 🙏'); };
+  LS.set(rtKey(RT.k), 'done'); closeModals(); toast('شكراً 🙏'); };
 const admIsTest = t => /e2e|اختبار آلي/i.test((t.email || '') + ' ' + (t.name || ''));
 function admRender(){
   /* home: attention line (only when reports), 4 key numbers, one chart */
@@ -2038,11 +2043,11 @@ const GR_AR = ['', 'الأول', 'الثاني', 'الثالث', 'الرابع',
 async function admBankPg(cu, les){
   if (!ADM.bank) { view('البنك', '<div class="spin"></div>', 'admin/bank'); try { ADM.bank = await rpc('admin_bank'); } catch(e){ return view('البنك', `<p class="sub center">${esc(errMsg(e))}</p>`, 'admin/bank'); } }
   const B = ADM.bank || { cus: [], gen: [] };
-  if (cu) return admBankCuPg(B.cus.find(c => c.id === cu), les);
+  if (cu) return admBankCuPg(B.cus.concat((B.gen || []).map(g => ({ id: g.id, subject: g.name, grade: 0 }))).find(c => c.id === cu), les);
   const st = ADM.bst || 'middle', tot = B.cus.reduce((a, c) => a + c.n, 0) + (B.gen || []).reduce((a, c) => a + c.n, 0);
   const chips = `<div class="ad-segs">${ADM_ST.map(x => `<button data-act="adm-bst" data-v="${x[0]}" class="${st === x[0] ? 'on' : ''}">${x[1]}</button>`).join('')}</div>`;
   let body;
-  if (st === 'gen') body = `<div class="ad-rows">${(B.gen || []).map(g => `<div class="ad-tr"><span class="ad-av ad-ic">${g.ic}</span><span class="grow"><b>${esc(g.name)}</b><small>${g.n ? nf(g.n) + ' سؤال' : 'فاضية'}</small></span>${g.n < 50 ? '<span class="ad-warn">ناقصة</span>' : ''}</div>`).join('')}</div>`;
+  if (st === 'gen') body = `<div class="ad-rows">${(B.gen || []).map(g => `<button class="ad-tr" data-act="go" data-h="#/t/admin/bank/${g.id}"${g.n ? '' : ' disabled'}><span class="ad-av ad-ic">${g.ic}</span><span class="grow"><b>${esc(g.name)}</b><small>${g.n ? nf(g.n) + ' سؤال' : 'فاضية'}</small></span>${g.n < 50 ? '<span class="ad-warn">⚠️ قليلة</span>' : ''}</button>`).join('')}</div>`;
   else { const C = B.cus.filter(c => c.stage === st), G = [...new Set(C.map(c => c.grade))].sort((a, b) => a - b);
     body = G.map(g => { const R = C.filter(c => c.grade === g).sort((a, b) => b.n - a.n), n = R.reduce((a, c) => a + c.n, 0);
       return `<div class="ad-h">الصف ${GR_AR[g] || g}<small>${nf(n)} سؤال</small></div><div class="ad-rows">${R.map(c => `<button class="ad-tr" data-act="go" data-h="#/t/admin/bank/${c.id}"${c.n ? '' : ' disabled'}><span class="grow"><b>${esc(c.subject)}</b><small>${c.n ? `${nf(c.n)} سؤال · ${c.les} درس` : 'ما فيها أسئلة'}</small></span>${c.n ? (c.thin ? `<span class="ad-warn">⚠️ ${c.thin} ناقص</span>` : '<span class="ad-ok">✓</span>') : ''}</button>`).join('')}</div>`; }).join('') || '<div class="ad-empty"><b>📚</b><p>ما فيه مواد بهالمرحلة بعد</p></div>'; }
@@ -2051,7 +2056,7 @@ async function admBankPg(cu, les){
 ACTS['adm-bst'] = t => { ADM.bst = t.dataset.v; admBankPg(); };
 async function admBankCuPg(c, les){
   if (!c) return go('#/t/admin/bank');
-  const back = '#/t/admin/bank' + (les ? '/' + c.id : ''), title = les || `${c.subject} · ${GR_AR[c.grade] || c.grade}`;
+  const back = '#/t/admin/bank' + (les ? '/' + c.id : ''), title = les || (c.grade ? `${c.subject} · ${GR_AR[c.grade] || c.grade}` : c.subject);
   view(title, '<div class="spin"></div>', 'admin/bank', '', back);
   let Q; try { Q = (ADM.bq = ADM.bq || {})[c.id] || (ADM.bq[c.id] = await rpc('admin_bank_cu', { p_cu: c.id }) || []); } catch(e){ return view(title, `<p class="sub center">${esc(errMsg(e))}</p>`, 'admin/bank', '', back); }
   if (!les) { const L = [...new Set(Q.map(q => q.lesson || 'بدون درس'))].map(l => [l, Q.filter(q => (q.lesson || 'بدون درس') === l).length]);
@@ -2262,8 +2267,10 @@ const stpFem = () => SG('prof_title') === 'أستاذة';
 const stpGrade = n => { const t = String(n || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)); const m = t.match(/\d+/); if (m) return +m[0]; for (let i = GRADES.length - 1; i >= 0; i--) if (t.indexOf(GRADES[i].replace(/^ال/, '')) >= 0) return i + 1; return 0; };
 const stpSent = id => LS.get('mc_sent_' + id) === '1';
 async function stepsCard(classes, comps, res){
+  const played = (res || []).flat().flat().some(r => r && (r.rounds > 0 || r.played_today));
+  if (played) rtTeacher();
   if (!classes.length || (T.settings && T.settings.stepsOff)) return '';
-  if ((res || []).flat().flat().some(r => r && (r.rounds > 0 || r.played_today))) { if (!(T.settings || {}).stepsOff && !(ADM.st && ADM.st.act)) saveSettings({ stepsOff: 1 }); return ''; }
+  if (played) { if (!(T.settings || {}).stepsOff && !(ADM.st && ADM.st.act)) saveSettings({ stepsOff: 1 }); return ''; }
   const st = await sb.from('students').select('class_id'); if (st.error) return '';
   const cnt = {}; st.data.forEach(x => { cnt[x.class_id] = (cnt[x.class_id] || 0) + 1; });
   const total = st.data.length, fem = stpFem(), W = fem ? 'الطالبات' : 'الطلاب', w1 = fem ? 'طالبة' : 'طالب';
