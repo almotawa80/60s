@@ -4646,3 +4646,19 @@ html.pg-pin .pg-acts .t-bell,html.pg-pin .pg-acts .t-av{visibility:visible}
 .chc-a{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:8px}
 .chc-a button{min-height:44px;border:0;border-radius:13px;font:800 14px 'Cairo',system-ui,sans-serif;background:color-mix(in srgb,var(--ink) 12%,transparent);color:var(--ink);cursor:pointer;white-space:nowrap}
 .chc-a .chc-wa{background:#1FA971;color:#fff}
+
+/* v505 (Khalid): every bottom sheet in the app theme: frosted glass, slightly see-through, red edge on top */
+html body .modal-back{background:rgba(0,0,0,.42)!important;-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
+html body.wide.dark .modal,html body:not(.wide) .modal{background:linear-gradient(180deg,rgba(44,22,28,.80),rgba(20,15,17,.86))!important;-webkit-backdrop-filter:blur(30px) saturate(170%);backdrop-filter:blur(30px) saturate(170%);border:1px solid rgba(226,18,47,.36);border-bottom:0;border-radius:28px 28px 0 0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 -12px 44px rgba(200,16,46,.16),0 -2px 30px rgba(0,0,0,.5)}
+html body.wide:not(.dark) .modal{background:linear-gradient(180deg,rgba(255,250,248,.86),rgba(245,240,237,.90))!important;-webkit-backdrop-filter:blur(30px) saturate(170%);backdrop-filter:blur(30px) saturate(170%);border:1px solid rgba(200,16,46,.22);border-bottom:0;border-radius:28px 28px 0 0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 -12px 40px rgba(200,16,46,.10)}
+html body .modal:focus,html body .modal:focus-visible{outline:none!important}
+html body .modal-back.mid .modal,html body .modal-back.rt-mid .modal{border-radius:28px!important;border-bottom:1px solid rgba(226,18,47,.36)}
+@media(min-width:700px){html body .modal{border-radius:28px!important;border-bottom:1px solid rgba(226,18,47,.36)}}
+html body .modal .sheet-t{font-size:14.5px;font-weight:800;color:var(--muted)}
+html body .modal .sheet-list{background:color-mix(in srgb,var(--ink) 8%,transparent)!important;border:1px solid color-mix(in srgb,var(--ink) 11%,transparent);border-radius:18px}
+html body .modal .sheet-i{background:transparent!important;color:var(--ink);font-weight:700;min-height:54px}
+html body .modal .sheet-i:active{background:color-mix(in srgb,var(--ink) 8%,transparent)!important}
+html body .modal .sheet-list .sheet-i+.sheet-i{border-top:1px solid color-mix(in srgb,var(--ink) 9%,transparent)}
+html body .modal .sheet-sep{background:transparent!important;border-top:1px solid color-mix(in srgb,var(--ink) 9%,transparent);height:1px}
+html body .modal .sheet-cancel{background:color-mix(in srgb,var(--ink) 8%,transparent)!important;border:1px solid color-mix(in srgb,var(--ink) 11%,transparent);border-radius:18px;color:var(--ink);font-weight:800}
+html body .modal .sheet-i.danger{color:#FF453A}
