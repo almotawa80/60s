@@ -359,7 +359,7 @@ function renderHome(){
   const strip = si >= 0 ? '<div class="ph-strip">' + steps.map((x, i) => '<span class="' + (i < si ? 'done' : i === si ? 'cur' : '') + '">' + x[1] + '</span>').join('<i></i>') + '</div>' : '';
   sPut('<div class="sh pvx">' +
     '<div class="s-head"><div class="who"><span class="sub">أهلاً 👋' + (h.streak ? ' <span class="streak" title="أيام متتالية">🔥 ' + h.streak + '</span>' : '') + '</span><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
-    '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
+    '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' + S_OUT() +
     '</div></div>' +
     '<div class="comp">' + strip + head + main + rest +
     '<div class="s-row2"><button class="btn ghost" data-act="s-start" data-kind="practice">تدريب بلا نقاط</button>' +
@@ -391,7 +391,7 @@ function renderHomeP(){
   }
   sPut('<div class="sh sp pvx">' +
     '<div class="s-head s-head2">' + (h.student.avatar ? '<button class="s-hav" data-act="s-tab" data-t="me" aria-label="أنا">' + avI(h.student.avatar) + '</button>' : '') + '<div class="who"><b>' + esc(h.student.name) + '</b><span class="sub">' + esc(h.class.name) + '</span></div>' +
-    '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' +
+    '<div class="s-hacts"><button class="avatar av-btn s-bell" data-act="s-msgs" aria-label="رسائل المعلم">' + ic('bell') + '<span class="bdg" style="display:none"></span></button>' + S_OUT() +
     '</div></div>' +
     pills + '<div id="lv-slot"></div><div class="sp-mid">' + mid + '</div><div id="my-subj"></div>' +
     (h.played_today ? '' : '<div class="sp-low"><button class="sp-prac" data-act="s-start" data-kind="practice"><span>🎯</span>تدرّب بدون نقاط</button></div>') +
@@ -683,9 +683,10 @@ function sPut(html){ const old = $app.querySelector(':scope > .s-nav'); $app.inn
   if (!old || !nw) return; const ob = old.querySelectorAll('button'), nb = nw.querySelectorAll('button'); if (ob.length !== nb.length) return; let k = 0;
   nb.forEach((b, j) => { const on = b.classList.contains('on'); if (on) k = j; ob[j].classList.toggle('on', on); ob[j].classList.remove('hover'); if (on) ob[j].setAttribute('aria-current', 'page'); else ob[j].removeAttribute('aria-current'); });
   nw.replaceWith(old); lensMove(old, k); }
+const S_OUT = () => '<button class="avatar av-btn s-out" data-act="s-logout-ask" aria-label="خروج">' + ic('logout') + '</button>'; /* v542 (Khalid): logout = door icon top-left on every student screen */
 function sNav(cur){ const i = Math.max(0, S_TABS.indexOf(cur)), p = S.navPrev == null ? i : S.navPrev; S.navPrev = i;
   setTimeout(() => requestAnimationFrame(() => lensMove(document.querySelector('.s-nav'), i)), 20);
-  return '<nav class="s-nav"><span class="lens" style="--i:' + p + ';--n:5"></span>' + [['home', S_LN.home, 'صفّي'], ['lb', S_LN.lb, 'المراكز'], ['ar', '', 'الحلبة'], ['bd', S_LN.bd, 'شاراتي'], ['me', S_LN.me, 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + (x[0] === 'ar' ? ' s-ar' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (x[0] === 'ar' ? ' aria-label="الحلبة"' : '') + (cur === x[0] ? ' aria-current="page"' : '') + '>' + (x[0] === 'ar' ? '<span class="i sq">' + NAV_SQ + '</span>' : x[1] + '<span>' + x[2] + '</span>') + '</button>').join('') + '</nav>'; }
+  return S_OUT() + '<nav class="s-nav"><span class="lens" style="--i:' + p + ';--n:5"></span>' + [['home', S_LN.home, 'صفّي'], ['lb', S_LN.lb, 'المراكز'], ['ar', '', 'الحلبة'], ['bd', S_LN.bd, 'شاراتي'], ['me', S_LN.me, 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + (x[0] === 'ar' ? ' s-ar' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (x[0] === 'ar' ? ' aria-label="الحلبة"' : '') + (cur === x[0] ? ' aria-current="page"' : '') + '>' + (x[0] === 'ar' ? '<span class="i sq">' + NAV_SQ + '</span>' : x[1] + '<span>' + x[2] + '</span>') + '</button>').join('') + '</nav>'; }
 function sPage(t, body){ const th = document.body.dataset.theme || 'mid'; { const cur = $app.querySelector(':scope > .sh'); if (cur && !cur.querySelector('.s-back')) S.pgSnap = cur.outerHTML; } S.tab = t; closeModals(); stopTimer(); clearInterval(S.cdT);
   sPut('<div class="sh s-tabpg pvx">' + body + '</div>' + sNav(t)); scrollTo(0, 0); }
 /* ===== v275 الحلبة (public arena), phase 1: 60 levels on a stopwatch dial, duel vs a recorded round, tug of war =====
@@ -986,7 +987,7 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
       '<div class="s-me-o s-me-3">' + [['s-rep-me', '📊', 'تقريري'], ['s-lvl', '⚡', 'مستواي'], ['s-profile', '🪪', 'ملفي']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i>' + o[2] + '</button>').join('') + '</div>' +
       '<div class="s-me-l">' + [['s-sound-tab', '🔊', 'الصوت', FX.on()], ['s-push-tab', '🔔', 'الإشعارات', pushOn()], ['s-switch', '🔄', 'غيّر اللاعب']].map(o => '<button data-act="' + o[0] + '"><i>' + o[1] + '</i><span class="grow">' + o[2] + '</span>' + (o.length > 3 ? '<em class="sw' + (o[3] ? ' on' : '') + '"></em>' : '<span class="set-chev">' + ic('back') + '</span>') + '</button>').join('') + '</div>' +
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
-      '<div class="s-me-x"><button data-act="s-logout-ask">خروج</button><button class="dng" data-act="s-del-me">حذف حسابي</button></div>' +
+      '<div class="s-me-x"><button class="btn s-del" data-act="s-del-me">🗑 حذف حسابي</button></div>' +
       '</div>'); }
   if (k === 'lb') { if (S.demo) return toast('المراكز تظهر في التحدي الفعلي'); return lbPage(); }
 };
