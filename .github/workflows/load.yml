@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
 concurrency: { group: load, cancel-in-progress: true }
 jobs:
-  load:
+  small:
+    if: ${{ !contains(github.event.head_commit.message, '[load-3000]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -14,5 +15,16 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: node tests/load/load.js
-        env:
-          MODE: ${{ hashFiles('tests/load/BIG') != '' && 'big' || '' }}
+  big:
+    if: ${{ contains(github.event.head_commit.message, '[load-3000]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix: { shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node tests/load/load.js
+        env: { MODE: big, SHARDS: 10, SHARD: '${{ matrix.shard }}' }
