@@ -8,6 +8,8 @@ test.skip(!EMAIL || !PASS, 'E2E_EMAIL / E2E_PASS not set: teacher path skipped')
 
 test('المعلم: يسجل دخول ويشوف التحدي والصف والأسئلة والإعدادات', async ({ page }) => {
   const w = watchErrors(page);
+  // the one-time «تفعيل الإشعارات» dialog (v493) would cover the home page; mark it answered
+  await page.addInitScript(() => { try { localStorage.setItem('mc_tpush_ask2', '1'); } catch (e) {} });
   await page.goto('/index.html#/t');
   await page.locator('#a-email').fill(EMAIL);
   await page.locator('#a-pw').fill(PASS);
