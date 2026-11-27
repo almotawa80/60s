@@ -2533,7 +2533,7 @@ async function tNew(fresh){
 }
 const WB_IC = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M7 9h6M7 12h9"/><path d="M8 20l1.5-4M16 20l-1.5-4"/></svg>';
 const nwModes = () => NW.board ? `<div class="nw-modes"><button class="${NW.phones !== false ? 'on' : ''}" data-act="nw-ph" data-v="1"><span class="e">📱</span><b>بجوالات الطلاب</b><small>السؤال على السبورة والجواب من جوالاتهم</small></button><button class="${NW.phones === false ? 'on' : ''}" data-act="nw-ph" data-v="0"><span class="e">🖥</span><b>بدون جوالات</b><small>فرق على السبورة والمعلم يضغط</small></button></div>` : '';
-const nwMode = () => `<div class="nw-mode" role="tablist"><button class="${NW.board ? '' : 'on'}" data-act="nw-mode" data-b="0">تحدي يومي</button><button class="${NW.board ? 'on' : ''}" data-act="nw-mode" data-b="1">${WB_IC}<span>جولة مباشرة في الحصة</span></button></div>` + nwModes();
+const nwMode = () => `<div class="nw-mode" role="tablist"><button class="${NW.board ? '' : 'on'}" data-act="nw-mode" data-b="0">تحدي يومي</button><button class="${NW.board ? 'on' : ''}" data-act="nw-mode" data-b="1">${WB_IC}<span>تحدي مباشر</span></button></div>` + nwModes();
 function nwRender(){
   clearInterval(NW.poll);
   NW.ts = Date.now();
