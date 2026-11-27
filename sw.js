@@ -1,6 +1,6 @@
 // fast start: versioned files (?v=) and CDN libraries come from cache instantly;
 // pages are network-first with a short timeout, falling back to cache when slow or offline
-const CACHE = 'tahaddi-v549';
+const CACHE = 'tahaddi-v550';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(
   caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())

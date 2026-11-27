@@ -10,6 +10,8 @@
 	<array>
 		<string>ar</string>
 	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>للدخول إلى حسابك في اهزم الدقيقة بالوجه بدون كتابة كلمة المرور</string>
 	<key>CFBundleDisplayName</key>
         <string>اهزم الدقيقة</string>
 	<key>CFBundleExecutable</key>

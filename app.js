@@ -434,6 +434,18 @@ const isApp = () => /Beat60sApp/.test(navigator.userAgent);
 (() => { const A = isApp() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (!A) return;
   const open = u => { try { const x = new URL(u); if (!/(^|\.)beat60s\.com$/.test(x.hostname) || !x.hash || x.hash === location.hash) return; location.hash = x.hash; } catch(e){} };
   try { A.addListener('appUrlOpen', e => open(e && e.url)); A.getLaunchUrl().then(r => open(r && r.url), () => {}); } catch(e){} })();
+/* v550 Face ID / Touch ID login (native plugin NativeBiometric, credentials in the iPhone Keychain; app only) */
+const BIO = () => (isApp() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBiometric) || null;
+const BIO_SRV = 'beat60s.com';
+const bioOn = () => !!BIO() && LS.get('mc_bio') === '1';
+async function bioAvail(){ try { const r = await BIO().isAvailable(); return !!(r && r.isAvailable); } catch(e){ return false; } }
+async function bioSave(email, password){ try { await BIO().setCredentials({ username: email, password, server: BIO_SRV }); LS.set('mc_bio', '1'); return true; } catch(e){ return false; } }
+async function bioOff(){ try { await BIO().deleteCredentials({ server: BIO_SRV }); } catch(e){} LS.del('mc_bio'); }
+async function bioOffer(email, password){
+  if (!BIO() || LS.get('mc_bio') || LS.get('mc_bio_no') || !(await bioAvail())) return;
+  if (await ask('تدخل المرة الجاية بالوجه أو البصمة بدون كتابة كلمة المرور.', { title: 'تفعيل Face ID؟', ok: 'فعّل', cancel: 'لا', danger: false })) { try { await BIO().verifyIdentity({ reason: 'تفعيل الدخول بالبصمة' }); if (await bioSave(email, password)) toast('تفعّل الدخول بالبصمة ✓'); } catch(e){} }
+  else LS.set('mc_bio_no', '1');
+}
 const NP = () => (isApp() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications) || null;
 async function npSub(save){
   const P = NP(); let st = (await P.checkPermissions()).receive;
@@ -1909,6 +1921,7 @@ function go(h){ if (location.hash === h) route(); else location.hash = h; }
 function authFormHtml(){
   const up = T.authMode === 'up';
   return `<form class="card col" data-form="t-auth" autocomplete="on" method="post" action="#">
+    ${!up && bioOn() ? '<button type="button" class="btn bio-btn" data-act="t-bio">🔓 ادخل بـ Face ID</button>' : ''}
     <div class="tabs"><button type="button" class="${up ? '' : 'on'}" data-act="t-mode" data-mode="in">تسجيل الدخول</button><button type="button" class="${up ? 'on' : ''}" data-act="t-mode" data-mode="up">إنشاء حساب</button></div>
     ${up ? '<div class="field"><label for="a-name">الاسم</label><input class="input" id="a-name" name="name" required></div>' : ''}
     <div class="field"><label for="a-email">البريد الإلكتروني</label><input class="input" id="a-email" name="email" type="email" required dir="ltr" value="${esc(T.authEmail || '')}" placeholder="example@school.edu.kw" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
@@ -1963,6 +1976,16 @@ ACTS['t-oauth'] = async t => {
   const { error } = await sb.auth.signInWithOAuth({ provider: t.dataset.p, options: { redirectTo: location.origin + location.pathname + '#/t/home' } });
   if (error) toast(errMsg(error));
 };
+ACTS['t-bio'] = async () => {
+  const box = document.getElementById('aerr');
+  try {
+    await BIO().verifyIdentity({ reason: 'الدخول إلى اهزم الدقيقة' });
+    const c = await BIO().getCredentials({ server: BIO_SRV });
+    const { error } = await sb.auth.signInWithPassword({ email: c.username, password: c.password });
+    if (error) { await bioOff(); teacherAuth(); const b = document.getElementById('aerr'); if (b) b.innerHTML = '<div class="err">تغيّرت كلمة المرور. سجّل دخولك مرة وحدة وفعّل Face ID من جديد.</div>'; return; }
+    go('#/t/home');
+  } catch(e){ if (box && !/cancel/i.test(String((e && e.message) || ''))) box.innerHTML = '<div class="err">ما تأكد الوجه. جرّب مرة ثانية أو ادخل بكلمة المرور.</div>'; }
+};
 const pwBad = v => /[^\x20-\x7E]/.test(String(v || ''));
 const PW_MSG = 'كلمة المرور بأحرف وأرقام إنجليزية فقط (بدون عربي)';
 const latinDig = v => String(v || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
@@ -1978,9 +2001,11 @@ ACTS['t-auth'] = async f => {
       if (data.user && data.user.identities && !data.user.identities.length) { T.authMode = 'in'; T.authEmail = email; teacherAuth(); const b2 = document.getElementById('aerr'); if (b2) b2.innerHTML = '<div class="err">هذا البريد عنده حساب. سجّل الدخول بكلمة المرور.</div>'; return; }
       if (!data.session) { T.authEmail = email; return tCheckMail(email); }
     } else {
+      let used = password;
       let { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error && raw !== password) ({ error } = await sb.auth.signInWithPassword({ email, password: raw }));
+      if (error && raw !== password) { used = raw; ({ error } = await sb.auth.signInWithPassword({ email, password: raw })); }
       if (error) throw error;
+      go('#/t/home'); bioOffer(email, used); return;
     }
     go('#/t/home');
   } catch(e){ box.innerHTML = `<div class="err">${esc(errMsg(e))}</div>`; }
@@ -4199,7 +4224,7 @@ ACTS['t-export-codes'] = async t => { ctx(t); await XL();
   XLSX.writeFile(wb, 'رموز-' + CK.cls.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };
 const QRJS = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-const XLSXJS = 'vendor/xlsx-0.18.5.full.min.js?v=549';
+const XLSXJS = 'vendor/xlsx-0.18.5.full.min.js?v=550';
 const XL = () => loadJs(XLSXJS, 'XLSX').catch(() => { throw new Error('تعذر تحميل أداة Excel، تأكد من الاتصال'); });
 function loadJs(src, g){ return new Promise((ok, no) => { if (window[g]) return ok(); const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); }
 function qrSvg(text){ try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); } catch(e){ return ''; } }
@@ -5858,7 +5883,7 @@ ACTS['t-q-share-import'] = async t => {
 };
 
 /* read questions from a photo of a worksheet (OCR in the browser) */
-const OCRJS = 'vendor/tesseract-5.1.1.min.js?v=549';
+const OCRJS = 'vendor/tesseract-5.1.1.min.js?v=550';
 ACTS['t-q-ocr'] = () => { closeModals(); document.getElementById('qocr').click(); };
 ACTS['t-q-ocr-chosen'] = async t => {
   const file = t.files && t.files[0]; if (!file) return; t.value = '';
@@ -6621,7 +6646,8 @@ async function tAccount(){
     accCard() +
     sGrp('تسجيل الدخول', [`<div class="set-row"><span class="grow">طريقة الدخول</span><span class="set-val">${PROV[prov] || esc(prov)}</span></div>`,
       `<div class="set-row"><span class="grow">البريد</span><span class="set-val" dir="ltr">${esc(T.user.email || '')}</span></div>`,
-      prov === 'email' ? sRow({ act: 'st-pass', label: 'تغيير كلمة المرور' }) : '']) +
+      prov === 'email' ? sRow({ act: 'st-pass', label: 'تغيير كلمة المرور' }) : '',
+      bioOn() ? sRow({ act: 'st-bio-off', label: 'إيقاف الدخول بـ Face ID' }) : '']) +
     sGrp('', [`<button class="set-row danger-row" data-act="st-logout-ask"><span class="grow center">تسجيل الخروج</span></button>`]) +
     sGrp('', [`<button class="set-row danger-row" data-act="st-del-acc"><span class="grow center">حذف الحساب</span></button>`], 'يحذف حسابك وكل صفوفك وطلبتك وأسئلتك نهائياً.'), 'settings', '', '#/t/settings');
   try {
@@ -7172,6 +7198,7 @@ ACTS['st-export'] = async () => {
     XLSX.writeFile(wb, 'بيانات-تحدي-الدقيقة.xlsx');
   } catch(e){ toast(errMsg(e)); }
 };
+ACTS['st-bio-off'] = async () => { if (await ask('تدخل بكلمة المرور مثل قبل.', { title: 'إيقاف Face ID؟', ok: 'إيقاف' })) { await bioOff(); LS.set('mc_bio_no', '1'); toast('انوقف'); tAccount(); } };
 ACTS['st-logout-ask'] = async () => { if (await ask('تسجيل الخروج من الحساب؟')) ACTS['t-logout'](); };
 ACTS['t-save-name'] = async f => {
   const name = f.name.value.trim();
