@@ -22,6 +22,7 @@ const ERR = {
   bad_code: 'رمز المشاركة غير صحيح',
   duplicate_question: 'هذا السؤال موجود في البنك، لا يمكن تكراره',
   invalid_code: 'الرمز غير صحيح، تأكد منه وحاول مرة أخرى',
+  too_many: 'محاولات كثيرة، انتظر عشر دقائق وحاول مرة ثانية',
   invalid_session: 'انتهت الجلسة، أدخل الرمز من جديد',
   del_pending: 'حسابك بينحذف',
   already_played_today: 'أنهيت جولتك الرسمية اليوم، عد غداً',
@@ -51,7 +52,7 @@ function errMsg(e){
   if (/Failed to fetch|NetworkError/i.test(m)) return 'تعذّر الاتصال، تحقق من الإنترنت';
   return 'حدث خطأ، حاول مرة أخرى';
 }
-async function rpc(name, args){ const { data, error } = await sb.rpc(name, args); if (error) throw error; return data; }
+async function rpc(name, args){ const { data, error } = await sb.rpc(name, args); if (error) throw error; if (data && typeof data === 'object' && data._err) throw { message: data._err }; return data; }
 let toastTimer;
 function toast(m){ $toast.textContent = m; $toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $toast.classList.remove('show'), 2800); }
 const ICON = {
