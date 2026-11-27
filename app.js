@@ -2119,8 +2119,8 @@ const stpFem = () => SG('prof_title') === 'أستاذة';
 const stpGrade = n => { const t = String(n || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)); const m = t.match(/\d+/); if (m) return +m[0]; for (let i = GRADES.length - 1; i >= 0; i--) if (t.indexOf(GRADES[i].replace(/^ال/, '')) >= 0) return i + 1; return 0; };
 const stpSent = id => LS.get('mc_sent_' + id) === '1';
 async function stepsCard(classes, comps, res){
-  if (!classes.length || (T.settings && T.settings.stepsOff) || (ADM.st && ADM.st.act)) return '';
-  if ((res || []).flat().flat().some(r => r && (r.rounds > 0 || r.played_today))) { if (!(T.settings || {}).stepsOff) saveSettings({ stepsOff: 1 }); return ''; }
+  if (!classes.length || (T.settings && T.settings.stepsOff)) return '';
+  if ((res || []).flat().flat().some(r => r && (r.rounds > 0 || r.played_today))) { if (!(T.settings || {}).stepsOff && !(ADM.st && ADM.st.act)) saveSettings({ stepsOff: 1 }); return ''; }
   const st = await sb.from('students').select('class_id'); if (st.error) return '';
   const cnt = {}; st.data.forEach(x => { cnt[x.class_id] = (cnt[x.class_id] || 0) + 1; });
   const total = st.data.length, fem = stpFem(), W = fem ? 'الطالبات' : 'الطلاب', w1 = fem ? 'طالبة' : 'طالب';
