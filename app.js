@@ -1152,7 +1152,7 @@ function pvClose(show){
   document.documentElement.classList.add('pvmode');
   if (x) return;
   x = document.createElement('button'); x.id = 'pv-x'; x.type = 'button'; x.setAttribute('aria-label', 'إغلاق المعاينة'); x.innerHTML = '<span>معاينة · لا تُحتسب نقاط</span><b>✕</b>';
-  x.addEventListener('click', () => { stopTimer(); const b = LS.get('mc_pvback') || '#/t/home'; LS.del('mc_pvback'); location.hash = b.indexOf('#/p/') === 0 ? '#/t/home' : b; });
+  x.addEventListener('click', () => { stopTimer(); const b = LS.get('mc_pvback') || '#/t/home'; LS.del('mc_pvback'); location.hash = b.indexOf('#/p/') === 0 ? '#/t/home' : b; q4TryBack(); });
   document.body.appendChild(x);
 }
 function demoStart(th){
@@ -4701,7 +4701,12 @@ ACTS['q4-qv'] = t => { const q = QS.glob.find(x => x.id === t.dataset.id); if (!
 ACTS['q4-qvb'] = () => q4LedSheet(QS.led);
 /* admin: play this one question exactly as a student sees it (no challenge, no points, nothing saved) */
 ACTS['q4-try'] = () => { const q = QS.glob.find(x => x.id === QS.qv); if (!q) return;
-  LS.set('mc_demoq', JSON.stringify([{ body: q.body, options: q.options, c: q.correct_index, payload: q.payload || null }])); closeModals(); themePreview('mid'); };
+  LS.set('mc_demoq', JSON.stringify([{ body: q.body, options: q.options, c: q.correct_index, payload: q.payload || null }])); closeModals(); QS.tryBack = { id: q.id, h: location.hash }; themePreview('mid'); };
+/* v476 (Khalid): after trying a question, come back to that same question sheet (try again or pick another), not to the page start */
+function q4TryBack(){ const b = QS.tryBack; if (!b) return; QS.tryBack = null; let n = 0;
+  const iv = setInterval(() => { if (++n > 40 || location.hash !== b.h) { if (n > 40 || location.hash.indexOf('#/p/') !== 0) clearInterval(iv); return; }
+    if (!QS.glob || !$app.querySelector(':scope > .t-body') || $app.querySelector('.t-body > .spin')) return;
+    clearInterval(iv); if (!document.querySelector('.modal-back')) ACTS['q4-qv']({ dataset: { id: b.id } }); }, 150); }
 ACTS['q4-rep'] = async t => {
   const q = QS.glob.find(x => x.id === QS.qv); if (!q) return;
   const v = await ask('', { title: 'وش الغلط؟', input: '', placeholder: 'مثل: الجواب الصح هو …', ok: 'إرسال', danger: false }); if (!String(v || '').trim()) return;
