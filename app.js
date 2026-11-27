@@ -1071,7 +1071,7 @@ ACTS['ar-pf-pic'] = () => { S.avFrom = 'ar'; ACTS['s-av'](); };
 function avTabs(){ const dl = S.daily || {}, own = dl.stickers || [], pool = dl.pool || [], g = S.home && S.home.student && S.home.student.gender;
   const ppl = S_AVS.slice(0, 12), kids = g === 'f' ? ppl.slice(6) : g === 'm' ? ppl.slice(0, 6) : ppl; /* v514 (Khalid): a boys' class sees boys only, a girls' class girls only */
   const t = [{ k: 'p', l: 'شخصيات', a: kids }, { k: 'a', l: 'حيوانات', a: g === 'f' ? AV_ANF : g === 'm' ? AV_ANM : AV_ANM.concat(AV_ANF) }];
-  if (pool.length) t.push({ k: 's', l: '🎁 ملصقاتي', a: pool.filter(x => own.indexOf(x) >= 0), n: own.length, of: pool.length });
+  if (false && pool.length) t.push({ k: 's', l: '🎁 ملصقاتي', a: pool.filter(x => own.indexOf(x) >= 0), n: own.length, of: pool.length }); /* v539 (Khalid): stickers tab hidden until the hero stickers are ready */
   return t; }
 function avBig(){ const v = S.avPick, n = (S.home && S.home.student && S.home.student.name) || ''; return '<div class="av2-big' + (v ? '' : ' no') + '">' + (v ? (AV_IMG[v] ? avI(v) : '<em>' + esc(v) + '</em>') : '<em>' + esc(String(n).trim().charAt(0) || '🙂') + '</em>') + '</div>'; }
 function avGrid(){ const t = avTabs().find(x => x.k === S.avTab) || avTabs()[0];
