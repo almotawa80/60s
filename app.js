@@ -1618,6 +1618,12 @@ const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', '
 const NAV_EMO = { home:'🏠', classes:'👥', questions:'❓', settings:'⚙️' };
 /* v211 (Khalid): line icons + «تحدي» = answer-squares logo (bigger, no label) + red count badges */
 const NAV_LN = {"home": '<svg class="nav-ln" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>', "classes": '<svg class="nav-ln" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c1.8.7 3 2.4 3.5 5.2"/></svg>', "questions": '<svg class="nav-ln" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>', "settings": '<svg class="nav-ln" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'};
+/* v487 admin app: its own bottom bar while on #/t/admin… (Khalid 2026-11-27) */
+const admMode = () => location.hash.indexOf('#/t/admin') === 0;
+const ALN = p => `<svg class="nav-ln" viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+const ADM_NAV = [['admin', 'الرئيسية', NAV_LN.home, 1], ['admin/acc', 'الحسابات', NAV_LN.classes, 1], ['admin/rep', 'البلاغات', ALN('<path d="M5 21V4"/><path d="M5 4h12l-2.5 4.5L17 13H5"/>'), 1], ['admin/bank', 'البنك', NAV_LN.questions, 1], ['admin/more', 'المزيد', ALN('<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'), 1]];
+const curNav = () => admMode() ? ADM_NAV : NAV;
+const admNb = () => { const n = ((ADM.fb || []).length + (ADM.rep || []).length); return n ? `<em class="nb">${n > 9 ? '9+' : n}</em>` : ''; };
 /* v303 (Khalid): centre tab icon = golden stopwatch from the app icon (was the 4 answer squares) */
 const NAV_SQ = '<img class="nav-sq" src="nav-watch.png?i=1" alt="" draggable="false" decoding="sync">';
 try { ['r','b','y','g'].forEach(k => { const i = new Image(); i.src = 'aw-' + k + '.png'; }); } catch (e) {}
@@ -1651,12 +1657,12 @@ ACTS['t-bell'] = async () => { ntSheet(); await ntLoad(); if (document.querySele
 ACTS['nt-del'] = t => { ntHide([t.dataset.k]); ntSheet(); };
 ACTS['nt-clear'] = () => { ntHide(NT.items.map(x => x.k)); ntSheet(); };
 ACTS['nt-go'] = t => { closeModals(); go(t.dataset.h); };
-const navIc = n => n[0] === 'new' ? NAV_SQ : NAV_LN[n[0]] ? NAV_LN[n[0]] + nbHtml(n[0]) : ic(n[2]);
+const navIc = n => n[3] ? n[2] + (n[0] === 'admin/rep' ? admNb() : '') : n[0] === 'new' ? NAV_SQ : NAV_LN[n[0]] ? NAV_LN[n[0]] + nbHtml(n[0]) : ic(n[2]);
 
 function shell(title, body, active, top, back){
   return `<div class="t-top"><div class="brand">${back ? (back.indexOf('act:') === 0 ? `<button class="icon-btn back-btn" data-act="${back.slice(4)}" aria-label="رجوع">${ic('back')}</button>` : `<a class="icon-btn back-btn" href="${back}" aria-label="رجوع">${ic('back')}</a>`) : LOGO_S}<span class="t-title${String(title).length > 19 ? ' t-xl' : String(title).length > 13 ? ' t-lg' : ''}">${esc(title)}</span></div><div class="t-acts">${top || ''}<button class="t-bell" data-act="t-bell" aria-label="الإشعارات">${ic('bell')}<em class="t-bell-n"${NT.n ? '' : ' hidden'}>${NT.n > 9 ? '9+' : NT.n}</em></button><button class="t-av" data-act="t-menu" aria-label="حسابي">${avatarHtml('t-av-img')}</button></div></div>` +
     `<div class="t-body">${body}</div>` +
-    `<nav class="t-nav" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${NAV.map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}${n[0] === 'new' ? ' t-sq' : ''}"${n[0] === 'new' ? ' aria-label="تحدي جديد"' : ''}>${navIc(n)}${n[0] === 'new' ? '' : `<span>${n[1]}</span>`}</a>`).join('')}</nav>` + (setTimeout(nbPending, 0) && '');
+    `<nav class="t-nav${admMode() ? ' adm-nav' : ''}" data-k="${admMode() ? 'a' : 't'}" aria-label="القائمة"><span class="lens" style="--i:${NAVI.prev}"></span>${curNav().map(n => `<a href="#/t/${n[0]}" class="${n[0] === active ? 'on' : ''}${n[0] === 'new' ? ' t-sq' : ''}"${n[0] === 'new' ? ' aria-label="تحدي جديد"' : ''}>${navIc(n)}${n[0] === 'new' ? '' : `<span>${n[1]}</span>`}</a>`).join('')}</nav>` + (setTimeout(nbPending, 0) && '');
 }
 const NAVI = { prev: 0 };
 const PCACHE = {}; // last rendered teacher page per hash, shown instantly while fresh data loads
@@ -1755,11 +1761,11 @@ function viewRaw(title, body, active, top, back){
     const hp = (location.hash.match(/^#\/t\/([a-z]+)/) || [])[1] || 'home';
     const want = { class: 'classes', results: 'home', comps: 'home', qshare: 'questions' }[hp] || hp;
     const isTab = k => NAV.some(n => n[0] === k);
-    if (isTab(want) && isTab(active) && active !== want) return;
+    if (!admMode() && isTab(want) && isTab(active) && active !== want) return;
     if (body.indexOf('<div class="spin"></div>') !== 0) { PCACHE[location.hash] = { title, body, top, back }; if (PC_KEEP.includes(location.hash)) { clearTimeout(pcSave.t); pcSave.t = setTimeout(pcSave, 800); } }
   }
-  const i0 = NAV.findIndex(n => n[0] === active), i = Math.max(0, i0);
-  const nav = $app.querySelector(':scope > .t-nav'), oldTop = $app.querySelector(':scope > .t-top'), oldBody = $app.querySelector(':scope > .t-body');
+  const i0 = curNav().findIndex(n => n[0] === active), i = Math.max(0, i0);
+  const nav0 = $app.querySelector(':scope > .t-nav'), nav = nav0 && nav0.dataset.k === (admMode() ? 'a' : 't') ? nav0 : null, oldTop = $app.querySelector(':scope > .t-top'), oldBody = $app.querySelector(':scope > .t-body');
   if (nav && oldTop && oldBody) {
     // keep the tab bar on screen; swap only the header and the page
     const tmp = document.createElement('div'); tmp.innerHTML = shell(title, body, active, top, back);
@@ -1806,7 +1812,7 @@ function viewRaw(title, body, active, top, back){
     if (!d.moved || !d.lens) return;
     const k = idxAt(d.nav, e.changedTouches[0].clientX); d.lens.style.setProperty('--i', k); d.nav.dataset.cur = String(k); if (d.nav.classList.contains('t-nav')) NAVI.prev = k; else S.navPrev = k;
     const el = items(d.nav)[k];
-    if (d.nav.classList.contains('t-nav')) { const h = '#/t/' + NAV[k][0]; if (location.hash !== h) location.hash = h; }
+    if (d.nav.classList.contains('t-nav')) { const h = '#/t/' + curNav()[k][0]; if (location.hash !== h) location.hash = h; }
     else if (el && !el.classList.contains('on')) el.click();
   });
 })();
@@ -1946,29 +1952,117 @@ ACTS['adm-enter'] = async t => { try { await rpc('admin_act', { p_teacher: t.dat
 ACTS['adm-tab'] = t => { ADM.tab = t.dataset.t; admRender(); };
 const admAgo = d => { if (!d) return '—'; const x = Math.floor((Date.now() - new Date(d)) / 864e5); return x <= 0 ? 'اليوم' : x === 1 ? 'أمس' : x < 30 ? `قبل ${x} يوم` : new Date(d).toLocaleDateString('ar-KW', { day: 'numeric', month: 'long' }); };
 const nf = n => Number(n || 0).toLocaleString('en-US');
-async function tAdmin(){
+async function tAdmin(p){
   if (!ADM.st.is) return tHome();
-  view('لوحة المشرف', '<div class="spin"></div>', 'settings', '', '#/t/settings');
-  try { ADM.d = await rpc('admin_overview'); } catch(e){ return view('لوحة المشرف', `<p class="sub center">${esc(errMsg(e))}</p>`, 'settings', '', '#/t/settings'); }
+  p = p || []; const sub = p[0] || '';
+  const act = sub === 'rate' || sub === 'met' ? 'admin/more' : sub ? 'admin/' + sub : 'admin';
+  const V = (title, body, back) => view(title, body, act, '', back);
+  if (sub === 'rep') { V('البلاغات', '<div id="ad-fb"></div><div id="ad-rep"></div><div id="ad-none"></div>'); await Promise.all([admFb(), admReports()]);
+    const n = document.getElementById('ad-none'); if (n && !(ADM.fb || []).length && !(ADM.rep || []).length) n.innerHTML = '<div class="ad-empty"><b>👌</b><p>ما فيه بلاغات</p></div>'; return; }
+  if (sub === 'bank') return admBankPg(p[1], p[2] ? decodeURIComponent(p[2]) : null);
+  if (sub === 'more') return V('المزيد', admMoreHtml());
+  if (sub === 'rate') return admRate(p[1] === 's' ? 's' : 't');
+  if (sub === 'met') { V('القياس', '<div id="ad-met"></div>', '#/t/admin/more'); return admMetrics(); }
+  if (!ADM.d) { V(sub === 'acc' ? 'الحسابات' : 'لوحة المشرف', '<div class="spin"></div>'); try { ADM.d = await rpc('admin_overview'); } catch(e){ return V('لوحة المشرف', `<p class="sub center">${esc(errMsg(e))}</p>`); } }
+  if (sub === 'acc') return admAcc();
   admRender();
 }
-function admRender(){
-  /* v487 tidy admin: reports first (only when any), 4 key numbers, one chart, teachers; the rest under «المزيد» */
-  const d = ADM.d, today = new Date().toDateString(), isTest = t => /e2e|اختبار آلي/i.test((t.email || '') + ' ' + (t.name || ''));
-  const L = (d.list || []).filter(t => !isTest(t)).sort(ADM.tab === 'new' ? (a, b) => new Date(b.created_at) - new Date(a.created_at) : (a, b) => b.rounds - a.rounds || new Date(b.last_sign_in_at || 0) - new Date(a.last_sign_in_at || 0));
-  const k = (n, l, e, id) => `<div class="ad-k"${id ? ` id="${id}"` : ''}><b>${n}</b><span>${l}</span>${e ? `<em>${e}</em>` : ''}</div>`;
-  view('لوحة المشرف',
-    `<div id="ad-fb"></div><div id="ad-rep"></div>
-    <div class="ad-k4">${k(nf(d.teachers), 'معلم', d.teachers_week ? `+${d.teachers_week} هالأسبوع` : '')}${k(nf(d.students), 'طالب', d.students_week ? `+${d.students_week} هالأسبوع` : '')}${k('—', 'لعبوا اليوم', '', 'ad-today')}${k(nf(d.rounds_week), 'جولة هالأسبوع', `اليوم ${nf(d.rounds_today)}`)}</div>
-    <div id="ad-chart"></div>
-    <div class="ad-h">👩‍🏫 المعلمين</div>
-    <div class="ad-segs"><button data-act="adm-tab" data-t="act" class="${ADM.tab === 'act' ? 'on' : ''}">الأنشط</button><button data-act="adm-tab" data-t="new" class="${ADM.tab === 'new' ? 'on' : ''}">الجدد</button></div>
-    <div class="ad-rows">${L.map(t => `<button class="ad-tr" data-act="adm-one" data-id="${t.id}"><span class="ad-av">${esc((t.name || '?')[0])}</span><span class="grow"><b>${esc(t.name || '')}${t.last_sign_in_at && new Date(t.last_sign_in_at).toDateString() === today ? '<i class="ad-dot"></i>' : ''}</b><small>${t.classes} صفوف · ${t.students} طالب · آخر دخول ${admAgo(t.last_sign_in_at)}</small></span><span class="ad-n"><b>${nf(t.rounds)}</b><small>جولة</small></span></button>`).join('') || '<p class="sub center">ما في معلمين</p>'}</div>
-    <p class="sub center">النقطة الخضراء: دخل اليوم · الجولات آخر 7 أيام</p>
-    <details class="ad-more"><summary>المزيد</summary><div id="ad-met"></div>
-      <button class="btn soft ad-ob" data-act="ob-demo">🎮 جرّب جولة البداية (تجربة)</button></details>`, 'settings', '', '#/t/settings');
-  admMetrics(); admReports(); admFb();
+/* v487 rating popup (teacher after first student plays, student after 3rd round) */
+const RT = { k: 't', s: 0, c: '' };
+function rateAsk(k){
+  RT.k = k; RT.s = 0; RT.c = '';
+  modal(`<div class="rt-box"><div class="rt-e">${k === 's' ? '🎮' : '👋'}</div><h3>${k === 's' ? 'عجبتك اللعبة؟' : 'شرايك في اهزم الدقيقة؟'}</h3><p class="sub">${k === 's' ? 'قيّمها بالنجوم' : 'رأيك يساعدنا نطوّرها'}</p>
+    <div class="rt-stars">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-act="rt-s" data-v="${n}" aria-label="${n} نجوم">★</button>`).join('')}</div>
+    <button type="button" class="link rt-cm" data-act="rt-cm">✍️ اكتب تعليق</button><p class="rt-ct" id="rt-ct" hidden></p>
+    <div class="col"><button class="btn" id="rt-go" data-act="rt-send" disabled>إرسال</button><button class="btn ghost" data-act="rt-later">لاحقاً</button></div></div>`);
+  rtMid();
 }
+const rtMid = () => { const m = [...document.querySelectorAll('.modal-back')].pop(); if (m) m.classList.add('rt-mid'); };
+ACTS['rt-s'] = t => { RT.s = +t.dataset.v; t.parentElement.querySelectorAll('button').forEach((b, j) => b.classList.toggle('on', j < RT.s)); const g = document.getElementById('rt-go'); if (g) g.disabled = false; };
+ACTS['rt-cm'] = () => {
+  modal(`<div class="rt-in"><h3>اكتب تعليقك</h3><textarea class="input" id="rt-tx" maxlength="500" rows="5" placeholder="${RT.k === 's' ? 'شنو عجبك؟ وشنو ما عجبك؟' : 'شنو عجبك؟ وشنو نحسّن؟'}">${esc(RT.c)}</textarea><div class="col"><button class="btn" data-act="rt-cm-ok">تم</button></div></div>`); rtMid();
+  setTimeout(() => { const x = document.getElementById('rt-tx'); if (x) x.focus(); }, 50); };
+ACTS['rt-cm-ok'] = () => { const x = document.getElementById('rt-tx'); RT.c = x ? x.value.trim() : ''; const m = [...document.querySelectorAll('.modal-back')].pop(); if (m) m.remove();
+  const c = document.getElementById('rt-ct'); if (c) { c.hidden = !RT.c; c.textContent = '«' + RT.c + '»'; } const k = document.querySelector('.rt-cm'); if (k && RT.c) k.textContent = '✏️ عدّل التعليق'; };
+ACTS['rt-later'] = () => { LS.set('mc_rt_' + RT.k, String(Date.now())); closeModals(); };
+ACTS['rt-send'] = async () => { if (!RT.s) return;
+  try { await rpc(RT.k === 's' ? 'student_rate' : 'teacher_rate', RT.k === 's' ? { p_token: S.token, p_stars: RT.s, p_comment: RT.c || null } : { p_stars: RT.s, p_comment: RT.c || null }); } catch(e){}
+  LS.set('mc_rt_' + RT.k, 'done'); closeModals(); toast('شكراً 🙏'); };
+const admIsTest = t => /e2e|اختبار آلي/i.test((t.email || '') + ' ' + (t.name || ''));
+function admRender(){
+  /* home: attention line (only when reports), 4 key numbers, one chart */
+  const d = ADM.d, k = (n, l, e, id) => `<div class="ad-k"${id ? ` id="${id}"` : ''}><b>${n}</b><span>${l}</span>${e ? `<em>${e}</em>` : ''}</div>`;
+  view('لوحة المشرف', `<div id="ad-att"></div>
+    <div class="ad-k4">${k(nf(d.teachers), 'معلم', d.teachers_week ? `+${d.teachers_week} هالأسبوع` : '')}${k(nf(d.students), 'طالب', d.students_week ? `+${d.students_week} هالأسبوع` : '')}${k('—', 'لعبوا اليوم', '', 'ad-today')}${k(nf(d.rounds_week), 'جولة هالأسبوع', `اليوم ${nf(d.rounds_today)}`)}</div>
+    <div id="ad-chart"></div>`, 'admin');
+  admMetrics();
+  Promise.all([admFb(), admReports()]).then(() => { const n = (ADM.fb || []).length + (ADM.rep || []).length, el = document.getElementById('ad-att');
+    if (el && n) el.innerHTML = `<a class="ad-attn" href="#/t/admin/rep"><span>🚩</span><b class="grow">${n === 1 ? 'بلاغ واحد ينتظرك' : `${n} بلاغات تنتظرك`}</b><span class="set-chev">${ic('back')}</span></a>`;
+    const nav = document.querySelector('.t-nav.adm-nav a[href="#/t/admin/rep"]'); if (nav && n && !nav.querySelector('.nb')) nav.insertAdjacentHTML('beforeend', admNb()); });
+}
+function admAcc(){
+  const d = ADM.d, today = new Date().toDateString(), q = (ADM.q || '').trim();
+  const L = (d.list || []).filter(t => !admIsTest(t) && (!q || (t.name || '').indexOf(q) >= 0 || (t.email || '').indexOf(q) >= 0)).sort(ADM.tab === 'new' ? (a, b) => new Date(b.created_at) - new Date(a.created_at) : (a, b) => b.rounds - a.rounds || new Date(b.last_sign_in_at || 0) - new Date(a.last_sign_in_at || 0));
+  const rows = L.map(t => `<button class="ad-tr" data-act="adm-one" data-id="${t.id}"><span class="ad-av">${esc((t.name || '?')[0])}</span><span class="grow"><b>${esc(t.name || '')}${t.last_sign_in_at && new Date(t.last_sign_in_at).toDateString() === today ? '<i class="ad-dot"></i>' : ''}</b><small>${t.classes} صفوف · ${t.students} طالب · آخر دخول ${admAgo(t.last_sign_in_at)}</small></span><span class="ad-n"><b>${nf(t.rounds)}</b><small>جولة</small></span></button>`).join('') || '<p class="sub center">ما في نتائج</p>';
+  if (document.getElementById('ad-list')) { document.getElementById('ad-list').innerHTML = rows; return; }
+  view('الحسابات', `<input class="input ad-q" id="ad-q" type="search" placeholder="🔍 ابحث باسم المعلم" value="${esc(q)}">
+    <div class="ad-segs"><button data-act="adm-tab" data-t="act" class="${ADM.tab === 'act' ? 'on' : ''}">الأنشط</button><button data-act="adm-tab" data-t="new" class="${ADM.tab === 'new' ? 'on' : ''}">الجدد</button></div>
+    <div class="ad-rows" id="ad-list">${rows}</div><p class="sub center">النقطة الخضراء: دخل اليوم · الجولات آخر 7 أيام</p>`, 'admin/acc');
+}
+document.addEventListener('input', e => { if (e.target.id === 'ad-q') { ADM.q = e.target.value; admAcc(); } });
+function admMoreHtml(){
+  const r = ADM.rt || {}, st = k => r[k] && r[k].n ? `⭐ ${r[k].avg} · ${r[k].n}` : '';
+  return sGrp('الآراء', [
+    sRow({ act: 'go', attrs: 'data-h="#/t/admin/rate/t"', icon: 'star', label: 'تقييمات المعلمين', val: st('t') }),
+    sRow({ act: 'go', attrs: 'data-h="#/t/admin/rate/s"', icon: 'star', label: 'تقييمات الطلبة', val: st('s') })]) +
+    sGrp('أدوات', [
+    sRow({ act: 'go', attrs: 'data-h="#/t/admin/met"', icon: 'chart', label: 'القياس', sub: 'الرجوع · السلسلة · الصناديق' }),
+    sRow({ act: 'ob-demo', icon: 'play', label: 'جرّب جولة البداية' })]) +
+    sGrp('', [sRow({ act: 'go', attrs: 'data-h="#/t/settings"', icon: 'back', label: 'رجوع لحسابي', noChev: true })]);
+}
+/* ratings: in-app stars + optional comment (sql/ratings.sql) */
+async function admRate(k){
+  const title = k === 's' ? 'تقييمات الطلبة' : 'تقييمات المعلمين';
+  view(title, '<div class="spin"></div>', 'admin/more', '', '#/t/admin/more');
+  let L; try { L = await rpc('admin_ratings', { p_kind: k }) || []; } catch(e){ L = []; }
+  const n = L.length, avg = n ? (L.reduce((a, r) => a + r.stars, 0) / n) : 0, by = [5, 4, 3, 2, 1].map(s => [s, L.filter(r => r.stars === s).length]);
+  const stars = v => '★★★★★'.slice(0, v) + '<i>' + '★★★★★'.slice(v) + '</i>';
+  view(title, n ? `<div class="ad-card ad-rt"><div class="ad-rt-a"><b>${avg.toFixed(1)}</b><span class="ad-st">${stars(Math.round(avg))}</span><small>${n} تقييم</small></div>
+      <div class="ad-rt-b">${by.map(x => `<div><span>${x[0]}</span><i><u style="width:${n ? Math.round(x[1] / n * 100) : 0}%"></u></i></div>`).join('')}</div></div>
+    <div class="ad-h">التعليقات</div><div class="ad-rows">${L.filter(r => r.comment).map(r => `<div class="ad-tr ad-cm"><span class="grow"><span class="ad-st sm">${stars(r.stars)}</span><b>${esc(r.comment)}</b><small>${esc(r.who || '')} · ${admAgo(r.created_at)}</small></span></div>`).join('') || '<p class="sub center">ما فيه تعليقات بعد</p>'}</div>`
+    : '<div class="ad-empty"><b>⭐</b><p>ما فيه تقييمات بعد</p></div>', 'admin/more', '', '#/t/admin/more');
+}
+/* bank: subjects by stage → lessons → questions; edits apply to everyone (sql/bank_admin.sql) */
+const ADM_ST = [['primary', 'ابتدائي'], ['middle', 'متوسط'], ['secondary', 'ثانوي'], ['gen', 'عامة']];
+const GR_AR = ['', 'الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر', 'الحادي عشر', 'الثاني عشر'];
+async function admBankPg(cu, les){
+  if (!ADM.bank) { view('البنك', '<div class="spin"></div>', 'admin/bank'); try { ADM.bank = await rpc('admin_bank'); } catch(e){ return view('البنك', `<p class="sub center">${esc(errMsg(e))}</p>`, 'admin/bank'); } }
+  const B = ADM.bank || { cus: [], gen: [] };
+  if (cu) return admBankCuPg(B.cus.find(c => c.id === cu), les);
+  const st = ADM.bst || 'middle', tot = B.cus.reduce((a, c) => a + c.n, 0) + (B.gen || []).reduce((a, c) => a + c.n, 0);
+  const chips = `<div class="ad-segs">${ADM_ST.map(x => `<button data-act="adm-bst" data-v="${x[0]}" class="${st === x[0] ? 'on' : ''}">${x[1]}</button>`).join('')}</div>`;
+  let body;
+  if (st === 'gen') body = `<div class="ad-rows">${(B.gen || []).map(g => `<div class="ad-tr"><span class="ad-av ad-ic">${g.ic}</span><span class="grow"><b>${esc(g.name)}</b><small>${g.n ? nf(g.n) + ' سؤال' : 'فاضية'}</small></span>${g.n < 50 ? '<span class="ad-warn">ناقصة</span>' : ''}</div>`).join('')}</div>`;
+  else { const C = B.cus.filter(c => c.stage === st), G = [...new Set(C.map(c => c.grade))].sort((a, b) => a - b);
+    body = G.map(g => { const R = C.filter(c => c.grade === g).sort((a, b) => b.n - a.n), n = R.reduce((a, c) => a + c.n, 0);
+      return `<div class="ad-h">الصف ${GR_AR[g] || g}<small>${nf(n)} سؤال</small></div><div class="ad-rows">${R.map(c => `<button class="ad-tr" data-act="go" data-h="#/t/admin/bank/${c.id}"${c.n ? '' : ' disabled'}><span class="grow"><b>${esc(c.subject)}</b><small>${c.n ? `${nf(c.n)} سؤال · ${c.les} درس` : 'ما فيها أسئلة'}</small></span>${c.n ? (c.thin ? `<span class="ad-warn">⚠️ ${c.thin} ناقص</span>` : '<span class="ad-ok">✓</span>') : ''}</button>`).join('')}</div>`; }).join('') || '<div class="ad-empty"><b>📚</b><p>ما فيه مواد بهالمرحلة بعد</p></div>'; }
+  view('البنك', `<div class="ad-btot"><b>${nf(tot)}</b><span>سؤال في البنك</span></div>${chips}${body}<p class="sub center">⚠️ ناقص = درس فيه أقل من 8 أسئلة</p>`, 'admin/bank');
+}
+ACTS['adm-bst'] = t => { ADM.bst = t.dataset.v; admBankPg(); };
+async function admBankCuPg(c, les){
+  if (!c) return go('#/t/admin/bank');
+  const back = '#/t/admin/bank' + (les ? '/' + c.id : ''), title = les || `${c.subject} · ${GR_AR[c.grade] || c.grade}`;
+  view(title, '<div class="spin"></div>', 'admin/bank', '', back);
+  let Q; try { Q = (ADM.bq = ADM.bq || {})[c.id] || (ADM.bq[c.id] = await rpc('admin_bank_cu', { p_cu: c.id }) || []); } catch(e){ return view(title, `<p class="sub center">${esc(errMsg(e))}</p>`, 'admin/bank', '', back); }
+  if (!les) { const L = [...new Set(Q.map(q => q.lesson || 'بدون درس'))].map(l => [l, Q.filter(q => (q.lesson || 'بدون درس') === l).length]);
+    return view(title, `<div class="ad-rows">${L.map(x => `<button class="ad-tr" data-act="go" data-h="#/t/admin/bank/${c.id}/${encodeURIComponent(x[0])}"><span class="grow"><b>${esc(x[0])}</b><small>${x[1]} سؤال</small></span>${x[1] < 8 ? '<span class="ad-warn">⚠️ ناقص</span>' : ''}</button>`).join('')}</div>`, 'admin/bank', '', back); }
+  const R = Q.filter(q => (q.lesson || 'بدون درس') === les); ADM.rep = ADM.rep || []; ADM.bqs = R;
+  view(title, `<div class="ad-rows">${R.map((q, i) => `<button class="ad-tr" data-act="adm-bq" data-i="${i}"><span class="ad-qi">${i + 1}</span><span class="grow"><b>${esc(q.body)}</b><small>✓ ${esc(q.options[q.correct_index] || '')}</small></span></button>`).join('')}</div><p class="sub center">أي تعديل هنا يمشي على كل المعلمين</p>`, 'admin/bank', '', back);
+}
+ACTS['adm-bq'] = t => { const q = (ADM.bqs || [])[+t.dataset.i]; if (!q) return;
+  modal(`<h3>سؤال في البنك</h3><p class="ad-qb">${esc(q.body)}</p><div class="ad-qo">${q.options.map((o, j) => `<span class="${j === q.correct_index ? 'ok' : ''}">${j === q.correct_index ? '✓ ' : ''}${esc(o)}</span>`).join('')}</div>
+    <div class="col"><button class="btn" data-act="adm-bqe" data-i="${t.dataset.i}">✏ عدّله للجميع</button><button class="btn soft" data-act="adm-qdel" data-id="${q.id}">🗑 احذفه للجميع</button></div>`); };
+ACTS['adm-bqe'] = t => { const q = (ADM.bqs || [])[+t.dataset.i]; if (!q) return; ADM.rep = [q].concat((ADM.rep || []).filter(r => r.id !== q.id)); ACTS['adm-qed']({ dataset: { i: '0' } }); };
 /* teacher problem reports in the admin page */
 async function admFb(force){
   let L; try { L = (!force && ADM.fb) || (ADM.fb = await rpc('admin_feedback')); } catch(e){ return; }
@@ -2005,7 +2099,7 @@ ACTS['adm-qsave'] = async f => { const r = (ADM.rep || []).find(x => x.id === f.
   const opts = r.options.map((_, j) => f['o' + j].value.trim()), ci = r.payload && r.payload.kind === 'order' ? 0 : +f.c.value;
   if (opts.some(o => !o) || new Set(opts).size < opts.length) return toast('الإجابات لازم تكون مكتوبة ومختلفة');
   try { await rpc('admin_question_set', { p_q: r.id, p_body: f.b.value.trim(), p_options: opts, p_correct: ci }); } catch(e){ return toast(errMsg(e)); }
-  closeModals(); toast('انحفظ للجميع ✓'); admReports(true);
+  closeModals(); toast('انحفظ للجميع ✓'); ADM.bq = null; ADM.bank = null; if (location.hash.indexOf('#/t/admin/bank') === 0) teacherRoute(); else admReports(true);
 };
 ACTS['adm-qdel'] = async t => {
   if (!await ask('ينحذف من البنك عند كل المعلمين، وما يرجع.', { title: 'حذف للجميع؟', ok: 'حذف', danger: true })) return;
@@ -2027,7 +2121,7 @@ async function admMetrics(){
   const c = document.getElementById('ad-chart');
   if (c) c.innerHTML = `<div class="ad-card"><div class="ad-ct"><b>آخر 14 يوم</b><small>طلاب لعبوا الجولة</small></div><div class="ad-bars">${days.map(x => { const d = new Date(x.d + 'T12:00:00'); return `<div title="${x.d}: ${x.n}">${x.n ? `<em>${x.n}</em>` : ''}<i class="${x.n ? '' : 'z'}" style="height:${Math.round(x.n / mx * 100)}%"></i><small>${wd[d.getDay()]}</small></div>`; }).join('')}</div></div>`;
   const el = document.getElementById('ad-met'); if (!el) return;
-  el.innerHTML = `<div class="ad-k4">${rt(1)}${rt(7)}${rt(30)}${k2(m.streak && m.streak.avg != null ? m.streak.avg : 0, 'متوسط السلسلة 🔥', `أطول ${m.streak && m.streak.max || 0}`)}${k2(nf(m.boxes || 0), 'صندوق انفتح', 'آخر 7 أيام')}${k2(nf(ADM.d.live), 'تحدي شغّال')}</div>`;
+  el.innerHTML = `<div class="ad-k4">${rt(1)}${rt(7)}${rt(30)}${k2(m.streak && m.streak.avg != null ? m.streak.avg : 0, 'متوسط السلسلة 🔥', `أطول ${m.streak && m.streak.max || 0}`)}${k2(nf(m.boxes || 0), 'صندوق انفتح', 'آخر 7 أيام')}${(ADM.d ? k2(nf(ADM.d.live), 'تحدي شغّال') : '')}</div>`;
   function k2(n, l, e){ return `<div class="ad-k"><b>${n}</b><span>${l}</span>${e ? `<em>${e}</em>` : ''}</div>`; }
 }
 ACTS['adm-one'] = t => {
@@ -2080,7 +2174,7 @@ async function teacherRoute(){
     else if (page === 'results') await tResults(parts[1], parts[2]);
     else if (page === 'ch') { CL.tab = 'comps'; CL.cur = null; await tClasses(); }
     else if (page === 'settings') await tSettings();
-    else if (page === 'admin') await tAdmin();
+    else if (page === 'admin') await tAdmin(parts.slice(1));
     else if (page === 'sg') parts[1] === 'st' ? tSSet() : tSetGroup(parts[1]);
     else if (page === 'qset' || page === 'rset' || page === 'rules') tRules();
     else if (page === 'account') await tAccount();
