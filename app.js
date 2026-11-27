@@ -1686,6 +1686,16 @@ function snapLayer(html, y, cls){
   const tt = L.querySelector('.pg-sc > .t-top'); if (tt && y > 0) { const c = tt.cloneNode(true); c.classList.add('pg-tt'); L.firstChild.prepend(c); }
   return L;
 }
+/* v485 (Khalid: the header «shakes» when a page opens): the bell and the avatar are the same on every page, so they stay put
+   while the pages slide under them, instead of two copies sliding past each other */
+function actsPin(ms){
+  document.querySelectorAll('.pg-acts').forEach(e => e.remove());
+  const src = [...$app.querySelectorAll(':scope > .t-top .t-bell, :scope > .t-top .t-av')]; if (!src.length) return;
+  const box = document.createElement('div'); box.className = 'pg-acts';
+  src.forEach(e => { const r = e.getBoundingClientRect(), c = e.cloneNode(true); c.removeAttribute('data-act'); c.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;margin:0`; box.appendChild(c); });
+  document.body.appendChild(box); document.documentElement.classList.add('pg-pin');
+  clearTimeout(actsPin.t); actsPin.t = setTimeout(() => { box.remove(); if (!document.querySelector('.pg-acts')) document.documentElement.classList.remove('pg-pin'); }, ms);
+}
 const pageEls = () => [...$app.querySelectorAll(':scope > .t-top, :scope > .t-body, :scope > .sh.s-tabpg')];
 function view(title, body, active, top, back){
   const h = location.hash, prev = NS.cur, first = h !== prev;
@@ -1718,6 +1728,7 @@ function view(title, body, active, top, back){
   if (NS.swipe) { NS.swipe = false; document.querySelectorAll('.pg-layer').forEach(x => x.remove()); $app.classList.remove('pg-anim'); return; }
   if (!mode || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const els = pageEls(), W = $app.offsetWidth;
+  actsPin(mode === 'push' ? 380 : 340);
   if (mode === 'push') {
     const L = snapLayer(oldHtml, oldY, 'under');
     els.forEach(e => { e.style.transition = 'none'; e.style.transform = `translateX(${-W}px)`; });
