@@ -694,6 +694,8 @@ const AR_SUBJ = {
   'الرياضيات': { n: 'رياضيات', c: 'y', b: ['+', '×', '='] },
   'العلوم': { n: 'علوم', c: 'g', b: ['?', 'bulb', '!'] }
 };
+/* v508 (Khalid, soft opening): the student arena shows only Islamic + the general card (general, quick, memory); add names here to show the rest later */
+const AR_SHOW = ['التربية الإسلامية', 'عامة'];
 function arSubj(s, i){ return AR_SUBJ[s] || { n: s, c: 'rbyg'[(i || 0) % 4], b: ['?', 'bulb', '!'] }; }
 function arGlyph(g, ink){
   if (g === 'moon') return '<path d="M33 12a20 20 0 1 0 16 31A16.5 16.5 0 1 1 33 12z" fill="' + ink + '"/>';
@@ -784,10 +786,9 @@ function arAv(av, name, cls, dr){ if (/^[bg][1-4]$/.test(dr || '') && !AV_IMG[av
 /* «لقبك وشكلك»: the nickname is rolled from fixed word lists (never typed), the look is one of eight drawn characters */
 function arRoll(g, not){ const pk = a => a[Math.floor(Math.random() * a.length)]; let n; do { n = pk(AR_W[g]) + ' ' + pk(AR_W.x); } while (n === not); return n; }
 function arPfHtml(){ const f = AR.pf;
-  return '<h3>لقبك وصورتك</h3><div class="ar-pfg">' + [['b', 'ولد'], ['g', 'بنت']].map(x => '<button class="' + (f.g === x[0] ? 'on' : '') + '" data-act="ar-pf-g" data-g="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
+  return '<h3>صورتك</h3><div class="ar-pfg">' + [['b', 'ولد'], ['g', 'بنت']].map(x => '<button class="' + (f.g === x[0] ? 'on' : '') + '" data-act="ar-pf-g" data-g="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
     '<button class="ar-pfp" data-act="ar-pf-pic">' + arAv((AR.h || {}).avatar, f.nick, '', f.av) + '<span>غيّر صورتك</span></button>' +
-    '<div class="ar-pfn"><b>' + esc(f.nick) + '</b><button data-act="ar-pf-roll" aria-label="لقب ثاني"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="5" width="30" height="30" rx="8" fill="#F5F5F7"/><circle cx="13.5" cy="13.5" r="3" fill="#C8102E"/><circle cx="26.5" cy="13.5" r="3" fill="#1C1C1E"/><circle cx="20" cy="20" r="3" fill="#1C1C1E"/><circle cx="13.5" cy="26.5" r="3" fill="#1C1C1E"/><circle cx="26.5" cy="26.5" r="3" fill="#C8102E"/></svg>غيّر</button></div>' +
-    '<button class="btn" data-act="ar-pf-save">حفظ</button><p class="ar-pfh">اسمك الحقيقي ما يطلع في الحلبة، بس لقبك.</p>'; }
+    '<button class="btn" data-act="ar-pf-save">حفظ</button><p class="ar-pfh">يطلع للخصم اسمك الأول والثاني.</p>'; }
 function arPfDraw(){ const el = document.getElementById('ar-pf'); if (el) el.innerHTML = arPfHtml(); }
 function arProfile(){ const h = AR.h || {}, st = (S.home && S.home.student) || {};
   const g = h.av ? h.av.charAt(0) : (st.gender === 'f' ? 'g' : 'b'), w = String(h.nick || '').split(' ');
@@ -840,7 +841,7 @@ function arNow(g){ setTimeout(async () => { if (AR.gen !== g || S.tab !== 'ar' |
   } catch(e){}
   arNow(g); }, 8000); }
 function arDraw(){
-  const h = AR.h, l = h.lvl, t = h.tier, subs = h.subjects || [];
+  const h = AR.h, l = h.lvl, t = h.tier, subs = (h.subjects || []).filter(x => AR_SHOW.indexOf(x.s) >= 0);
   const stg = ['مبتدئ', 'محترف', 'أسطورة'], si = l.n < 11 ? 0 : l.n < 31 ? 1 : 2;
   const gate = l.n < 11 ? 'بوابة 4 أسئلة عند مستوى 11' : l.n < 31 ? 'بوابة 6 أسئلة عند مستوى 31' : l.n < 60 ? 'القمة عند مستوى 60' : '⭐ ' + (l.stars || 0);
   sPage('ar', '<div class="ar">' +
