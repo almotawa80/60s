@@ -397,7 +397,7 @@ function renderHomeP(){
     (h.played_today ? '' : '<div class="sp-low"><button class="sp-prac" data-act="s-start" data-kind="practice"><span>🎯</span>تدرّب بدون نقاط</button></div>') +
     '</div>' + sNav('home'));
   startCountdown();
-  if (!S.demo) { loadDaily(); subjLoad(); }
+  if (!S.demo) { loadDaily(); subjLoad(); avFirst(); }
   if (h.played_today && !S.demo && pushBtn() && !LS.get('mc_push_ask')) { LS.set('mc_push_ask', '1'); popQ(3, () => modal('<div class="s-avs center"><div class="lvl-up">🔔</div><h3>تبي نذكّرك؟</h3><p class="sub">نرسل لك تذكير وحد باليوم إذا ما لعبت، ورسائل معلمك توصلك على طول. وما فيه شي بالليل.</p><button class="btn" data-act="s-push">فعّل الإشعارات</button><button class="btn soft" data-act="close-modal">مو الحين</button></div>').classList.add('mid')); }
   if (!h.played_today && h.rank > 1 && h.gap > 0 && !S.demo) rpc('class_leaderboard', { p_token: S.token }).then(lb => {
     const rows = Array.isArray(lb) ? lb : (lb && lb.rows) || [], me = rows.find(r => r.is_me), above = me && rows.filter(r => r.rank < me.rank).sort((a, b) => b.rank - a.rank)[0];
@@ -993,15 +993,34 @@ ACTS['s-logout-ask'] = async () => { const code = LS.get('mc_code');
   if (!await ask('تحتاجه عشان ترجع.', { title: code ? 'صوّر رمزك قبل ما تطلع' : 'تسجيل الخروج؟', html: code ? `<div class="dlg-code" dir="ltr">${esc(code)}</div><button type="button" class="dlg-cp" data-act="copy" data-v="${esc(code)}">📋 انسخ الرمز</button>` : '', cancel: 'رجوع', ok: 'اطلع', danger: true })) return; closeModals(); ACTS['s-logout'](); };
 const S_AVS = ['p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11','p12','🦁','🐯','🐼','🦊','🐨','🐸','🦉','🦅','🐬','🐢','🦄','🐉'];
 ACTS['ar-pf-pic'] = () => { S.avFrom = 'ar'; ACTS['s-av'](); };
-ACTS['s-av'] = async () => { if (!S.home) return; S.avPick = S.home.student.avatar || '';
+/* v480 (Khalid: the picker was one long page of pictures): big preview on top + 3 small tabs, one screen, no scrolling */
+function avTabs(){ const dl = S.daily || {}, own = dl.stickers || [], pool = dl.pool || [], g = S.home && S.home.student && S.home.student.gender;
+  const ppl = S_AVS.slice(0, 12), kids = g === 'f' ? ppl.slice(6).concat(ppl.slice(0, 6)) : ppl;
+  const t = [{ k: 'p', l: 'شخصيات', a: kids }, { k: 'a', l: 'حيوانات', a: S_AVS.slice(12) }];
+  if (pool.length) t.push({ k: 's', l: '🎁 ملصقاتي', a: pool.filter(x => own.indexOf(x) >= 0), n: own.length, of: pool.length });
+  return t; }
+function avBig(){ const v = S.avPick, n = (S.home && S.home.student && S.home.student.name) || ''; return '<div class="av2-big' + (v ? '' : ' no') + '">' + (v ? (AV_IMG[v] ? avI(v) : '<em>' + esc(v) + '</em>') : '<em>' + esc(String(n).trim().charAt(0) || '🙂') + '</em>') + '</div>'; }
+function avGrid(){ const t = avTabs().find(x => x.k === S.avTab) || avTabs()[0];
+  return (t.a.length ? '<div class="s-avg">' + t.a.map(a => '<button class="' + (a === S.avPick ? 'on' : '') + '" data-act="s-avp" data-v="' + a + '">' + avI(a) + '</button>').join('') + '</div>' : '') +
+    (t.k === 's' ? '<p class="av2-note">' + (t.n ? 'عندك ' + t.n + ' من ' + t.of + '. ' : 'ما عندك ملصقات للحين. ') + 'افتح الصندوق كل يوم وتفوز بملصق جديد 🎁</p>' : ''); }
+function avHtml(first){ const tabs = avTabs(); if (!tabs.some(x => x.k === S.avTab)) S.avTab = (tabs.find(x => x.a.indexOf(S.avPick) >= 0) || tabs[0]).k;
+  const nm = String((S.home.student.name || '')).trim().split(/\s+/)[0];
+  return '<div class="s-avs av2' + (first ? ' av2-first' : '') + '">' + (first ? '<h3>هلا ' + esc(nm) + ' 👋</h3><p class="av2-sub">اختر شخصيتك</p>' : '<h3>اختر شخصيتك</h3>') +
+    '<div id="av2-big">' + avBig() + '</div>' +
+    '<div class="av2-tabs">' + tabs.map(x => '<button class="' + (x.k === S.avTab ? 'on' : '') + '" data-act="s-avt" data-k="' + x.k + '">' + x.l + '</button>').join('') + '</div>' +
+    '<div id="av2-grid">' + avGrid() + '</div>' +
+    '<button class="btn" data-act="s-avs"' + (first ? ' data-first="1"' : '') + '>' + (first ? 'يلا نلعب' : 'حفظ') + '</button>' +
+    (first ? '<button class="av2-skip" data-act="close-modal">تخطّي</button>' : S.home.student.avatar ? '<button class="av2-skip" data-act="s-avs" data-v="">بدون شخصية</button>' : '') + '</div>'; }
+ACTS['s-av'] = async () => { if (!S.home) return; S.avPick = S.home.student.avatar || ''; S.avTab = '';
   if (!S.daily && !S.demo) { try { S.daily = await rpc('student_daily', { p_token: S.token }); } catch(e){} }
-  const dl = S.daily || {}, own = dl.stickers || [], pool = dl.pool || [];
-  modal('<div class="s-avs"><h3>اختر شخصيتك</h3><div class="s-avg">' + S_AVS.map(a => '<button class="' + (a === S.avPick ? 'on' : '') + '" data-act="s-avp" data-v="' + a + '">' + avI(a) + '</button>').join('') + '</div>' +
-    (pool.length ? '<h4 class="s-avh">🎁 ملصقات الصندوق ' + own.length + ' من ' + pool.length + '</h4><div class="s-avg">' + pool.map(a => own.indexOf(a) >= 0 ? '<button class="' + (a === S.avPick ? 'on' : '') + '" data-act="s-avp" data-v="' + a + '">' + a + '</button>' : '<button class="lk" disabled aria-label="مقفول">🔒</button>').join('') + '</div>' : '') +
-    '<button class="btn" data-act="s-avs">حفظ</button>' + (S.home.student.avatar ? '<button class="btn soft" data-act="s-avs" data-v="">بدون شخصية</button>' : '') + '</div>'); };
-ACTS['s-avp'] = t => { S.avPick = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); };
+  modal(avHtml(false)); };
+ACTS['s-avt'] = t => { S.avTab = t.dataset.k; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const g = document.getElementById('av2-grid'); if (g) g.innerHTML = avGrid(); haptic(); };
+ACTS['s-avp'] = t => { S.avPick = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); const b = document.getElementById('av2-big'); if (b) b.innerHTML = avBig(); haptic(); };
+/* first time a student opens the app: one skippable screen to pick a character, then straight to «العب» */
+function avFirst(){ const h = S.home; if (!h || S.demo || h.student.avatar) return; const k = 'mc_av1_' + String(S.token || '').slice(0, 12); if (LS.get(k)) return; LS.set(k, '1');
+  popQ(1, () => { if (!S.home || S.home.student.avatar) return; S.avPick = (S.home.student.gender === 'f' ? 'p7' : 'p1'); S.avTab = 'p'; modal(avHtml(true)); }); }
 ACTS['s-avs'] = async t => { const v = t.dataset.v != null ? t.dataset.v : S.avPick; if (S.demo) { S.home.student.avatar = v; closeModals(); return ACTS['s-tab']({ dataset: { t: 'me' } }); }
-  try { await rpc('student_set_avatar', { p_token: S.token, p_av: v || '' }); S.home.student.avatar = v || null; if (AR.h) AR.h.avatar = v || null; closeModals(); toast(v ? 'انحفظت شخصيتك' : 'انشالت الشخصية'); if (S.avFrom === 'ar') { S.avFrom = ''; if (AR.pf) { modal('<div class="ar-pf" id="ar-pf">' + arPfHtml() + '</div>'); } if (S.tab === 'ar') arDraw(); } else ACTS['s-tab']({ dataset: { t: 'me' } }); } catch (e) { toast(errMsg(e)); } };
+  try { await rpc('student_set_avatar', { p_token: S.token, p_av: v || '' }); S.home.student.avatar = v || null; if (AR.h) AR.h.avatar = v || null; closeModals(); if (t.dataset.first) return loadHome(); toast(v ? 'انحفظت شخصيتك' : 'انشالت الشخصية'); if (S.avFrom === 'ar') { S.avFrom = ''; if (AR.pf) { modal('<div class="ar-pf" id="ar-pf">' + arPfHtml() + '</div>'); } if (S.tab === 'ar') arDraw(); } else ACTS['s-tab']({ dataset: { t: 'me' } }); } catch (e) { toast(errMsg(e)); } };
 ACTS['s-profile'] = () => { closeModals();
   const h = S.home;
   const code = LS.get('mc_code');
