@@ -1755,7 +1755,7 @@ function snapLayer(html, y, cls){
   const L = document.createElement('div'); L.className = 'pg-layer ' + (cls || '');
   L.innerHTML = `<div class="pg-in" style="left:${r.left}px;width:${r.width}px"><div class="pg-sc" style="transform:translateY(${-y}px)">${html}</div></div>`;
   document.body.appendChild(L);
-  const tt = L.querySelector('.pg-sc > .t-top'); if (tt && y > 0) { const c = tt.cloneNode(true); c.classList.add('pg-tt'); L.firstChild.prepend(c); }
+  const tt = L.querySelector('.pg-sc > .t-top'); if (tt && y > 0) { const c = tt.cloneNode(true); c.classList.add('pg-tt'); L.firstChild.prepend(c); tt.style.visibility = 'hidden'; }
   return L;
 }
 /* v485 (Khalid: the header «shakes» when a page opens): the bell and the avatar are the same on every page, so they stay put
@@ -2587,7 +2587,7 @@ async function tNew(fresh){
   /* v366 (Khalid): board mode has its own entry #/t/new/board (home card) */
   const brd = location.hash.indexOf('#/t/new/board') === 0;
   /* v380 (Khalid): coming back within 10 minutes continues from the same step */
-  const resume = NW.ts && Date.now() - NW.ts < 600000 && NW.step > 1 && NW.step < 4 && NW.board === brd;
+  const resume = NW.ts && Date.now() - NW.ts < 600000 && NW.step > 1 && NW.step < 4 && (NW.board === brd || !brd); /* v530: «تحدي مباشر» picked by the switch on #/t/new survives a swipe back from the lessons page */
   if (fresh !== false && !NW.keep && !resume) Object.assign(NW, { board: brd, step: 1, cls: [], multi: false, cu: null, subj: '', days: brd ? 0 : 7, made: null, lessons: null, les: {}, allSubj: false, diff: null, startOff: 0, koQ: 8, prizes: null, sel: null, cus: null, gtypes: null }); NW.keep = false;
   /* v423 (Khalid: ＋ تحدي slow): subjects/question counts load in the background; only step 2 waits for them */
   const prep = Promise.all([loadCurricula().catch(() => {}), qCounts().catch(() => {})]);
@@ -2614,7 +2614,7 @@ function nwRender(){
     if (!NW.classes.length) b = `<h2 class="nw-q">اسم صفك؟</h2><form class="nw-col" data-form="nw-cls"><input class="nw-in" name="n" maxlength="40" placeholder="مثال: رابع أ" autocomplete="off" required>
       ${(() => { const o = stOpts(STAGES); return o.length > 1 ? `<div class="nw-stg">${o.map((x, i) => `<label><input type="radio" name="st" value="${x[0]}" ${i ? '' : 'checked'}><span>${x[1]}</span></label>`).join('')}</div>` : `<input type="hidden" name="st" value="${o[0][0]}">`; })()}<button class="btn nw-go" type="submit">التالي</button></form>`;
     else b = nwMode() + `<h2 class="nw-q">لمين التحدي؟</h2>${!NW.board && NW.classes.length > 1 ? '<p class="nw-hint">اختر صف أو أكثر من نفس المرحلة</p>' : ''}${(gs => gs.map(g => (gs.length > 1 ? `<div class="cp-gh nw-gh"><b>${g.label}</b></div>` : '') + `<div class="nw-tiles">${g.items.map(c => { const busy = NW.busy.has(c.id), on = NW.cls.includes(c.id); return `<button class="nw-tile${on ? ' on' : ''}${busy ? ' busy' : ''}" data-act="nw-cls-pick" data-id="${c.id}"><span class="nw-e">👥</span><b>${esc(c.name)}</b><small>${busy ? 'عنده تحدي الحين' : STAGE_AR[c.stage] || ''}</small></button>`; }).join('')}</div>`).join(''))(clsGroups(NW.classes))}
-      ${NW.multi || (!NW.board && NW.classes.length > 1) ? `<button class="btn nw-go" data-act="nw-next" ${NW.cls.length ? '' : 'disabled'}>${NW.cls.length > 1 ? 'التالي · ' + NW.cls.length + ' صفوف' : 'التالي'}</button>` : ''}`;
+      ${NW.multi || (!NW.board && NW.classes.length > 1) || NW.cls.length ? `<button class="btn nw-go" data-act="nw-next" ${NW.cls.length ? '' : 'disabled'}>${NW.cls.length > 1 ? 'التالي · ' + NW.cls.length + ' صفوف' : 'التالي'}</button>` : ''}`;
   }
   if (st === 2 && NW.prepP) { const p = NW.prepP; p.then(() => { if (NW.step === 2 && location.hash.indexOf('#/t/new') === 0) nwRender(); }); b = (NW.skip1 ? nwMode() : '') + '<div class="spin"></div>'; }
   else if (st === 2) {
@@ -2677,7 +2677,7 @@ ACTS['nw-cls-pick'] = async t => { const id = t.dataset.id;
     return nwRender(); }
   NW.cls = [id]; NW.step = 2; nwRender(); };
 ACTS['nw-ph'] = t => { NW.phones = t.dataset.v === '1'; nwRender(); };
-ACTS['nw-mode'] = t => { const b = t.dataset.b === '1'; if (NW.board === b) return; NW.board = b; NW.days = b ? 0 : 7; NW.cls = NW.skip1 ? NW.cls : []; NW.multi = false; nwRender(); };
+ACTS['nw-mode'] = t => { const b = t.dataset.b === '1'; if (NW.board === b) return; NW.board = b; NW.days = b ? 0 : 7; NW.cls = NW.skip1 ? NW.cls : []; NW.multi = false; { const h = b ? '#/t/new/board' : '#/t/new'; if (location.hash !== h) { try { history.replaceState(null, '', h); NS.cur = h; } catch(e){} } } nwRender(); };
 ACTS['nw-multi'] = () => { NW.multi = true; NW.cls = []; nwRender(); };
 ACTS['nw-next'] = () => { if (NW.cls.length) { NW.step = 2; nwRender(); } };
 const NW_GEN = [['general', '🌍', 'ثقافة عامة'], ['quick', '⚡', 'سرعة بديهة'], ['memory', '🧠', 'ذاكرة']];
