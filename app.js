@@ -3695,19 +3695,33 @@ ACTS['rp-pdf'] = async t => { const d = RP.d; if (!d) return; const note = rpNot
   finally { host.remove(); t.disabled = false; }
 };
 /* student: «تقريري» in «أنا» */
-ACTS['s-rep-me'] = async () => { if (!S.home) return;
-  sPage('me', '<div class="s-pgc"><div class="spin"></div></div>');
-  let d; try { d = await rpc('student_my_report', { p_token: S.token }); } catch(e){ toast(errMsg(e)); return ACTS['s-tab']({ dataset: { t: 'me' } }); }
+/* v479 (Khalid): a student with several teachers picks which subject's report to see, in place */
+const repLbl = x => { const t = x && x.competition && x.competition.title, i = t ? t.lastIndexOf('·') : -1; return (i >= 0 ? t.slice(i + 1).trim() : '') || (x && x.class && x.class.name) || 'مادة'; };
+async function repSubj(){
+  const h = S.home, ps = profSame(h.student.name); if (ps.length < 2) return [];
+  S.repH = S.repH || {}; S.repH[S.token] = h;
+  await Promise.all(ps.filter(p => !S.repH[p.token]).map(p => rpc('student_home', { p_token: p.token }).then(x => { S.repH[p.token] = x; }).catch(() => {})));
+  const a = ps.filter(p => S.repH[p.token]).map(p => ({ tok: p.token, l: repLbl(S.repH[p.token]) }));
+  a.sort((x, y) => (y.tok === S.token) - (x.tok === S.token));
+  return a.length > 1 ? a : [];
+}
+ACTS['s-rep-me'] = async t => { if (!S.home) return;
+  const pick = t && t.dataset && t.dataset.tok, tok = pick && profs().some(p => p.token === pick) ? pick : S.token;
+  const old = document.querySelector('.s-tabpg .rp2-body');
+  if (pick && old) { old.classList.add('ld'); document.querySelectorAll('.rp2-subj button').forEach(b => b.classList.toggle('on', b.dataset.tok === tok)); }
+  else sPage('me', '<div class="s-pgc"><div class="spin"></div></div>');
+  let d, subs; try { [d, subs] = await Promise.all([rpc('student_my_report', { p_token: tok }), repSubj().catch(() => [])]); } catch(e){ toast(errMsg(e)); if (pick && old) { old.classList.remove('ld'); return; } return ACTS['s-tab']({ dataset: { t: 'me' } }); }
   if (S.tab !== 'me') return;
+  const bar = subs.length ? '<div class="rp2-subj">' + subs.map(x => '<button class="' + (x.tok === tok ? 'on' : '') + '" data-act="s-rep-me" data-tok="' + esc(x.tok) + '">' + esc(x.l) + '</button>').join('') + '</div>' : '';
   const les = (d.lessons || []).filter(x => x.t >= 4), s = les.filter(x => rpLvl(x) === 'ok'), w = les.filter(x => rpLvl(x) !== 'ok' && rpLvl(x) !== 'few').sort((a, b) => a.c / a.t - b.c / b.t).slice(0, 4), tr = rpTrend(d);
   const c = document.querySelector('.s-tabpg .s-pgc'); if (!c) return;
-  c.innerHTML = `<div class="rp2-top"><button class="icon-btn s-back" data-act="s-tab" data-t="me" aria-label="رجوع">${ic('back')}</button><h3>📊 تقريري</h3></div>
+  c.innerHTML = `<div class="rp2-top"><button class="icon-btn s-back" data-act="s-tab" data-t="me" aria-label="رجوع">${ic('back')}</button><h3>📊 تقريري</h3></div>${bar}<div class="rp2-body">
     <div class="rp2-hero"><div class="rp2-nums n3"><div><b>${d.rounds}</b><small>جولة</small></div><div><b>${rpPct(d.correct, d.total)}%</b><small>صح</small></div><div><b>${tr != null && tr > 0 ? '↑' + tr + '%' : lvlOf(d.xp || 0).n}</b><small>${tr != null && tr > 0 ? 'تحسّنت' : 'مستواك'}</small></div></div></div>
     ${!d.rounds ? '<div class="rp2-empty">العب جولات، وتقريرك يطلع هني.</div>' : `
     <h3 class="rp2-h">💪 دروسك القوية</h3>${s.length ? `<div class="rp2-chips">${s.map(x => `<span class="k-ok">${esc(rpLes(x.l))}</span>`).join('')}</div>` : '<p class="rp2-mut">تطلع هني لما تجاوب صح في درس أكثر من مرة.</p>'}
     <h3 class="rp2-h">🎯 تحتاج تدريب</h3>${w.length ? `<div class="rp2-chips">${w.map(x => `<span class="k-w">${esc(rpLes(x.l))}</span>`).join('')}</div>` : '<p class="rp2-mut">ما فيه دروس ضعيفة، كفو! 👏</p>'}
-    <button class="btn soft rp2-prac" data-act="s-start" data-kind="practice">🔁 تدرّب بدون نقاط</button>`}
-    <p class="rp2-note2">كل أسبوع تشوف هني كيف تتحسّن. التدريب ما يأثر على نقاطك.</p>`;
+    ${tok === S.token ? '<button class="btn soft rp2-prac" data-act="s-start" data-kind="practice">🔁 تدرّب بدون نقاط</button>' : ''}`}
+    <p class="rp2-note2">كل أسبوع تشوف هني كيف تتحسّن. التدريب ما يأثر على نقاطك.</p></div>`;
 };
 async function tHidden(){
   view('الطلاب المحذوفين', '<div class="spin"></div>', 'settings', '', '#/t/sset');
