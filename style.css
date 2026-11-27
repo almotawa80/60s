@@ -4475,3 +4475,12 @@ html body .ar-logo:not(#z){display:none!important}
 .tm-p-r.dng{color:#FF453A!important}
 body:not(.dark) .tm-pop{background:#fff;border-color:rgba(0,0,0,.08);box-shadow:0 18px 44px rgba(0,0,0,.22)}
 body:not(.dark) .tm-pop button{color:#111}body:not(.dark) .tm-pop button:active{background:#F2F2F7}
+/* teacher problem report */
+.trp-shot{display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:8px 14px;border:1.5px dashed var(--line,#3A3A3C);border-radius:14px;color:var(--muted,#C7C7CC);font-weight:700;cursor:pointer;text-align:center}
+.trp-shot.on{border-style:solid;border-color:#34C759;color:#34C759}
+.trp-shot img{width:40px;height:40px;object-fit:cover;border-radius:8px;margin-inline-end:8px;vertical-align:middle}
+.trp-meta{font-size:13px;margin:0}
+.ad-fbb{background:var(--soft,#2C2C2E);border-radius:14px;padding:12px 14px;line-height:1.7;margin:8px 0}
+.ad-fbi{display:block;max-width:100%;max-height:340px;border-radius:12px;margin:8px auto}
+.ad-fbm{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
+.ad-fbm span{background:var(--soft,#2C2C2E);border-radius:99px;padding:3px 10px;font-size:13px;font-weight:700}

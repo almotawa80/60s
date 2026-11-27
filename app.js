@@ -1946,13 +1946,25 @@ function admRender(){
   const L = (d.list || []).slice().sort(ADM.tab === 'new' ? (a, b) => new Date(b.created_at) - new Date(a.created_at) : (a, b) => b.rounds - a.rounds || new Date(b.last_sign_in_at || 0) - new Date(a.last_sign_in_at || 0));
   const k = (n, l, e) => `<div class="ad-k"><b>${nf(n)}</b><span>${l}</span>${e ? `<em>${e}</em>` : ''}</div>`;
   view('لوحة المشرف',
-    `<div id="ad-met"></div><div id="ad-rep"></div><div class="ad-k4">${k(d.teachers, 'معلم', d.teachers_week ? `+${d.teachers_week} هالأسبوع` : '')}${k(d.students, 'طالب', d.students_week ? `+${d.students_week} هالأسبوع` : '')}${k(d.live, 'تحدي شغّال')}${k(d.rounds_week, 'جولة هالأسبوع', `اليوم ${nf(d.rounds_today)}`)}</div>
+    `<div id="ad-met"></div><div id="ad-fb"></div><div id="ad-rep"></div><div class="ad-k4">${k(d.teachers, 'معلم', d.teachers_week ? `+${d.teachers_week} هالأسبوع` : '')}${k(d.students, 'طالب', d.students_week ? `+${d.students_week} هالأسبوع` : '')}${k(d.live, 'تحدي شغّال')}${k(d.rounds_week, 'جولة هالأسبوع', `اليوم ${nf(d.rounds_today)}`)}</div>
     <button class="btn soft ad-ob" data-act="ob-demo">🎮 جرّب جولة البداية (تجربة)</button>
     <div class="ad-segs"><button data-act="adm-tab" data-t="act" class="${ADM.tab === 'act' ? 'on' : ''}">الأنشط</button><button data-act="adm-tab" data-t="new" class="${ADM.tab === 'new' ? 'on' : ''}">الجدد</button></div>
     <div class="ad-rows">${L.map(t => `<button class="ad-tr" data-act="adm-one" data-id="${t.id}"><span class="ad-av">${esc((t.name || '?')[0])}</span><span class="grow"><b>${esc(t.name || '')}${t.last_sign_in_at && new Date(t.last_sign_in_at).toDateString() === today ? '<i class="ad-dot"></i>' : ''}</b><small>${t.classes} صفوف · ${t.students} طالب · آخر دخول ${admAgo(t.last_sign_in_at)}</small></span><span class="ad-n"><b>${nf(t.rounds)}</b><small>جولة</small></span></button>`).join('') || '<p class="sub center">ما في معلمين</p>'}</div>
     <p class="sub center">النقطة الخضراء: دخل اليوم · الجولات آخر 7 أيام</p>`, 'settings', '', '#/t/settings');
-  admMetrics(); admReports();
+  admMetrics(); admReports(); admFb();
 }
+/* teacher problem reports in the admin page */
+async function admFb(force){
+  let L; try { L = (!force && ADM.fb) || (ADM.fb = await rpc('admin_feedback')); } catch(e){ return; }
+  const el = document.getElementById('ad-fb'); if (!el) return;
+  el.innerHTML = L && L.length ? `<div class="ad-h">📮 بلاغات المعلمين <span>${L.length}</span></div><div class="ad-rows">${L.map((r, i) => `<button class="ad-tr" data-act="adm-fb" data-i="${i}"><span class="grow"><b>${esc(String(r.body || '').split('\n')[0])}</b><small>${esc(r.teacher || r.email || 'معلم')} · ${esc((r.meta && r.meta.title) || r.page || '')} · ${admAgo(r.created_at)}${r.image ? ' · 📷' : ''}</small></span></button>`).join('')}</div>` : '';
+}
+ACTS['adm-fb'] = t => { const r = (ADM.fb || [])[+t.dataset.i]; if (!r) return; const m = r.meta || {};
+  modal(`<h3>بلاغ من ${esc(r.teacher || 'معلم')}</h3><p class="sub" dir="ltr">${esc(r.email || '')}</p><div class="ad-fbb">${esc(r.body || '').replace(/\n/g, '<br>')}</div>
+    ${r.image ? `<a href="${esc(r.image)}" target="_blank" rel="noopener"><img class="ad-fbi" src="${esc(r.image)}" alt="صورة الشاشة"></a>` : ''}
+    <div class="ad-fbm"><span>📍 ${esc(m.title || '—')}</span><span dir="ltr">${esc(r.page || '')}</span><span>📱 ${esc(m.device || '—')}</span><span>🔖 الإصدار ${esc(m.ver || '—')}</span><span>🕒 ${admAgo(r.created_at)}</span></div>
+    <div class="col"><button class="btn" data-act="adm-fb-done" data-id="${r.id}">✓ تم</button></div>`); };
+ACTS['adm-fb-done'] = async t => { try { await rpc('admin_feedback_done', { p_id: t.dataset.id }); } catch(e){ return toast(errMsg(e)); } closeModals(); toast('تم'); ADM.fb = null; admFb(true); };
 /* v342 bank reports: teachers flag a bank question, the admin edits or deletes it for everyone (sql/bank_admin.sql) */
 async function admReports(force){
   let L; try { L = (!force && ADM.rep) || (ADM.rep = await rpc('admin_reports')); } catch(e){ return; }
@@ -6026,6 +6038,27 @@ ACTS['st-feedback-send'] = async f => {
   const { error } = await sb.from('feedback').insert({ body: f.b.value.trim() });
   if (error) return toast(errMsg(error)); closeModals(); toast('وصلنا، شكراً لك 🙏');
 };
+/* teacher problem report: the screen, version and device go with it (sql/teacher_reports.sql) */
+const TRP = { h: '', title: '', file: null };
+function rpDevice(){ const u = navigator.userAgent; return (/iPad/.test(u) ? 'iPad' : /iPhone/.test(u) ? 'iPhone' : /Android/.test(u) ? 'Android' : /Mac/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows' : 'جهاز آخر') + (window.Capacitor ? ' · تطبيق' : isStandalone() ? ' · مثبّت' : ' · متصفح'); }
+ACTS['t-rep'] = () => { TRP.file = null;
+  modal(`<h3>بلّغ عن مشكلة</h3><p class="sub">${TRP.title ? 'من شاشة «' + esc(TRP.title) + '»' : 'وش صار معك؟'}</p>
+  <form class="col trp-f" data-form="t-rep-send"><textarea class="input" id="trp-b" name="b" rows="4" maxlength="1500" required placeholder="مثال: ضغطت «حفظ» وما صار شي"></textarea>
+  <label class="trp-shot" id="trp-shot"><input type="file" id="trp-file" accept="image/*" data-change="trp-file" hidden><span id="trp-shot-t">📷 أرفق صورة الشاشة (اختياري)</span></label>
+  <button class="btn" type="submit">${ic('send')} إرسال</button>
+  <p class="sub center trp-meta">يوصلنا معه تلقائياً: الشاشة، الإصدار، ونوع جهازك.</p></form>`);
+};
+ACTS['trp-file'] = t => { const f = t.files && t.files[0]; if (!f) return; TRP.file = f; const l = document.getElementById('trp-shot'), u = URL.createObjectURL(f);
+  if (l) { l.classList.add('on'); l.querySelector('#trp-shot-t').innerHTML = `<img src="${u}" alt="الصورة المرفقة">✓ الصورة مرفقة · غيّرها`; } };
+ACTS['t-rep-send'] = async f => { const btn = f.querySelector('.btn'); if (btn.getAttribute('aria-busy')) return; btn.setAttribute('aria-busy', 'true');
+  const body = f.b.value.trim(), ver = String((document.querySelector('script[src*="app.js"]') || {}).src || '').split('v=')[1] || '';
+  const meta = { ver, device: rpDevice(), w: innerWidth, h: innerHeight, title: TRP.title }; let image = null;
+  try { if (TRP.file) { const blob = await shrinkImg(TRP.file, 1400), path = `${T.user.id}/fb-${crypto.randomUUID()}.jpg`;
+      const up = await sb.storage.from('qimg').upload(path, blob, { contentType: 'image/jpeg' }); if (!up.error) image = sb.storage.from('qimg').getPublicUrl(path).data.publicUrl; } } catch(e){}
+  let { error } = await sb.from('feedback').insert({ body, page: TRP.h, meta, image });
+  if (error && /column|schema/i.test(error.message || '')) ({ error } = await sb.from('feedback').insert({ body: body + '\n\n— الشاشة: ' + (TRP.title || TRP.h) + ' · ' + TRP.h + '\n— الإصدار: ' + ver + ' · ' + meta.device + (image ? '\n— صورة: ' + image : '') }));
+  btn.removeAttribute('aria-busy'); if (error) return toast(errMsg(error)); closeModals(); TRP.file = null; toast('وصل البلاغ، شكراً لك 🙏');
+};
 ACTS['st-newyear'] = async () => {
   const { data, error } = await sb.from('classes').select('id').eq('archived', false); if (error) return toast(errMsg(error));
   if (!data.length) return toast('ما فيه صفوف نشطة');
@@ -6501,11 +6534,13 @@ ACTS['st-profile'] = () => go('#/t/account');
 const tmClose = () => document.querySelectorAll('.tm-pop-back').forEach(e => e.remove());
 ACTS['t-menu'] = t => {
   if (document.querySelector('.tm-pop-back')) return tmClose();
+  TRP.h = location.hash; TRP.title = ($app.querySelector(':scope > .t-top .t-title') || {}).textContent || '';
   const b = (t && t.getBoundingClientRect) ? t.getBoundingClientRect() : { bottom: 70, left: 16 };
   const el = document.createElement('div'); el.className = 'tm-pop-back';
   el.innerHTML = `<div class="tm-pop" role="menu" style="top:${Math.round(b.bottom + 10)}px;left:${Math.max(12, Math.round(b.left))}px">
     <button class="tm-p-h" role="menuitem" data-act="tm-go" data-a="st-profile">${avatarHtml('big-av')}<span class="grow"><b>${esc(T.name)}</b><small>حسابي</small></span><i>‹</i></button>
     <button class="tm-p-r" role="menuitem" data-act="tm-go" data-a="tm-settings"><span>⚙️</span>الإعدادات</button>
+    <button class="tm-p-r" role="menuitem" data-act="tm-go" data-a="t-rep"><span>🚩</span>فيه مشكلة؟ بلّغنا</button>
     <button class="tm-p-r dng" role="menuitem" data-act="tm-go" data-a="st-logout-ask"><span>🚪</span>تسجيل الخروج</button></div>`;
   el.addEventListener('click', e => { if (e.target === el) tmClose(); });
   document.body.appendChild(el); haptic();
