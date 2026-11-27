@@ -2355,7 +2355,7 @@ ACTS['stp-join'] = async t => {
   for (const p of j) { if (!p.c.self_join || !p.c.join_code) try { await rpc('set_self_join', { p_class: p.c.id, p_on: true }); } catch(e){} }
   toast('انضمت ✓'); rerender();
 };
-const stpMsg = c => `انضم لتحدي «${c.name}» في «اهزم الدقيقة» 🎯\nاضغط الرابط واختر اسمك:\n${joinLink(c.join_code)}\nأو اكتب رمز الصف: ${fmtCode(c.join_code)}`;
+const stpMsg = c => `انضم لتحدي «${c.name}» في «اهزم الدقيقة» 🎯\nاضغط الرابط واختر اسمك:\n${joinLink(c.join_code)}\nأو اكتب رمز الصف: ${fmtCode(c.join_code)}\n\n📲 حمّل التطبيق على الآيفون:\n${APP_STORE}`;
 ACTS['stp-send'] = () => go('#/t/send');
 async function tSend(){
   const [cl, cp, st] = await Promise.all([sb.from('classes').select('*').eq('archived', false).order('created_at'), sb.from('competitions').select('class_id').eq('status', 'active'), sb.from('students').select('class_id')]);
@@ -3250,7 +3250,7 @@ ACTS['c-open'] = t => go('#/t/class/' + t.dataset.id);
 })();
 ACTS['c-pmore'] = t => { const el = document.querySelector('.cp1[data-cid]'); if (el) ACTS['c-cmore'](el, t && t.closest ? t.closest('button') : null); };
 ACTS['c-share'] = t => { const c = ctx(t); if (!c) return; const link = joinLink(c.join_code);
-  const msg = `انضم لتحدي «${c.name}» في «اهزم الدقيقة» 🎯\nرمز الصف: ${fmtCode(c.join_code || '')}\nأو اضغط الرابط:\n${link}`;
+  const msg = `انضم لتحدي «${c.name}» في «اهزم الدقيقة» 🎯\nرمز الصف: ${fmtCode(c.join_code || '')}\nأو اضغط الرابط:\n${link}\n\n📲 حمّل التطبيق على الآيفون:\n${APP_STORE}`;
   sheet('شارك الرمز', [
     { act: 'c-share-wa', attrs: `data-v="${esc(msg)}"`, icon: 'send', label: 'واتساب' },
     { act: 'm-run', attrs: `data-a="c-joinshow" data-cid="${c.id}"`, icon: 'eye', label: 'اعرض على الشاشة' },
