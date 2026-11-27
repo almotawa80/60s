@@ -678,7 +678,7 @@ function sPut(html){ const old = $app.querySelector(':scope > .s-nav'); $app.inn
   nw.replaceWith(old); lensMove(old, k); }
 function sNav(cur){ const i = Math.max(0, S_TABS.indexOf(cur)), p = S.navPrev == null ? i : S.navPrev; S.navPrev = i;
   setTimeout(() => requestAnimationFrame(() => lensMove(document.querySelector('.s-nav'), i)), 20);
-  return '<nav class="s-nav"><span class="lens" style="--i:' + p + ';--n:5"></span>' + [['home', S_LN.home, 'صفّي'], ['lb', S_LN.lb, 'الترتيب'], ['ar', '', 'الحلبة'], ['bd', S_LN.bd, 'شاراتي'], ['me', S_LN.me, 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + (x[0] === 'ar' ? ' s-ar' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (x[0] === 'ar' ? ' aria-label="الحلبة"' : '') + (cur === x[0] ? ' aria-current="page"' : '') + '>' + (x[0] === 'ar' ? '<span class="i sq">' + NAV_SQ + '</span>' : x[1] + '<span>' + x[2] + '</span>') + '</button>').join('') + '</nav>'; }
+  return '<nav class="s-nav"><span class="lens" style="--i:' + p + ';--n:5"></span>' + [['home', S_LN.home, 'صفّي'], ['lb', S_LN.lb, 'المراكز'], ['ar', '', 'الحلبة'], ['bd', S_LN.bd, 'شاراتي'], ['me', S_LN.me, 'أنا']].map(x => '<button class="' + (cur === x[0] ? 'on' : '') + (x[0] === 'ar' ? ' s-ar' : '') + '" data-act="s-tab" data-t="' + x[0] + '"' + (x[0] === 'ar' ? ' aria-label="الحلبة"' : '') + (cur === x[0] ? ' aria-current="page"' : '') + '>' + (x[0] === 'ar' ? '<span class="i sq">' + NAV_SQ + '</span>' : x[1] + '<span>' + x[2] + '</span>') + '</button>').join('') + '</nav>'; }
 function sPage(t, body){ const th = document.body.dataset.theme || 'mid'; { const cur = $app.querySelector(':scope > .sh'); if (cur && !cur.querySelector('.s-back')) S.pgSnap = cur.outerHTML; } S.tab = t; closeModals(); stopTimer(); clearInterval(S.cdT);
   sPut('<div class="sh s-tabpg pvx">' + body + '</div>' + sNav(t)); scrollTo(0, 0); }
 /* ===== v275 الحلبة (public arena), phase 1: 60 levels on a stopwatch dial, duel vs a recorded round, tug of war =====
@@ -980,7 +980,7 @@ ACTS['s-tab'] = async t => { const k = t.dataset.t; if (!S.home) return;
       (hasTeacher() ? '<button class="btn s-me-t" data-act="s-to-teacher">👨‍🏫 رجوع لحساب المعلم</button>' : '') +
       '<div class="s-me-x"><button data-act="s-logout-ask">خروج</button><button class="dng" data-act="s-del-me">حذف حسابي</button></div>' +
       '</div>'); }
-  if (k === 'lb') { if (S.demo) return toast('الترتيب يظهر في التحدي الفعلي');
+  if (k === 'lb') { if (S.demo) return toast('المراكز تظهر في التحدي الفعلي');
     sPage('lb', '<div class="s-pgc"><div class="spin"></div></div>');
     try { const res = await rpc('class_leaderboard', { p_token: S.token }); if (S.tab !== 'lb') return;
       const hidden = res && res.hidden, hp = !!(res && res.hide_pts), rows = res && res.rows ? res.rows : res;
@@ -1091,7 +1091,7 @@ function leadersHtml(rows, hidden, hp){
   const list = (hidden ? on : rest).map(r => '<div class="lbx-r' + (r.is_me ? ' me' : '') + '"><span class="lbx-no">' + r.rank + '</span>' + (r.av ? '<span class="lbx-ea">' + avI(r.av) + '</span>' : '') + '<span class="lbx-nm">' + esc(r.name) + (r.is_me ? ' <small>(أنت)</small>' : '') + (hp ? '' : '<i><u style="width:' + Math.round(r.points * 100 / max) + '%"></u></i>') + '</span><b>' + P(r) + '</b></div>').join('');
   const meZero = me && !(me.points > 0);
   return '<div class="lbx pvx"><div class="lbx-top"><h3>🏆 المتصدرون</h3><span>' + esc(S.home.class.name) + '</span><button class="lbx-x" data-act="close-modal" aria-label="إغلاق">' + ic('x') + '</button></div>' +
-    (hidden ? '<div class="lbx-hid">الترتيب يطلع لما يخلص التحدي 🤫<small>هذا ترتيبك أنت فقط</small></div>' : '') +
+    (hidden ? '<div class="lbx-hid">المراكز تطلع لما يخلص التحدي 🤫<small>هذا مركزك أنت فقط</small></div>' : '') +
     (on.length ? pod + (list ? '<div class="lbx-list">' + list + '</div>' : '') : '<div class="lbx-empty"><span>🚀</span><b>لا أحد في القائمة بعد</b><small>العب جولة اليوم وكن أول المتصدرين!</small></div>') +
     (zero.length && !hidden ? '<div class="lbx-zero">' + (meZero ? '<b>أنت و' + (zero.length - 1) + ' آخرون</b>' : '<b>' + zero.length + ' طالب/ـة</b>') + ' لم يحصلوا على نقاط بعد. جولة واحدة تدخلك القائمة!</div>' : '') +
     '</div>';
