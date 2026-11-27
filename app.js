@@ -498,7 +498,7 @@ ACTS['t-push'] = async t => {
 // asked once, on the home page, after the teacher has a class
 function tPushAsk(has){ if (!has || admMode() || tPushOn() || !tPushCan() || LS.get('mc_tpush_ask')) return;
   popQ(4, async () => { LS.set('mc_tpush_ask', '1');   // centred dialog like native apps (Khalid 2026-11-27)
-    if (!await ask('نخبرك لما طالب ينتظر موافقتك، ولما يخلص التحدي، وملخص كل يوم.', { title: '🔔 تبي إشعارات على جوالك؟', ok: 'فعّل', cancel: 'بعدين', danger: false })) return;
+    if (!await ask('تفعيل الإشعارات؟', { html: '', title: '🔔', ok: 'تفعيل', cancel: 'لاحقاً', danger: false })) return;
     const why = await tPushSub(); if (why === '-') return; toast(why || 'تمام! توصلك الإشعارات على هذا الجهاز 🔔'); }); }
 /* v171 «صندوق بكرة» + «هدف الصف» (needs sql/box_goal.sql; silently absent before it) */
 async function loadDaily(){ /* v349: paint the last result at once (no flash on «صفّي»), then refresh */
