@@ -3627,6 +3627,10 @@ document.addEventListener('keydown', e => { if (e.target.id === 'nc2-in' && e.ke
 })();
 /* iOS keyboard: lift bottom sheets above it */
 if (window.visualViewport) { const kb = () => { const v = visualViewport, h = Math.max(0, window.innerHeight - v.height - v.offsetTop); document.documentElement.style.setProperty('--kb', h + 'px'); }; visualViewport.addEventListener('resize', kb); visualViewport.addEventListener('scroll', kb); }
+/* v511 (Khalid, iPad photo): the floating tab bar sat on top of the list while the keyboard was open; hide both bars while typing on touch screens */
+(() => { let tm = 0; const typing = el => el && (el.tagName === 'TEXTAREA' || el.isContentEditable || (el.tagName === 'INPUT' && !/^(checkbox|radio|range|button|submit|file|color)$/.test(el.type)));
+  document.addEventListener('focusin', e => { if (typing(e.target)) { clearTimeout(tm); document.body.classList.add('kb-on'); } });
+  document.addEventListener('focusout', () => { clearTimeout(tm); tm = setTimeout(() => { if (!typing(document.activeElement)) document.body.classList.remove('kb-on'); }, 200); }); })();
 document.addEventListener('focusin', e => { const m = e.target.closest && e.target.closest('.modal'); if (m && /INPUT|TEXTAREA/.test(e.target.tagName)) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); });
 ACTS['t-add-class'] = () => { closeModals(); Object.assign(NC, { allSt: false, det: false, stage: (() => { const m = myStages(), c = SG('def_stage') || (T.settings || {}).lastStage || 'primary'; return !m.length || m.includes(c) ? c : m[0]; })(), grade: null, sec: '', g: schG() || '', custom: '', editing: false }); modal(ncHtml()); };
 ACTS['nc2-st'] = t => { if (NC.stage !== t.dataset.v) NC.grade = null; NC.stage = t.dataset.v; NC.custom = ''; ncRender(); };
