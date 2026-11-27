@@ -4129,6 +4129,7 @@ html body:not(.wide) .sh.pvx .btn.s-me-t{margin-top:14px}
 .avi img{position:absolute;left:-5%;bottom:0;width:110%;height:auto;max-width:none;pointer-events:none;-webkit-user-drag:none;user-select:none;-webkit-mask:linear-gradient(#000,#000) top/100% 61% no-repeat,radial-gradient(circle,#000 70%,transparent 71%) bottom/90.9% 77.9% no-repeat;mask:linear-gradient(#000,#000) top/100% 61% no-repeat,radial-gradient(circle,#000 70%,transparent 71%) bottom/90.9% 77.9% no-repeat}
 .s-me-av .avi,.lbx-av .lbx-em .avi,.rp2-av .avi,.pv-av .avi,.ar-av .avi,.ch-star-i .avi,.wk-star>span .avi{width:100%;height:100%;display:block}
 .s-avg button .avi{width:70%;height:auto;aspect-ratio:1;margin-top:16%}
+.s-avg button{overflow:visible}.s-avg button .avi.avg{width:100%;margin-top:21%} /* v540 (Khalid): bigger in the picker tiles */
 html body:not(.wide) .sh.pvx .s-me-av:has(.avi){padding:0;overflow:visible;background:transparent!important;box-shadow:0 0 26px rgba(227,178,60,.45)!important}
 html body:not(.wide) .sh.pvx .s-me-av .avi{box-shadow:0 0 0 4px #140306,0 0 0 7px #E3B23C}
 html body:not(.wide) .sh.pvx .s-me-av .s-av-ed{z-index:2}
