@@ -3067,12 +3067,31 @@ function renderChallenge(gid){
     <div class="ch-acts">${[['cp-try', '🎮', 'جرّب'], ['ch-code', '🔗', 'الرمز'], ['ch-edit', '✏️', 'تعديل'], ['ch-det', '📊', 'التفاصيل']].map(o => `<button class="ch-a" data-act="ch-run" data-a="${o[0]}" data-g="${esc(gid)}"><span>${o[1]}</span>${o[2]}</button>`).join('')}</div>
     <div class="ch-2">${c.paused_at ? `<button class="ch-b" data-act="cp-resume" data-g="${esc(gid)}">▶️ استئناف</button>` : `<button class="ch-b" data-act="cp-pause" data-g="${esc(gid)}">⏸ إيقاف مؤقت</button>`}<button class="ch-b end" data-act="cp-end" data-g="${esc(gid)}">🏁 إنهاء</button></div>
     <p class="ch-meta">${esc(meta)}</p><div id="ch-star"></div>
+    ${rows.length && !CL.chSel ? chMsgLine(rows) : ''}
     ${rows.length ? `<div class="ch-lh">${CL.chSel ? `<button class="link" data-act="ch-all">${CL.chSel.size === rows.length ? 'إلغاء الكل' : 'اختر الكل'}</button><button class="link" data-act="ch-sel-x">إلغاء</button>` : `<span></span><button class="link" data-act="ch-sel">✉️ رسالة</button>`}</div>
-    <div class="cp-list${CL.chSel ? ' picking' : ''}">${rows.map((x, i) => { const k = CST(x.id); return `<button class="cp-row${k.today ? '' : ' dim'}${k.pts ? '' : ' z'}${CL.chSel && CL.chSel.has(x.id) ? ' on' : ''}" data-act="${CL.chSel ? 'ch-pick' : 'ch-stu'}" data-id="${x.id}">${CL.chSel ? '<i class="ch-ck">✓</i>' : ''}<span class="cp-rk">${!k.pts ? '' : i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="grow"><b>${x.avatar ? avI(x.avatar) + ' ' : ''}${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b>${multi ? `<small class="ch-cls">${esc(x._c || '')}</small>` : ''}</span><span class="cp-pts">${k.pts || '—'}</span></button>`; }).join('')}</div>`
+    <div class="cp-list${CL.chSel ? ' picking' : ''}">${rows.map((x, i) => { const k = CST(x.id); return `<button class="cp-row${k.today ? '' : ' dim'}${k.pts ? '' : ' z'}${CL.chSel && CL.chSel.has(x.id) ? ' on' : ''}" data-act="${CL.chSel ? 'ch-pick' : 'ch-stu'}" data-id="${x.id}">${CL.chSel ? '<i class="ch-ck">✓</i>' : ''}<span class="cp-rk">${!k.pts ? '' : i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="grow"><b>${x.avatar ? avI(x.avatar) + ' ' : ''}${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b>${chMb(x.id)}${multi ? `<small class="ch-cls">${esc(x._c || '')}</small>` : ''}</span><span class="cp-pts">${k.pts || '—'}</span></button>`; }).join('')}</div>`
       : `<div class="cl-empty sm"><b>ما فيه طلاب بعد</b><small>شارك رمز الصف من ⋯</small></div>`}</div>`;
   view(String(c.title || 'التحدي').split('·').pop().trim(), body + (CL.chSel ? `<div class="ch-sendbar"><button class="btn" data-act="ch-send" ${CL.chSel.size ? '' : 'disabled'}>✉️ أرسل إلى ${CL.chSel.size}</button></div>` : ''), 'home', '', '#/t/home');
-  chWarn(c); chStar(ks);
+  chWarn(c); chStar(ks); chMsgLoad(gid, rows.map(x => x.id));
 }
+/* v490 (Khalid): who got a message today and who is left; ✓ when read */
+async function chMsgLoad(gid, ids){
+  if (CL.chMsg && CL.chMsg.g === gid && Date.now() - CL.chMsg.t < 60000) return;
+  const from = new Date(todayKW() + 'T00:00:00+03:00').toISOString();
+  const r = await sb.from('messages').select('id,student_id,kind,body,created_at,read_at').in('student_id', ids).gte('created_at', from).order('created_at', { ascending: false });
+  if (r.error) return; const m = {}; (r.data || []).forEach(x => { (m[x.student_id] = m[x.student_id] || []).push(x); });
+  CL.chMsg = { g: gid, t: Date.now(), m }; if (CL.chg === gid && location.hash.indexOf('#/t/ch/') === 0 && Object.keys(m).length) chRe();
+}
+const chMsgs = id => (CL.chMsg && CL.chMsg.m[id]) || [];
+const chMb = id => { const L = chMsgs(id); if (!L.length) return ''; const x = L[0], rd = L.every(y => y.read_at);
+  return ` <span class="ch-mb${rd ? ' rd' : ''}" data-act="ch-msg" data-id="${id}" role="button" aria-label="رسائل اليوم">${(MSG_K[x.kind] || ['', '', '✉️'])[2]}${L.length > 1 ? '<em>' + L.length + '</em>' : ''}${rd ? '<u>✓</u>' : ''}</span>`; };
+function chMsgLine(rows){ const sent = rows.filter(x => chMsgs(x.id).length).length; if (!sent) return '';
+  const left = rows.length - sent, read = rows.filter(x => { const L = chMsgs(x.id); return L.length && L.every(y => y.read_at); }).length;
+  return `<div class="ch-ml"><span class="grow"><b>✉️ أرسلت اليوم لـ ${sent} من ${rows.length}</b><small>قرأها ${read}${left ? ` · باقي ${left}` : ''}</small></span>${left ? '<button class="btn sm" data-act="ch-rest">أرسل للباقين</button>' : ''}</div>`; }
+ACTS['ch-rest'] = () => { CL.chSel = new Set(chStudents().filter(x => x.approved !== false && !chMsgs(x.id).length).map(x => x.id)); chRe(); };
+ACTS['ch-msg'] = t => { const id = t.dataset.id, s = chStudents().find(x => x.id === id), L = chMsgs(id); if (!s || !L.length) return;
+  const tm = d => new Date(d).toLocaleTimeString('ar-KW-u-nu-latn', { hour: 'numeric', minute: '2-digit' });
+  modal(`<div class="col ch-mv"><h3>رسائل اليوم · ${esc(fmtStu(s.name))}</h3>${L.map(x => `<div class="ch-mi"><div class="ch-mih"><b>${(MSG_K[x.kind] || ['رسالة', '', '✉️'])[2]} ${(MSG_K[x.kind] || ['رسالة'])[0]}</b><small>${tm(x.created_at)} · ${x.read_at ? '<span class="rd">✓ قرأها ' + tm(x.read_at) + '</span>' : 'ما قرأها للحين'}</small></div><p>${esc(x.body)}</p></div>`).join('')}<button class="btn ghost" data-act="close-modal">تم</button></div>`).classList.add('rt-mid'); };
 /* v174 «نجم الأسبوع» (Thu–Sat): most improved student vs last week (sql/week_star.sql) */
 async function chStar(ks){
   let r = []; try { r = await Promise.all(ks.map(k => rpc('teacher_week_star', { p_class: k.class_id }).catch(() => null))); } catch(e){ return; }
@@ -3102,7 +3121,7 @@ ACTS['ch-rem-wa'] = () => { closeModals(); window.open('https://wa.me/?text=' + 
 ACTS['ch-rem-in'] = async t => { const ids = CL.remIds || []; if (!ids.length || t.disabled) return; t.disabled = true;
   const rows = ids.map(id => { const s = chStudents().find(x => x.id === id) || { name: '' }; return { student_id: id, kind: 'encourage', body: `هلا ${String(s.name).split(' ')[0]} 👋 باقي لك جولة اليوم، دقيقة وحدة بس! ⏱️` }; });
   const { error } = await sb.from('messages').insert(rows); t.disabled = false;
-  if (error) return toast(errMsg(error)); closeModals(); toast('انرسل التذكير لـ ' + ids.length + ' 🔔'); };
+  if (error) return toast(errMsg(error)); closeModals(); CL.chMsg = null; chRe(); toast('انرسل التذكير لـ ' + ids.length + ' 🔔'); };
 /* v181 pick some or all students on the challenge page, then the usual message composer (encourage / praise / advice) */
 const chRe = () => { NS.keepY = scrollY; renderChallenge(CL.chg); };
 ACTS['ch-sel'] = () => { CL.chSel = new Set(); chRe(); };
@@ -6651,7 +6670,8 @@ ACTS['ms-send'] = async f => {
   const btn = f.querySelector('button[type=submit]'); if (btn.disabled) return; const lbl = btn.innerHTML; btn.disabled = true; btn.textContent = 'جارٍ الإرسال…';
   const { error } = await sb.from('messages').insert(rows); btn.disabled = false; btn.innerHTML = lbl;
   if (error) return toast(/relation|does not exist|schema cache/i.test(error.message || '') ? 'ميزة الرسائل غير مفعّلة بعد. تواصل مع الدعم' : 'تعذّر الإرسال، تأكد من الاتصال وحاول مجدداً. نصك محفوظ.');
-  MS.draft = ''; closeModals(); toast(MS.to.length === 1 ? 'أُرسلت الرسالة ✓ تظهر للطالب في جرس الرسائل' : `أُرسلت إلى ${MS.to.length} طالب/ـة ✓ تظهر لهم في جرس الرسائل`);
+  MS.draft = ''; closeModals(); if (location.hash.indexOf('#/t/ch/') === 0) { CL.chMsg = null; chRe(); }
+  toast(MS.to.length === 1 ? 'أُرسلت الرسالة ✓ تظهر للطالب في جرس الرسائل' : `أُرسلت إلى ${MS.to.length} طالب/ـة ✓ تظهر لهم في جرس الرسائل`);
 };
 async function autoPraise(classId, compId, rows){
   try {
