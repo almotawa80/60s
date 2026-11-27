@@ -1639,6 +1639,7 @@ function nbPending(){ if (Date.now() - NB_T < 60000 || !T.user) return; NB_T = D
 const NT = { n: 0, items: [] };
 const ntSeen = () => { try { return JSON.parse(LS.get('mc_nt_seen') || '[]'); } catch(e){ return []; } };
 function ntItems(d){ const it = [], fn = x => fmtStu(x || '');
+  (d.claims || []).forEach(x => it.push({ k: 'c:' + x.sid + ':' + x.at, e: '🚨', t: '«' + fn(x.name) + '»: أحد دخل باسمي', s: 'اضغط عشان تصلحها', h: '#/t/class/' + x.cid, b: 'صلّحها' }));
   (d.pending || []).forEach(x => it.push({ k: 'p:' + x.cid + ':' + x.n, e: '🙋', t: x.n === 1 ? 'طالب جديد ينتظر موافقتك' : x.n + ' طلاب ينتظرون موافقتك', s: 'صف ' + x.cls, h: '#/t/class/' + x.cid, b: 'افتح' }));
   (d.ended || []).forEach(x => it.push({ k: 'e:' + x.g, e: '🏆', t: 'خلص «' + x.title + '»', s: x.win ? 'الفايز: ' + fn(x.win) : 'ما لعب أحد', h: '#/t/results/' + x.cid + '/' + x.comp }));
   (d.idle || []).forEach(x => it.push({ k: 'i:' + x.g + ':' + d.today, e: '😴', t: (x.n === 1 ? 'طالب ما لعب' : x.n + ' ما لعبوا') + ' من 3 أيام', s: (x.names || []).map(fn).map(n => n.split(' ')[0]).join('، ') + (x.n > 3 ? ' وغيرهم' : ''), h: '#/t/ch/' + x.g, b: 'ذكّرهم' }));
@@ -3150,7 +3151,8 @@ function classPage(c){
   const st = ok.slice().sort((a, b) => a.name.localeCompare(b.name, 'ar'));
   const box = c.self_join ? `<div class="cp-code"><small>الطلاب يدخلون بهذا الرمز</small><b dir="ltr">${esc(fmtCode(c.join_code || ''))}</b><button class="btn cp-share" data-act="c-share">شارك الرمز</button></div>`
     : st0.length ? `<div class="cp-code"><small>كل طالب له رمز دخول خاص</small><button class="btn cp-share" data-act="c-send">شارك رموز الطلاب</button></div>` : '';
-  return `<div class="cp1" data-cid="${c.id}">${box}<div class="cp-list">` +
+  const cl = st0.filter(x => x.claim_at), clb = cl.map(x => `<div class="cp-claim"><span class="grow"><b>🚨 «${esc(fmtStu(x.name))}»: أحد دخل باسمي</b><small>شكله طالب ثاني اختار اسمه بالغلط</small></span><button class="btn sm" data-act="nm-fix" data-id="${x.id}" data-cid="${c.id}">صلّحها</button></div>`).join('');
+  return `<div class="cp1" data-cid="${c.id}">${clb}${box}<div class="cp-list">` +
     nw.map(x => `<div class="cp-row"><span class="grow"><b>${esc(x.name)}</b> <span class="cn-tag">جديد</span></span><button class="cn-ok" data-act="s-approve" data-id="${x.id}" aria-label="موافقة">✓</button><button class="cn-no" data-act="s-reject" data-id="${x.id}" aria-label="حذف">✕</button></div>`).join('') +
     st.map((x, i) => `<button class="cp-row" data-act="s-card" data-id="${x.id}"><span class="cp-rk">${i + 1}</span><span class="grow"><b>${esc(fmtStu(x.name))}</b>${x.del_req ? ' <span class="cn-tag cn-del">طلب حذف</span>' : ''}</span><span class="chev">${ic('back')}</span></button>`).join('') +
     `<form class="cl-add1 cp-add" data-form="c-add1"><span class="pl">＋</span><input name="n" placeholder="اكتب اسم طالب" autocomplete="off" enterkeyhint="send"><button class="btn sm" type="submit">إضافة</button></form>` +
@@ -3355,7 +3357,7 @@ function st1Html(c, s){
   const ord = st1Order(c), i = ord.findIndex(x => x.id === s.id), pv = ord[i - 1], nx = ord[i + 1], A = `data-id="${s.id}" data-cid="${c.id}"`;
   return `<div class="st1" data-cid="${c.id}" data-id="${s.id}"><div class="st1-h"><b>${esc(s.name)}</b><button class="icon-btn st1-x" data-act="close-modal" aria-label="إغلاق">${ic('x')}</button></div>
     <button class="btn cp-share" data-act="s-wa" data-id="${s.id}">أرسل له رمز الدخول</button>
-    <div class="st1-opts">${[['s-edit', '✏️', 'تعديل الاسم'], ['s-msg', '✉️', 'رسالة'], ['t-regen', '🔄', 'رمز جديد'], ['t-del-student', '🗑️', 'حذف'], ['s-rep', '📊', 'تقريره']].map(o => `<button class="st1-o" data-act="${o[0]}" ${A}><span class="e">${o[1]}</span><b>${o[2]}</b></button>`).join('')}</div>
+    <div class="st1-opts">${[['s-edit', '✏️', 'تعديل الاسم'], ['s-msg', '✉️', 'رسالة'], ['nm-fix', '🚨', 'أحد دخل باسمه؟'], ['t-regen', '🔄', 'رمز جديد'], ['t-del-student', '🗑️', 'حذف'], ['s-rep', '📊', 'تقريره']].map(o => `<button class="st1-o" data-act="${o[0]}" ${A}><span class="e">${o[1]}</span><b>${o[2]}</b></button>`).join('')}</div>
     <div class="st1-nav"><button class="icon-btn" data-act="s-go" data-id="${pv ? pv.id : ''}" ${pv ? '' : 'disabled'} aria-label="السابق">→</button><small>${i + 1} من ${ord.length}</small><button class="icon-btn" data-act="s-go" data-id="${nx ? nx.id : ''}" ${nx ? '' : 'disabled'} aria-label="التالي">←</button></div></div>`;
 }
 ACTS['s-go'] = t => { const c = ctx(t), id = t.dataset.id, s = id && (CL.students[c.id] || []).find(x => x.id === id); const el = document.querySelector('.st1'); if (!s || !el) return; el.outerHTML = st1Html(c, s); };
@@ -3399,6 +3401,22 @@ ACTS['s-parent'] = () => {
   if (ph.length === 8) ph = '965' + ph; else if (ph.startsWith('00')) ph = ph.slice(2);
   window.open('https://wa.me/' + ph + '?text=' + encodeURIComponent(ST_PARENT.msg), '_blank');
 };
+/* v489 someone joined with this student's name: sign out every device, drop the rounds played since, new code */
+ACTS['nm-fix'] = async t => { const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return; closeModals();
+  let i = {}; try { i = await rpc('teacher_name_info', { p_student: s.id }) || {}; } catch(e){ return toast(/function|schema cache/i.test(e.message || '') ? 'تحتاج تشغيل ملف name_claim.sql أول' : errMsg(e)); }
+  const nm = esc(fmtStu(s.name)), d = i.since ? new Date(i.since).toLocaleDateString('ar-KW', { day: 'numeric', month: 'long' }) : '';
+  modal(`<div class="col nm1" data-cid="${c.id}"><h3>أحد دخل باسم «${nm}»؟</h3>
+    <p class="sub">${i.devices ? `دخل باسمه ${i.devices === 1 ? 'جهاز واحد' : i.devices + ' أجهزة'} من ${d}${i.rounds ? `، ولعب <b>${i.rounds} ${i.rounds === 1 ? 'جولة' : 'جولات'}</b> (${nf(i.points)} نقطة)` : '، وما لعب شي'}.` : 'ما دخل أي جهاز بهالاسم للحين.'}</p>
+    ${i.rounds ? `<label class="nm-wipe"><input type="checkbox" id="nm-w" checked><span>امسح هالجولات ونقاطها</span></label>` : ''}
+    <button class="btn" data-act="nm-go" data-id="${s.id}" data-cid="${c.id}">طلّعه وأعطِ «${nm}» رمز جديد</button>
+    ${s.claim_at ? `<button class="btn ghost" data-act="nm-x" data-id="${s.id}" data-cid="${c.id}">مو مشكلة، تجاهل</button>` : ''}</div>`).classList.add('rt-mid'); };
+ACTS['nm-go'] = async t => { const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); if (!s) return; const w = document.getElementById('nm-w');
+  t.disabled = true; let r; try { r = await rpc('teacher_name_fix', { p_student: s.id, p_wipe: !!(w && w.checked) }); } catch(e){ t.disabled = false; return toast(errMsg(e)); }
+  s.code = r.code; s.claim_at = null; closeModals();
+  modal(`<div class="col center nm1" data-cid="${c.id}"><div class="jn-cl-e">✅</div><h3>تم</h3><p class="sub">طلع كل جهاز دخل باسم «${esc(fmtStu(s.name))}»${r.wiped ? ` وانمسحت ${r.wiped} ${r.wiped === 1 ? 'جولة' : 'جولات'}` : ''}. رمزه الجديد:</p>
+    <div class="nm-code" dir="ltr">${esc(fmtCode(r.code))}</div><button class="btn" data-act="s-wa" data-id="${s.id}">أرسل له الرمز</button><button class="btn ghost" data-act="close-modal">تم</button></div>`).classList.add('rt-mid');
+  tClasses(); };
+ACTS['nm-x'] = async t => { const c = ctx(t), s = (CL.students[c.id] || []).find(x => x.id === t.dataset.id); try { await rpc('teacher_claim_dismiss', { p_student: t.dataset.id }); } catch(e){} if (s) s.claim_at = null; closeModals(); tClasses(); };
 ACTS['s-wa'] = t => {
   const s = Object.values(CL.students).flat().find(x => x.id === t.dataset.id); if (!s) return;
   const url = location.origin + location.pathname;
@@ -6938,8 +6956,13 @@ ACTS['jn-locked'] = t => { const n = JN.info.names.find(x => x.id === t.dataset.
   modal(`<form class="col" data-form="jn-unlock"><h3>هذا اسمك؟</h3><p class="sub">«${esc(n.name)}» دخل من جهاز ثاني. اكتب رمزك الخاص عشان تدخل من هذا الجهاز.</p>
     <input class="input jn-code" name="code" maxlength="6" autocomplete="off" autocapitalize="characters" dir="ltr" placeholder="ABC123" required>
     <div id="jlerr"></div><button class="btn" type="submit">ادخل</button>
-    <p class="sub center">ما تعرف رمزك؟ اسأل معلمك، يلقاه في صفحة الصف عند اسمك.</p></form>`);
+    <p class="sub center">ما تعرف رمزك؟ اسأل معلمك، يلقاه في صفحة الصف عند اسمك.</p>
+    <button type="button" class="btn soft jn-claim" data-act="jn-claim">😟 هذا اسمي وما دخلت!</button></form>`);
   setTimeout(() => { const i = document.querySelector('.jn-code'); if (i) i.focus(); }, 60); };
+/* v489 wrong name: the real student tells the teacher (sql/name_claim.sql) */
+ACTS['jn-claim'] = async () => { const n = JN.lock; if (!n) return;
+  try { await rpc('student_claim', { p_join: JN.code, p_student: n.id }); } catch(e){}
+  const m = document.querySelector('.modal'); if (m) m.innerHTML = `<div class="col center jn-cl"><div class="jn-cl-e">📨</div><h3>وصل لمعلمك</h3><p class="sub">قلنا له إن أحد دخل باسم «${esc(n.name)}». بيطلّعه ويعطيك رمز جديد، وتدخل فيه من «عندك رمز؟».</p><button class="btn" data-act="close-modal">تمام</button></div>`; };
 ACTS['jn-unlock'] = async f => { const code = f.code.value.toUpperCase().replace(/[^A-Z0-9]/g, ''), box = document.getElementById('jlerr'), btn = f.querySelector('[type=submit]');
   if (code.length < 6) { box.innerHTML = '<div class="err">اكتب الرمز كامل (6 خانات)</div>'; return; }
   btn.disabled = true;
@@ -6962,7 +6985,8 @@ ACTS['jn-go'] = async t => {
     const r = await rpc('student_join', { p_join: JN.code, p_name: JN.pick ? null : JN.name, p_student: JN.pick || null, p_device: devId() });
     profAdd({ token: r.token, name: r.student.name, cls: r.class.name, code: r.code });
     history.replaceState(null, '', '#/s'); loadHome();
-  } catch(e){ const box = document.getElementById('jerr'); if (box) box.innerHTML = '<div class="err" role="alert">' + esc(errMsg(e)) + '</div>'; t.disabled = false; t.textContent = 'نعم صح ✓'; }
+  } catch(e){ const box = document.getElementById('jerr'), dt = String(e && e.message || '').match(/device_taken:(.+)/);
+    if (box) box.innerHTML = dt ? `<div class="err jn-dt" role="alert"><b>هذا الجهاز دخل قبل باسم «${esc(dt[1].trim())}»</b>إذا كان غلط، قول لمعلمك يصلحه.</div>` : '<div class="err" role="alert">' + esc(errMsg(e)) + '</div>'; t.disabled = false; t.textContent = 'نعم صح ✓'; }
 };
 ACTS['j-go'] = () => { location.hash = '#/s'; };
 
