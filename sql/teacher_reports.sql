@@ -7,7 +7,7 @@ alter table public.feedback add column if not exists done_at timestamptz;
 create or replace function public.admin_feedback() returns jsonb language sql stable security definer set search_path = '' as $$
   select case when not exists(select 1 from private.admins where user_id = auth.uid()) then '[]'::jsonb else coalesce((
     select jsonb_agg(x order by x.created_at desc) from (
-      select f.id, f.body, f.page, f.meta, f.image, f.created_at, t.name teacher, u.email
+      select f.id, f.body, f.page, f.meta, f.image, f.created_at, t.display_name teacher, u.email
       from public.feedback f left join public.teachers t on t.id = f.teacher_id left join auth.users u on u.id = f.teacher_id
       where f.done_at is null order by f.created_at desc limit 100) x), '[]'::jsonb) end
 $$;
