@@ -4630,3 +4630,7 @@ html.pg-pin .pg-acts .t-bell,html.pg-pin .pg-acts .t-av{visibility:visible}
 .stp-r small{color:var(--muted)!important}
 .stp-b{background:#C8102E!important;box-shadow:0 4px 0 #8E0B21;border-radius:14px!important;min-height:40px!important;margin-bottom:4px}
 .stp-b.s{background:color-mix(in srgb,var(--ink) 12%,transparent)!important;box-shadow:none;color:var(--ink)!important;margin-bottom:0}
+
+/* v501 ready screen: copy message + show code side by side */
+.nw-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-top:10px}
+.nw-2 .btn{min-height:50px;font-size:15px;padding:0 8px}

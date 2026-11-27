@@ -2611,7 +2611,7 @@ function nwRender(){
   if (st === 4) {
     const m = NW.made || [];
     b = `<h2 class="nw-q">جاهز! 🎉</h2>${m.map(x => `<div class="nw-ready"><small>${m.length > 1 ? esc(x.c.name) + ' · ' : ''}الطلاب يدخلون بهذا الرمز</small><div class="nw-code" dir="ltr">${esc(fmtCode(x.code))}</div><div class="nw-qr" data-link="${esc(joinLink(x.code))}"></div></div>`).join('')}
-      <button class="btn nw-go nw-wa" data-act="nw-wa">أرسل للطلاب في واتساب</button><button class="link nw-link" data-act="nw-show">اعرض على الشاشة ‹</button>
+      <button class="btn nw-go nw-wa" data-act="nw-wa">أرسل للطلاب في واتساب</button><div class="nw-2"><button class="btn soft" data-act="nw-copy">📋 نسخ الرسالة</button><button class="btn soft" data-act="nw-show">📺 اعرض الرمز</button></div>
       <div class="nw-live" id="nw-live"></div><a class="link nw-link" href="#/t/home">تم ‹</a>`;
   }
   const canBack = st > 1 && st < 4 && !(st === 2 && NW.skip1);
@@ -2773,7 +2773,13 @@ ACTS['nw-start'] = async t => {
   } catch(e){ toast(errMsg(e)); t.removeAttribute('aria-busy'); t.textContent = 'ابدأ التحدي 🚀'; }
   NW.saving = false;
 };
-ACTS['nw-wa'] = () => { const m = NW.made || []; const txt = `يلا نلعب «اهزم الدقيقة» ⏱️\n${m.map(x => `${m.length > 1 ? x.c.name + ': ' : ''}الرمز ${fmtCode(x.code)}\n${joinLink(x.code)}`).join('\n')}`; open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank'); };
+/* v501 one invite message for WhatsApp and copy: join link + class code + App Store link (the link preview picture comes from og:image in index.html) */
+const APP_STORE = 'https://apps.apple.com/app/id6837764184';
+const nwMsg = () => { const m = NW.made || [];
+  return (m.length > 1 ? 'انضموا لتحدي «اهزم الدقيقة» 🎯⏱️\nكل صف يدخل من رابطه ويختار اسمه:\n' + m.map(x => `\n${x.c.name}\n${joinLink(x.code)}\nالرمز: ${fmtCode(x.code)}`).join('\n')
+    : m.length ? `انضم لتحدي «${m[0].c.name}» في «اهزم الدقيقة» 🎯⏱️\nاضغط الرابط واختر اسمك:\n${joinLink(m[0].code)}\nأو اكتب رمز الصف: ${fmtCode(m[0].code)}` : '') + `\n\n📲 حمّل التطبيق على الآيفون:\n${APP_STORE}`; };
+ACTS['nw-wa'] = () => { open('https://wa.me/?text=' + encodeURIComponent(nwMsg()), '_blank'); };
+ACTS['nw-copy'] = async () => { const v = nwMsg(); try { await navigator.clipboard.writeText(v); toast('انتسخت الرسالة، الصقها وين ما تبي ✅'); } catch(e){ copyBox(v, 'رسالة الدعوة'); } };
 ACTS['nw-show'] = async () => { const x = (NW.made || [])[0]; if (!x) return; let qr = ''; try { await loadJs(QRJS, 'qrcode'); qr = qrSvg(joinLink(x.code)); } catch(e){}
   const w = document.createElement('div'); w.className = 'joinshow'; w.innerHTML = `<button class="joinshow-x" aria-label="إغلاق">${ic('x')}</button><b>${esc(x.c.name)}</b><span>ادخل التطبيق واكتب الرمز</span><div class="nw-code nw-code-xl" dir="ltr">${esc(fmtCode(x.code))}</div>${qr ? `<div class="joinshow-qr">${qr}</div>` : ''}`;
   w.querySelector('.joinshow-x').onclick = () => w.remove(); document.body.appendChild(w); };
