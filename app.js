@@ -3631,7 +3631,7 @@ ACTS['s-wa'] = t => {
 ACTS['snd-new'] = () => { closeModals(); go('#/t/new'); };
 ACTS['c-send'] = t => { const c = ctx(t), only = t.dataset.only;
   const st = only === 'never' ? CK.students.filter(x => !CST(x.id).rounds) : CK.students;
-  modal(`<div class="col" data-cid="${c.id}"><h3>مشاركة رموز الدخول · ${esc(c.name)}</h3><p class="sub">اضغط على كل اسم ليفتح واتساب برسالة فيها رمزه ورابط الدخول. تظهر «فُتح واتساب» بعد فتحه، وتأكد أنت من الإرسال داخل واتساب.</p>
+  modal(`<div class="col" data-cid="${c.id}"><h3>مشاركة رموز الدخول · ${esc(c.name)}</h3><p class="sub">اضغط الاسم وأرسل له رمزه واتساب.</p>
     ${CL.comps[c.id] ? '' : `<div class="snd-warn"><span><b>⚠️ هذا الصف ما له تحدي</b><small>الطلاب بيدخلون وما يلقون جولة</small></span><button class="btn sm" data-act="snd-new">ابدأ تحدي</button></div>`}
     <div class="send-list">${st.map(x => `<button class="send-row ${CL.sent.has(x.id) ? 'sent' : ''}" data-act="s-wa" data-id="${x.id}"><span class="grow"><b>${esc(x.name)}</b><small>${CL.sent.has(x.id) ? 'فُتح واتساب ✓' : x.phone ? esc(x.phone) : 'بدون رقم: تختار المحادثة بنفسك'}</small></span><span class="send-ic">${ic(CL.sent.has(x.id) ? 'check' : 'send')}</span></button>`).join('')}</div>
     <div class="row snd-btns"><button class="btn soft" data-act="t-print-codes">${ic('print')} طباعة البطاقات</button><button class="btn soft" data-act="t-export-codes">${ic('download')} تصدير Excel</button></div></div>`);
