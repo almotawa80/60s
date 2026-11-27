@@ -1009,7 +1009,7 @@ function lbTabs(){ if (LB.t === 'stg' && !lbStgOn()) LB.t = 'cls';
   (LB.t === 'ar' ? '<div class="lb-per">' + [['day', 'اليوم'], ['week', 'الأسبوع'], ['all', 'الكل']].map(x => '<button class="' + (LB.p === x[0] ? 'on' : '') + '" data-act="lb-p" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' : ''); }
 function lbArHtml(d){ const rows = (d && d.rows) || [], me = d && d.me, md = ['🥇', '🥈', '🥉'];
   const row = (r, mine) => '<div class="lbx-r lba-r' + (mine ? ' me' : '') + '"><span class="lbx-no' + (r.rank <= 3 ? ' md' : '') + '">' + (r.rank <= 3 ? md[r.rank - 1] : r.rank) + '</span>' + arAv(r.avatar, r.name, 'lba-av', r.av) +
-    '<span class="lba-nm"><b>' + esc(r.name || '') + (mine ? ' <small>(أنت)</small>' : '') + '</b><small>' + (r.lvl ? 'مستوى ' + r.lvl : '') + (r.school ? ' · ' + esc(r.school) : '') + '</small></span><b class="lba-p">' + nf(r.pts) + '</b></div>';
+    '<span class="lba-nm"><b>' + esc(r.name || '') + (mine ? ' <small>(أنت)</small>' : '') + '</b><small>' + (r.lvl ? 'مستوى ' + r.lvl : '') + '</small></span><b class="lba-p">' + nf(r.pts) + '</b></div>';
   if (!rows.length) return '<div class="lbx-empty"><span>🚀</span><b>ما أحد لعب ' + { day: 'اليوم', week: 'هالأسبوع', all: '' }[LB.p] + ' للحين</b><small>العب تحدي وكن أول المراكز!</small></div><button class="btn" data-act="s-tab" data-t="ar">العب الحين</button>';
   const h = AR.h || {}, st = (S.home && S.home.student) || {};
   return '<div class="lbx-list">' + rows.map(r => row(r, r.me)).join('') + '</div>' +

@@ -27,7 +27,7 @@ a{color:#FF4D63}
 </head>
 <body>
 <main>
-<header><img src="icon-192.png" alt=""><div><h1>اهزم الدقيقة</h1><div class="sub">الخصوصية والدعم · آخر تحديث 21 نوفمبر 2026</div></div></header>
+<header><img src="icon-192.png" alt=""><div><h1>اهزم الدقيقة</h1><div class="sub">الخصوصية والدعم · آخر تحديث 27 نوفمبر 2026</div></div></header>
 
 <section id="support">
 <h2>الدعم والتواصل</h2>
@@ -51,7 +51,9 @@ a{color:#FF4D63}
 <p><b>الطالب:</b></p>
 <ul>
 <li>الاسم اللي يكتبه المعلم أو الطالب، والصف.</li>
-<li>نتائج الجولات والنقاط والشارات والشكل (رمز تعبيري).</li>
+<li>نتائج الجولات والنقاط والشارات والشكل (رمز تعبيري)، وجنس الطالب إذا حدده المعلم للصف.</li>
+<li>رسائل المعلم للطالب، وتقييم التطبيق وتعليقه إذا كتب واحداً (اختياري).</li>
+<li>جلسة الدخول على الجهاز وتبقى 30 يوماً.</li>
 <li>رقم هاتف ولي الأمر فقط إذا أضافه المعلم لإرسال رمز الدخول عبر واتساب.</li>
 <li>رمز الإشعارات للجهاز إذا وافق الطالب على الإشعارات.</li>
 </ul>
@@ -71,8 +73,10 @@ a{color:#FF4D63}
 <h2>من يشوف البيانات</h2>
 <ul>
 <li>بيانات كل صف يشوفها معلمه فقط.</li>
-<li>الطالب يشوف ترتيب صفه بالأسماء الأولى والنقاط.</li>
-<li>البيانات محفوظة عند مزوّد الخدمة Supabase بشكل آمن ومحمي.</li>
+<li>الطالب يشوف ترتيب صفه بالاسم الأول والثاني والنقاط.</li>
+<li>«الساحة» (مباراة بين الطلاب وترتيب عام) تعرض اسماً مستعاراً وصورة رمزية فقط، بدون الاسم الحقيقي أو الصف أو المدرسة.</li>
+<li>المشرف التقني للتطبيق يقدر يدخل بحساب المعلم لتقديم الدعم عند الحاجة، وكل دخول مسجّل.</li>
+<li>البيانات محفوظة عند مزوّد الخدمة Supabase بشكل آمن ومحمي، وخوادمه في الهند (ap-south-1)، فتُنقل البيانات خارج الكويت.</li>
 </ul>
 </section>
 
@@ -80,19 +84,20 @@ a{color:#FF4D63}
 <h2>حذف البيانات</h2>
 <ul>
 <li>المعلم يقدر يحذف حسابه كاملاً من داخل التطبيق: الإعدادات › حسابي › حذف الحساب، فتنحذف صفوفه وطلابه وأسئلته نهائياً.</li>
-<li>المعلم يقدر يحذف أي طالب أو صف بأي وقت، فتنحذف بياناته ونتائجه.</li>
+<li>المعلم يقدر يحذف أي طالب أو صف بأي وقت: الطالب المحذوف يُخفى 30 يوماً (للتراجع) ثم تنحذف بياناته ونتائجه نهائياً.</li>
+<li>الطالب يقدر يحذف حسابه من «أنا» بالتطبيق: يُقفل حسابه فوراً، وبعد 14 يوماً تنمسح بياناته الشخصية (الاسم والرمز والصورة) وتبقى نقاطه في ترتيب التحديات المنتهية باسم «طالب محذوف» دون أي معلومة تعرّف به.</li>
 <li>لأي طلب حذف ثاني راسلنا على <a href="mailto:support@beat60s.com">support@beat60s.com</a>.</li>
 </ul>
 </section>
 
 <section>
 <h2>الأطفال</h2>
-<p>التطبيق مصمم للاستخدام المدرسي تحت إشراف المعلم. الطالب يدخل برمز من معلمه، ولا نجمع منه بيانات تواصل.</p>
+<p>التطبيق مصمم للاستخدام المدرسي تحت إشراف المعلم. الطالب يدخل برمز من معلمه، ولا نجمع منه بيانات تواصل. المدرسة والمعلم مسؤولان عن إذن أولياء الأمور لاستخدام التطبيق، ولولي الأمر أن يطلب حذف بيانات ابنه عبر المعلم أو مراسلتنا.</p>
 </section>
 
 <section class="en" lang="en" dir="ltr">
 <h2>Privacy summary (English)</h2>
-<p>Beat60s («اهزم الدقيقة») is a classroom quiz app. Teachers sign in with name, email and password and may add profile details, classes, students and questions. Students join with a code from their teacher; we store their name, class, game results and, if they allow it, a notification token. A parent phone number is stored only if the teacher adds it to share a login code. We do not show ads, track users or sell data. Data is stored with Supabase. Teachers can delete their account in Settings › Account, and delete any student or class at any time. Contact: <a href="mailto:support@beat60s.com">support@beat60s.com</a>.</p>
+<p>Beat60s («اهزم الدقيقة») is a classroom quiz app. Teachers sign in with name, email and password and may add profile details, classes, students and questions. Students join with a code from their teacher; we store their name, class, game results and, if they allow it, a notification token. A parent phone number is stored only if the teacher adds it to share a login code. We do not show ads, track users or sell data. Data is stored with Supabase. Teachers can delete their account in Settings › Account, and delete any student or class at any time (removed students are purged after 30 days). Students can delete their own account (personal data erased after 14 days). Data is hosted in India (Supabase, ap-south-1). The public arena shows only nicknames, never real names or schools. Contact: <a href="mailto:support@beat60s.com">support@beat60s.com</a>.</p>
 </section>
 </main>
 </body>
