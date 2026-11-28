@@ -4789,13 +4789,10 @@ html.admmode body.wide .t-top{padding-top:10px!important}
 .avi.avg{background:none;box-shadow:none!important}
 .avi.avg img{left:0;width:100%;-webkit-mask:linear-gradient(#000,#000) top/100% 59.5% no-repeat,radial-gradient(circle closest-side,#000 98%,transparent 100%) bottom/100% 81.1% no-repeat;mask:linear-gradient(#000,#000) top/100% 59.5% no-repeat,radial-gradient(circle closest-side,#000 98%,transparent 100%) bottom/100% 81.1% no-repeat}
 /* v542 student logout door top-left (fixed on tab pages; inside the header on home), delete = clear red button */
-#app > .s-out{position:fixed;top:calc(env(safe-area-inset-top) + 12px);left:max(16px,calc(50vw - 224px));z-index:30}
-#app > .sh:has(.s-hacts) ~ .s-out{display:none}
 html body:not(.wide) .s-out{background:#1C1C1E!important;color:#F5F5F7!important;border:0!important;box-shadow:none!important;width:46px!important;height:46px!important;border-radius:50%;display:grid;place-items:center;padding:0}
 html body:not(.wide) .s-out svg{width:22px;height:22px}
 .s-me-x{display:flex;justify-content:center;margin:22px 6px 6px}
 .s-me-x .btn.s-del{width:auto;min-width:200px;padding:0 28px;background:#C8102E!important;color:#fff!important}
-.s-tabpg .lb-seg,.s-tabpg .ar-top{margin-top:58px}
 
 .bio-btn{margin-bottom:6px}
 
@@ -4805,3 +4802,8 @@ html body:not(.wide) .s-out svg{width:22px;height:22px}
 /* v553 wide screens (tablet, iPhone Duo): arena card row runs edge to edge instead of being cut at the 480px column; glow no longer clipped */
 .ar-deck{margin-top:-22px;margin-bottom:-22px;padding-top:36px;padding-bottom:44px}
 @media (min-width:560px){.ar-deck{margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);padding-left:calc(50vw - 126px);padding-right:calc(50vw - 126px)}.sh:has(.ar-deck){overflow-x:visible}body:has(.ar-deck){overflow-x:clip}}
+/* v556 (Khalid): fixed transparent student top bar, door always top-left, content scrolls under it */
+#app > .s-top{position:fixed;top:0;left:0;right:0;z-index:30;height:calc(env(safe-area-inset-top) + 70px);padding:calc(env(safe-area-inset-top) + 12px) max(16px,calc(50vw - 224px)) 0;display:flex;direction:ltr;justify-content:flex-start;gap:10px;background:transparent;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent);box-sizing:border-box}
+html body:not(.wide) .s-top .av-btn{background:#1C1C1E!important;color:#F5F5F7!important;border:0!important;box-shadow:none!important;width:46px!important;height:46px!important;border-radius:50%;display:grid;place-items:center;padding:0;position:relative}
+html body:not(.wide) .s-top .av-btn svg{width:22px;height:22px}
+#app:has(> .s-top) > .sh{padding-top:calc(env(safe-area-inset-top) + 78px)!important}
