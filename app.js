@@ -2112,7 +2112,9 @@ async function tAdmin(p){
 /* v487 rating popup (teacher after first student plays, student after 3rd round) */
 const RT = { k: 't', s: 0, c: '' };
 const rtKey = k => k === 's' ? 'mc_rt_s_' + String(S.token || '').slice(0, 12) : 'mc_rt_t_' + ((T.user && T.user.id) || '').slice(0, 12);
-const rtDue = k => { if (RT['a' + k]) return false; const v = LS.get(rtKey(k)); return !v || (v !== 'done' && /^\d+$/.test(v) && Date.now() - +v > 14 * 864e5); };
+/* v552 (App Store 5.6.3): never ask on first launch; only after the app was opened on several different days */
+const rtDays = k => { const key = rtKey(k) + '_d', day = new Date().toISOString().slice(0, 10); let a = []; try { a = JSON.parse(LS.get(key) || '[]'); } catch(e){} if (a.indexOf(day) < 0) { a.push(day); a = a.slice(-10); LS.set(key, JSON.stringify(a)); } return a.length; };
+const rtDue = k => { if (RT['a' + k]) return false; if (rtDays(k) < (k === 's' ? 2 : 3)) return false; const v = LS.get(rtKey(k)); return !v || (v !== 'done' && /^\d+$/.test(v) && Date.now() - +v > 14 * 864e5); };
 function rtTeacher(){ if (ADM.st && ADM.st.act) return; if (!rtDue('t') || rtTeacher.on) return; rtTeacher.on = 1;
   setTimeout(() => { if (location.hash.indexOf('#/t/home') === 0 && !document.querySelector('.modal-back')) rateAsk('t'); else rtTeacher.on = 0; }, 1500); }
 function rateAsk(k){
