@@ -3248,7 +3248,7 @@ function renderChallenge(gid){
     <div class="ch-2">${c.paused_at ? `<button class="ch-b" data-act="cp-resume" data-g="${esc(gid)}">▶️ استئناف</button>` : `<button class="ch-b" data-act="cp-pause" data-g="${esc(gid)}">⏸ إيقاف مؤقت</button>`}<button class="ch-b end" data-act="cp-end" data-g="${esc(gid)}">🏁 إنهاء</button></div>
     <p class="ch-meta">${esc(meta)}</p><div id="ch-star"></div>
     ${rows.length && !CL.chSel ? chMsgLine(rows) : ''}
-    ${rows.length ? `<div class="ch-lh">${CL.chSel ? `<button class="link" data-act="ch-all">${CL.chSel.size === rows.length ? 'إلغاء الكل' : 'اختر الكل'}</button><button class="link" data-act="ch-sel-x">إلغاء</button>` : `<span></span><button class="link" data-act="ch-sel">✉️ رسالة</button>`}</div>
+    ${rows.length ? `<div class="ch-lh">${CL.chSel ? `<button class="ch-mini soft" data-act="ch-all">${CL.chSel.size === rows.length ? 'إلغاء الكل' : 'اختر الكل'}</button><button class="ch-mini soft" data-act="ch-sel-x">إلغاء</button>` : `<button class="ch-mini" data-act="ch-sel">✉️ إرسال رسالة</button><span></span>`}</div>
     <div class="cp-list${CL.chSel ? ' picking' : ''}">${rows.map((x, i) => { const k = CST(x.id); return `<button class="cp-row${k.today ? '' : ' dim'}${k.pts ? '' : ' z'}${CL.chSel && CL.chSel.has(x.id) ? ' on' : ''}" data-act="${CL.chSel ? 'ch-pick' : 'ch-stu'}" data-id="${x.id}">${CL.chSel ? '<i class="ch-ck">✓</i>' : ''}<span class="cp-rk">${!k.pts ? '' : i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="grow"><b>${x.avatar ? avI(x.avatar) + ' ' : ''}${esc(fmtStu(x.name))}${k.today ? ' <i class="cp-ok">✓</i>' : ''}</b>${chMb(x.id)}${multi ? `<small class="ch-cls">${esc(x._c || '')}</small>` : ''}</span><span class="cp-pts">${k.pts || '—'}</span></button>`; }).join('')}</div>`
       : `<div class="cl-empty sm"><b>ما فيه طلاب بعد</b><small>شارك رمز الصف من ⋯</small></div>`}</div>`;
   view(String(c.title || 'التحدي').split('·').pop().trim(), body + (CL.chSel ? `<div class="ch-sendbar"><button class="btn" data-act="ch-send" ${CL.chSel.size ? '' : 'disabled'}>✉️ أرسل إلى ${CL.chSel.size}</button></div>` : ''), 'home', '', '#/t/home');
@@ -4257,7 +4257,7 @@ ACTS['t-export-codes'] = async t => { ctx(t); await XL();
   XLSX.writeFile(wb, 'رموز-' + CK.cls.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };
 const QRJS = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-const XLSXJS = 'vendor/xlsx-0.18.5.full.min.js?v=551';
+const XLSXJS = 'vendor/xlsx-0.18.5.full.min.js?v=552';
 const XL = () => loadJs(XLSXJS, 'XLSX').catch(() => { throw new Error('تعذر تحميل أداة Excel، تأكد من الاتصال'); });
 function loadJs(src, g){ return new Promise((ok, no) => { if (window[g]) return ok(); const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); }
 function qrSvg(text){ try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); } catch(e){ return ''; } }
@@ -5916,7 +5916,7 @@ ACTS['t-q-share-import'] = async t => {
 };
 
 /* read questions from a photo of a worksheet (OCR in the browser) */
-const OCRJS = 'vendor/tesseract-5.1.1.min.js?v=551';
+const OCRJS = 'vendor/tesseract-5.1.1.min.js?v=552';
 ACTS['t-q-ocr'] = () => { closeModals(); document.getElementById('qocr').click(); };
 ACTS['t-q-ocr-chosen'] = async t => {
   const file = t.files && t.files[0]; if (!file) return; t.value = '';

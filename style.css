@@ -4798,3 +4798,6 @@ html body:not(.wide) .s-out svg{width:22px;height:22px}
 .s-tabpg .lb-seg,.s-tabpg .ar-top{margin-top:58px}
 
 .bio-btn{margin-bottom:6px}
+
+.ch-mini{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 16px;border-radius:99px;border:0;background:#C8102E;color:#fff;font:inherit;font-weight:800;font-size:15px;box-shadow:0 3px 0 #8E0B21;cursor:pointer}
+.ch-mini.soft{background:#2C2C2E;box-shadow:none;font-weight:700}
