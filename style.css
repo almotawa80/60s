@@ -4801,3 +4801,7 @@ html body:not(.wide) .s-out svg{width:22px;height:22px}
 
 .ch-mini{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 16px;border-radius:99px;border:0;background:#C8102E;color:#fff;font:inherit;font-weight:800;font-size:15px;box-shadow:0 3px 0 #8E0B21;cursor:pointer}
 .ch-mini.soft{background:#2C2C2E;box-shadow:none;font-weight:700}
+
+/* v553 wide screens (tablet, iPhone Duo): arena card row runs edge to edge instead of being cut at the 480px column; glow no longer clipped */
+.ar-deck{margin-top:-22px;margin-bottom:-22px;padding-top:36px;padding-bottom:44px}
+@media (min-width:560px){.ar-deck{margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);padding-left:calc(50vw - 126px);padding-right:calc(50vw - 126px)}.sh:has(.ar-deck){overflow-x:visible}body:has(.ar-deck){overflow-x:clip}}
