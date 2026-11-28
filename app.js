@@ -5025,6 +5025,8 @@ function q3Home(){
   /* v382 (Khalid): subjects in his account always sit in «موادي», even when the bank has nothing for them yet */
   const have = new Set(subs.map(x => x.s));
   mySubjects().filter(x => !have.has(x)).forEach(x => sqMine.push(`<button class="q5-sb q5-emp" data-act="q5-empty" data-s="${esc(x)}"><span class="e">${SUBJ_EMOJI[x] || '📘'}</span><b>${esc(x)}</b><small>أضف أسئلتك</small></button>`));
+  /* v561 (Khalid): a ticked subject from «مواد أخرى» must show on the main screen */
+  { const onO = sqOther.filter(h => / on"/.test(h)); if (onO.length) { sqOther = sqOther.filter(h => !onO.includes(h)); sqMine = sqMine.filter(h => / on"/.test(h)).concat(onO, sqMine.filter(h => !/ on"/.test(h))); } }
   if (!sqMine.length) { sqMine = sqOther; sqOther = []; }
   if (ownAll) sqMine.splice(own ? sqMine.filter(h => / on"/.test(h)).length : sqMine.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
   if (0) sq.splice(own ? Object.keys(st).length : sq.length, 0, `<button class="q5-sb${own ? ' on' : ''}" data-act="q4-own"><span class="e">✍️</span><b>أسئلتي الخاصة</b><small>${own ? own + ' شغّالة' : ownAll + ' سؤال'}</small></button>`);
