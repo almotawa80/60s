@@ -3365,7 +3365,7 @@ function clsRows(list){ const gs = clsGroups(list), cl = cgClosed();
   const row = c => { const st0 = CL.students[c.id] || [], comp = CL.comps[c.id], p = st0.filter(x => CST(x.id).today).length;
     return `<button class="cg-r" data-act="c-open" data-id="${c.id}" data-cid="${c.id}"><b>${esc(c.name)}</b>${comp ? `<em>لعب اليوم ${p}</em>` : ''}<small>${st0.length} طالب</small><span class="set-chev">${ic('back')}</span></button>`; };
   if (gs.length < 2) return `<div class="cg-l">${(gs[0] ? gs[0].items : []).map(row).join('')}</div>`;
-  return gs.map(g => `<details class="cg-g" data-g="${g.g}"${cl.indexOf(g.g) < 0 ? ' open' : ''}><summary data-act="cg-tog"><b>${g.label}</b><span><u>${g.items.length === 1 ? 'صف واحد' : g.items.length === 2 ? 'صفين' : g.items.length + ' صفوف'}</u></span><i class="cg-ch">${ic('back')}</i></summary><div class="cg-l">${g.items.map(row).join('')}</div></details>`).join(''); }
+  return gs.map(g => g.items.length === 1 ? `<div class="cg-l cg-solo">${row(g.items[0])}</div>` : `<details class="cg-g" data-g="${g.g}"${cl.indexOf(g.g) < 0 ? ' open' : ''}><summary data-act="cg-tog"><b>${g.label}</b><span><u>${g.items.length === 1 ? 'صف واحد' : g.items.length === 2 ? 'صفين' : g.items.length + ' صفوف'}</u></span><i class="cg-ch">${ic('back')}</i></summary><div class="cg-l">${g.items.map(row).join('')}</div></details>`).join(''); }
 ACTS['cg-tog'] = t => { const d = t.parentElement; d.open = !d.open; LS.set('mc_cg_closed', JSON.stringify([...document.querySelectorAll('details.cg-g:not([open])')].map(x => +x.dataset.g))); };
 function classesList(){
   const top = CL.sel ? '' : `<button class="btn cl-add" data-act="aw-start">${ic('plus')} إضافة طلبة</button><div class="cl-newc"><button class="link" data-act="t-add-class">＋ صف جديد</button></div><input type="file" id="awimg" accept="image/*" class="hide" data-change="aw-img"><input type="file" id="awxl" accept=".xlsx,.xls,.csv" class="hide" data-change="aw-xl"><input type="file" id="mxl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-multi-chosen"><input type="file" id="xl" accept=".xlsx,.xls,.csv" class="hide" data-change="t-xl-chosen">`;
@@ -4257,7 +4257,7 @@ ACTS['t-export-codes'] = async t => { ctx(t); await XL();
   XLSX.writeFile(wb, 'رموز-' + CK.cls.name.replace(/[\\/:*?"<>|]/g, '-') + '.xlsx');
 };
 const QRJS = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-const XLSXJS = 'vendor/xlsx-0.18.5.full.min.js?v=553';
+const XLSXJS = 'vendor/xlsx-0.18.5.full.min.js?v=554';
 const XL = () => loadJs(XLSXJS, 'XLSX').catch(() => { throw new Error('تعذر تحميل أداة Excel، تأكد من الاتصال'); });
 function loadJs(src, g){ return new Promise((ok, no) => { if (window[g]) return ok(); const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); }
 function qrSvg(text){ try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); } catch(e){ return ''; } }
@@ -5916,7 +5916,7 @@ ACTS['t-q-share-import'] = async t => {
 };
 
 /* read questions from a photo of a worksheet (OCR in the browser) */
-const OCRJS = 'vendor/tesseract-5.1.1.min.js?v=553';
+const OCRJS = 'vendor/tesseract-5.1.1.min.js?v=554';
 ACTS['t-q-ocr'] = () => { closeModals(); document.getElementById('qocr').click(); };
 ACTS['t-q-ocr-chosen'] = async t => {
   const file = t.files && t.files[0]; if (!file) return; t.value = '';
