@@ -4808,7 +4808,7 @@ html body:not(.wide) .s-top .av-btn{background:#1C1C1E!important;color:#F5F5F7!i
 html body:not(.wide) .s-top .av-btn svg{width:22px;height:22px}
 #app:has(> .s-top) > .sh{padding-top:calc(env(safe-area-inset-top) + 78px)!important}
 /* v557 (Khalid): 1s animated intro (index.html #intro): logo pops, hand spins one lap, shine, name */
-#intro{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;transition:opacity .3s;direction:rtl}
+#intro{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;transition:opacity .6s ease;direction:rtl}
 #intro.out{opacity:0}
 #intro .in-lg{position:relative;background:#000;isolation:isolate;width:min(118vw,620px);margin-top:-8vh;animation:inPop .5s cubic-bezier(.2,1.4,.4,1) both}
 #intro .in-lg img{width:100%;display:block;-webkit-mask-image:radial-gradient(farthest-side,#000 78%,transparent);mask-image:radial-gradient(farthest-side,#000 78%,transparent)}
