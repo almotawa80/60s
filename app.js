@@ -5037,7 +5037,7 @@ function q3Home(){
     ${total ? '<button class="p3-big" data-act="q3-add">＋ أضف سؤال</button>' : ''}
     <div class="q5-lbl q5-lr"><span>موادي</span>${total ? `<em class="${days >= 7 ? '' : 'low'}">${total} سؤال · تكفي ${daysAr(days)}${days >= 7 ? '' : ' ⚠️'}</em>` : ''}</div>
     <div class="q5-sq${sqMine.length === 1 ? ' one' : ''}">${sqMine.join('')}</div>
-    <button class="q5-orow" data-act="q5-oth"><span class="grow">مواد أخرى${sqOther.length ? ' (' + sqOther.length + ')' : ''}</span><span class="q4-chev">‹</span></button>
+    <details class="q5-od"><summary class="q5-orow"><span class="grow">مواد أخرى${sqOther.length ? ' (' + sqOther.length + ')' : ''}</span><span class="q4-chev">‹</span></summary>${sqOther.length ? `<div class="q5-sq">${sqOther.join('')}</div>` : ''}<button class="q5-newl" data-act="q5-newsubj">＋ مادتي مو موجودة</button></details>
     <div class="q5-lbl">أسئلة منوّعة</div><div class="q5-sq q5-g3">${gen}</div>
     ${total ? '' : '<button class="q5-addl" data-act="q3-add">✍️ أو اكتب سؤالك بنفسك</button>'}</div>`;
 }

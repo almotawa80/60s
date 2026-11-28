@@ -4821,3 +4821,10 @@ html body:not(.wide) .s-top .av-btn svg{width:22px;height:22px}
 @keyframes inShine{0%{opacity:1;background-position:150% 0}100%{opacity:1;background-position:-50% 0}}
 @keyframes inUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){#intro .in-lg,#intro .in-h,#intro .in-sh,#intro .in-nm{animation:none}}
+/* v562 (Khalid): «مواد أخرى» opens in place (slides down), not as a bottom sheet */
+.q5-od>summary{list-style:none;cursor:pointer}.q5-od>summary::-webkit-details-marker{display:none}
+.q5-od>summary .q4-chev{display:inline-block;transform:rotate(0);transition:transform .25s}
+.q5-od[open]>summary .q4-chev{transform:rotate(-90deg)}
+.q5-od[open]>.q5-sq,.q5-od[open]>.q5-newl{animation:q5od .28s ease-out}
+.q5-od>.q5-sq{margin-top:12px}
+@keyframes q5od{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
