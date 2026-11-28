@@ -2114,8 +2114,10 @@ const RT = { k: 't', s: 0, c: '' };
 const rtKey = k => k === 's' ? 'mc_rt_s_' + String(S.token || '').slice(0, 12) : 'mc_rt_t_' + ((T.user && T.user.id) || '').slice(0, 12);
 /* v552 (App Store 5.6.3): never ask on first launch; only after the app was opened on several different days */
 const rtDays = k => { const key = rtKey(k) + '_d', day = new Date().toISOString().slice(0, 10); let a = []; try { a = JSON.parse(LS.get(key) || '[]'); } catch(e){} if (a.indexOf(day) < 0) { a.push(day); a = a.slice(-10); LS.set(key, JSON.stringify(a)); } return a.length; };
-const rtDue = k => { if (RT['a' + k]) return false; if (rtDays(k) < (k === 's' ? 2 : 3)) return false; const v = LS.get(rtKey(k)); return !v || (v !== 'done' && /^\d+$/.test(v) && Date.now() - +v > 14 * 864e5); };
-function rtTeacher(){ if (ADM.st && ADM.st.act) return; if (!rtDue('t') || rtTeacher.on) return; rtTeacher.on = 1;
+const rtDue = k => { if (RT['a' + k]) return false; if (rtDays(k) < 2) return false; const v = LS.get(rtKey(k)); return !v || (v !== 'done' && /^\d+$/.test(v) && Date.now() - +v > 14 * 864e5); };
+/* v552 (Khalid): teacher is asked after his first challenge has finished, and never on the first day on this device */
+async function rtTeacher(){ if (ADM.st && ADM.st.act) return; if (!rtDue('t') || rtTeacher.on) return; rtTeacher.on = 1;
+  try { const r = await sb.from('competitions').select('id', { count: 'exact', head: true }).or('status.neq.active,end_date.lt.' + todayKW()); if (!(r.count > 0)) { rtTeacher.on = 0; return; } } catch(e){ rtTeacher.on = 0; return; }
   setTimeout(() => { if (location.hash.indexOf('#/t/home') === 0 && !document.querySelector('.modal-back')) rateAsk('t'); else rtTeacher.on = 0; }, 1500); }
 function rateAsk(k){
   RT.k = k; RT.s = 0; RT.c = ''; RT['a' + k] = 1;
@@ -2431,7 +2433,7 @@ const stpGrade = n => { const t = String(n || '').replace(/[٠-٩]/g, d => '٠١
 const stpSent = id => LS.get('mc_sent_' + id) === '1';
 async function stepsCard(classes, comps, res){
   const played = (res || []).flat().flat().some(r => r && (r.rounds > 0 || r.played_today));
-  if (played) rtTeacher();
+  rtTeacher();
   if (!classes.length || (T.settings && T.settings.stepsOff)) return '';
   if (played) { if (!(T.settings || {}).stepsOff && !(ADM.st && ADM.st.act)) saveSettings({ stepsOff: 1 }); return ''; }
   const st = await sb.from('students').select('class_id'); if (st.error) return '';
