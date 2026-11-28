@@ -5362,7 +5362,7 @@ ACTS['q4-qdel'] = async () => {
 ACTS['q4-all'] = async t => { const P = QS.pick || new Set(), ids = QS.glob.filter(q => q.curriculum_id === QS.subjCu && !P.has(q.id)).map(q => q.id); if (!ids.length) return;
   t.setAttribute('aria-busy', 'true'); if (await qPickSet(ids, true)) { renderQuestionsKeepModal(); q4SubjSheet(QS.subj3); toast('كل الدروس تطلع لطلابك ✓'); } else t.removeAttribute('aria-busy'); };
 ACTS['q4-done'] = () => { closeModals(); renderQuestions(); scrollTo(0, 0); };
-ACTS['q4-subj'] = t => { SJ.back = null; QS.subjCu = null; QS.ed4 = false; go('#/t/subj/' + encodeURIComponent(t.dataset.s)); };
+ACTS['q4-subj'] = t => { closeModals(); SJ.back = null; QS.subjCu = null; QS.ed4 = false; go('#/t/subj/' + encodeURIComponent(t.dataset.s)); };
 ACTS['q4-gr'] = t => { QS.subjCu = t.dataset.id; q4SubjSheet(QS.subj3); };
 ACTS['q4-tg'] = async t => {
   const l = (QS.les3 || [])[+t.dataset.i]; if (l == null) return;
