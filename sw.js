@@ -1,6 +1,6 @@
 // fast start: versioned files (?v=) and CDN libraries come from cache instantly;
 // pages are network-first with a short timeout, falling back to cache when slow or offline
-const CACHE = 'tahaddi-v554';
+const CACHE = 'tahaddi-v555';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(
   caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())
@@ -32,7 +32,7 @@ self.addEventListener('fetch', e => {
 // v175 daily reminder (web push)
 self.addEventListener('push', e => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data && e.data.text() }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'اهزم الدقيقة', { body: d.body || 'باقي لك جولة اليوم', icon: 'icon-192.png?i=10', badge: 'icon-192.png?i=10', tag: d.tag || 'mc-daily', data: { url: d.url || './' }, lang: 'ar', dir: 'rtl' }));
+  e.waitUntil(self.registration.showNotification(d.title || 'اهزم الدقيقة', { body: d.body || 'باقي لك جولة اليوم', icon: 'icon-192.png?i=11', badge: 'icon-192.png?i=11', tag: d.tag || 'mc-daily', data: { url: d.url || './' }, lang: 'ar', dir: 'rtl' }));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();

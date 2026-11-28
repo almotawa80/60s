@@ -100,7 +100,7 @@ const ICON = {
   star:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3z"/>'
 };
 const ic = n => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + ICON[n] + '</svg>';
-const LOGO = '<div class="logo" aria-hidden="true"><img src="icon-512.png?i=10" alt=""></div>';
+const LOGO = '<div class="logo" aria-hidden="true"><img src="icon-512.png?i=11" alt=""></div>';
 const LETTERS = ['أ','ب','ج','د'];
 const SHAPES = ['▲','◆','●','■'];
 function setTheme(t){ document.body.dataset.theme = t || 'mid'; }
@@ -1231,7 +1231,7 @@ const FX = (() => {
       if (reduce()) { tone(200, .3, 'sine', .08); return Promise.resolve(); }
       return new Promise(res => {
         const L = layer(), w = document.createElement('div'); w.className = 'fx-bomb';
-        w.innerHTML = '<div class="fx-clock"><img src="icon-512.png?i=10" alt=""></div>'; L.appendChild(w);
+        w.innerHTML = '<div class="fx-clock"><img src="icon-512.png?i=11" alt=""></div>'; L.appendChild(w);
         tone(200, 1.1, 'sawtooth', .07, 0, 900);
         let k = 0; const iv = setInterval(() => { tone(900 + k * 120, .05, 'square', .08); k++; }, 150);
         setTimeout(() => {
@@ -1713,7 +1713,7 @@ const LEVEL_AR = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' };
 const STATUS_AR = { draft: 'مسودة', approved: 'متاح', rejected: 'مرفوض' };
 const STYLE_AR = { kids: 'مرح · ابتدائي', mid: 'مرح قليلاً · متوسط', uni: 'هادئ · ثانوي' };
 const STYLE_SW = { kids: 'linear-gradient(135deg,#FFD9B0,#E3262F)', mid: 'linear-gradient(135deg,#C8102E,#F5B72B)', uni: 'linear-gradient(135deg,#FAF6F3,#7A1220)' };
-const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png?i=10" alt=""></div>';
+const LOGO_S = '<div class="logo" style="width:42px;height:42px" aria-hidden="true"><img src="icon-192.png?i=11" alt=""></div>';
 const NAV = [['home', 'الرئيسية', 'home'], ['classes', 'الصفوف', 'layers'], ['new', 'تحدي', 'plus'], ['questions', 'الأسئلة', 'help'], ['settings', 'الإعدادات', 'gear']];
 const NAV_EMO = { home:'🏠', classes:'👥', questions:'❓', settings:'⚙️' };
 /* v211 (Khalid): line icons + «تحدي» = answer-squares logo (bigger, no label) + red count badges */
@@ -4147,7 +4147,7 @@ function rpRadar(les){ const n = les.length, R = 105, cx = 160, cy = 140, ang = 
 function rpPdfHtml(d, note){
   const m = rpSummary(d), les = (d.lessons || []).filter(x => x.t >= 3), today = new Date().toISOString().slice(0, 10), subj = SG('prof_subject').split('|').filter(Boolean)[0] || '';
   const name = fmtStu(d.name || ''), ini = (d.name || '?').trim().charAt(0), acc = m.acc, g0 = RP_GR(acc), ca = d.cls_acc;
-  const head = `<div class="rp4-hd"><img src="icon-192.png?i=10" alt=""><div class="grow"><h1>تقرير أداء الطالب</h1><small>اهزم الدقيقة${d.cls ? ' · الصف ' + esc(d.cls) : ''}${subj ? ' · ' + esc(subj) : ''}</small></div><span class="rp4-dt">${rpDate(today, 1)}</span></div>`;
+  const head = `<div class="rp4-hd"><img src="icon-192.png?i=11" alt=""><div class="grow"><h1>تقرير أداء الطالب</h1><small>اهزم الدقيقة${d.cls ? ' · الصف ' + esc(d.cls) : ''}${subj ? ' · ' + esc(subj) : ''}</small></div><span class="rp4-dt">${rpDate(today, 1)}</span></div>`;
   const foot = n => `<div class="rp4-ft"><span>${esc(d.school || 'اهزم الدقيقة')}${d.teacher ? ' · المعلم: ' + esc(d.teacher) : ''}</span><span>${n} / 2</span></div>`;
   const diff = (a, b) => b == null ? '' : a >= b ? ` · <b class="g">أعلى بـ ${a - b}</b>` : ` · <b class="r">أقل بـ ${b - a}</b>`;
   const top = les.slice(0, 3), bars = les.slice(0, 8);
@@ -6367,7 +6367,7 @@ ACTS['r-report-pdf'] = async t => {
   const wrap = document.createElement('div'); wrap.className = 'rp-pdf-host';
   const page = document.createElement('div'); page.className = 'rp-pdf'; page.dir = 'rtl';
   const body = src.cloneNode(true); body.querySelectorAll('.rp-acts,button').forEach(b => b.remove());
-  page.innerHTML = `<div class="rp-pdf-top"><img src="icon-192.png?i=10" alt=""><div><b>اهزم الدقيقة</b><span>تقرير أداء الطالب</span></div><div class="rp-pdf-meta">${RS.lastCls ? esc(RS.lastCls) + '<br>' : ''}${esc(RS.name || '')}<br>${new Date().toLocaleDateString('ar-KW-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}</div></div>`;
+  page.innerHTML = `<div class="rp-pdf-top"><img src="icon-192.png?i=11" alt=""><div><b>اهزم الدقيقة</b><span>تقرير أداء الطالب</span></div><div class="rp-pdf-meta">${RS.lastCls ? esc(RS.lastCls) + '<br>' : ''}${esc(RS.name || '')}<br>${new Date().toLocaleDateString('ar-KW-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}</div></div>`;
   page.appendChild(body);
   page.insertAdjacentHTML('beforeend', `<div class="rp-pdf-foot">المعلم/ـة: ${esc(T.name || '')} · أُعدّ هذا التقرير آلياً من نتائج الجولات الرسمية</div>`);
   wrap.appendChild(page); document.body.appendChild(wrap); rpSplitWords(page);
