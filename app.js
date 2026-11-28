@@ -2333,7 +2333,7 @@ async function teacherRoute(){
     else if (page === 'new') await tNew();
     else if (page === 'join') tJoin();
     else if (page === 'class') await tClass(parts[1]);
-    else if (page === 'questions') await tQuestions();
+    else if (page === 'questions') await tQuestions(true);
     else if (page === 'subj') { QS.subj3 = decodeURIComponent(parts[1] || ''); SJ.open = SJ.keep || null; SJ.keep = null; SJ.fold = {}; await tQuestions(); }
     else if (page === 'qshare') { T.qf.status = 'approved'; await tQuestions(); qSharePreview(parts[1]); }
     else if (page === 'results') await tResults(parts[1], parts[2]);
@@ -4663,7 +4663,7 @@ ACTS['cp-save'] = async f => {
 /* ---- questions ---- */
 const QPD = 4; // questions a student plays per day
 const qNorm = s => String(s || '').replace(/[ً-ْـ]/g, '').replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().toLowerCase();
-async function tQuestions(){ if (location.hash.indexOf('#/t/subj/') !== 0) SJ.back = null; await qsLoad(); renderQuestions(); }
+async function tQuestions(fast){ if (location.hash.indexOf('#/t/subj/') !== 0) SJ.back = null; if (fast && QS.glob && QS.glob.length) { renderQuestions(); qsLoad().catch(() => {}); return; } /* v563 (Khalid): coming back from a subject page showed stale ticks until the whole bank reloaded */ await qsLoad(); renderQuestions(); }
 /* v379: loading split out so the new-challenge flow can read the ✓ lessons (picks) */
 /* v387: the server returns at most 1000 rows per request, so the bank (1600+) and the picks must be read page by page */
 async function qPages(mk){
